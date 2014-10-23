@@ -7,7 +7,7 @@ abstract class Two_Factor_Provider {
 	 */
 	abstract static function get_instance();
 
-	private function __construct() {
+	protected function __construct() {
 		return $this;
 	}
 
