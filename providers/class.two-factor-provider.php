@@ -2,11 +2,6 @@
 
 abstract class Two_Factor_Provider {
 
-	/**
-	 * @return object An Instance.
-	 */
-	abstract static function get_instance();
-
 	protected function __construct() {
 		return $this;
 	}
