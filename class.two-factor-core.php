@@ -15,7 +15,7 @@ class Two_Factor_Core {
 	 * Class constructor.  Sets up filters and actions.
 	 */
 	private function __construct() {
-		add_action( 'init', 'two_factor_get_providers' );
+		add_action( 'init', array( $this, 'two_factor_get_providers' ) );
 	}
 
 	/**
