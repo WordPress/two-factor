@@ -37,7 +37,7 @@ abstract class Two_Factor_Provider {
 	abstract function validate_authentication( $user );
 
 	/**
-	 * Generate a random six-digit string to send out as an auth code.
+	 * Generate a random eight-digit string to send out as an auth code.
 	 */
 	function get_code( $length = 8, $chars = '1234567890' ) {
 		$code = '';
