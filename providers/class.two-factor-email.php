@@ -41,14 +41,14 @@ class Two_Factor_Email extends Two_Factor_Provider {
 		?>
 		<p>
 			<label for="authcode"><?php esc_html_e( 'Verification Code:' ); ?></label>
-			<input type="tel" name="twostep-authcode" id="authcode" class="input" value="" size="20" pattern="[0-9]*" />
+			<input type="tel" name="two-factor-email-code" id="authcode" class="input" value="" size="20" pattern="[0-9]*" />
 		</p>
 		<?php
 		submit_button( __( 'Log In', 'two-factor' ) );
 	}
 
 	function validate_authentication( $user ) {
-		
+		return $this->validate_token( $user->ID, $_REQUEST['two-factor-email-code'] );
 	}
 
 }
