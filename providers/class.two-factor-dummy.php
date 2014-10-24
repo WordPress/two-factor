@@ -18,7 +18,7 @@ class Two_Factor_Dummy extends Two_Factor_Provider {
 	function authentication_page() {
 		submit_button();
 	}
-	
+
 	function validate_authentication_page() {
 		return true;
 	}
