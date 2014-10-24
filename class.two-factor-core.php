@@ -19,6 +19,7 @@ class Two_Factor_Core {
 	 */
 	private function __construct() {
 		add_action( 'init',                array( $this, 'get_providers' ) );
+		add_action( 'wp_login',            array( $this, 'wp_login' ), 10, 2 );
 		add_action( 'show_user_profile',   array( $this, 'user_two_factor_options' ) );
 		add_action( 'edit_user_profile',   array( $this, 'user_two_factor_options' ) );
 		add_action( 'personal_options_update',  array( $this, 'user_two_factor_options_update' ) );
@@ -96,6 +97,69 @@ class Two_Factor_Core {
 	}
 
 	/**
+	 * Handle the browser-based login.
+	 */
+	function wp_login( $user_login, $user ) {
+		if ( ! $this->is_user_using_two_factor( $user->ID ) ) {
+			return;
+		}
+
+		wp_clear_auth_cookie();
+
+		$this->show_two_factor_login( $user );
+		exit;
+	}
+
+	function show_two_factor_login( $user ) {
+		if ( ! function_exists( 'login_header' ) ) {
+			require_once( ABSPATH . WPINC . '/functions.wp-login.php' );
+		}
+
+		if ( ! $user ) {
+			$user = wp_get_current_user();
+		}
+
+		$login_nonce = $this->create_login_nonce( $user->ID );
+		if ( ! $login_nonce ) {
+			wp_die( __( 'Could not save login nonce.', 'two-factor' ) );
+		}
+
+		$redirect_to = isset( $_REQUEST['redirect_to'] ) ? $_REQUEST['redirect_to'] : $_SERVER['REQUEST_URI'];
+
+		$this->login_html( $user, $login_nonce, $redirect_to );
+	}
+
+	function login_html( $user, $login_nonce, $redirect_to, $error_msg = '', $login_type = 'standard' ) {
+		$provider = $this->get_provider_for_user( $user->ID );
+
+		$rememberme = 0;
+		if ( isset ( $_REQUEST[ 'rememberme' ] ) && $_REQUEST[ 'rememberme' ] ) {
+			$rememberme = 1;
+		}
+
+		login_header();
+
+		if ( ! empty( $error_msg ) ) {
+			echo '<div id="login_error"><strong>' . esc_html( $error_msg ) . '</strong><br /></div>';
+		}
+		?>
+
+		<form name="twostepform" id="loginform" action="<?php echo esc_url( site_url( 'wp-login.php?action=twostep', 'login_post' ) ); ?>" method="post" autocomplete="off">
+				<input type="hidden" name="wp-auth-id" id="wp-auth-id" value="<?php echo esc_attr( $user->ID ) ?>" />
+				<input type="hidden" name="wp-auth-nonce" id="wp-auth-nonce" value="<?php echo esc_attr( $login_nonce['key'] ) ?>"/>
+				<input type="hidden" name="redirect_to" id="redirect_to" value="<?php echo esc_attr( $redirect_to ) ?>"/>
+				<input type="hidden" name="rememberme" id="rememberme" value="<?php echo esc_attr( $rememberme ) ?>"/>
+
+				<?php $provider->authentication_page( $user ); ?>
+
+		</form>
+
+		<p id="backtoblog"><a href="<?php echo esc_url( home_url( '/' ) ); ?>" title="<?php esc_attr_e( 'Are you lost?' ); ?>"><?php printf( __( '&larr; Back to %s' ), get_bloginfo( 'title', 'display' ) ); ?></a></p>
+
+		</body>
+		</html>
+		<?php
+	}
 
 	function create_login_nonce( $user_id ) {
 		$login_nonce               = array();
