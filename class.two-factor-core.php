@@ -20,6 +20,7 @@ class Two_Factor_Core {
 	private function __construct() {
 		add_action( 'init',                array( $this, 'get_providers' ) );
 		add_action( 'wp_login',            array( $this, 'wp_login' ), 10, 2 );
+		add_action( 'login_form_twostep',  array( $this, 'login_form_twostep' ) );
 		add_action( 'show_user_profile',   array( $this, 'user_two_factor_options' ) );
 		add_action( 'edit_user_profile',   array( $this, 'user_two_factor_options' ) );
 		add_action( 'personal_options_update',  array( $this, 'user_two_factor_options_update' ) );
@@ -190,6 +191,52 @@ class Two_Factor_Core {
 
 		return true;
 	}
+
+	function login_form_twostep() {
+		if ( ! isset( $_POST['wp-auth-id'], $_POST['wp-auth-nonce'] ) ) {
+			return;
+		}
+
+		$user = get_userdata( $_POST['wp-auth-id'] );
+		if ( ! $user ) {
+			return;
+		}
+		
+		$nonce = $_POST['wp-auth-nonce'];
+		if ( true !== $this->verify_login_nonce( $user->ID, $nonce ) ) {
+			wp_safe_redirect( get_bloginfo('url') );
+			exit();
+		}
+
+		$provider = $this->get_provider_for_user( $user->ID );
+		if ( true !== $provider->validate_authentication( $user ) ) {
+			do_action( 'wp_login_failed', $userdata->user_login );
+
+			$login_nonce = $this->create_login_nonce( $userdata->ID );
+			if ( ! $login_nonce ) {
+				return;
+			}
+
+			$this->login_html( $user, $login_nonce, $_REQUEST['redirect_to'], __( 'ERROR: Invalid verification code.', 'two-factor' ) );
+			exit;
+		}
+
+		$this->delete_login_nonce( $user->ID );
+
+		$rememberme = false;
+		if ( isset ( $_REQUEST[ 'rememberme' ] ) && $_REQUEST[ 'rememberme' ] ) {
+			$rememberme = true;
+		}
+		
+		wp_set_auth_cookie( $user->ID, $rememberme );
+
+		$redirect_to = apply_filters( 'login_redirect', $_REQUEST['redirect_to'], $_REQUEST['redirect_to'], $user );
+		wp_safe_redirect( $redirect_to );
+
+		exit();
+	}
+
+	/**
 	 * Add user profile fields.
 	 */
 	function user_two_factor_options( $user ) {
