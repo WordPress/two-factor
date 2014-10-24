@@ -43,6 +43,16 @@ class Two_Factor_Email extends Two_Factor_Provider {
 			<label for="authcode"><?php esc_html_e( 'Verification Code:' ); ?></label>
 			<input type="tel" name="two-factor-email-code" id="authcode" class="input" value="" size="20" pattern="[0-9]*" />
 		</p>
+		<script type="text/javascript">
+			setTimeout( function(){
+				var d;
+				try{
+					d = document.getElementById('authcode');
+					d.value = '';
+					d.focus();
+				} catch(e){}
+			}, 200);
+		</script>
 		<?php
 		submit_button( __( 'Log In', 'two-factor' ) );
 	}
