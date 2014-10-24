@@ -3,6 +3,7 @@
 class Two_Factor_Core {
 
 	const PROVIDER_USER_META_KEY = '_two_factor_provider';
+	const USER_META_NONCE_KEY    = '_two_factor_nonce';
 
 	static function get_instance() {
 		static $instance;
@@ -95,6 +96,36 @@ class Two_Factor_Core {
 	}
 
 	/**
+
+	function create_login_nonce( $user_id ) {
+		$login_nonce               = array();
+		$login_nonce['key']        = wp_hash( $user_id . mt_rand() . microtime(), 'nonce' );
+		$login_nonce['expiration'] = time() + HOUR_IN_SECONDS;
+
+		if ( ! update_user_meta( $user_id, self::USER_META_NONCE_KEY, $login_nonce ) ) {
+			return false;
+		}
+
+		return $login_nonce;
+	}
+
+	function delete_login_nonce( $user_id ) {
+		return delete_user_meta( $user_id, self::USER_META_NONCE_KEY );
+	}
+
+	function verify_login_nonce( $user_id, $nonce ) {
+		$login_nonce = get_user_meta( $user_id, self::USER_META_NONCE_KEY, true );
+		if ( ! $login_nonce ) {
+			return false;
+		}
+
+		if ( $nonce != $login_nonce['key'] || time() > $login_nonce['expiration'] ) {
+			$this->delete_login_nonce( $user_id );
+			return false;
+		}
+
+		return true;
+	}
 	 * Add user profile fields.
 	 */
 	function user_two_factor_options( $user ) {
