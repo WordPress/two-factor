@@ -87,6 +87,14 @@ class Two_Factor_Core {
 	}
 
 	/**
+	 * Quick boolean check for whether a given user is using two-step.
+	 */
+	function is_user_using_two_factor( $user_id = null ) {
+		$provider = $this->get_provider_for_user( $user_id );
+		return ! empty( $provider );
+	}
+
+	/**
 	 * Add user profile fields.
 	 */
 	function user_two_factor_options( $user ) {
