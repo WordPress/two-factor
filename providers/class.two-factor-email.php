@@ -15,7 +15,13 @@ class Two_Factor_Email extends Two_Factor_Provider {
 		return _x( 'Email', 'Provider Label', 'two-factor' );
 	}
 
-	function authentication_page( $user ) {}
-	function validate_authentication( $user ) {}
+	function authentication_page( $user ) {
+		require_once( ABSPATH .  '/wp-admin/includes/template.php' );
+		submit_button( __( 'Log In', 'two-factor' ) );
+	}
+
+	function validate_authentication( $user ) {
+		
+	}
 
 }
