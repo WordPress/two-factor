@@ -60,4 +60,25 @@ class Two_Factor_Core {
 
 		return $providers;
 	}
+
+	/**
+	 * Gets the Two-Factor Auth provider for the specified|current user.
+	 *
+	 * @param $user_id optional
+	 *
+	 * $return object|null
+	 */
+	function get_provider_for_user( $user_id = null ) {
+		if ( empty( $user_id ) || ! is_numeric( $user_id ) ) {
+			$user_id = get_current_user_id();
+		}
+		$provider = get_user_meta( $user_id, self::PROVIDER_USER_META_KEY, true );
+		$providers = self::get_providers();
+
+		if ( isset( $providers[ $provider ] ) ) {
+			return $providers[ $provider ];
+		}
+
+		return null;
+	}
 }
