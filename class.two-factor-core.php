@@ -18,6 +18,10 @@ class Two_Factor_Core {
 	 */
 	private function __construct() {
 		add_action( 'init',              array( $this, 'get_providers' ) );
+		add_action( 'show_user_profile', array( $this, 'user_two_factor_options' ) );
+		add_action( 'edit_user_profile', array( $this, 'user_two_factor_options' ) );
+		add_action( 'personal_options_update',  array( $this, 'user_two_factor_options_update' ) );
+		add_action( 'edit_user_profile_update', array( $this, 'user_two_factor_options_update' ) );
 	}
 
 	/**
@@ -80,5 +84,56 @@ class Two_Factor_Core {
 		}
 
 		return null;
+	}
+
+	/**
+	 * Add user profile fields.
+	 */
+	function user_two_factor_options( $user ) {
+		$curr = get_user_meta( $user->ID, self::PROVIDER_USER_META_KEY, true );
+		wp_nonce_field( 'user_two_factor_options', '_nonce_user_two_factor_options', false );
+		?>
+		<table class="form-table">
+			<tr>
+				<th>
+					<?php esc_html_e( 'Two-Factor Options', 'two-factor' ); ?>
+				</th>
+				<td>
+					<label>
+						<input type="radio" name="<?php echo esc_attr( self::PROVIDER_USER_META_KEY ); ?>" value="" <?php checked( '', $curr ); ?> />
+						<?php esc_html_e( 'None', 'two-factor' ); ?>
+					</label>
+					<?php foreach ( self::get_providers() as $class => $object ) : ?>
+						<br />
+						<label>
+							<input type="radio" name="<?php echo esc_attr( self::PROVIDER_USER_META_KEY ); ?>" value="<?php echo esc_attr( $class ); ?>" <?php checked( $class, $curr ); ?> />
+							<?php $object->print_label(); ?>
+						</label>
+					<?php endforeach; ?>
+				</td>
+			</tr>
+		</table>
+		<?php
+	}
+
+	/**
+	 * Update the user meta value.
+	 */
+	function user_two_factor_options_update( $user_id ) {
+		if ( isset( $_POST[ self::PROVIDER_USER_META_KEY ] ) ) {
+			check_admin_referer( 'user_two_factor_options', '_nonce_user_two_factor_options' );
+			$new_provider = $_POST[ self::PROVIDER_USER_META_KEY ];
+			$providers = self::get_providers();
+
+			/**
+			 * Whitelist the new values to only the available classes and empty.
+			 */
+			if ( empty( $new_provider ) || array_key_exists( $new_provider, $providers ) ) {
+				update_user_meta( $user_id, self::PROVIDER_USER_META_KEY, $new_provider );
+			} else {
+				echo 'WTF M8^^';
+				exit;
+			}
+		}
 	}
 }
