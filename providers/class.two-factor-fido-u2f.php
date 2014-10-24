@@ -11,6 +11,10 @@ class Two_Factor_Fido_U2f extends Two_Factor_Provider {
 		return $instance;
 	}
 
+	function get_label() {
+		return _x( 'FIDO U2f', 'Provider Label', 'two-factor' );
+	}
+
 	function authentication_page() {}
 	function validate_authentication_page() {}
 

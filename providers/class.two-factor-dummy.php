@@ -11,6 +11,10 @@ class Two_Factor_Dummy extends Two_Factor_Provider {
 		return $instance;
 	}
 
+	function get_label() {
+		return _x( 'Dummy Method', 'Provider Label', 'two-factor' );
+	}
+
 	function authentication_page() {
 		submit_button();
 	}

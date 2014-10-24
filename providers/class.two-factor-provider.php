@@ -7,6 +7,20 @@ abstract class Two_Factor_Provider {
 	}
 
 	/**
+	 * Returns the name of the method.
+	 *
+	 * @return string
+	 */
+	abstract function get_label();
+
+	/**
+	 * Prints the name of the method.
+	 */
+	function print_label() {
+		echo esc_html( $this->get_label() );
+	}
+
+	/**
 	 * Prints the form that prompts the user to authenticate.
 	 */
 	abstract function authentication_page();

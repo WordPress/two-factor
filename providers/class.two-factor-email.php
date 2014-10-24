@@ -11,6 +11,10 @@ class Two_Factor_Email extends Two_Factor_Provider {
 		return $instance;
 	}
 
+	function get_label() {
+		return _x( 'Email', 'Provider Label', 'two-factor' );
+	}
+
 	function authentication_page() {}
 	function validate_authentication_page() {}
 

@@ -11,6 +11,11 @@ class Two_Factor_Totp extends Two_Factor_Provider {
 		return $instance;
 	}
 
+
+	function get_label() {
+		return _x( 'Time Based One-Time Password (Google Authenticator)', 'Provider Label', 'two-factor' );
+	}
+
 	function authentication_page() {}
 	function validate_authentication_page() {}
 
