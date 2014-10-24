@@ -36,7 +36,16 @@ class Two_Factor_Email extends Two_Factor_Provider {
 		delete_user_meta( $user_id, self::TOKEN_META_KEY );
 	}
 
+	function generate_and_email_token( $user ) {
+		$token = $this->generate_token( $user->ID );
+
+		$subject = sprintf( __( 'Your login confirmation code for %s', 'two-factor' ), get_bloginfo( 'name' ) );
+		$message = sprintf( __( 'Enter %s to log in.', 'two-factor' ), $token );
+		wp_mail( $user->user_email, $subject, $message );
+	}
+
 	function authentication_page( $user ) {
+		$this->generate_and_email_token( $user );
 		require_once( ABSPATH .  '/wp-admin/includes/template.php' );
 		?>
 		<p>
