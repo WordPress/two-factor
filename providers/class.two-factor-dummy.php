@@ -15,11 +15,11 @@ class Two_Factor_Dummy extends Two_Factor_Provider {
 		return _x( 'Dummy Method', 'Provider Label', 'two-factor' );
 	}
 
-	function authentication_page() {
-		submit_button();
+	function authentication_page( $user ) {
+		submit_button( __( 'Yup.', 'two-factor' ) );
 	}
 
-	function validate_authentication_page() {
+	function validate_authentication( $user ) {
 		return true;
 	}
 

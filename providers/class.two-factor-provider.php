@@ -22,15 +22,19 @@ abstract class Two_Factor_Provider {
 
 	/**
 	 * Prints the form that prompts the user to authenticate.
+	 *
+	 * @param $user WP_User
 	 */
-	abstract function authentication_page();
+	abstract function authentication_page( $user );
 
 	/**
 	 * Validates the users input token.
 	 *
+	 * @param $user WP_User
+	 *
 	 * @return boolean
 	 */
-	abstract function validate_authentication_page();
+	abstract function validate_authentication( $user );
 
 	/**
 	 * Generate a random six-digit string to send out as an auth code.
