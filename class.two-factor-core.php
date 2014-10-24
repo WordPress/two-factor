@@ -18,9 +18,9 @@ class Two_Factor_Core {
 	 * Class constructor.  Sets up filters and actions.
 	 */
 	private function __construct() {
-		add_action( 'init',              array( $this, 'get_providers' ) );
-		add_action( 'show_user_profile', array( $this, 'user_two_factor_options' ) );
-		add_action( 'edit_user_profile', array( $this, 'user_two_factor_options' ) );
+		add_action( 'init',                array( $this, 'get_providers' ) );
+		add_action( 'show_user_profile',   array( $this, 'user_two_factor_options' ) );
+		add_action( 'edit_user_profile',   array( $this, 'user_two_factor_options' ) );
 		add_action( 'personal_options_update',  array( $this, 'user_two_factor_options_update' ) );
 		add_action( 'edit_user_profile_update', array( $this, 'user_two_factor_options_update' ) );
 	}
