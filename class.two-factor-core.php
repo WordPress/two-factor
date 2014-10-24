@@ -2,6 +2,8 @@
 
 class Two_Factor_Core {
 
+	const PROVIDER_USER_META_KEY = '_two_factor_provider';
+
 	static function get_instance() {
 		static $instance;
 		$class = __CLASS__;
