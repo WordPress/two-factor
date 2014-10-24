@@ -210,9 +210,9 @@ class Two_Factor_Core {
 
 		$provider = $this->get_provider_for_user( $user->ID );
 		if ( true !== $provider->validate_authentication( $user ) ) {
-			do_action( 'wp_login_failed', $userdata->user_login );
+			do_action( 'wp_login_failed', $user->user_login );
 
-			$login_nonce = $this->create_login_nonce( $userdata->ID );
+			$login_nonce = $this->create_login_nonce( $user->ID );
 			if ( ! $login_nonce ) {
 				return;
 			}
