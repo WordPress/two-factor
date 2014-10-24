@@ -46,7 +46,7 @@ abstract class Two_Factor_Provider {
 		}
 		for ( $i = 0; $i < $length; $i++ ) {
 			$key = array_rand( $chars );
-			$code += $chars[ $key ];
+			$code .= $chars[ $key ];
 		}
 		return $code;
 	}
