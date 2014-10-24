@@ -15,7 +15,7 @@ class Two_Factor_Core {
 	 * Class constructor.  Sets up filters and actions.
 	 */
 	private function __construct() {
-		add_action( 'init', array( $this, 'two_factor_get_providers' ) );
+		add_action( 'init',              array( $this, 'get_providers' ) );
 	}
 
 	/**
@@ -23,7 +23,7 @@ class Two_Factor_Core {
 	 *
 	 * @return array
 	 */
-	function two_factor_get_providers() {
+	function get_providers() {
 		$providers = array(
 			'Two_Factor_Email'    => TWO_FACTOR_DIR . 'providers/class.two-factor-email.php',
 			'Two_Factor_Totp'     => TWO_FACTOR_DIR . 'providers/class.two-factor-totp.php',
