@@ -9,6 +9,7 @@ class Application_Passwords_List_Table extends WP_List_Table {
 	function get_columns() {
 		return array(
 			'name'      => __( 'Name' ),
+			'created'   => __( 'Created' ),
 			'last_used' => __( 'Last Used' ),
 			'last_ip'   => __( 'Last IP' ),
 		);
@@ -25,6 +26,11 @@ class Application_Passwords_List_Table extends WP_List_Table {
 		switch( $column_name ) {
 			case 'name':
 				return esc_html( $item['name'] );
+			case 'created':
+				if ( empty( $item['created'] ) ) {
+					return __( 'Unknown' );
+				}
+				return date( get_option( 'date_format' ), $item['created'] );
 			case 'last_used':
 				return $item['last_used'] ? $item['last_used'] : __( 'Never' );
 			case 'last_ip':

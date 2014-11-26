@@ -129,6 +129,7 @@ class Application_Passwords {
 			'name'      => $name,
 		    'raw'       => $new_password, // THIS LINE GETS DELETED IN SUBSEQUENT REQUEST
 			'password'  => $hashed_password,
+			'created'   => time(),
 			'last_used' => null,
 			'last_ip'   => null,
 		);
