@@ -32,9 +32,15 @@ class Application_Passwords_List_Table extends WP_List_Table {
 				}
 				return date( get_option( 'date_format' ), $item['created'] );
 			case 'last_used':
-				return $item['last_used'] ? $item['last_used'] : __( 'Never' );
+				if ( empty( $item['last_used'] ) ) {
+					return __( 'Never' );
+				}
+				return $item['last_used'];
 			case 'last_ip':
-				return $item['last_ip'] ? $item['last_ip'] : __( 'Never Used' );
+				if ( empty( $item['last_ip'] ) ) {
+					return __( 'Never Used' );
+				}
+				return $item['last_ip'];
 			default:
 				return 'WTF^^?';
 		}
