@@ -63,17 +63,20 @@ class Application_Passwords {
 
 	function show_user_profile( $user ) {
 		wp_nonce_field( "user_application_passwords-{$user->ID}", '_nonce_user_application_passwords' );
-		$application_passwords = $this->get_user_application_passwords( $user->ID );
 		$new_password      = null;
 		$new_password_name = null;
-		foreach ( $application_passwords as &$application_password ) {
-			if ( ! empty( $application_password['raw'] ) ) {
-				$new_password      = $application_password['raw'];
-				$new_password_name = $application_password['name'];
-				unset( $application_password['raw'] );
+
+		$application_passwords = $this->get_user_application_passwords( $user->ID );
+		if ( $application_passwords ) {
+			foreach ( $application_passwords as &$application_password ) {
+				if ( ! empty( $application_password['raw'] ) ) {
+					$new_password      = $application_password['raw'];
+					$new_password_name = $application_password['name'];
+					unset( $application_password['raw'] );
+				}
 			}
+			unset( $application_password );
 		}
-		unset( $application_password );
 
 		// If we've got a new one, update the db record to not save it there any longer.
 		if ( $new_password ) {
