@@ -19,7 +19,8 @@ class Application_Passwords_List_Table extends WP_List_Table {
 		$columns  = $this->get_columns();
 		$hidden   = array();
 		$sortable = array();
-		$this->_column_headers = array( $columns, $hidden, $sortable );
+		$primary  = 'name';
+		$this->_column_headers = array( $columns, $hidden, $sortable, $primary );
 	}
 
 	function column_default( $item, $column_name ) {
