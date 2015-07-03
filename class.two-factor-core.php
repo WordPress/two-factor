@@ -240,7 +240,11 @@ class Two_Factor_Core {
 	 * Add user profile fields.
 	 */
 	function user_two_factor_options( $user ) {
-		$curr = get_user_meta( $user->ID, self::PROVIDER_USER_META_KEY, true );
+		/**
+		 * @todo: Handle available methods, and not just primary.
+		 */
+		$available_providers = array();
+		$primary_provider = get_user_meta( $user->ID, self::PROVIDER_USER_META_KEY, true );
 		wp_nonce_field( 'user_two_factor_options', '_nonce_user_two_factor_options', false );
 		?>
 		<table class="form-table">
@@ -249,17 +253,24 @@ class Two_Factor_Core {
 					<?php esc_html_e( 'Two-Factor Options', 'two-factor' ); ?>
 				</th>
 				<td>
-					<label>
-						<input type="radio" name="<?php echo esc_attr( self::PROVIDER_USER_META_KEY ); ?>" value="" <?php checked( '', $curr ); ?> />
-						<?php esc_html_e( 'None', 'two-factor' ); ?>
-					</label>
-					<?php foreach ( self::get_providers() as $class => $object ) : ?>
-						<br />
-						<label>
-							<input type="radio" name="<?php echo esc_attr( self::PROVIDER_USER_META_KEY ); ?>" value="<?php echo esc_attr( $class ); ?>" <?php checked( $class, $curr ); ?> />
-							<?php $object->print_label(); ?>
-						</label>
-					<?php endforeach; ?>
+					<table class="two-factor-methods-table">
+						<thead>
+							<tr>
+							<!--<th style="width: 5%;" scope="col"><?php esc_html_e( 'Available', 'two-factor' ); ?></th>-->
+								<th style="width: 5%;" scope="col"><?php esc_html_e( 'Primary', 'two-factor' ); ?></th>
+								<th style="width: 90%;" scope="col"><?php esc_html_e( 'Name', 'two-factor' ); ?></th>
+							</tr>
+						</thead>
+						<tbody>
+						<?php foreach ( self::get_providers() as $class => $object ) : ?>
+							<tr>
+							<!--<td><input type="checkbox" name="" value="<?php echo esc_attr( $class ); ?>" <?php checked( in_array( $class, $available_providers ) ); ?> /></td>-->
+								<td><input type="radio" name="<?php echo esc_attr( self::PROVIDER_USER_META_KEY ); ?>" value="<?php echo esc_attr( $class ); ?>" <?php checked( $class, $primary_provider ); ?> /></td>
+								<td><?php $object->print_label(); ?></td>
+							</tr>
+						<?php endforeach; ?>
+						</tbody>
+					</table>
 				</td>
 			</tr>
 		</table>
