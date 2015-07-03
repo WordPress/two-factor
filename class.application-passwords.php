@@ -86,7 +86,7 @@ class Application_Passwords {
 
 			<?php if ( $new_password ) : ?>
 			<p class="new-application-password">
-				<?php printf( __( 'Your new password for <strong>%s</strong> is <kbd>%s</kbd>.' ), esc_html( $new_password_name ), self::chunk_password( $new_password ) ); ?>
+				<?php printf( __( 'Your new password for <strong>%s</strong> is <kbd>%s</kbd>.', 'two-factor' ), esc_html( $new_password_name ), self::chunk_password( $new_password ) ); ?>
 			</p>
 			<?php endif; ?>
 
@@ -172,7 +172,7 @@ class Application_Passwords {
 		$slug = self::password_unique_slug( $item );
 		$delete_link = add_query_arg( 'delete_application_password', $slug );
 		$delete_link = wp_nonce_url( $delete_link, "delete_application_password-{$slug}", '_nonce_delete_application_password' );
-		return sprintf( '<a href="%1$s">%2$s</a>', esc_url( $delete_link ), esc_html__( 'Delete' ) );
+		return sprintf( '<a href="%1$s">%2$s</a>', esc_url( $delete_link ), esc_html__( 'Delete', 'two-factor' ) );
 	}
 
 	/**

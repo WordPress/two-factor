@@ -8,10 +8,10 @@ class Application_Passwords_List_Table extends WP_List_Table {
 
 	function get_columns() {
 		return array(
-			'name'      => __( 'Name' ),
-			'created'   => __( 'Created' ),
-			'last_used' => __( 'Last Used' ),
-			'last_ip'   => __( 'Last IP' ),
+			'name'      => __( 'Name', 'two-factor' ),
+			'created'   => __( 'Created', 'two-factor' ),
+			'last_used' => __( 'Last Used', 'two-factor' ),
+			'last_ip'   => __( 'Last IP', 'two-factor' ),
 		);
 	}
 
@@ -32,17 +32,17 @@ class Application_Passwords_List_Table extends WP_List_Table {
 				return esc_html( $item['name'] ) . self::row_actions( $actions );
 			case 'created':
 				if ( empty( $item['created'] ) ) {
-					return __( 'Unknown' );
+					return __( 'Unknown', 'two-factor' );
 				}
 				return date( get_option( 'date_format', 'r' ), $item['created'] );
 			case 'last_used':
 				if ( empty( $item['last_used'] ) ) {
-					return __( 'Never' );
+					return __( 'Never', 'two-factor' );
 				}
 				return date( get_option( 'date_format', 'r' ), $item['last_used'] );
 			case 'last_ip':
 				if ( empty( $item['last_ip'] ) ) {
-					return __( 'Never Used' );
+					return __( 'Never Used', 'two-factor' );
 				}
 				return $item['last_ip'];
 			default:
