@@ -26,7 +26,10 @@ class Application_Passwords_List_Table extends WP_List_Table {
 	function column_default( $item, $column_name ) {
 		switch( $column_name ) {
 			case 'name':
-				return esc_html( $item['name'] );
+				$actions = array(
+					'delete' => Application_Passwords::delete_link( $item ),
+				);
+				return esc_html( $item['name'] ) . self::row_actions( $actions );
 			case 'created':
 				if ( empty( $item['created'] ) ) {
 					return __( 'Unknown' );
