@@ -185,7 +185,7 @@ class Application_Passwords {
 		foreach ( $passwords as $key => $item ) {
 			if ( $slug === self::password_unique_slug( $item ) ) {
 				unset( $passwords[ $key ] );
-				self::set_user_application_passwords( $passwords, $user_id );
+				self::set_user_application_passwords( $user_id, $passwords );
 				return true;
 			}
 		}
