@@ -119,11 +119,11 @@ class Application_Passwords {
 	public static function catch_delete_application_password() {
 		$user_id = get_current_user_id();
 		if ( ! empty( $_REQUEST['delete_application_password'] ) ) {
-			$result = self::delete_application_password( $user_id, $_REQUEST['delete_application_password'] );
+			$slug = $_REQUEST['delete_application_password'];
 
-			wp_safe_redirect( add_query_arg( array(
-				'deleted_app_pass' => (int) $result,
-			), wp_get_referer() ) . '#application-passwords-section' );
+			self::delete_application_password( $user_id, $slug );
+
+			wp_safe_redirect( remove_query_arg( 'new_app_pass', wp_get_referer() ) . '#application-passwords-section' );
 		}
 	}
 
