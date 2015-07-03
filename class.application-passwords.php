@@ -114,6 +114,14 @@ class Application_Passwords {
 		}
 	}
 
+	/**
+	 * Generate a new application password.
+	 *
+	 * @param $user_id
+	 * @param $name
+	 *
+	 * @return string
+	 */
 	public static function create_new_application_password( $user_id, $name ) {
 		$passwords       = self::get_user_application_passwords( $user_id );
 		$new_password    = wp_generate_password( 16, false );
