@@ -4,24 +4,15 @@ class Application_Passwords {
 
 	const USERMETA_KEY_APPLICATION_PASSWORDS = '_application_passwords';
 
-	static function get_instance() {
-		static $instance;
-		$class = __CLASS__;
-		if ( ! is_a( $instance, $class ) ) {
-			$instance = new $class;
-		}
-		return $instance;
+	public static function add_hooks() {
+		add_filter( 'authenticate',             array( __CLASS__, 'authenticate' ), 10, 3 );
+		add_action( 'show_user_profile',        array( __CLASS__, 'show_user_profile' ) );
+		add_action( 'edit_user_profile',        array( __CLASS__, 'show_user_profile' ) );
+		add_action( 'personal_options_update',  array( __CLASS__, 'catch_submission' ), 0 );
+		add_action( 'edit_user_profile_update', array( __CLASS__, 'catch_submission' ), 0 );
 	}
 
-	function __construct() {
-		add_filter( 'authenticate',             array( $this, 'authenticate' ), 10, 3 );
-		add_action( 'show_user_profile',        array( $this, 'show_user_profile' ) );
-		add_action( 'edit_user_profile',        array( $this, 'show_user_profile' ) );
-		add_action( 'personal_options_update',  array( $this, 'catch_submission' ), 0 );
-		add_action( 'edit_user_profile_update', array( $this, 'catch_submission' ), 0 );
-	}
-
-	function authenticate( $input_user, $username, $password ) {
+	public static function authenticate( $input_user, $username, $password ) {
 		$api_request = ( defined( 'XMLRPC_REQUEST' ) && XMLRPC_REQUEST );
 		if ( ! apply_filters( 'application_password_is_api_request', $api_request ) ) {
 			return $input_user;
@@ -61,12 +52,12 @@ class Application_Passwords {
 		return $input_user;
 	}
 
-	function show_user_profile( $user ) {
+	public static function show_user_profile( $user ) {
 		wp_nonce_field( "user_application_passwords-{$user->ID}", '_nonce_user_application_passwords' );
 		$new_password      = null;
 		$new_password_name = null;
 
-		$application_passwords = $this->get_user_application_passwords( $user->ID );
+		$application_passwords = self::get_user_application_passwords( $user->ID );
 		if ( $application_passwords ) {
 			foreach ( $application_passwords as &$application_password ) {
 				if ( ! empty( $application_password['raw'] ) ) {
@@ -80,7 +71,7 @@ class Application_Passwords {
 
 		// If we've got a new one, update the db record to not save it there any longer.
 		if ( $new_password ) {
-			$this->set_user_application_passwords( $user->ID, $application_passwords );
+			self::set_user_application_passwords( $user->ID, $application_passwords );
 		}
 		?>
 		<div class="application-passwords" id="application-passwords-section">
@@ -92,7 +83,7 @@ class Application_Passwords {
 
 			<?php if ( $new_password ) : ?>
 			<p class="new-application-password">
-				<?php printf( __( 'Your new password for <strong>%s</strong> is <kbd>%s</kbd>.' ), esc_html( $new_password_name ), $this->chunk_password( $new_password ) ); ?>
+				<?php printf( __( 'Your new password for <strong>%s</strong> is <kbd>%s</kbd>.' ), esc_html( $new_password_name ), self::chunk_password( $new_password ) ); ?>
 			</p>
 			<?php endif; ?>
 
@@ -110,11 +101,11 @@ class Application_Passwords {
 	/**
 	 * Catch the non-ajax submission from the new form.
 	 */
-	function catch_submission( $user_id ) {
+	public static function catch_submission( $user_id ) {
 		if ( ! empty( $_REQUEST['do_new_application_password'] ) ) {
 			check_admin_referer( "user_application_passwords-{$user_id}", '_nonce_user_application_passwords' );
 
-			$this->create_new_application_password( $user_id, sanitize_text_field( $_POST['new_application_password_name'] ) );
+			self::create_new_application_password( $user_id, sanitize_text_field( $_POST['new_application_password_name'] ) );
 
 			wp_safe_redirect( add_query_arg( array(
 					'new_app_pass' => 1,
@@ -123,8 +114,8 @@ class Application_Passwords {
 		}
 	}
 
-	function create_new_application_password( $user_id, $name ) {
-		$passwords       = $this->get_user_application_passwords( $user_id );
+	public static function create_new_application_password( $user_id, $name ) {
+		$passwords       = self::get_user_application_passwords( $user_id );
 		$new_password    = wp_generate_password( 16, false );
 		$hashed_password = wp_hash_password( $new_password );
 
@@ -142,21 +133,21 @@ class Application_Passwords {
 		}
 
 		$passwords[] = $new_item;
-		$this->set_user_application_passwords( $user_id, $passwords );
+		self::set_user_application_passwords( $user_id, $passwords );
 
 		return chunk_split( $new_password, 4, ' ' );
 	}
 
-	function chunk_password( $raw_password ) {
+	public static function chunk_password( $raw_password ) {
 		$raw_password = preg_replace( '/[^a-z\d]/i', '', $raw_password );
 		return trim( chunk_split( $raw_password, 4, ' ' ) );
 	}
 
-	function get_user_application_passwords( $user_id ) {
+	public static function get_user_application_passwords( $user_id ) {
 		return get_user_meta( $user_id, self::USERMETA_KEY_APPLICATION_PASSWORDS, true );
 	}
 
-	function set_user_application_passwords( $user_id, $items ) {
+	public static function set_user_application_passwords( $user_id, $items ) {
 		return update_user_meta( $user_id, self::USERMETA_KEY_APPLICATION_PASSWORDS, $items );
 	}
 }

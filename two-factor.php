@@ -28,4 +28,4 @@ Two_Factor_Core::get_instance();
  * Include the application passwords system.
  */
 require_once( TWO_FACTOR_DIR . 'class.application-passwords.php' );
-Application_Passwords::get_instance();
+Application_Passwords::add_hooks();
