@@ -138,6 +138,52 @@ class Application_Passwords {
 		return chunk_split( $new_password, 4, ' ' );
 	}
 
+	/**
+	 * Generate a link to delete a specified application password.
+	 *
+	 * @param $item
+	 *
+	 * @return string
+	 */
+	public static function delete_link( $item ) {
+		$slug = self::password_unique_slug( $item );
+		return sprintf( '<a href="%1$s">%2$s</a>', esc_url( add_query_arg( 'delete_application_password', $slug ) ), esc_html__( 'Delete' ) );
+	}
+
+	/**
+	 * Delete a specified application password.
+	 *
+	 * @param $user_id
+	 * @param $slug The generated slug of the password in question. See self::password_unique_slug();
+	 *
+	 * @return bool Whether the password was successfully found and deleted.
+	 */
+	public static function delete_application_password( $user_id, $slug ) {
+		$passwords = self::get_user_application_passwords( $user_id );
+
+		foreach ( $passwords as $key => $item ) {
+			if ( $slug === self::password_unique_slug( $item ) ) {
+				unset( $passwords[ $key ] );
+				self::set_user_application_passwords( $passwords, $user_id );
+				return true;
+			}
+		}
+
+		// Specified Application Password not found!
+		return false;
+	}
+
+	/**
+	 * Generate an repeateable slug from the hashed password, name, and when it was created.
+	 *
+	 * This should be unique.
+	 */
+	public static function password_unique_slug( $item ) {
+		$concat = $item['name'] . '|' . $item['password'] . '|' . $item['created'];
+		$hash   = md5( $concat );
+		return substr( $hash, 0, 12 );
+	}
+
 	public static function chunk_password( $raw_password ) {
 		$raw_password = preg_replace( '/[^a-z\d]/i', '', $raw_password );
 		return trim( chunk_split( $raw_password, 4, ' ' ) );
