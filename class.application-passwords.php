@@ -78,6 +78,7 @@ class Application_Passwords {
 		?>
 		<div class="application-passwords" id="application-passwords-section">
 			<h3><?php esc_html_e( 'Application Passwords', 'two-factor' ); ?></h3>
+			<p><?php esc_html_e( 'Application Passwords are used to allow authentication via non-interactive systems, such as XMLRPC, where you would not otherwise be able to use your normal password due to the inability to complete the second factor of authentication.', 'two-factor' ); ?></p>
 			<div class="create-application-password">
 				<input type="text" size="30" name="new_application_password_name" placeholder="<?php esc_attr_e( 'New Application Password Name', 'two-factor' ); ?>" />
 				<?php submit_button( __( 'Add New', 'two-factor' ), 'secondary', 'do_new_application_password', false ); ?>
