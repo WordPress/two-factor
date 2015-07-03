@@ -120,6 +120,7 @@ class Application_Passwords {
 		$user_id = get_current_user_id();
 		if ( ! empty( $_REQUEST['delete_application_password'] ) ) {
 			$slug = $_REQUEST['delete_application_password'];
+			check_admin_referer( "delete_application_password-{$slug}", '_nonce_delete_application_password' );
 
 			self::delete_application_password( $user_id, $slug );
 
@@ -168,7 +169,9 @@ class Application_Passwords {
 	 */
 	public static function delete_link( $item ) {
 		$slug = self::password_unique_slug( $item );
-		return sprintf( '<a href="%1$s">%2$s</a>', esc_url( add_query_arg( 'delete_application_password', $slug ) ), esc_html__( 'Delete' ) );
+		$delete_link = add_query_arg( 'delete_application_password', $slug );
+		$delete_link = wp_nonce_url( $delete_link, "delete_application_password-{$slug}", '_nonce_delete_application_password' );
+		return sprintf( '<a href="%1$s">%2$s</a>', esc_url( $delete_link ), esc_html__( 'Delete' ) );
 	}
 
 	/**
