@@ -266,7 +266,10 @@ class Two_Factor_Core {
 							<tr>
 							<!--<td><input type="checkbox" name="" value="<?php echo esc_attr( $class ); ?>" <?php checked( in_array( $class, $available_providers ) ); ?> /></td>-->
 								<td><input type="radio" name="<?php echo esc_attr( self::PROVIDER_USER_META_KEY ); ?>" value="<?php echo esc_attr( $class ); ?>" <?php checked( $class, $primary_provider ); ?> /></td>
-								<td><?php $object->print_label(); ?></td>
+								<td>
+									<?php $object->print_label(); ?>
+									<?php do_action( 'two-factor-user-options-' . $class, $user ); ?>
+								</td>
 							</tr>
 						<?php endforeach; ?>
 						</tbody>
