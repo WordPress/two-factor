@@ -10,6 +10,8 @@ class Application_Passwords {
 		add_action( 'edit_user_profile',        array( __CLASS__, 'show_user_profile' ) );
 		add_action( 'personal_options_update',  array( __CLASS__, 'catch_submission' ), 0 );
 		add_action( 'edit_user_profile_update', array( __CLASS__, 'catch_submission' ), 0 );
+		add_action( 'load-profile.php',         array( __CLASS__, 'catch_delete_application_password' ) );
+		add_action( 'load-user-edit.php',       array( __CLASS__, 'catch_delete_application_password' ) );
 	}
 
 	public static function authenticate( $input_user, $username, $password ) {
@@ -111,6 +113,17 @@ class Application_Passwords {
 					'new_app_pass' => 1,
 				), wp_get_referer() ) . '#application-passwords-section' );
 			exit;
+		}
+	}
+
+	public static function catch_delete_application_password() {
+		$user_id = get_current_user_id();
+		if ( ! empty( $_REQUEST['delete_application_password'] ) ) {
+			$result = self::delete_application_password( $user_id, $_REQUEST['delete_application_password'] );
+
+			wp_safe_redirect( add_query_arg( array(
+				'deleted_app_pass' => (int) $result,
+			), wp_get_referer() ) . '#application-passwords-section' );
 		}
 	}
 
