@@ -73,7 +73,7 @@ class Two_Factor_Core {
 	 *
 	 * @param $user_id optional
 	 *
-	 * $return object|null
+	 * @return object|null
 	 */
 	function get_provider_for_user( $user_id = null ) {
 		if ( empty( $user_id ) || ! is_numeric( $user_id ) ) {
