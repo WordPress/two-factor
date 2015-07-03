@@ -34,12 +34,12 @@ class Application_Passwords_List_Table extends WP_List_Table {
 				if ( empty( $item['created'] ) ) {
 					return __( 'Unknown' );
 				}
-				return date( get_option( 'date_format' ), $item['created'] );
+				return date( get_option( 'date_format', 'r' ), $item['created'] );
 			case 'last_used':
 				if ( empty( $item['last_used'] ) ) {
 					return __( 'Never' );
 				}
-				return $item['last_used'];
+				return date( get_option( 'date_format', 'r' ), $item['last_used'] );
 			case 'last_ip':
 				if ( empty( $item['last_ip'] ) ) {
 					return __( 'Never Used' );
