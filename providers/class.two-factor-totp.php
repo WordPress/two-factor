@@ -30,7 +30,7 @@ class Two_Factor_Totp extends Two_Factor_Provider {
 
 		$step_start = $current_time_step - (int)$accept_step_past;
 		$step_end   = $current_time_step + (int)$accept_step_future + 1;
-		for( $test_step = $step_start, $test_step < $step_end, ++$test_step ) {
+		for( $test_step = $step_start; $test_step < $step_end; ++$test_step ) {
 			$test_value = self::calcMain($binary_key, $test_step, $digits, $hash);
 			if( $test_value === $value ) {
 				// @TODO: do logon stuffz
