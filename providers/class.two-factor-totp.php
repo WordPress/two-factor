@@ -64,10 +64,10 @@ class Two_Factor_Totp extends Two_Factor_Provider {
 	}
 
 	public static function get_code( $key, $time, $digits = self::DEFAULT_DIGIT_COUNT, $hash = self::DEFAULT_CRYPTO, $time_step_sec = self::DEFAULT_TIME_STEP_SEC ) {
-		if( is_int( $digits ) && is_numeric( $digits ) {
+		if( is_int( $digits ) && is_numeric( $digits ) ) {
 			$digits = (int)$digits;
 			if( 1 <= $digits && 8 >= $digits ) {
-				$timestep = (int)floor( (int)$time / (int)$time_step_sec;
+				$timestep = (int)floor( (int)$time / (int)$time_step_sec );
 				return self::calc_totp( base64_decode( strtoupper( $key ) ), $timestep, $digits, strtolower( $hash ) );
 			}
 		}
