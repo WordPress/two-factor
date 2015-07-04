@@ -45,7 +45,7 @@ class Two_Factor_Totp extends Two_Factor_Provider {
 			// @TODO: handle this
 			wp_die(-1);
 		}
-		if( empty( $wp_hasher ) {
+		if( empty( $wp_hasher ) ) {
 			require_once ABSPATH . WPINC . '/class-phpass.php';
 			$wp_hasher = new PasswordHash( 8, true );
 		}
