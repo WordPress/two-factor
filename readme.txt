@@ -15,19 +15,19 @@ For more info, see: http://stephanis.info/2013/08/14/two-cents-on-two-factor/
 
 I (George Stephanis) am going to be pitching this as a feature plugin for core on Wednesday (July 8th) at the core dev meeting at the end.  I'm currently building a list of folks interested in being involved, currently including:
 
-* @JeffMatson https://twitter.com/thejeffmatson/status/617527690799783936
-* @brennenbyrne (and the Clef gang) https://twitter.com/brennenbyrne/status/617059593827414016
-* @nikv https://twitter.com/techvoltz/status/617511256191279104
-* @ericmann https://twitter.com/ericmann/status/617500383020093440
-* @daveross https://twitter.com/csixty4/status/617499908556357632
-* @jjj https://twitter.com/jjj/status/617426588662169600
-* @moonomo https://twitter.com/moonomo/status/617422900627312641
-* @rezzz-dev https://twitter.com/rezzz/status/617395429005729792
-* @morganestes https://twitter.com/morganestes/status/617133299757002752
-* @voldemortensen https://twitter.com/garth_mortensen/status/617087740618764288
+* @JeffMatson
+* @brennenbyrne (and the Clef gang)
+* @nikv
+* @ericmann
+* @daveross
+* @jjj
+* @moonomo
+* @rezzz-dev
+* @morganestes
+* @voldemortensen
 * @mor10
 
-If cleared as a feature plugin, we'll get a weekly meeting time sorted.
+If you're interested in getting involved, tweet me back here: https://twitter.com/daljo628/status/617051441845399552 or show up once we get weekly meetings scheduled.
 
 == Developers ==
 
@@ -36,3 +36,5 @@ If you'd like to create your own two-factor provider, take a look at the (tentat
 * `get_label()` -- It returns the unescaped human readable name of your method.
 * `authentication_page()` -- It prints out the contents of the `<form>` that displays as the interstitial login page.
 * `validate_authentication()` -- It processes the submission from the interstitial login page, and returns either `true` or `false` for whether the user has passed the check.
+
+There's also some more details in the GitHub Repository Wiki.
