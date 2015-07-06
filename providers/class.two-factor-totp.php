@@ -84,4 +84,12 @@ class Two_Factor_Totp extends Two_Factor_Provider {
 		$totp = (string)($intValue % pow(10, $digits));
 		return substr( str_repeat( '0', $digits ) . $otp, -$digits);
 	}
+
+	public static function get_google_qr_code( $name, $key, $title = null ) {
+		$google_url = urlencode('otpauth://totp/' . $name . '?secret=' . $key );
+		if( isset( $title ) ) {
+			$google_url .= urlencode('&issue=' . urlencode( $title ) );
+		}
+		return 'https://chart.googleapis.com/chart?chs=200x200&chld=M|0&cht=qr&chl=' . $google_url;
+	}
 }
