@@ -13,7 +13,7 @@ For more info, see: http://stephanis.info/2013/08/14/two-cents-on-two-factor/
 
 == Get Involved ==
 
-I (George Stephanis) am going to be pitching this as a feature plugin for core on Wednesday (July 8th) at the core dev meeting at the end.  I'm currently building a list of folks interested in being involved, currently including:
+I (George Stephanis) am going to be pitching this as a feature plugin for core on Tuesday, July 14th, at 19:00 UTC in #core on WordPress.org Slack.  I'm currently building a list of folks interested in being involved, currently including:
 
 * @JeffMatson
 * @brennenbyrne (and the Clef gang)
