@@ -26,6 +26,8 @@ I (George Stephanis) am going to be pitching this as a feature plugin for core o
 * @morganestes
 * @voldemortensen
 * @mor10
+* @kraftbj
+* @johnbillion
 
 If you're interested in getting involved, tweet me back here: https://twitter.com/daljo628/status/617051441845399552 or show up once we get weekly meetings scheduled.
 
