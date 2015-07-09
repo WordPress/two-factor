@@ -5,26 +5,17 @@ class Two_Factor_Core {
 	const PROVIDER_USER_META_KEY = '_two_factor_provider';
 	const USER_META_NONCE_KEY    = '_two_factor_nonce';
 
-	static function get_instance() {
-		static $instance;
-		$class = __CLASS__;
-		if ( ! is_a( $instance, $class ) ) {
-			$instance = new $class;
-		}
-		return $instance;
-	}
-
 	/**
-	 * Class constructor.  Sets up filters and actions.
+	 * Set up filters and actions.
 	 */
-	private function __construct() {
-		add_action( 'init',                array( $this, 'get_providers' ) );
-		add_action( 'wp_login',            array( $this, 'wp_login' ), 10, 2 );
-		add_action( 'login_form_twostep',  array( $this, 'login_form_twostep' ) );
-		add_action( 'show_user_profile',   array( $this, 'user_two_factor_options' ) );
-		add_action( 'edit_user_profile',   array( $this, 'user_two_factor_options' ) );
-		add_action( 'personal_options_update',  array( $this, 'user_two_factor_options_update' ) );
-		add_action( 'edit_user_profile_update', array( $this, 'user_two_factor_options_update' ) );
+	public static function add_hooks() {
+		add_action( 'init',                     array( __CLASS__, 'get_providers' ) );
+		add_action( 'wp_login',                 array( __CLASS__, 'wp_login' ), 10, 2 );
+		add_action( 'login_form_twostep',       array( __CLASS__, 'login_form_twostep' ) );
+		add_action( 'show_user_profile',        array( __CLASS__, 'user_two_factor_options' ) );
+		add_action( 'edit_user_profile',        array( __CLASS__, 'user_two_factor_options' ) );
+		add_action( 'personal_options_update',  array( __CLASS__, 'user_two_factor_options_update' ) );
+		add_action( 'edit_user_profile_update', array( __CLASS__, 'user_two_factor_options_update' ) );
 	}
 
 	/**
@@ -32,7 +23,7 @@ class Two_Factor_Core {
 	 *
 	 * @return array
 	 */
-	function get_providers() {
+	public static function get_providers() {
 		$providers = array(
 			'Two_Factor_Email'    => TWO_FACTOR_DIR . 'providers/class.two-factor-email.php',
 			'Two_Factor_Totp'     => TWO_FACTOR_DIR . 'providers/class.two-factor-totp.php',
@@ -75,7 +66,7 @@ class Two_Factor_Core {
 	 *
 	 * @return object|null
 	 */
-	function get_provider_for_user( $user_id = null ) {
+	public static function get_primary_provider_for_user( $user_id = null ) {
 		if ( empty( $user_id ) || ! is_numeric( $user_id ) ) {
 			$user_id = get_current_user_id();
 		}
@@ -92,26 +83,26 @@ class Two_Factor_Core {
 	/**
 	 * Quick boolean check for whether a given user is using two-step.
 	 */
-	function is_user_using_two_factor( $user_id = null ) {
-		$provider = $this->get_provider_for_user( $user_id );
+	public static function is_user_using_two_factor( $user_id = null ) {
+		$provider = self::get_primary_provider_for_user( $user_id );
 		return ! empty( $provider );
 	}
 
 	/**
 	 * Handle the browser-based login.
 	 */
-	function wp_login( $user_login, $user ) {
-		if ( ! $this->is_user_using_two_factor( $user->ID ) ) {
+	public static function wp_login( $user_login, $user ) {
+		if ( ! self::is_user_using_two_factor( $user->ID ) ) {
 			return;
 		}
 
 		wp_clear_auth_cookie();
 
-		$this->show_two_factor_login( $user );
+		self::show_two_factor_login( $user );
 		exit;
 	}
 
-	function show_two_factor_login( $user ) {
+	public static function show_two_factor_login( $user ) {
 		if ( ! function_exists( 'login_header' ) ) {
 			require_once( ABSPATH . WPINC . '/functions.wp-login.php' );
 		}
@@ -120,18 +111,22 @@ class Two_Factor_Core {
 			$user = wp_get_current_user();
 		}
 
-		$login_nonce = $this->create_login_nonce( $user->ID );
+		$login_nonce = self::create_login_nonce( $user->ID );
 		if ( ! $login_nonce ) {
 			wp_die( __( 'Could not save login nonce.', 'two-factor' ) );
 		}
 
 		$redirect_to = isset( $_REQUEST['redirect_to'] ) ? $_REQUEST['redirect_to'] : $_SERVER['REQUEST_URI'];
 
-		$this->login_html( $user, $login_nonce, $redirect_to );
+		self::login_html( $user, $login_nonce, $redirect_to );
 	}
 
-	function login_html( $user, $login_nonce, $redirect_to, $error_msg = '', $login_type = 'standard' ) {
-		$provider = $this->get_provider_for_user( $user->ID );
+	public static function login_html( $user, $login_nonce, $redirect_to, $error_msg = '', $provider = null ) {
+		if ( empty( $provider ) ) {
+			$provider = self::get_primary_provider_for_user( $user->ID );
+		} elseif ( is_string( $provider ) && method_exists( $provider, 'get_instance' ) ) {
+			$provider = call_user_func( array( $provider, 'get_instance' ) );
+		}
 
 		$rememberme = 0;
 		if ( isset ( $_REQUEST[ 'rememberme' ] ) && $_REQUEST[ 'rememberme' ] ) {
@@ -162,7 +157,7 @@ class Two_Factor_Core {
 		<?php
 	}
 
-	function create_login_nonce( $user_id ) {
+	public static function create_login_nonce( $user_id ) {
 		$login_nonce               = array();
 		$login_nonce['key']        = wp_hash( $user_id . mt_rand() . microtime(), 'nonce' );
 		$login_nonce['expiration'] = time() + HOUR_IN_SECONDS;
@@ -174,18 +169,18 @@ class Two_Factor_Core {
 		return $login_nonce;
 	}
 
-	function delete_login_nonce( $user_id ) {
+	public static function delete_login_nonce( $user_id ) {
 		return delete_user_meta( $user_id, self::USER_META_NONCE_KEY );
 	}
 
-	function verify_login_nonce( $user_id, $nonce ) {
+	public static function verify_login_nonce( $user_id, $nonce ) {
 		$login_nonce = get_user_meta( $user_id, self::USER_META_NONCE_KEY, true );
 		if ( ! $login_nonce ) {
 			return false;
 		}
 
 		if ( $nonce != $login_nonce['key'] || time() > $login_nonce['expiration'] ) {
-			$this->delete_login_nonce( $user_id );
+			self::delete_login_nonce( $user_id );
 			return false;
 		}
 
@@ -203,25 +198,25 @@ class Two_Factor_Core {
 		}
 		
 		$nonce = $_POST['wp-auth-nonce'];
-		if ( true !== $this->verify_login_nonce( $user->ID, $nonce ) ) {
+		if ( true !== self::verify_login_nonce( $user->ID, $nonce ) ) {
 			wp_safe_redirect( get_bloginfo('url') );
 			exit();
 		}
 
-		$provider = $this->get_provider_for_user( $user->ID );
+		$provider = self::get_primary_provider_for_user( $user->ID );
 		if ( true !== $provider->validate_authentication( $user ) ) {
 			do_action( 'wp_login_failed', $user->user_login );
 
-			$login_nonce = $this->create_login_nonce( $user->ID );
+			$login_nonce = self::create_login_nonce( $user->ID );
 			if ( ! $login_nonce ) {
 				return;
 			}
 
-			$this->login_html( $user, $login_nonce, $_REQUEST['redirect_to'], __( 'ERROR: Invalid verification code.', 'two-factor' ) );
+			self::login_html( $user, $login_nonce, $_REQUEST['redirect_to'], __( 'ERROR: Invalid verification code.', 'two-factor' ) );
 			exit;
 		}
 
-		$this->delete_login_nonce( $user->ID );
+		self::delete_login_nonce( $user->ID );
 
 		$rememberme = false;
 		if ( isset ( $_REQUEST[ 'rememberme' ] ) && $_REQUEST[ 'rememberme' ] ) {
@@ -239,7 +234,7 @@ class Two_Factor_Core {
 	/**
 	 * Add user profile fields.
 	 */
-	function user_two_factor_options( $user ) {
+	public static function user_two_factor_options( $user ) {
 		$primary_provider = get_user_meta( $user->ID, self::PROVIDER_USER_META_KEY, true );
 		wp_nonce_field( 'user_two_factor_options', '_nonce_user_two_factor_options', false );
 		?>
@@ -277,7 +272,7 @@ class Two_Factor_Core {
 	/**
 	 * Update the user meta value.
 	 */
-	function user_two_factor_options_update( $user_id ) {
+	public static function user_two_factor_options_update( $user_id ) {
 		if ( isset( $_POST[ self::PROVIDER_USER_META_KEY ] ) ) {
 			check_admin_referer( 'user_two_factor_options', '_nonce_user_two_factor_options' );
 			$new_provider = $_POST[ self::PROVIDER_USER_META_KEY ];
