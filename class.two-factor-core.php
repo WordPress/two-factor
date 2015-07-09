@@ -60,6 +60,30 @@ class Two_Factor_Core {
 	}
 
 	/**
+	 * Get all available Two-Factor Auth providers for the specified|current user.
+	 *
+	 * @param $user WP_User
+	 *
+	 * @return array
+	 */
+	public static function get_available_providers_for_user( $user = null ) {
+		if ( empty( $user ) || ! is_a( 'WP_User' ) ) {
+			$user = wp_get_current_user();
+		}
+
+		$providers            = self::get_providers();
+		$configured_providers = array();
+
+		foreach ( $providers as $classname => $provider ) {
+			if ( $provider->is_available_for_user( $user ) ) {
+				$configured_providers[ $classname ] = $provider;
+			}
+		}
+
+		return $configured_providers;
+	}
+
+	/**
 	 * Gets the Two-Factor Auth provider for the specified|current user.
 	 *
 	 * @param $user_id optional
@@ -121,6 +145,15 @@ class Two_Factor_Core {
 		self::login_html( $user, $login_nonce, $redirect_to );
 	}
 
+	/**
+	 * Generates the html form for the second step of the authentication process.
+	 *
+	 * @param $user                   A WP_User Object.
+	 * @param $login_nonce            An array containing both the nonce stored in the db, and its expiration.
+	 * @param $redirect_to            The URL to which the user would like to be redirected.
+	 * @param string $error_msg       An error message (optional)
+	 * @param string|object $provider An override to the provider.
+	 */
 	public static function login_html( $user, $login_nonce, $redirect_to, $error_msg = '', $provider = null ) {
 		if ( empty( $provider ) ) {
 			$provider = self::get_primary_provider_for_user( $user->ID );

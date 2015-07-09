@@ -71,4 +71,8 @@ class Two_Factor_Email extends Two_Factor_Provider {
 		return $this->validate_token( $user->ID, $_REQUEST['two-factor-email-code'] );
 	}
 
+	function is_available_for_user( $user ) {
+		return true;
+	}
+
 }

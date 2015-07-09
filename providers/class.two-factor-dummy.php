@@ -27,4 +27,8 @@ class Two_Factor_Dummy extends Two_Factor_Provider {
 		return true;
 	}
 
+	function is_available_for_user( $user ) {
+		return true;
+	}
+
 }

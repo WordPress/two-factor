@@ -18,5 +18,6 @@ class Two_Factor_Totp extends Two_Factor_Provider {
 
 	function authentication_page( $user ) {}
 	function validate_authentication( $user ) {}
+	function is_available_for_user( $user ) {}
 
 }
