@@ -125,7 +125,7 @@ class Two_Factor_Core {
 			wp_die( esc_html__( 'Could not save login nonce.', 'two-factor' ) );
 		}
 
-		$redirect_to = isset( $_GET['redirect_to'] ) ? $_GET['redirect_to'] : $_SERVER['REQUEST_URI'];
+		$redirect_to = isset( $_POST['redirect_to'] ) ? $_POST['redirect_to'] : $_SERVER['REQUEST_URI'];
 
 		$this->login_html( $user, $login_nonce, $redirect_to );
 	}
@@ -230,7 +230,7 @@ class Two_Factor_Core {
 
 		wp_set_auth_cookie( $user->ID, $rememberme );
 
-		$redirect_to = apply_filters( 'login_redirect', $_GET['redirect_to'], $_GET['redirect_to'], $user );
+		$redirect_to = apply_filters( 'login_redirect', $_POST['redirect_to'], $_POST['redirect_to'], $user );
 		wp_safe_redirect( $redirect_to );
 
 		exit();
