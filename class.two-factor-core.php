@@ -235,7 +235,7 @@ class Two_Factor_Core {
 			return false;
 		}
 
-		if ( $nonce != $login_nonce['key'] || time() > $login_nonce['expiration'] ) {
+		if ( $nonce !== $login_nonce['key'] || time() > $login_nonce['expiration'] ) {
 			self::delete_login_nonce( $user_id );
 			return false;
 		}
@@ -256,7 +256,7 @@ class Two_Factor_Core {
 		$nonce = $_POST['wp-auth-nonce'];
 		if ( true !== self::verify_login_nonce( $user->ID, $nonce ) ) {
 			wp_safe_redirect( get_bloginfo('url') );
-			exit();
+			exit;
 		}
 
 		$provider = self::get_primary_provider_for_user( $user->ID );
@@ -284,7 +284,7 @@ class Two_Factor_Core {
 		$redirect_to = apply_filters( 'login_redirect', $_REQUEST['redirect_to'], $_REQUEST['redirect_to'], $user );
 		wp_safe_redirect( $redirect_to );
 
-		exit();
+		exit;
 	}
 
 	public static function backup_2fa() {
