@@ -122,7 +122,7 @@ class Two_Factor_Core {
 
 		$login_nonce = $this->create_login_nonce( $user->ID );
 		if ( ! $login_nonce ) {
-			wp_die( __( 'Could not save login nonce.', 'two-factor' ) );
+			wp_die( esc_html__( 'Could not save login nonce.', 'two-factor' ) );
 		}
 
 		$redirect_to = isset( $_REQUEST['redirect_to'] ) ? $_REQUEST['redirect_to'] : $_SERVER['REQUEST_URI'];
@@ -217,7 +217,7 @@ class Two_Factor_Core {
 				return;
 			}
 
-			$this->login_html( $user, $login_nonce, $_REQUEST['redirect_to'], __( 'ERROR: Invalid verification code.', 'two-factor' ) );
+			$this->login_html( $user, $login_nonce, $_REQUEST['redirect_to'], esc_html__( 'ERROR: Invalid verification code.', 'two-factor' ) );
 			exit;
 		}
 
