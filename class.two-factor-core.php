@@ -259,7 +259,17 @@ class Two_Factor_Core {
 			exit;
 		}
 
-		$provider = self::get_primary_provider_for_user( $user->ID );
+		if ( isset( $_POST['provider'] ) ) {
+			$providers = self::get_available_providers_for_user( $user->ID );
+			if ( isset( $providers[ $_POST['provider'] ] ) ) {
+				$provider = $providers[ $_POST['provider'] ];
+			} else {
+				wp_die( __( 'Cheatin&#8217; uh?' ), 403 );
+			}
+		} else {
+			$provider = self::get_primary_provider_for_user( $user->ID );
+		}
+
 		if ( true !== $provider->validate_authentication( $user ) ) {
 			do_action( 'wp_login_failed', $user->user_login );
 
