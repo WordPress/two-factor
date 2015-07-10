@@ -176,7 +176,7 @@ class Application_Passwords {
 		$slug = self::password_unique_slug( $item );
 		$delete_link = add_query_arg( 'delete_application_password', $slug );
 		$delete_link = wp_nonce_url( $delete_link, "delete_application_password-{$slug}", '_nonce_delete_application_password' );
-		return sprintf( '<a href="%1$s">%2$s</a>', esc_url( $delete_link ), esc_html__( 'Delete', 'two-factor' ) );
+		return sprintf( '<a href="%s">%s</a>', esc_url( $delete_link ), esc_html__( 'Delete', 'two-factor' ) );
 	}
 
 	/**
