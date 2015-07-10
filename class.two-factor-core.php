@@ -11,7 +11,7 @@ class Two_Factor_Core {
 	public static function add_hooks() {
 		add_action( 'init',                     array( __CLASS__, 'get_providers' ) );
 		add_action( 'wp_login',                 array( __CLASS__, 'wp_login' ), 10, 2 );
-		add_action( 'login_form_twostep',       array( __CLASS__, 'login_form_twostep' ) );
+		add_action( 'login_form_validate_2fa',  array( __CLASS__, 'login_form_validate_2fa' ) );
 		add_action( 'login_form_backup_2fa',    array( __CLASS__, 'backup_2fa' ) );
 		add_action( 'show_user_profile',        array( __CLASS__, 'user_two_factor_options' ) );
 		add_action( 'edit_user_profile',        array( __CLASS__, 'user_two_factor_options' ) );
@@ -179,7 +179,7 @@ class Two_Factor_Core {
 		}
 		?>
 
-		<form name="twostepform" id="loginform" action="<?php echo esc_url( site_url( 'wp-login.php?action=twostep', 'login_post' ) ); ?>" method="post" autocomplete="off">
+		<form name="validate_2fa_form" id="loginform" action="<?php echo esc_url( site_url( 'wp-login.php?action=validate_2fa', 'login_post' ) ); ?>" method="post" autocomplete="off">
 				<input type="hidden" name="provider" id="provider" value="<?php echo esc_attr( $provider_class ); ?>" />
 				<input type="hidden" name="wp-auth-id" id="wp-auth-id" value="<?php echo esc_attr( $user->ID ); ?>" />
 				<input type="hidden" name="wp-auth-nonce" id="wp-auth-nonce" value="<?php echo esc_attr( $login_nonce ); ?>" />
@@ -243,7 +243,7 @@ class Two_Factor_Core {
 		return true;
 	}
 
-	function login_form_twostep() {
+	function login_form_validate_2fa() {
 		if ( ! isset( $_POST['wp-auth-id'], $_POST['wp-auth-nonce'] ) ) {
 			return;
 		}
