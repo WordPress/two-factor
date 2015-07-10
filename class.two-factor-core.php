@@ -67,7 +67,7 @@ class Two_Factor_Core {
 	 * @return array
 	 */
 	public static function get_available_providers_for_user( $user = null ) {
-		if ( empty( $user ) || ! is_a( 'WP_User' ) ) {
+		if ( empty( $user ) || ! is_a( $user, 'WP_User' ) ) {
 			$user = wp_get_current_user();
 		}
 
