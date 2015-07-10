@@ -11,6 +11,11 @@ class Two_Factor_Dummy extends Two_Factor_Provider {
 		return $instance;
 	}
 
+	protected function __construct() {
+		add_action( 'two-factor-user-options-' . __CLASS__, array( $this, 'user_options' ) );
+		return parent::__construct();
+	}
+
 	function get_label() {
 		return _x( 'Dummy Method', 'Provider Label', 'two-factor' );
 	}
@@ -29,6 +34,10 @@ class Two_Factor_Dummy extends Two_Factor_Provider {
 
 	function is_available_for_user( $user ) {
 		return true;
+	}
+
+	function user_options( $user ) {
+
 	}
 
 }
