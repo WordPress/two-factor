@@ -51,7 +51,7 @@ class Two_Factor_Email extends Two_Factor_Provider {
 		<p><?php esc_html_e( 'A verification code has been sent to the email address associated with your account.', 'two-factor' ); ?></p>
 		<p>
 			<label for="authcode"><?php esc_html_e( 'Verification Code:' ); ?></label>
-			<input type="tel" name="two-factor-email-code" id="authcode" class="input" value="" size="20" pattern="[0-9]*" />
+			<input type="text" name="two-factor-email-code" id="authcode" class="input" value="" size="20" pattern="[0-9]*" />
 		</p>
 		<script type="text/javascript">
 			setTimeout( function(){
