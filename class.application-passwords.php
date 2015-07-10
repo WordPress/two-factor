@@ -162,7 +162,7 @@ class Application_Passwords {
 		$passwords[] = $new_item;
 		self::set_user_application_passwords( $user_id, $passwords );
 
-		return chunk_split( $new_password, 4, ' ' );
+		return self::chunk_password( $new_password );
 	}
 
 	/**
