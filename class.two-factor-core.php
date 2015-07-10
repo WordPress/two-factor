@@ -155,7 +155,7 @@ class Two_Factor_Core {
 
 		</form>
 
-		<p id="backtoblog"><a href="<?php echo esc_url( home_url( '/' ) ); ?>" title="<?php esc_attr_e( 'Are you lost?' ); ?>"><?php printf( __( '&larr; Back to %s' ), get_bloginfo( 'title', 'display' ) ); ?></a></p>
+		<p id="backtoblog"><a href="<?php echo esc_url( home_url( '/' ) ); ?>" title="<?php esc_attr_e( 'Are you lost?' ); ?>"><?php printf( esc_html__( '&larr; Back to %s', 'two-factor' ), get_bloginfo( 'title', 'display' ) ); ?></a></p>
 
 		</body>
 		</html>
