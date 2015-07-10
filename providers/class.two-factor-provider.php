@@ -7,14 +7,14 @@ abstract class Two_Factor_Provider {
 	}
 
 	/**
-	 * Returns the name of the method.
+	 * Returns the *unescaped* name of the method.
 	 *
 	 * @return string
 	 */
 	abstract function get_label();
 
 	/**
-	 * Prints the name of the method.
+	 * Safely prints the name of the method.
 	 */
 	function print_label() {
 		echo esc_html( $this->get_label() );
