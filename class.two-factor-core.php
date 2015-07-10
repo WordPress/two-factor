@@ -142,14 +142,14 @@ class Two_Factor_Core {
 
 		$redirect_to = isset( $_REQUEST['redirect_to'] ) ? $_REQUEST['redirect_to'] : $_SERVER['REQUEST_URI'];
 
-		self::login_html( $user, $login_nonce, $redirect_to );
+		self::login_html( $user, $login_nonce['key'], $redirect_to );
 	}
 
 	/**
 	 * Generates the html form for the second step of the authentication process.
 	 *
 	 * @param $user                   A WP_User Object.
-	 * @param $login_nonce            An array containing both the nonce stored in the db, and its expiration.
+	 * @param $login_nonce            A string nonce stored in usermeta.
 	 * @param $redirect_to            The URL to which the user would like to be redirected.
 	 * @param string $error_msg       An error message (optional)
 	 * @param string|object $provider An override to the provider.
@@ -175,9 +175,9 @@ class Two_Factor_Core {
 
 		<form name="twostepform" id="loginform" action="<?php echo esc_url( site_url( 'wp-login.php?action=twostep', 'login_post' ) ); ?>" method="post" autocomplete="off">
 				<input type="hidden" name="wp-auth-id" id="wp-auth-id" value="<?php echo esc_attr( $user->ID ) ?>" />
-				<input type="hidden" name="wp-auth-nonce" id="wp-auth-nonce" value="<?php echo esc_attr( $login_nonce['key'] ) ?>"/>
 				<input type="hidden" name="redirect_to" id="redirect_to" value="<?php echo esc_attr( $redirect_to ) ?>"/>
 				<input type="hidden" name="rememberme" id="rememberme" value="<?php echo esc_attr( $rememberme ) ?>"/>
+				<input type="hidden" name="wp-auth-nonce" id="wp-auth-nonce" value="<?php echo esc_attr( $login_nonce ); ?>" />
 
 				<?php $provider->authentication_page( $user ); ?>
 
@@ -245,7 +245,7 @@ class Two_Factor_Core {
 				return;
 			}
 
-			self::login_html( $user, $login_nonce, $_REQUEST['redirect_to'], __( 'ERROR: Invalid verification code.', 'two-factor' ) );
+			self::login_html( $user, $login_nonce['key'], $_REQUEST['redirect_to'], __( 'ERROR: Invalid verification code.', 'two-factor' ) );
 			exit;
 		}
 
