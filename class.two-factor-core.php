@@ -146,6 +146,34 @@ class Two_Factor_Core {
 		self::login_html( $user, $login_nonce['key'], $redirect_to );
 	}
 
+	public static function backup_2fa() {
+		if ( ! isset( $_GET['wp-auth-id'], $_GET['wp-auth-nonce'], $_GET['provider'] ) ) {
+			return;
+		}
+
+		$user = get_userdata( $_GET['wp-auth-id'] );
+		if ( ! $user ) {
+			return;
+		}
+
+		$nonce = $_GET['wp-auth-nonce'];
+		if ( true !== self::verify_login_nonce( $user->ID, $nonce ) ) {
+			wp_safe_redirect( get_bloginfo('url') );
+			exit;
+		}
+
+		$providers = self::get_available_providers_for_user( $user->ID );
+		if ( isset( $providers[ $_GET['provider'] ] ) ) {
+			$provider = $providers[ $_GET['provider'] ];
+		} else {
+			wp_die( __( 'Cheatin&#8217; uh?' ), 403 );
+		}
+
+		self::login_html( $user, $_GET['wp-auth-nonce'], $_GET['redirect_to'], '', $provider );
+
+		exit;
+	}
+
 	/**
 	 * Generates the html form for the second step of the authentication process.
 	 *
@@ -294,10 +322,6 @@ class Two_Factor_Core {
 		$redirect_to = apply_filters( 'login_redirect', $_REQUEST['redirect_to'], $_REQUEST['redirect_to'], $user );
 		wp_safe_redirect( $redirect_to );
 
-		exit;
-	}
-
-	public static function backup_2fa() {
 		exit;
 	}
 
