@@ -12,6 +12,7 @@ class Two_Factor_Core {
 		add_action( 'init',                     array( __CLASS__, 'get_providers' ) );
 		add_action( 'wp_login',                 array( __CLASS__, 'wp_login' ), 10, 2 );
 		add_action( 'login_form_twostep',       array( __CLASS__, 'login_form_twostep' ) );
+		add_action( 'login_form_backup_2fa',    array( __CLASS__, 'backup_2fa' ) );
 		add_action( 'show_user_profile',        array( __CLASS__, 'user_two_factor_options' ) );
 		add_action( 'edit_user_profile',        array( __CLASS__, 'user_two_factor_options' ) );
 		add_action( 'personal_options_update',  array( __CLASS__, 'user_two_factor_options_update' ) );
@@ -284,6 +285,10 @@ class Two_Factor_Core {
 		wp_safe_redirect( $redirect_to );
 
 		exit();
+	}
+
+	public static function backup_2fa() {
+		exit;
 	}
 
 	/**
