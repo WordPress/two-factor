@@ -161,6 +161,11 @@ class Two_Factor_Core {
 			$provider = call_user_func( array( $provider, 'get_instance' ) );
 		}
 
+		$provider_class = get_class( $provider );
+
+		$available_providers = self::get_available_providers_for_user( $user );
+		$backup_providers = array_diff_key( $available_providers, array( $provider_class => null ) );
+
 		$rememberme = 0;
 		if ( isset ( $_REQUEST[ 'rememberme' ] ) && $_REQUEST[ 'rememberme' ] ) {
 			$rememberme = 1;
@@ -174,6 +179,7 @@ class Two_Factor_Core {
 		?>
 
 		<form name="twostepform" id="loginform" action="<?php echo esc_url( site_url( 'wp-login.php?action=twostep', 'login_post' ) ); ?>" method="post" autocomplete="off">
+				<input type="hidden" name="provider" id="provider" value="<?php echo esc_attr( $provider_class ); ?>" />
 				<input type="hidden" name="wp-auth-id" id="wp-auth-id" value="<?php echo esc_attr( $user->ID ); ?>" />
 				<input type="hidden" name="wp-auth-nonce" id="wp-auth-nonce" value="<?php echo esc_attr( $login_nonce ); ?>" />
 				<input type="hidden" name="redirect_to" id="redirect_to" value="<?php echo esc_attr( $redirect_to ); ?>" />
@@ -182,6 +188,22 @@ class Two_Factor_Core {
 				<?php $provider->authentication_page( $user ); ?>
 
 		</form>
+
+		<?php if ( $backup_providers ) : ?>
+		<p><a href="#"><?php esc_html_e( 'Or, use a backup method:', 'two-factor' ); ?></a></p>
+		<ul class="backup-methods">
+			<?php foreach ( $backup_providers as $backup_classname => $backup_provider ) : ?>
+				<li><a href="<?php echo esc_url( add_query_arg( urlencode_deep( array(
+								'action'        => 'backup_2fa',
+								'provider'      => $backup_classname,
+								'wp-auth-id'    => $user->ID,
+								'wp-auth-nonce' => $login_nonce,
+								'redirect_to'   => $redirect_to,
+								'rememberme'    => $rememberme,
+							) ) ) ); ?>"><?php $backup_provider->print_label(); ?></a></li>
+			<?php endforeach; ?>
+		</ul>
+		<?php endif; ?>
 
 		<p id="backtoblog"><a href="<?php echo esc_url( home_url( '/' ) ); ?>" title="<?php esc_attr_e( 'Are you lost?' ); ?>"><?php printf( __( '&larr; Back to %s' ), get_bloginfo( 'title', 'display' ) ); ?></a></p>
 
