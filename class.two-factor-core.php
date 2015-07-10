@@ -217,7 +217,7 @@ class Two_Factor_Core {
 				return;
 			}
 
-			$this->login_html( $user, $login_nonce, $_GET['redirect_to'], esc_html__( 'ERROR: Invalid verification code.', 'two-factor' ) );
+			$this->login_html( $user, $login_nonce, $_POST['redirect_to'], esc_html__( 'ERROR: Invalid verification code.', 'two-factor' ) );
 			exit;
 		}
 
