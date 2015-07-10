@@ -109,7 +109,7 @@ class Application_Passwords {
 	 * Catch the non-ajax submission from the new form.
 	 */
 	public static function catch_submission( $user_id ) {
-		if ( ! empty( $_REQUEST['do_new_application_password'] ) ) {
+		if ( ! empty( $_POST['do_new_application_password'] ) ) {
 			check_admin_referer( "user_application_passwords-{$user_id}", '_nonce_user_application_passwords' );
 
 			self::create_new_application_password( $user_id, sanitize_text_field( $_POST['new_application_password_name'] ) );
@@ -123,8 +123,8 @@ class Application_Passwords {
 
 	public static function catch_delete_application_password() {
 		$user_id = get_current_user_id();
-		if ( ! empty( $_REQUEST['delete_application_password'] ) ) {
-			$slug = $_REQUEST['delete_application_password'];
+		if ( ! empty( $_GET['delete_application_password'] ) ) {
+			$slug = $_GET['delete_application_password'];
 			check_admin_referer( "delete_application_password-{$slug}", '_nonce_delete_application_password' );
 
 			self::delete_application_password( $user_id, $slug );

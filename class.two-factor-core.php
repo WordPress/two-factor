@@ -125,7 +125,7 @@ class Two_Factor_Core {
 			wp_die( esc_html__( 'Could not save login nonce.', 'two-factor' ) );
 		}
 
-		$redirect_to = isset( $_REQUEST['redirect_to'] ) ? $_REQUEST['redirect_to'] : $_SERVER['REQUEST_URI'];
+		$redirect_to = isset( $_GET['redirect_to'] ) ? $_GET['redirect_to'] : $_SERVER['REQUEST_URI'];
 
 		$this->login_html( $user, $login_nonce, $redirect_to );
 	}
@@ -134,7 +134,7 @@ class Two_Factor_Core {
 		$provider = $this->get_provider_for_user( $user->ID );
 
 		$rememberme = 0;
-		if ( isset ( $_REQUEST[ 'rememberme' ] ) && $_REQUEST[ 'rememberme' ] ) {
+		if ( isset ( $_POST[ 'rememberme' ] ) && $_POST[ 'rememberme' ] ) {
 			$rememberme = 1;
 		}
 
@@ -201,7 +201,7 @@ class Two_Factor_Core {
 		if ( ! $user ) {
 			return;
 		}
-		
+
 		$nonce = $_POST['wp-auth-nonce'];
 		if ( true !== $this->verify_login_nonce( $user->ID, $nonce ) ) {
 			wp_safe_redirect( get_bloginfo('url') );
@@ -217,20 +217,20 @@ class Two_Factor_Core {
 				return;
 			}
 
-			$this->login_html( $user, $login_nonce, $_REQUEST['redirect_to'], esc_html__( 'ERROR: Invalid verification code.', 'two-factor' ) );
+			$this->login_html( $user, $login_nonce, $_GET['redirect_to'], esc_html__( 'ERROR: Invalid verification code.', 'two-factor' ) );
 			exit;
 		}
 
 		$this->delete_login_nonce( $user->ID );
 
 		$rememberme = false;
-		if ( isset ( $_REQUEST[ 'rememberme' ] ) && $_REQUEST[ 'rememberme' ] ) {
+		if ( isset ( $_POST[ 'rememberme' ] ) && $_POST[ 'rememberme' ] ) {
 			$rememberme = true;
 		}
-		
+
 		wp_set_auth_cookie( $user->ID, $rememberme );
 
-		$redirect_to = apply_filters( 'login_redirect', $_REQUEST['redirect_to'], $_REQUEST['redirect_to'], $user );
+		$redirect_to = apply_filters( 'login_redirect', $_GET['redirect_to'], $_GET['redirect_to'], $user );
 		wp_safe_redirect( $redirect_to );
 
 		exit();

@@ -68,7 +68,7 @@ class Two_Factor_Email extends Two_Factor_Provider {
 	}
 
 	function validate_authentication( $user ) {
-		return $this->validate_token( $user->ID, $_REQUEST['two-factor-email-code'] );
+		return $this->validate_token( $user->ID, $_POST['two-factor-email-code'] );
 	}
 
 }
