@@ -64,7 +64,7 @@ class Two_Factor_Email extends Two_Factor_Provider {
 			}, 200);
 		</script>
 		<?php
-		submit_button( esc_html__( 'Log In', 'two-factor' ) );
+		submit_button( __( 'Log In', 'two-factor' ) );
 	}
 
 	function validate_authentication( $user ) {

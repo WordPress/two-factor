@@ -20,7 +20,7 @@ class Two_Factor_Dummy extends Two_Factor_Provider {
 		?>
 		<p><?php esc_html_e( 'Are you really you?', 'two-factor' ); ?></p>
 		<?php
-		submit_button( esc_html__( 'Yup.', 'two-factor' ) );
+		submit_button( __( 'Yup.', 'two-factor' ) );
 	}
 
 	function validate_authentication( $user ) {
