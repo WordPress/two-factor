@@ -88,7 +88,7 @@ class Two_Factor_Core {
 		 * @param string $provider The provider currently being used.
 		 * @param int    $user_id  The user ID.
 		 */
-		$provider = apply_filters( 'two_factor_provider_for_user', $provider, $user_id );
+		$provider = apply_filters( 'two_factor_primary_provider_for_user', $provider, $user_id );
 
 		if ( isset( $providers[ $provider ] ) ) {
 			return $providers[ $provider ];
