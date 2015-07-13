@@ -89,7 +89,7 @@ class Application_Passwords {
 				<?php printf(
 					esc_html_x( 'Your new password for %1$s is %2$s.', 'application, password', 'two-factor' ),
 					'<strong>' . esc_html( $new_password_name ) . '</strong>',
-					'<kbd>' . self::chunk_password( $new_password ) . '</kbd>'
+					'<kbd>' . esc_html( self::chunk_password( $new_password ) ) . '</kbd>'
 				); ?>
 			</p>
 			<?php endif; ?>
