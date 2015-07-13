@@ -8,10 +8,10 @@ class Application_Passwords_List_Table extends WP_List_Table {
 
 	function get_columns() {
 		return array(
-			'name'      => esc_html__( 'Name', 'two-factor' ),
-			'created'   => esc_html__( 'Created', 'two-factor' ),
-			'last_used' => esc_html__( 'Last Used', 'two-factor' ),
-			'last_ip'   => esc_html__( 'Last IP', 'two-factor' ),
+			'name'      => wp_strip_all_tags( __( 'Name', 'two-factor' ) ),
+			'created'   => wp_strip_all_tags( __( 'Created', 'two-factor' ) ),
+			'last_used' => wp_strip_all_tags( __( 'Last Used', 'two-factor' ) ),
+			'last_ip'   => wp_strip_all_tags( __( 'Last IP', 'two-factor' ) ),
 		);
 	}
 
