@@ -98,6 +98,14 @@ class Two_Factor_Core {
 		$provider = get_user_meta( $user_id, self::PROVIDER_USER_META_KEY, true );
 		$providers = self::get_providers();
 
+		/**
+		 * Filter the two-factor authentication provider used for this user.
+		 *
+		 * @param string $provider The provider currently being used.
+		 * @param int    $user_id  The user ID.
+		 */
+		$provider = apply_filters( 'two_factor_primary_provider_for_user', $provider, $user_id );
+
 		if ( isset( $providers[ $provider ] ) ) {
 			return $providers[ $provider ];
 		}
