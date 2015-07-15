@@ -5,13 +5,19 @@ class Application_Passwords {
 	const USERMETA_KEY_APPLICATION_PASSWORDS = '_application_passwords';
 
 	public static function add_hooks() {
-		add_filter( 'authenticate',             array( __CLASS__, 'authenticate' ), 10, 3 );
-		add_action( 'show_user_profile',        array( __CLASS__, 'show_user_profile' ) );
-		add_action( 'edit_user_profile',        array( __CLASS__, 'show_user_profile' ) );
-		add_action( 'personal_options_update',  array( __CLASS__, 'catch_submission' ), 0 );
-		add_action( 'edit_user_profile_update', array( __CLASS__, 'catch_submission' ), 0 );
-		add_action( 'load-profile.php',         array( __CLASS__, 'catch_delete_application_password' ) );
-		add_action( 'load-user-edit.php',       array( __CLASS__, 'catch_delete_application_password' ) );
+		add_filter( 'authenticate',                        array( __CLASS__, 'authenticate' ), 10, 3 );
+		add_action( 'show_user_profile',                   array( __CLASS__, 'show_user_profile' ) );
+		add_action( 'edit_user_profile',                   array( __CLASS__, 'show_user_profile' ) );
+		add_action( 'personal_options_update',             array( __CLASS__, 'catch_submission' ), 0 );
+		add_action( 'edit_user_profile_update',            array( __CLASS__, 'catch_submission' ), 0 );
+		add_action( 'load-profile.php',                    array( __CLASS__, 'catch_delete_application_password' ) );
+		add_action( 'load-user-edit.php',                  array( __CLASS__, 'catch_delete_application_password' ) );
+		add_action( 'admin_enqueue_scripts',               array( __CLASS__, 'enqueue_scripts' ) );
+		add_action( 'wp_ajax_delete_application_password', array( __CLASS__, 'ajax_delete_application_password' ) );
+	}
+
+	public static function enqueue_scripts() {
+		wp_enqueue_script( 'two-factor', TWO_FACTOR_URL . 'js/two-factor.js', array( 'jquery' ) );
 	}
 
 	public static function authenticate( $input_user, $username, $password ) {
@@ -171,8 +177,10 @@ class Application_Passwords {
 	public static function delete_link( $item ) {
 		$slug = self::password_unique_slug( $item );
 		$delete_link = add_query_arg( 'delete_application_password', $slug );
-		$delete_link = wp_nonce_url( $delete_link, "delete_application_password-{$slug}", '_nonce_delete_application_password' );
-		return sprintf( '<a href="%1$s">%2$s</a>', esc_url( $delete_link ), esc_html__( 'Delete', 'two-factor' ) );
+		//$delete_link = wp_nonce_url( $delete_link, "delete_application_password-{$slug}", '_nonce_delete_application_password' );
+		$nonce = wp_create_nonce( "delete_application_password-{$slug}" );
+		$delete_link .= '&_nonce_delete_application_password=' . $nonce;
+		return sprintf( '<a data-delete-application-password="%1$s" data-nonce="%2$s" data-action="%3$s" href="%4$s">%5$s</a>', $slug, $nonce, 'delete_application_password', esc_url( $delete_link ), esc_html__( 'Delete', 'two-factor' ) );
 	}
 
 	/**
@@ -220,5 +228,24 @@ class Application_Passwords {
 
 	public static function set_user_application_passwords( $user_id, $items ) {
 		return update_user_meta( $user_id, self::USERMETA_KEY_APPLICATION_PASSWORDS, $items );
+	}
+
+	/**
+	 * Ajax delete application password.
+	 */
+	public static function ajax_delete_application_password() {
+		$user_id = get_current_user_id();
+		if ( ! empty( $_REQUEST['delete_application_password'] ) ) {
+			$slug = $_REQUEST['delete_application_password'];
+			check_admin_referer( "delete_application_password-{$slug}", '_nonce_delete_application_password' );
+
+			$res = self::delete_application_password( $user_id, $slug );
+		}
+
+		if ( true === $res )
+			wp_send_json_success();
+
+		wp_send_json_error();
+		wp_die();
 	}
 }
