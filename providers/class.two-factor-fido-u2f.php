@@ -28,7 +28,7 @@ class Two_Factor_Fido_U2f extends Two_Factor_Provider {
 	 * @since 0.1-dev
 	 */
 	function get_label() {
-		return _x( 'FIDO U2f', 'Provider Label', 'two-factor' );
+		return _x( 'FIDO U2f', 'Provider Label' );
 	}
 
 	/**

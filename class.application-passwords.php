@@ -114,18 +114,18 @@ class Application_Passwords {
 		}
 		?>
 		<div class="application-passwords" id="application-passwords-section">
-			<h3><?php esc_html_e( 'Application Passwords', 'two-factor' ); ?></h3>
-			<p><?php esc_html_e( 'Application Passwords are used to allow authentication via non-interactive systems, such as XMLRPC, where you would not otherwise be able to use your normal password due to the inability to complete the second factor of authentication.', 'two-factor' ); ?></p>
+			<h3><?php esc_html_e( 'Application Passwords' ); ?></h3>
+			<p><?php esc_html_e( 'Application Passwords are used to allow authentication via non-interactive systems, such as XMLRPC, where you would not otherwise be able to use your normal password due to the inability to complete the second factor of authentication.' ); ?></p>
 			<div class="create-application-password">
-				<input type="text" size="30" name="new_application_password_name" placeholder="<?php esc_attr_e( 'New Application Password Name', 'two-factor' ); ?>" />
-				<?php submit_button( __( 'Add New', 'two-factor' ), 'secondary', 'do_new_application_password', false ); ?>
+				<input type="text" size="30" name="new_application_password_name" placeholder="<?php esc_attr_e( 'New Application Password Name' ); ?>" />
+				<?php submit_button( __( 'Add New' ), 'secondary', 'do_new_application_password', false ); ?>
 			</div>
 
 			<?php if ( $new_password ) : ?>
 			<p class="new-application-password">
 				<?php
 				printf(
-					esc_html_x( 'Your new password for %1$s is %2$s.', 'application, password', 'two-factor' ),
+					esc_html_x( 'Your new password for %1$s is %2$s.', 'application, password' ),
 					'<strong>' . esc_html( $new_password_name ) . '</strong>',
 					'<kbd>' . esc_html( self::chunk_password( $new_password ) ) . '</kbd>'
 				);
@@ -243,7 +243,7 @@ class Application_Passwords {
 		$slug = self::password_unique_slug( $item );
 		$delete_link = add_query_arg( 'delete_application_password', $slug );
 		$delete_link = wp_nonce_url( $delete_link, "delete_application_password-{$slug}", '_nonce_delete_application_password' );
-		return sprintf( '<a href="%1$s">%2$s</a>', esc_url( $delete_link ), esc_html__( 'Delete', 'two-factor' ) );
+		return sprintf( '<a href="%1$s">%2$s</a>', esc_url( $delete_link ), esc_html__( 'Delete' ) );
 	}
 
 	/**

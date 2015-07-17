@@ -23,10 +23,10 @@ class Application_Passwords_List_Table extends WP_List_Table {
 	 */
 	public function get_columns() {
 		return array(
-			'name'      => wp_strip_all_tags( __( 'Name', 'two-factor' ) ),
-			'created'   => wp_strip_all_tags( __( 'Created', 'two-factor' ) ),
-			'last_used' => wp_strip_all_tags( __( 'Last Used', 'two-factor' ) ),
-			'last_ip'   => wp_strip_all_tags( __( 'Last IP', 'two-factor' ) ),
+			'name'      => wp_strip_all_tags( __( 'Name' ) ),
+			'created'   => wp_strip_all_tags( __( 'Created' ) ),
+			'last_used' => wp_strip_all_tags( __( 'Last Used' ) ),
+			'last_ip'   => wp_strip_all_tags( __( 'Last IP' ) ),
 		);
 	}
 
@@ -61,17 +61,17 @@ class Application_Passwords_List_Table extends WP_List_Table {
 				return esc_html( $item['name'] ) . self::row_actions( $actions );
 			case 'created':
 				if ( empty( $item['created'] ) ) {
-					return esc_html__( 'Unknown', 'two-factor' );
+					return esc_html__( 'Unknown' );
 				}
 				return date( get_option( 'date_format', 'r' ), $item['created'] );
 			case 'last_used':
 				if ( empty( $item['last_used'] ) ) {
-					return esc_html__( 'Never', 'two-factor' );
+					return esc_html__( 'Never' );
 				}
 				return date( get_option( 'date_format', 'r' ), $item['last_used'] );
 			case 'last_ip':
 				if ( empty( $item['last_ip'] ) ) {
-					return esc_html__( 'Never Used', 'two-factor' );
+					return esc_html__( 'Never Used' );
 				}
 				return $item['last_ip'];
 			default:

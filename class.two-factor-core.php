@@ -163,7 +163,7 @@ class Two_Factor_Core {
 
 		$login_nonce = $this->create_login_nonce( $user->ID );
 		if ( ! $login_nonce ) {
-			wp_die( esc_html__( 'Could not save login nonce.', 'two-factor' ) );
+			wp_die( esc_html__( 'Could not save login nonce.' ) );
 		}
 
 		$redirect_to = isset( $_REQUEST['redirect_to'] ) ? $_REQUEST['redirect_to'] : $_SERVER['REQUEST_URI'];
@@ -300,7 +300,7 @@ class Two_Factor_Core {
 				return;
 			}
 
-			$this->login_html( $user, $login_nonce, $_REQUEST['redirect_to'], __( 'ERROR: Invalid verification code.', 'two-factor' ) );
+			$this->login_html( $user, $login_nonce, $_REQUEST['redirect_to'], __( 'ERROR: Invalid verification code.' ) );
 			exit;
 		}
 
@@ -335,14 +335,14 @@ class Two_Factor_Core {
 		<table class="form-table">
 			<tr>
 				<th>
-					<?php esc_html_e( 'Two-Factor Options', 'two-factor' ); ?>
+					<?php esc_html_e( 'Two-Factor Options' ); ?>
 				</th>
 				<td>
 					<table class="two-factor-methods-table">
 						<thead>
 							<tr>
-								<th style="width: 5%;" scope="col"><?php esc_html_e( 'Primary', 'two-factor' ); ?></th>
-								<th style="width: 90%;" scope="col"><?php esc_html_e( 'Name', 'two-factor' ); ?></th>
+								<th style="width: 5%;" scope="col"><?php esc_html_e( 'Primary' ); ?></th>
+								<th style="width: 90%;" scope="col"><?php esc_html_e( 'Name' ); ?></th>
 							</tr>
 						</thead>
 						<tbody>
