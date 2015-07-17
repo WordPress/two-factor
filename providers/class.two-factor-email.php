@@ -1,9 +1,24 @@
 <?php
-
+/**
+ * Class for creating an email provider.
+ *
+ * @since 0.1-dev
+ *
+ * @package Two_Factor
+ */
 class Two_Factor_Email extends Two_Factor_Provider {
 
+	/**
+	 * The user meta token key.
+	 * @type string
+	 */
 	const TOKEN_META_KEY = '_two_factor_email_token';
 
+	/**
+	 * Ensures only one instance of this class exists in memory at any one time.
+	 *
+	 * @since 0.1-dev
+	 */
 	static function get_instance() {
 		static $instance;
 		$class = __CLASS__;
@@ -13,16 +28,38 @@ class Two_Factor_Email extends Two_Factor_Provider {
 		return $instance;
 	}
 
+	/**
+	 * Returns the name of the provider.
+	 *
+	 * @since 0.1-dev
+	 */
 	function get_label() {
 		return _x( 'Email', 'Provider Label', 'two-factor' );
 	}
 
+	/**
+	 * Generate the user token.
+	 *
+	 * @since 0.1-dev
+	 *
+	 * @param int $user_id User ID.
+	 * @return string
+	 */
 	function generate_token( $user_id ) {
 		$token = $this->get_code();
 		update_user_meta( $user_id, self::TOKEN_META_KEY, wp_hash( $token ) );
 		return $token;
 	}
 
+	/**
+	 * Validate the user token.
+	 *
+	 * @since 0.1-dev
+	 *
+	 * @param int    $user_id User ID.
+	 * @param string $token User token.
+	 * @return boolean
+	 */
 	function validate_token( $user_id, $token ) {
 		$hashed_token = get_user_meta( $user_id, self::TOKEN_META_KEY, true );
 		if ( wp_hash( $token ) !== $hashed_token ) {
@@ -32,10 +69,24 @@ class Two_Factor_Email extends Two_Factor_Provider {
 		return true;
 	}
 
+	/**
+	 * Delete the user token.
+	 *
+	 * @since 0.1-dev
+	 *
+	 * @param int $user_id User ID.
+	 */
 	function delete_token( $user_id ) {
 		delete_user_meta( $user_id, self::TOKEN_META_KEY );
 	}
 
+	/**
+	 * Generate and email the user token.
+	 *
+	 * @since 0.1-dev
+	 *
+	 * @param WP_User $user WP_User object of the logged-in user.
+	 */
 	function generate_and_email_token( $user ) {
 		$token = $this->generate_token( $user->ID );
 
@@ -44,6 +95,13 @@ class Two_Factor_Email extends Two_Factor_Provider {
 		wp_mail( $user->user_email, $subject, $message );
 	}
 
+	/**
+	 * Prints the form that prompts the user to authenticate.
+	 *
+	 * @since 0.1-dev
+	 *
+	 * @param WP_User $user WP_User object of the logged-in user.
+	 */
 	function authentication_page( $user ) {
 		$this->generate_and_email_token( $user );
 		require_once( ABSPATH .  '/wp-admin/includes/template.php' );
@@ -67,6 +125,14 @@ class Two_Factor_Email extends Two_Factor_Provider {
 		submit_button( __( 'Log In', 'two-factor' ) );
 	}
 
+	/**
+	 * Validates the users input token.
+	 *
+	 * @since 0.1-dev
+	 *
+	 * @param WP_User $user WP_User object of the logged-in user.
+	 * @return boolean
+	 */
 	function validate_authentication( $user ) {
 		return $this->validate_token( $user->ID, $_REQUEST['two-factor-email-code'] );
 	}
