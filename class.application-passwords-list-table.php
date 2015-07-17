@@ -92,7 +92,7 @@ class Application_Passwords_List_Table extends WP_List_Table {
 	 * @since 0.1-dev
 	 * @access protected
 	 *
-	 * @param string $which
+	 * @param string $which The location of the bulk actions: 'top' or 'bottom'.
 	 */
 	protected function display_tablenav( $which ) {
 		?>
@@ -116,7 +116,7 @@ class Application_Passwords_List_Table extends WP_List_Table {
 	 *
 	 * @since 0.1-dev
 	 *
-	 * @param object $item The current item
+	 * @param object $item The current item.
 	 */
 	public function single_row( $item ) {
 		echo '<tr data-slug="' . esc_attr( Application_Passwords::password_unique_slug( $item ) ) . '">';
