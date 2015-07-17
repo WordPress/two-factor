@@ -123,11 +123,13 @@ class Application_Passwords {
 
 			<?php if ( $new_password ) : ?>
 			<p class="new-application-password">
-				<?php printf(
+				<?php
+				printf(
 					esc_html_x( 'Your new password for %1$s is %2$s.', 'application, password', 'two-factor' ),
 					'<strong>' . esc_html( $new_password_name ) . '</strong>',
 					'<kbd>' . esc_html( self::chunk_password( $new_password ) ) . '</kbd>'
-				); ?>
+				);
+				?>
 			</p>
 			<?php endif; ?>
 
