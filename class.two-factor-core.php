@@ -122,7 +122,7 @@ class Two_Factor_Core {
 
 		$login_nonce = $this->create_login_nonce( $user->ID );
 		if ( ! $login_nonce ) {
-			wp_die( esc_html( __( 'Could not save login nonce.', 'two-factor' ) ) );
+			wp_die( esc_html__( 'Could not save login nonce.', 'two-factor' ) );
 		}
 
 		$redirect_to = isset( $_REQUEST['redirect_to'] ) ? $_REQUEST['redirect_to'] : $_SERVER['REQUEST_URI'];
@@ -132,7 +132,6 @@ class Two_Factor_Core {
 
 	function login_html( $user, $login_nonce, $redirect_to, $error_msg = '', $login_type = 'standard' ) {
 		$provider = $this->get_provider_for_user( $user->ID );
-		$link_text = sprintf( __( '&larr; Back to %s' ), get_bloginfo( 'title', 'display' ) );
 
 		$rememberme = 0;
 		if ( isset( $_REQUEST['rememberme'] ) && $_REQUEST['rememberme'] ) {
@@ -149,18 +148,14 @@ class Two_Factor_Core {
 		<form name="twostepform" id="loginform" action="<?php echo esc_url( site_url( 'wp-login.php?action=twostep', 'login_post' ) ); ?>" method="post" autocomplete="off">
 				<input type="hidden" name="wp-auth-id" id="wp-auth-id" value="<?php echo esc_attr( $user->ID ) ?>" />
 				<input type="hidden" name="wp-auth-nonce" id="wp-auth-nonce" value="<?php echo esc_attr( $login_nonce['key'] ) ?>"/>
-				<input type="hidden" name="redirect_to" id="redirect_to" value="<?php echo esc_attr( $redirect_to ) ?>"/>
+				<input type="hidden" name="redirect_to" id="redirect_to" value="<?php echo esc_url( $redirect_to ) ?>"/>
 				<input type="hidden" name="rememberme" id="rememberme" value="<?php echo esc_attr( $rememberme ) ?>"/>
 
 				<?php $provider->authentication_page( $user ); ?>
 
 		</form>
 
-		<p id="backtoblog">
-			<a href="<?php echo esc_url( home_url( '/' ) ); ?>" title="<?php esc_attr_e( 'Are you lost?' ); ?>">
-				<?php esc_html( $link_text ); ?>
-			</a>
-		</p>
+		<p id="backtoblog"><a href="<?php echo esc_url( home_url( '/' ) ); ?>" title="<?php esc_attr_e( 'Are you lost?' ); ?>"><?php printf( esc_html__( '&larr; Back to %s' ), get_bloginfo( 'title', 'display' ) ); ?></a></p>
 
 		</body>
 		</html>
@@ -197,6 +192,13 @@ class Two_Factor_Core {
 		return true;
 	}
 
+	/**
+	 * Login form second step.
+	 *
+	 * This executes during the `login_form_twostep` action.
+	 *
+	 * @since 0.1-dev
+	 */
 	function login_form_twostep() {
 		if ( ! isset( $_POST['wp-auth-id'], $_POST['wp-auth-nonce'] ) ) {
 			return;
@@ -243,6 +245,12 @@ class Two_Factor_Core {
 
 	/**
 	 * Add user profile fields.
+	 *
+	 * This executes during the `show_user_profile` & `edit_user_profile` actions.
+	 *
+	 * @since 0.1-dev
+	 *
+	 * @param WP_User $user User object.
 	 */
 	function user_two_factor_options( $user ) {
 		$primary_provider = get_user_meta( $user->ID, self::PROVIDER_USER_META_KEY, true );
@@ -281,16 +289,20 @@ class Two_Factor_Core {
 
 	/**
 	 * Update the user meta value.
+	 *
+	 * This executes during the `personal_options_update` & `edit_user_profile_update` actions.
+	 *
+	 * @since 0.1-dev
+	 *
+	 * @param int $user_id User ID.
 	 */
-	function user_two_factor_options_update( $user_id ) {
+	public function user_two_factor_options_update( $user_id ) {
 		if ( isset( $_POST[ self::PROVIDER_USER_META_KEY ] ) ) {
 			check_admin_referer( 'user_two_factor_options', '_nonce_user_two_factor_options' );
 			$new_provider = $_POST[ self::PROVIDER_USER_META_KEY ];
 			$providers = self::get_providers();
 
-			/**
-			 * Whitelist the new values to only the available classes and empty.
-			 */
+			// Whitelist the new values to only the available classes and empty.
 			if ( empty( $new_provider ) || array_key_exists( $new_provider, $providers ) ) {
 				update_user_meta( $user_id, self::PROVIDER_USER_META_KEY, $new_provider );
 			} else {

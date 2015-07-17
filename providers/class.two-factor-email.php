@@ -39,8 +39,8 @@ class Two_Factor_Email extends Two_Factor_Provider {
 	function generate_and_email_token( $user ) {
 		$token = $this->generate_token( $user->ID );
 
-		$subject = sprintf( __( 'Your login confirmation code for %s', 'two-factor' ), get_bloginfo( 'name' ) );
-		$message = sprintf( __( 'Enter %s to log in.', 'two-factor' ), $token );
+		$subject = wp_strip_all_tags( sprintf( __( 'Your login confirmation code for %s', 'two-factor' ), get_bloginfo( 'name' ) ) );
+		$message = wp_strip_all_tags( sprintf( __( 'Enter %s to log in.', 'two-factor' ), $token ) );
 		wp_mail( $user->user_email, $subject, $message );
 	}
 

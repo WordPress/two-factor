@@ -121,16 +121,14 @@ class Application_Passwords {
 				<?php submit_button( __( 'Add New', 'two-factor' ), 'secondary', 'do_new_application_password', false ); ?>
 			</div>
 
-			<?php if ( $new_password ) :
-				$new_password_text = sprintf(
-					__( 'Your new password for <strong>%s</strong> is <kbd>%s</kbd>.', 'two-factor' ),
-					esc_html( $new_password_name ),
-					self::chunk_password( $new_password )
-				);
-				?>
-				<p class="new-application-password">
-					<?php esc_html( $new_password_text ); ?>
-				</p>
+			<?php if ( $new_password ) : ?>
+			<p class="new-application-password">
+				<?php printf(
+					esc_html_x( 'Your new password for %1$s is %2$s.', 'application, password', 'two-factor' ),
+					'<strong>' . esc_html( $new_password_name ) . '</strong>',
+					'<kbd>' . esc_html( self::chunk_password( $new_password ) ) . '</kbd>'
+				); ?>
+			</p>
 			<?php endif; ?>
 
 			<?php
@@ -224,7 +222,7 @@ class Application_Passwords {
 		$passwords[] = $new_item;
 		self::set_user_application_passwords( $user_id, $passwords );
 
-		return chunk_split( $new_password, 4, ' ' );
+		return self::chunk_password( $new_password );
 	}
 
 	/**
