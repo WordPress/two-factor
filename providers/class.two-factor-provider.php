@@ -58,6 +58,10 @@ abstract class Two_Factor_Provider {
 	 * Generate a random eight-digit string to send out as an auth code.
 	 *
 	 * @since 0.1-dev
+	 *
+	 * @param int          $length The code length.
+	 * @param string|array $chars Valid auth code characters.
+	 * @return string
 	 */
 	public function get_code( $length = 8, $chars = '1234567890' ) {
 		$code = '';
