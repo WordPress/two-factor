@@ -28,7 +28,7 @@ class Application_Passwords_List_Table extends WP_List_Table {
 	 *
 	 * @return array
 	 */
-	function get_columns() {
+	public function get_columns() {
 		return array(
 			'name'      => __( 'Name', 'two-factor' ),
 			'created'   => __( 'Created', 'two-factor' ),
