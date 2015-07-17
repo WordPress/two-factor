@@ -9,7 +9,7 @@
 class Application_Passwords {
 
 	/**
-	 * The user meta key.
+	 * The user meta application password key.
 	 * @type string
 	 */
 	const USERMETA_KEY_APPLICATION_PASSWORDS = '_application_passwords';
@@ -89,7 +89,7 @@ class Application_Passwords {
 	 * @access public
 	 * @static
 	 *
-	 * @param WP_User $user User object.
+	 * @param WP_User $user WP_User object of the logged-in user.
 	 */
 	public static function show_user_profile( $user ) {
 		wp_nonce_field( "user_application_passwords-{$user->ID}", '_nonce_user_application_passwords' );
