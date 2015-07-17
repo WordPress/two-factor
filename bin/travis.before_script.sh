@@ -17,7 +17,7 @@ export WPCS_GITHUB_SRC=WordPress-Coding-Standards/WordPress-Coding-Standards
 export WPCS_GIT_TREE=master
 export YUI_COMPRESSOR_CHECK=1
 export DISALLOW_EXECUTE_BIT=0
-export LIMIT_TRAVIS_PR_CHECK_SCOPE=all # when set to 'patches', limits reports to only lines changed; TRAVIS_PULL_REQUEST must not be 'false'
+export LIMIT_TRAVIS_PR_CHECK_SCOPE=files # when set to 'patches', limits reports to only lines changed; TRAVIS_PULL_REQUEST must not be 'false'
 export PATH_INCLUDES=./
 export WPCS_STANDARD=$(if [ -e phpcs.ruleset.xml ]; then echo phpcs.ruleset.xml; else echo WordPress-Core; fi)
 if [ -e .jscsrc ]; then
@@ -27,8 +27,8 @@ elif [ -e .jscs.json ]; then
 fi
 
 # Load a .ci-env.sh to override the above environment variables
-if [ -e .ci-env.sh ]; then
-	source .ci-env.sh
+if [ -e $BIN_PATH/.ci-env.sh ]; then
+	source $BIN_PATH/.ci-env.sh
 fi
 
 # Install the WordPress Unit Tests
