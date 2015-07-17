@@ -8,9 +8,11 @@
 
 	<rule ref="WordPress-Core"/>
 	<rule ref="WordPress-Docs">
+		<exclude name="Squiz.Commenting.FileComment.MissingPackageTag"/>
 		<exclude name="Squiz.Commenting.FileComment.Missing"/>
 		<exclude name="Squiz.Commenting.FileComment.WrongStyle"/>
 		<exclude name="Squiz.Commenting.FileComment.SpacingAfterComment"/>
+		<exclude name="Squiz.Commenting.ClassComment.Missing"/>
 	</rule>
 	<rule ref="WordPress-Extra">
 		<exclude name="WordPress.CSRF.NonceVerification" />
