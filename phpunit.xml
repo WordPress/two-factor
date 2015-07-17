@@ -1,0 +1,27 @@
+<phpunit 
+	bootstrap="tests/phpunit/includes/bootstrap.php"
+	backupGlobals="false" 
+	colors="true"
+	convertErrorsToExceptions="true"
+	convertNoticesToExceptions="true"
+	convertWarningsToExceptions="true"
+	>
+	<php>
+		<const name="WP_TEST_ACTIVATED_PLUGINS" value="two-factor/two-factor.php" />
+	</php>
+	<testsuites>
+		<testsuite>
+			<directory suffix=".php">tests/phpunit/tests</directory>
+		</testsuite>
+	</testsuites>
+	<filter>
+		<whitelist processUncoveredFilesFromWhitelist="false">
+			<directory suffix=".php">.</directory>
+			<exclude>
+				<directory suffix=".php">bin</directory>
+				<directory suffix=".php">tests</directory>
+				<directory suffix=".php">vendor</directory>
+			</exclude>
+		</whitelist>
+	</filter>
+</phpunit>
