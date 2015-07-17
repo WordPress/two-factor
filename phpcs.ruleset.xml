@@ -9,6 +9,8 @@
 	<rule ref="WordPress-Core"/>
 	<rule ref="WordPress-Docs">
 		<exclude name="Squiz.Commenting.FileComment.Missing"/>
+		<exclude name="Squiz.Commenting.FileComment.WrongStyle"/>
+		<exclude name="Squiz.Commenting.FileComment.SpacingAfterComment"/>
 	</rule>
 	<rule ref="WordPress-Extra">
 		<exclude name="WordPress.CSRF.NonceVerification" />

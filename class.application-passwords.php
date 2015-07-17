@@ -9,9 +9,9 @@
 class Application_Passwords {
 
 	/**
-   * The user meta key.
-   * @type string
-   */
+	 * The user meta key.
+	 * @type string
+	 */
 	const USERMETA_KEY_APPLICATION_PASSWORDS = '_application_passwords';
 
 	/**
@@ -42,7 +42,7 @@ class Application_Passwords {
 	 *
 	 * @param WP_User $input_user User to authenticate.
 	 * @param string  $username   User login.
-	 * @param string  $password   User password
+	 * @param string  $password   User password.
 	 */
 	public static function authenticate( $input_user, $username, $password ) {
 		$api_request = ( defined( 'XMLRPC_REQUEST' ) && XMLRPC_REQUEST );
@@ -255,7 +255,7 @@ class Application_Passwords {
 	 *
 	 * @see Application_Passwords::password_unique_slug()
 	 *
-	 * @param int $user_id User ID.
+	 * @param int    $user_id User ID.
 	 * @param string $slug The generated slug of the password in question.
 	 * @return bool Whether the password was successfully found and deleted.
 	 */
