@@ -84,10 +84,16 @@ class Application_Passwords {
 				<?php submit_button( __( 'Add New', 'two-factor' ), 'secondary', 'do_new_application_password', false ); ?>
 			</div>
 
-			<?php if ( $new_password ) : ?>
-			<p class="new-application-password">
-				<?php printf( __( 'Your new password for <strong>%s</strong> is <kbd>%s</kbd>.', 'two-factor' ), esc_html( $new_password_name ), self::chunk_password( $new_password ) ); ?>
-			</p>
+			<?php if ( $new_password ) :
+				$new_password_text = sprintf(
+					__( 'Your new password for <strong>%s</strong> is <kbd>%s</kbd>.', 'two-factor' ),
+					esc_html( $new_password_name ),
+					self::chunk_password( $new_password )
+				);
+				?>
+				<p class="new-application-password">
+					<?php esc_html( $new_password_text ); ?>
+				</p>
 			<?php endif; ?>
 
 			<?php
@@ -187,7 +193,7 @@ class Application_Passwords {
 		$passwords = self::get_user_application_passwords( $user_id );
 
 		foreach ( $passwords as $key => $item ) {
-			if ( $slug === self::password_unique_slug( $item ) ) {
+			if ( self::password_unique_slug( $item ) === $slug ) {
 				unset( $passwords[ $key ] );
 				self::set_user_application_passwords( $user_id, $passwords );
 				return true;

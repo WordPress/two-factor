@@ -24,7 +24,7 @@ class Application_Passwords_List_Table extends WP_List_Table {
 	}
 
 	function column_default( $item, $column_name ) {
-		switch( $column_name ) {
+		switch ( $column_name ) {
 			case 'name':
 				$actions = array(
 					'delete' => Application_Passwords::delete_link( $item ),
@@ -71,7 +71,7 @@ class Application_Passwords_List_Table extends WP_List_Table {
 	}
 
 	public function single_row( $item ) {
-		echo '<tr data-slug="' . Application_Passwords::password_unique_slug( $item ) . '">';
+		echo '<tr data-slug="' . esc_attr(  Application_Passwords::password_unique_slug( $item ) ) . '">';
 		$this->single_row_columns( $item );
 		echo '</tr>';
 	}

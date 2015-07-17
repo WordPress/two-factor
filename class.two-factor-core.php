@@ -122,7 +122,7 @@ class Two_Factor_Core {
 
 		$login_nonce = $this->create_login_nonce( $user->ID );
 		if ( ! $login_nonce ) {
-			wp_die( __( 'Could not save login nonce.', 'two-factor' ) );
+			wp_die( esc_html( __( 'Could not save login nonce.', 'two-factor' ) ) );
 		}
 
 		$redirect_to = isset( $_REQUEST['redirect_to'] ) ? $_REQUEST['redirect_to'] : $_SERVER['REQUEST_URI'];
@@ -132,9 +132,10 @@ class Two_Factor_Core {
 
 	function login_html( $user, $login_nonce, $redirect_to, $error_msg = '', $login_type = 'standard' ) {
 		$provider = $this->get_provider_for_user( $user->ID );
+		$link_text = sprintf( __( '&larr; Back to %s' ), get_bloginfo( 'title', 'display' ) );
 
 		$rememberme = 0;
-		if ( isset ( $_REQUEST[ 'rememberme' ] ) && $_REQUEST[ 'rememberme' ] ) {
+		if ( isset( $_REQUEST['rememberme'] ) && $_REQUEST['rememberme'] ) {
 			$rememberme = 1;
 		}
 
@@ -155,7 +156,11 @@ class Two_Factor_Core {
 
 		</form>
 
-		<p id="backtoblog"><a href="<?php echo esc_url( home_url( '/' ) ); ?>" title="<?php esc_attr_e( 'Are you lost?' ); ?>"><?php printf( __( '&larr; Back to %s' ), get_bloginfo( 'title', 'display' ) ); ?></a></p>
+		<p id="backtoblog">
+			<a href="<?php echo esc_url( home_url( '/' ) ); ?>" title="<?php esc_attr_e( 'Are you lost?' ); ?>">
+				<?php esc_html( $link_text ); ?>
+			</a>
+		</p>
 
 		</body>
 		</html>
@@ -184,7 +189,7 @@ class Two_Factor_Core {
 			return false;
 		}
 
-		if ( $nonce != $login_nonce['key'] || time() > $login_nonce['expiration'] ) {
+		if ( $nonce !== $login_nonce['key'] || time() > $login_nonce['expiration'] ) {
 			$this->delete_login_nonce( $user_id );
 			return false;
 		}
@@ -201,10 +206,10 @@ class Two_Factor_Core {
 		if ( ! $user ) {
 			return;
 		}
-		
+
 		$nonce = $_POST['wp-auth-nonce'];
 		if ( true !== $this->verify_login_nonce( $user->ID, $nonce ) ) {
-			wp_safe_redirect( get_bloginfo('url') );
+			wp_safe_redirect( get_bloginfo( 'url' ) );
 			exit();
 		}
 
@@ -224,10 +229,10 @@ class Two_Factor_Core {
 		$this->delete_login_nonce( $user->ID );
 
 		$rememberme = false;
-		if ( isset ( $_REQUEST[ 'rememberme' ] ) && $_REQUEST[ 'rememberme' ] ) {
+		if ( isset( $_REQUEST['rememberme'] ) && $_REQUEST['rememberme'] ) {
 			$rememberme = true;
 		}
-		
+
 		wp_set_auth_cookie( $user->ID, $rememberme );
 
 		$redirect_to = apply_filters( 'login_redirect', $_REQUEST['redirect_to'], $_REQUEST['redirect_to'], $user );
