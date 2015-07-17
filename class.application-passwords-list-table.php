@@ -1,11 +1,4 @@
 <?php
-/**
- * Load and/or extend the `WP_List_Table` class.
- *
- * @since 0.1-dev
- * @package Two_Factor
- */
-
 // Load the parent class if it doesn't exist.
 if ( ! class_exists( 'WP_List_Table' ) ) {
 	require_once ABSPATH . 'wp-admin/includes/class-wp-list-table.php';

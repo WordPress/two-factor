@@ -7,7 +7,9 @@
 	<exclude-pattern>*/vendor/*</exclude-pattern>
 
 	<rule ref="WordPress-Core"/>
-	<rule ref="WordPress-Docs"/>
+	<rule ref="WordPress-Docs">
+		<exclude name="Squiz.Commenting.FileComment.Missing"/>
+	</rule>
 	<rule ref="WordPress-Extra">
 		<exclude name="WordPress.CSRF.NonceVerification" />
 	</rule>

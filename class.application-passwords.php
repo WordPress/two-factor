@@ -1,9 +1,27 @@
 <?php
-
+/**
+ * Class for displaying, modifying, & sanitizing application passwords.
+ *
+ * @since 0.1-dev
+ *
+ * @package Two_Factor
+ */
 class Application_Passwords {
 
+	/**
+   * The user meta key.
+   * @type string
+   */
 	const USERMETA_KEY_APPLICATION_PASSWORDS = '_application_passwords';
 
+	/**
+	 * Add various hooks.
+	 *
+	 * @since 0.1-dev
+	 *
+	 * @access public
+	 * @static
+	 */
 	public static function add_hooks() {
 		add_filter( 'authenticate',             array( __CLASS__, 'authenticate' ), 10, 3 );
 		add_action( 'show_user_profile',        array( __CLASS__, 'show_user_profile' ) );
@@ -14,6 +32,18 @@ class Application_Passwords {
 		add_action( 'load-user-edit.php',       array( __CLASS__, 'catch_delete_application_password' ) );
 	}
 
+	/**
+	 * Filter the user to authenticate.
+	 *
+	 * @since 0.1-dev
+	 *
+	 * @access public
+	 * @static
+	 *
+	 * @param WP_User $input_user User to authenticate.
+	 * @param string  $username   User login.
+	 * @param string  $password   User password
+	 */
 	public static function authenticate( $input_user, $username, $password ) {
 		$api_request = ( defined( 'XMLRPC_REQUEST' ) && XMLRPC_REQUEST );
 		if ( ! apply_filters( 'application_password_is_api_request', $api_request ) ) {
@@ -22,17 +52,14 @@ class Application_Passwords {
 
 		$user = get_user_by( 'login',  $username );
 
-		/**
-		 * If the login name is invalid, short circuit.
-		 */
+		// If the login name is invalid, short circuit.
 		if ( ! $user ) {
 			return $input_user;
 		}
 
-		/**
-		 * Strip out anything non-alphanumeric.  This is so
-		 * that passwords can be used with or without spaces
-		 * to indicate the groupings for readability.
+		/*
+		 * Strip out anything non-alphanumeric. This is so passwords can be used with
+		 * or without spaces to indicate the groupings for readability.
 		 */
 		$password = preg_replace( '/[^a-z\d]/i', '', $password );
 
@@ -48,12 +75,22 @@ class Application_Passwords {
 			}
 		}
 
-		/**
-		 * By default, continue what we've been passed.
-		 */
+		// By default, return what we've been passed.
 		return $input_user;
 	}
 
+	/**
+	 * Display the application password section in a users profile.
+	 *
+	 * This executes during the `show_user_profile` & `edit_user_profile` actions.
+	 *
+	 * @since 0.1-dev
+	 *
+	 * @access public
+	 * @static
+	 *
+	 * @param WP_User $user User object.
+	 */
 	public static function show_user_profile( $user ) {
 		wp_nonce_field( "user_application_passwords-{$user->ID}", '_nonce_user_application_passwords' );
 		$new_password      = null;
@@ -109,6 +146,15 @@ class Application_Passwords {
 
 	/**
 	 * Catch the non-ajax submission from the new form.
+	 *
+	 * This executes during the `personal_options_update` & `edit_user_profile_update` actions.
+	 *
+	 * @since 0.1-dev
+	 *
+	 * @access public
+	 * @static
+	 *
+	 * @param int $user_id User ID.
 	 */
 	public static function catch_submission( $user_id ) {
 		if ( ! empty( $_REQUEST['do_new_application_password'] ) ) {
@@ -123,6 +169,16 @@ class Application_Passwords {
 		}
 	}
 
+	/**
+	 * Catch the delete application password request.
+	 *
+	 * This executes during the `load-profile.php` & `load-user-edit.php` actions.
+	 *
+	 * @since 0.1-dev
+	 *
+	 * @access public
+	 * @static
+	 */
 	public static function catch_delete_application_password() {
 		$user_id = get_current_user_id();
 		if ( ! empty( $_REQUEST['delete_application_password'] ) ) {
@@ -138,9 +194,13 @@ class Application_Passwords {
 	/**
 	 * Generate a new application password.
 	 *
-	 * @param $user_id
-	 * @param $name
+	 * @since 0.1-dev
 	 *
+	 * @access public
+	 * @static
+	 *
+	 * @param int    $user_id User ID.
+	 * @param string $name Password name.
 	 * @return string
 	 */
 	public static function create_new_application_password( $user_id, $name ) {
@@ -150,7 +210,7 @@ class Application_Passwords {
 
 		$new_item  = array(
 			'name'      => $name,
-		    'raw'       => $new_password, // THIS LINE GETS DELETED IN SUBSEQUENT REQUEST
+		  'raw'       => $new_password, // THIS LINE GETS DELETED IN SUBSEQUENT REQUEST.
 			'password'  => $hashed_password,
 			'created'   => time(),
 			'last_used' => null,
@@ -170,8 +230,12 @@ class Application_Passwords {
 	/**
 	 * Generate a link to delete a specified application password.
 	 *
-	 * @param $item
+	 * @since 0.1-dev
 	 *
+	 * @access public
+	 * @static
+	 *
+	 * @param array $item The current item.
 	 * @return string
 	 */
 	public static function delete_link( $item ) {
@@ -184,9 +248,15 @@ class Application_Passwords {
 	/**
 	 * Delete a specified application password.
 	 *
-	 * @param $user_id
-	 * @param $slug The generated slug of the password in question. See self::password_unique_slug();
+	 * @since 0.1-dev
 	 *
+	 * @access public
+	 * @static
+	 *
+	 * @see Application_Passwords::password_unique_slug()
+	 *
+	 * @param int $user_id User ID.
+	 * @param string $slug The generated slug of the password in question.
 	 * @return bool Whether the password was successfully found and deleted.
 	 */
 	public static function delete_application_password( $user_id, $slug ) {
@@ -205,9 +275,15 @@ class Application_Passwords {
 	}
 
 	/**
-	 * Generate an repeateable slug from the hashed password, name, and when it was created.
+	 * Generate a unique repeateable slug from the hashed password, name, and when it was created.
 	 *
-	 * This should be unique.
+	 * @since 0.1-dev
+	 *
+	 * @access public
+	 * @static
+	 *
+	 * @param array $item The current item.
+	 * @return string
 	 */
 	public static function password_unique_slug( $item ) {
 		$concat = $item['name'] . '|' . $item['password'] . '|' . $item['created'];
@@ -215,16 +291,49 @@ class Application_Passwords {
 		return substr( $hash, 0, 12 );
 	}
 
+	/**
+	 * Sanitize and then split a passowrd into smaller chunks.
+	 *
+	 * @since 0.1-dev
+	 *
+	 * @access public
+	 * @static
+	 *
+	 * @param string $raw_password Users raw password.
+	 * @return string
+	 */
 	public static function chunk_password( $raw_password ) {
 		$raw_password = preg_replace( '/[^a-z\d]/i', '', $raw_password );
 		return trim( chunk_split( $raw_password, 4, ' ' ) );
 	}
 
+	/**
+	 * Get a users application passwords.
+	 *
+	 * @since 0.1-dev
+	 *
+	 * @access public
+	 * @static
+	 *
+	 * @param int $user_id User ID.
+	 * @return array
+	 */
 	public static function get_user_application_passwords( $user_id ) {
 		return get_user_meta( $user_id, self::USERMETA_KEY_APPLICATION_PASSWORDS, true );
 	}
 
-	public static function set_user_application_passwords( $user_id, $items ) {
-		return update_user_meta( $user_id, self::USERMETA_KEY_APPLICATION_PASSWORDS, $items );
+	/**
+	 * Set a users application passwords.
+	 *
+	 * @since 0.1-dev
+	 *
+	 * @access public
+	 * @static
+	 *
+	 * @param int   $user_id User ID.
+	 * @param array $passwords Application passwords.
+	 */
+	public static function set_user_application_passwords( $user_id, $passwords ) {
+		return update_user_meta( $user_id, self::USERMETA_KEY_APPLICATION_PASSWORDS, $passwords );
 	}
 }
