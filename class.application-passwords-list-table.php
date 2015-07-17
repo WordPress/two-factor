@@ -1,11 +1,33 @@
 <?php
+/**
+ * Load and/or extend the `WP_List_Table` class.
+ *
+ * @since 0.1-dev
+ * @package Two_Factor
+ */
 
+// Load the parent class if it doesn't exist.
 if ( ! class_exists( 'WP_List_Table' ) ) {
 	require_once ABSPATH . 'wp-admin/includes/class-wp-list-table.php';
 }
 
+/**
+ * Class for displaying the list of application password items.
+ *
+ * @since 0.1-dev
+ * @access private
+ *
+ * @package Two_Factor
+ */
 class Application_Passwords_List_Table extends WP_List_Table {
 
+	/**
+	 * Get a list of columns.
+	 *
+	 * @since 0.1-dev
+	 *
+	 * @return array
+	 */
 	function get_columns() {
 		return array(
 			'name'      => __( 'Name', 'two-factor' ),
@@ -15,7 +37,12 @@ class Application_Passwords_List_Table extends WP_List_Table {
 		);
 	}
 
-	function prepare_items() {
+	/**
+	 * Prepares the list of items for displaying.
+	 *
+	 * @since 0.1-dev
+	 */
+	public function prepare_items() {
 		$columns  = $this->get_columns();
 		$hidden   = array();
 		$sortable = array();
@@ -23,7 +50,16 @@ class Application_Passwords_List_Table extends WP_List_Table {
 		$this->_column_headers = array( $columns, $hidden, $sortable, $primary );
 	}
 
-	function column_default( $item, $column_name ) {
+	/**
+	 * Generates content for a single row of the table
+	 *
+	 * @since 0.1-dev
+	 * @access protected
+	 *
+	 * @param object $item The current item.
+	 * @param string $column_name The current column name.
+	 */
+	protected function column_default( $item, $column_name ) {
 		switch ( $column_name ) {
 			case 'name':
 				$actions = array(
@@ -51,7 +87,12 @@ class Application_Passwords_List_Table extends WP_List_Table {
 	}
 
 	/**
-	 * Pull into the child class to prevent conflicting nonces.
+	 * Generates custom table navigation to prevent conflicting nonces.
+	 *
+	 * @since 0.1-dev
+	 * @access protected
+	 *
+	 * @param string $which
 	 */
 	protected function display_tablenav( $which ) {
 		?>
@@ -70,6 +111,13 @@ class Application_Passwords_List_Table extends WP_List_Table {
 		<?php
 	}
 
+	/**
+	 * Generates content for a single row of the table.
+	 *
+	 * @since 0.1-dev
+	 *
+	 * @param object $item The current item
+	 */
 	public function single_row( $item ) {
 		echo '<tr data-slug="' . esc_attr( Application_Passwords::password_unique_slug( $item ) ) . '">';
 		$this->single_row_columns( $item );
