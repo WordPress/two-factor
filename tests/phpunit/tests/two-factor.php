@@ -12,7 +12,6 @@ class Tests_Two_factor extends WP_UnitTestCase {
 	 */
 	function setUp() {
 		parent::setUp();
-		do_action( 'plugins_loaded' );
 	}
 
 	/**
@@ -28,7 +27,7 @@ class Tests_Two_factor extends WP_UnitTestCase {
 	 * Check that the TWO_FACTOR_DIR constant is defined.
 	 */
 	function test_constant_defined() {
-		
+
 		$this->assertTrue( defined( 'TWO_FACTOR_DIR' ) );
 
 	}
