@@ -8,5 +8,6 @@
 
 	<rule ref="WordPress">
 		<exclude name="WordPress.CSRF.NonceVerification" />
+		<exclude name="WordPress.VIP.RestrictedFunctions" />
 	</rule>
 </ruleset>
