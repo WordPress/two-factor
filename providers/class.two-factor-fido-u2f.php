@@ -1,6 +1,6 @@
 <?php
 
-class Two_Factor_Fido_U2f extends Two_Factor_Provider {
+class Two_Factor_FIDO_U2F extends Two_Factor_Provider {
 
 	static function get_instance() {
 		static $instance;
@@ -12,7 +12,7 @@ class Two_Factor_Fido_U2f extends Two_Factor_Provider {
 	}
 
 	function get_label() {
-		return _x( 'FIDO U2f', 'Provider Label', 'two-factor' );
+		return _x( 'FIDO U2F', 'Provider Label', 'two-factor' );
 	}
 
 	function authentication_page( $user ) {}
