@@ -318,7 +318,7 @@ class Two_Factor_Core {
 		return true;
 	}
 
-	function login_form_validate_2fa() {
+	public static function login_form_validate_2fa() {
 		if ( ! isset( $_POST['wp-auth-id'], $_POST['wp-auth-nonce'] ) ) {
 			return;
 		}
