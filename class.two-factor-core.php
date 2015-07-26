@@ -3,6 +3,7 @@
 class Two_Factor_Core {
 
 	const PROVIDER_USER_META_KEY            = '_two_factor_provider';
+	const ENABLED_PROVIDERS_USER_META_KEY = '_two_factor_enabled_providers';
 	const USER_META_NONCE_KEY               = '_two_factor_nonce';
 
 	/**
@@ -61,6 +62,28 @@ class Two_Factor_Core {
 	}
 
 	/**
+	 * Get all Two-Factor Auth providers that are enabled for the specified|current user.
+	 *
+	 * @param $user WP_User
+	 *
+	 * @return array
+	 */
+	public static function get_enabled_providers_for_user( $user = null ) {
+		if ( empty( $user ) || ! is_a( $user, 'WP_User' ) ) {
+			$user = wp_get_current_user();
+		}
+
+		$providers         = self::get_providers();
+		$enabled_providers = get_user_meta( $user->ID, self::ENABLED_PROVIDERS_USER_META_KEY, true );
+		if ( empty( $enabled_providers ) ) {
+			$enabled_providers = array();
+		}
+		$enabled_providers = array_intersect( $enabled_providers, array_keys( $providers ) );
+
+		return $enabled_providers;
+	}
+
+	/**
 	 * Get all Two-Factor Auth providers that are both enabled and configured for the specified|current user.
 	 *
 	 * @param $user WP_User
@@ -73,10 +96,11 @@ class Two_Factor_Core {
 		}
 
 		$providers            = self::get_providers();
+		$enabled_providers    = self::get_enabled_providers_for_user( $user );
 		$configured_providers = array();
 
 		foreach ( $providers as $classname => $provider ) {
-			if ( $provider->is_available_for_user( $user ) ) {
+			if ( in_array( $classname, $enabled_providers ) && $provider->is_available_for_user( $user ) ) {
 				$configured_providers[ $classname ] = $provider;
 			}
 		}
