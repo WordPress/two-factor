@@ -2,8 +2,8 @@
 
 class Two_Factor_Core {
 
-	const PROVIDER_USER_META_KEY = '_two_factor_provider';
-	const USER_META_NONCE_KEY    = '_two_factor_nonce';
+	const PROVIDER_USER_META_KEY            = '_two_factor_provider';
+	const USER_META_NONCE_KEY               = '_two_factor_nonce';
 
 	/**
 	 * Set up filters and actions.
