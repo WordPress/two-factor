@@ -61,7 +61,7 @@ class Two_Factor_Core {
 	}
 
 	/**
-	 * Get all available Two-Factor Auth providers for the specified|current user.
+	 * Get all Two-Factor Auth providers that are both enabled and configured for the specified|current user.
 	 *
 	 * @param $user WP_User
 	 *
