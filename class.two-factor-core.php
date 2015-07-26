@@ -127,13 +127,13 @@ class Two_Factor_Core {
 		if ( empty( $available_providers ) ) {
 			return null;
 		} elseif ( 1 === sizeof( $available_providers ) ) {
-			$provider = $available_providers[0];
+			$provider = key( $available_providers );
 		} else {
 			$provider = get_user_meta( $user_id, self::PROVIDER_USER_META_KEY, true );
 
 			// If the provider specified isn't enabled, just grab the first one that is.
 			if ( ! isset( $providers[ $provider ] ) ) {
-				$provider = $available_providers[0];
+				$provider = key( $available_providers );
 			}
 		}
 
