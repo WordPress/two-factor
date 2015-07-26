@@ -119,8 +119,23 @@ class Two_Factor_Core {
 		if ( empty( $user_id ) || ! is_numeric( $user_id ) ) {
 			$user_id = get_current_user_id();
 		}
-		$provider = get_user_meta( $user_id, self::PROVIDER_USER_META_KEY, true );
-		$providers = self::get_providers();
+
+		$providers           = self::get_providers();
+		$available_providers = self::get_available_providers_for_user( $user );
+
+		// If there's only one available provider, force that to be the primary.
+		if ( empty( $available_providers ) ) {
+			return null;
+		} elseif ( 1 === sizeof( $available_providers ) ) {
+			$provider = $available_providers[0];
+		} else {
+			$provider = get_user_meta( $user_id, self::PROVIDER_USER_META_KEY, true );
+
+			// If the provider specified isn't enabled, just grab the first one that is.
+			if ( ! isset( $providers[ $provider ] ) ) {
+				$provider = $available_providers[0];
+			}
+		}
 
 		/**
 		 * Filter the two-factor authentication provider used for this user.
