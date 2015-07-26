@@ -377,12 +377,12 @@ class Two_Factor_Core {
 	public static function user_two_factor_options_update( $user_id ) {
 		if ( isset( $_POST[ self::PROVIDER_USER_META_KEY ] ) ) {
 			check_admin_referer( 'user_two_factor_options', '_nonce_user_two_factor_options' );
-			$new_provider = $_POST[ self::PROVIDER_USER_META_KEY ];
 			$providers = self::get_providers();
 
 			/**
 			 * Whitelist the new values to only the available classes and empty.
 			 */
+			$new_provider = $_POST[ self::PROVIDER_USER_META_KEY ];
 			if ( empty( $new_provider ) || array_key_exists( $new_provider, $providers ) ) {
 				update_user_meta( $user_id, self::PROVIDER_USER_META_KEY, $new_provider );
 			} else {
