@@ -13,6 +13,11 @@ class Two_Factor_Email extends Two_Factor_Provider {
 		return $instance;
 	}
 
+	protected function __construct() {
+		add_action( 'two-factor-user-options-' . __CLASS__, array( $this, 'user_options' ) );
+		return parent::__construct();
+	}
+
 	function get_label() {
 		return _x( 'Email', 'Provider Label', 'two-factor' );
 	}
@@ -69,6 +74,19 @@ class Two_Factor_Email extends Two_Factor_Provider {
 
 	function validate_authentication( $user ) {
 		return $this->validate_token( $user->ID, $_REQUEST['two-factor-email-code'] );
+	}
+
+	function is_available_for_user( $user ) {
+		return true;
+	}
+
+	function user_options( $user ) {
+		$email = $user->user_email;
+		?>
+			<div>
+				<?php echo sprintf( __( 'Authentication codes will be sent to <kbd>%1$s</kbd>.', 'two-factor' ), esc_html( $email ) ); ?>
+			</div>
+		<?php
 	}
 
 }

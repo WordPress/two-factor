@@ -17,5 +17,6 @@ class Two_Factor_Fido_U2f extends Two_Factor_Provider {
 
 	function authentication_page( $user ) {}
 	function validate_authentication( $user ) {}
+	function is_available_for_user( $user ) {}
 
 }

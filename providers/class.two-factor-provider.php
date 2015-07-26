@@ -37,6 +37,15 @@ abstract class Two_Factor_Provider {
 	abstract function validate_authentication( $user );
 
 	/**
+	 * Whether this Two Factor provider is configured and available for the user specified.
+	 *
+	 * @param $user WP_User
+	 *
+	 * @return boolean
+	 */
+	abstract function is_available_for_user( $user );
+
+	/**
 	 * Generate a random eight-digit string to send out as an auth code.
 	 */
 	function get_code( $length = 8, $chars = '1234567890' ) {
