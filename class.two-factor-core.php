@@ -361,6 +361,11 @@ class Two_Factor_Core {
 	 * Add user profile fields.
 	 */
 	public static function user_two_factor_options( $user ) {
+		$enabled_providers = get_user_meta( $user->ID, self::ENABLED_PROVIDERS_USER_META_KEY, true );
+		if ( empty( $enabled_providers ) ) {
+			// get_user_meta() has no way of providing a default value.
+			$enabled_providers = array();
+		}
 		$primary_provider = get_user_meta( $user->ID, self::PROVIDER_USER_META_KEY, true );
 		wp_nonce_field( 'user_two_factor_options', '_nonce_user_two_factor_options', false );
 		?>
@@ -373,6 +378,7 @@ class Two_Factor_Core {
 					<table class="two-factor-methods-table">
 						<thead>
 							<tr>
+								<th style="width: 5%;" scope="col"><?php esc_html_e( 'Enabled', 'two-factor' ); ?></th>
 								<th style="width: 5%;" scope="col"><?php esc_html_e( 'Primary', 'two-factor' ); ?></th>
 								<th style="width: 90%;" scope="col"><?php esc_html_e( 'Name', 'two-factor' ); ?></th>
 							</tr>
@@ -380,6 +386,7 @@ class Two_Factor_Core {
 						<tbody>
 						<?php foreach ( self::get_providers() as $class => $object ) : ?>
 							<tr>
+								<td><input type="checkbox" name="<?php echo esc_attr( self::ENABLED_PROVIDERS_USER_META_KEY ); ?>[]" value="<?php echo esc_attr( $class ); ?>" <?php checked( in_array( $class, $enabled_providers ) ); ?> /></td>
 								<td><input type="radio" name="<?php echo esc_attr( self::PROVIDER_USER_META_KEY ); ?>" value="<?php echo esc_attr( $class ); ?>" <?php checked( $class, $primary_provider ); ?> /></td>
 								<td>
 									<?php $object->print_label(); ?>
@@ -402,6 +409,10 @@ class Two_Factor_Core {
 		if ( isset( $_POST[ '_nonce_user_two_factor_options' ] ) ) {
 			check_admin_referer( 'user_two_factor_options', '_nonce_user_two_factor_options' );
 			$providers         = self::get_providers();
+
+			$enabled_providers = $_POST[ self::ENABLED_PROVIDERS_USER_META_KEY ];
+			$enabled_providers = array_intersect( $enabled_providers, array_keys( $providers ) );
+			update_user_meta( $user_id, self::ENABLED_PROVIDERS_USER_META_KEY, $enabled_providers );
 
 			/**
 			 * Whitelist the new values to only the available classes and empty.
