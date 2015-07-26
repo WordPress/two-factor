@@ -377,7 +377,7 @@ class Two_Factor_Core {
 	public static function user_two_factor_options_update( $user_id ) {
 		if ( isset( $_POST[ '_nonce_user_two_factor_options' ] ) ) {
 			check_admin_referer( 'user_two_factor_options', '_nonce_user_two_factor_options' );
-			$providers = self::get_providers();
+			$providers         = self::get_providers();
 
 			/**
 			 * Whitelist the new values to only the available classes and empty.
