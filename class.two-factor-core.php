@@ -121,7 +121,7 @@ class Two_Factor_Core {
 		}
 
 		$providers           = self::get_providers();
-		$available_providers = self::get_available_providers_for_user( $user );
+		$available_providers = self::get_available_providers_for_user( get_userdata( $user_id ) );
 
 		// If there's only one available provider, force that to be the primary.
 		if ( empty( $available_providers ) ) {
@@ -209,7 +209,7 @@ class Two_Factor_Core {
 			exit;
 		}
 
-		$providers = self::get_available_providers_for_user( $user->ID );
+		$providers = self::get_available_providers_for_user( $user );
 		if ( isset( $providers[ $_GET['provider'] ] ) ) {
 			$provider = $providers[ $_GET['provider'] ];
 		} else {
@@ -335,7 +335,7 @@ class Two_Factor_Core {
 		}
 
 		if ( isset( $_POST['provider'] ) ) {
-			$providers = self::get_available_providers_for_user( $user->ID );
+			$providers = self::get_available_providers_for_user( $user );
 			if ( isset( $providers[ $_POST['provider'] ] ) ) {
 				$provider = $providers[ $_POST['provider'] ];
 			} else {
