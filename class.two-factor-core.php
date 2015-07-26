@@ -132,7 +132,7 @@ class Two_Factor_Core {
 			$provider = get_user_meta( $user_id, self::PROVIDER_USER_META_KEY, true );
 
 			// If the provider specified isn't enabled, just grab the first one that is.
-			if ( ! isset( $providers[ $provider ] ) ) {
+			if ( ! isset( $available_providers[ $provider ] ) ) {
 				$provider = key( $available_providers );
 			}
 		}
