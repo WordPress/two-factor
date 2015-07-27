@@ -16,18 +16,20 @@ class Two_Factor_Backup_Codes extends Two_Factor_Provider {
 		return $instance;
 	}
 
-	function __construct(){
-		add_action( 'admin_notices', array( $this, 'action_admin_notices' ) );
-	}
-
-	function action_admin_notices() {
+	public static function add_hooks() {
 		$user_id = get_current_user_id();
-
-		// Only show this notice when Backup Codes are selected
 		$primary_provider = get_user_meta( $user_id, Two_Factor_Core::PROVIDER_USER_META_KEY, true );
+
+		// Only do these things when Backup Codes are selected as the primary provider.
 		if( 'Two_Factor_Backup_Codes' != $primary_provider ) {
 			return;
 		}
+
+		add_action( 'admin_notices', array( __CLASS__, 'admin_notices' ) );
+	}
+
+	public static function admin_notices() {
+		$user_id = get_current_user_id();
 
 		// Only show this notice if we are out of backup codes
 		$backup_codes = get_user_meta( $user_id, self::BACKUP_CODES_META_KEY, true );
@@ -142,3 +144,4 @@ class Two_Factor_Backup_Codes extends Two_Factor_Provider {
 	}
 
 }
+Two_Factor_Backup_Codes::add_hooks();
