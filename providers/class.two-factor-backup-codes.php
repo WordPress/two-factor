@@ -36,7 +36,7 @@ class Two_Factor_Backup_Codes extends Two_Factor_Provider {
 		}
 		?>
 			<div class="error">
-				<p><?php _e( 'Two-Factor: You are out of backup codes and need to <a href="' . get_edit_user_link( $user_id ) . '" >regenerate</a>!', 'two-factor' ); ?></p>
+				<p><?php _e( 'Two-Factor: You are out of backup codes and need to <a href="' . get_edit_user_link( $user_id ) . '" >regenerate</a>! (debug enabled: codes generated at login)', 'two-factor' ); ?></p>
 			</div>
 		<?php
 	}
