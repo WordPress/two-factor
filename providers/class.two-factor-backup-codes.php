@@ -18,6 +18,26 @@ class Two_Factor_Backup_Codes extends Two_Factor_Provider {
 		return $instance;
 	}
 
+	function __construct(){
+		add_action( 'admin_notices', array( $this, 'action_admin_notices' ) );
+	}
+
+	function action_admin_notices() {
+		$user_id = 1;
+
+		$backup_codes = get_user_meta( $user_id, self::BACKUP_CODES_META_KEY, true );
+		if( ! empty( $backup_codes ) ) {
+			return;
+		}
+
+		$link = '<a href="' . get_edit_user_link( $user_id ) . '" >regenerate</a>';
+		?>
+			<div class="error">
+				<p><?php _e( 'Two-Factor: You are out of backup codes and need to ' . $link . '!', 'two-factor' ); ?></p>
+			</div>
+		<?php
+	}
+
 	function get_label() {
 		return _x( 'Backup Codes (Single Use)', 'Provider Label', 'two-factor' );
 	}
