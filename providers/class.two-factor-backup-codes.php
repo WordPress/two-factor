@@ -25,10 +25,18 @@ class Two_Factor_Backup_Codes extends Two_Factor_Provider {
 	function action_admin_notices() {
 		$user_id = 1;
 
+		// Only show this notice when Backup Codes are selected
+		$primary_provider = get_user_meta( $user_id, Two_Factor_Core::PROVIDER_USER_META_KEY, true );
+		if( 'Two_Factor_Backup_Codes' != $primary_provider ) {
+			return;
+		}
+
+		// Only show this notice if we are out of backup codes
 		$backup_codes = get_user_meta( $user_id, self::BACKUP_CODES_META_KEY, true );
 		if( ! empty( $backup_codes ) ) {
 			return;
 		}
+
 
 		$link = '<a href="' . get_edit_user_link( $user_id ) . '" >regenerate</a>';
 		?>
