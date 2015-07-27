@@ -26,6 +26,7 @@ class Two_Factor_Backup_Codes extends Two_Factor_Provider {
 		}
 
 		add_action( 'admin_notices', array( __CLASS__, 'admin_notices' ) );
+		add_action( 'user_two_factor_options', array( __CLASS__, 'user_two_factor_options' ) );
 	}
 
 	public static function admin_notices() {
@@ -40,6 +41,13 @@ class Two_Factor_Backup_Codes extends Two_Factor_Provider {
 			<div class="error">
 				<p><?php _e( 'Two-Factor: You are out of backup codes and need to <a href="' . get_edit_user_link( $user_id ) . '" >regenerate</a>! (debug enabled: codes generated at login)', 'two-factor' ); ?></p>
 			</div>
+		<?php
+	}
+
+	public static function user_two_factor_options() {
+		?>
+		<p><b>Backup Codes</b></p>
+		<p><button type="button" class="button button-secondary hide-if-no-js">Generate Codes</button></p>
 		<?php
 	}
 

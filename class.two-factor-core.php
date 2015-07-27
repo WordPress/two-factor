@@ -269,6 +269,7 @@ class Two_Factor_Core {
 						<?php endforeach; ?>
 						</tbody>
 					</table>
+					<?php do_action( 'user_two_factor_options' );?>
 				</td>
 			</tr>
 		</table>
