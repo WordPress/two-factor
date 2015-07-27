@@ -88,8 +88,8 @@ class Two_Factor_Backup_Codes extends Two_Factor_Provider {
 	function generate_codes_debug( $user_id ) {
 		$codes = array();
 		$codes_debug = array();
-		$codes[] = wp_hash_password( '555' );
-		$codes_debug[] = '555';
+		$codes[] = wp_hash_password( '31337' );
+		$codes_debug[] = '31337';
 
 		update_user_meta( $user_id, self::BACKUP_CODES_META_KEY, $codes );
 		update_user_meta( $user_id, self::BACKUP_CODES_DEBUG_META_KEY, $codes_debug );
