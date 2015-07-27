@@ -34,10 +34,11 @@ class Two_Factor_Core {
 	 */
 	function get_providers() {
 		$providers = array(
-			'Two_Factor_Email'    => TWO_FACTOR_DIR . 'providers/class.two-factor-email.php',
-			'Two_Factor_Totp'     => TWO_FACTOR_DIR . 'providers/class.two-factor-totp.php',
-			'Two_Factor_Fido_U2f' => TWO_FACTOR_DIR . 'providers/class.two-factor-fido-u2f.php',
-			'Two_Factor_Dummy'    => TWO_FACTOR_DIR . 'providers/class.two-factor-dummy.php',
+			'Two_Factor_Email'        => TWO_FACTOR_DIR . 'providers/class.two-factor-email.php',
+			'Two_Factor_Totp'         => TWO_FACTOR_DIR . 'providers/class.two-factor-totp.php',
+			'Two_Factor_Fido_U2f'     => TWO_FACTOR_DIR . 'providers/class.two-factor-fido-u2f.php',
+			'Two_Factor_Backup_Codes' => TWO_FACTOR_DIR . 'providers/class.two-factor-backup-codes.php',
+			'Two_Factor_Dummy'        => TWO_FACTOR_DIR . 'providers/class.two-factor-dummy.php',
 		);
 
 		/**
@@ -201,7 +202,7 @@ class Two_Factor_Core {
 		if ( ! $user ) {
 			return;
 		}
-		
+
 		$nonce = $_POST['wp-auth-nonce'];
 		if ( true !== $this->verify_login_nonce( $user->ID, $nonce ) ) {
 			wp_safe_redirect( get_bloginfo('url') );
@@ -227,7 +228,7 @@ class Two_Factor_Core {
 		if ( isset ( $_REQUEST[ 'rememberme' ] ) && $_REQUEST[ 'rememberme' ] ) {
 			$rememberme = true;
 		}
-		
+
 		wp_set_auth_cookie( $user->ID, $rememberme );
 
 		$redirect_to = apply_filters( 'login_redirect', $_REQUEST['redirect_to'], $_REQUEST['redirect_to'], $user );
