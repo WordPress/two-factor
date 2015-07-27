@@ -3,10 +3,8 @@
 class Two_Factor_Backup_Codes extends Two_Factor_Provider {
 
 	const DEBUG = false;
-
 	const BACKUP_CODES_META_KEY = '_two_factor_backup_codes';
 	const BACKUP_CODES_DEBUG_META_KEY = '_two_factor_backup_codes_debug';
-
 	const NUMBER_OF_CODES = 3;
 
 	static function get_instance() {
@@ -23,7 +21,7 @@ class Two_Factor_Backup_Codes extends Two_Factor_Provider {
 	}
 
 	function action_admin_notices() {
-		$user_id = 1;
+		$user_id = get_current_user_id();
 
 		// Only show this notice when Backup Codes are selected
 		$primary_provider = get_user_meta( $user_id, Two_Factor_Core::PROVIDER_USER_META_KEY, true );
