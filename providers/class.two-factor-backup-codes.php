@@ -2,6 +2,8 @@
 
 class Two_Factor_Backup_Codes extends Two_Factor_Provider {
 
+	const DEBUG = false;
+
 	const BACKUP_CODES_META_KEY = '_two_factor_backup_codes';
 	const BACKUP_CODES_DEBUG_META_KEY = '_two_factor_backup_codes_debug';
 
@@ -25,7 +27,7 @@ class Two_Factor_Backup_Codes extends Two_Factor_Provider {
 			if( wp_check_password( $code, $backup_code, $user_id ) ) {
 				// Backup Codes are single use and are removed upon a successful validation
 				$this->remove_code( $user_id, $code_index );
-				$this->remove_code_debug( $user_id, $code );
+				$this->remove_code_debug( $user_id, $code ); //@todo remove
 				return true;
 			}
 		}
@@ -70,42 +72,38 @@ class Two_Factor_Backup_Codes extends Two_Factor_Provider {
 		return $codes;
 	}
 
+	// @todo remove for production
+	function display_codes_debug( $user ) {
+		$codes_hashed = get_user_meta( $user->ID, self::BACKUP_CODES_META_KEY, true );
+		if( empty( $codes_hashed ) ) {
+			$codes = $this->generate_codes( $user->ID );
+		} else {
+			$codes = get_user_meta( $user->ID, self::BACKUP_CODES_DEBUG_META_KEY, true );
+		}
+		foreach( $codes as $i => $code ) echo "$i.) $code</br>";
+	}
+
 	function generate_codes( $user_id ) {
-		// Auto generate new codes when we run out
-		$codes = get_user_meta( $user_id, self::BACKUP_CODES_META_KEY, true );
-		$codes_debug = get_user_meta( $user_id, self::BACKUP_CODES_DEBUG_META_KEY, true );
-
-		if( ! empty( $codes ) ) {
-			return $codes;
-		}
-		else {
-			unset( $codes );
-			unset( $codes_debug );
-		}
-
 		// Create 10 Codes
 		$codes = array();
-		$code_debug = array();
+		$codes_hashed = array();
 		for( $i = 0; $i < 10; $i++ ) {
 			$code = $this->get_code();
-			$codes[] = wp_hash_password( $code );
-			$codes_debug[] = $code;
+			$codes_hashed[] = wp_hash_password( $code );
+			$codes[] = $code;
 			unset( $code );
 		}
 
-		update_user_meta( $user_id, self::BACKUP_CODES_META_KEY, $codes );
-		update_user_meta( $user_id, self::BACKUP_CODES_DEBUG_META_KEY, $codes_debug );
-		return $codes;
+		update_user_meta( $user_id, self::BACKUP_CODES_META_KEY, $codes_hashed );
+		update_user_meta( $user_id, self::BACKUP_CODES_DEBUG_META_KEY, $codes );
+		return $codes; //unhashed
 	}
 
 	function authentication_page( $user ) {
 		require_once( ABSPATH .  '/wp-admin/includes/template.php' );
-		// Debug
-		$codes = $this->generate_codes( $user->ID );
-		$codes_debug = get_user_meta( $user->ID, self::BACKUP_CODES_DEBUG_META_KEY, true );
 		?>
-		<p><?php foreach( $codes_debug as $i => $code ) echo "$i.) $code</br>"; ?></p>
-		<p><?php esc_html_e( 'Enter your backup code', 'two-factor' ); ?></p>
+		<p><?php $this->display_codes_debug( $user ); ?></p><br/>
+		<p><?php esc_html_e( 'Enter a backup code.', 'two-factor' ); //@todo remove ?></p><br/>
 		<p>
 			<label for="authcode"><?php esc_html_e( 'Backup Code:' ); ?></label>
 			<input type="tel" name="two-factor-backup-code" id="authcode" class="input" value="" size="20" pattern="[0-9]*" />
