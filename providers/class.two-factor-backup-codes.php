@@ -15,7 +15,7 @@ class Two_Factor_Backup_Codes extends Two_Factor_Provider {
 	}
 
 	function get_label() {
-		return _x( 'Backup Codes (single use)', 'Provider Label', 'two-factor' );
+		return _x( 'Backup Codes (Single Use)', 'Provider Label', 'two-factor' );
 	}
 
 	function validate_code( $user_id, $code ) {
@@ -23,6 +23,7 @@ class Two_Factor_Backup_Codes extends Two_Factor_Provider {
 
 		foreach( $backup_codes as $code_index => $backup_code ) {
 			if( wp_check_password( $code, $backup_code, $user_id ) ) {
+				// Backup Codes are single use and are removed upon a successful validation
 				$this->remove_code( $user_id, $code_index );
 				$this->remove_code_debug( $user_id, $code );
 				return true;
@@ -37,12 +38,13 @@ class Two_Factor_Backup_Codes extends Two_Factor_Provider {
 
 		// Remove the current code from the list since it's been used.
 		unset( $backup_codes[ $code_index ] );
+		$backup_codes = array_values( $backup_codes );
 
 		// Update the backup code master list
 		update_user_meta( $user_id, self::BACKUP_CODES_META_KEY, $backup_codes );
 	}
 
-	function remove_code_debug( $user_id, $code ) {
+	private function remove_code_debug( $user_id, $code ) {
 
 		$backup_codes_debug = get_user_meta( $user_id, self::BACKUP_CODES_DEBUG_META_KEY, true );
 
@@ -50,6 +52,8 @@ class Two_Factor_Backup_Codes extends Two_Factor_Provider {
 		$backup_codes_debug = array_flip( $backup_codes_debug );
 		unset( $backup_codes_debug[ $code ] );
 		$backup_codes_debug = array_flip( $backup_codes_debug );
+
+		$backup_codes_debug = array_values( $backup_codes_debug );
 
 		// Update the backup code master list
 		update_user_meta( $user_id, self::BACKUP_CODES_DEBUG_META_KEY, $backup_codes_debug );
@@ -100,7 +104,6 @@ class Two_Factor_Backup_Codes extends Two_Factor_Provider {
 		require_once( ABSPATH .  '/wp-admin/includes/template.php' );
 		// Debug
 		$codes = $this->generate_codes( $user->ID );
-
 		$codes_debug = get_user_meta( $user->ID, self::BACKUP_CODES_DEBUG_META_KEY, true );
 		?>
 		<p><?php foreach( $codes_debug as $i => $code ) echo "$i.) $code</br>"; ?></p>
