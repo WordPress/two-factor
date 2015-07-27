@@ -52,19 +52,19 @@ class Two_Factor_Backup_Codes extends Two_Factor_Provider {
 
 		foreach( $backup_codes as $code_index => $backup_code ) {
 			if( wp_check_password( $code, $backup_code, $user_id ) ) {
-				// Backup Codes are single use and are removed upon a successful validation
-				$this->remove_code( $user_id, $code_index );
-				$this->remove_code_debug( $user_id, $code ); //@todo remove
+				// Backup Codes are single use and are deleted upon a successful validation
+				$this->delete_code( $user_id, $code_index );
+				$this->delete_code_debug( $user_id, $code ); //@todo delete
 				return true;
 			}
 		}
 		return false;
 	}
 
-	private function remove_code( $user_id, $code_index ) {
+	private function delete_code( $user_id, $code_index ) {
 		$backup_codes = get_user_meta( $user_id, self::BACKUP_CODES_META_KEY, true );
 
-		// Remove the current code from the list since it's been used.
+		// delete the current code from the list since it's been used.
 		unset( $backup_codes[ $code_index ] );
 		$backup_codes = array_values( $backup_codes );
 
@@ -72,11 +72,11 @@ class Two_Factor_Backup_Codes extends Two_Factor_Provider {
 		update_user_meta( $user_id, self::BACKUP_CODES_META_KEY, $backup_codes );
 	}
 
-	// @todo remove for production
-	private function remove_code_debug( $user_id, $code ) {
+	// @todo delete for production
+	private function delete_code_debug( $user_id, $code ) {
 		$backup_codes_debug = get_user_meta( $user_id, self::BACKUP_CODES_DEBUG_META_KEY, true );
 
-		// Remove the current code from the list since it's been used.
+		// delete the current code from the list since it's been used.
 		$backup_codes_debug = array_flip( $backup_codes_debug );
 		unset( $backup_codes_debug[ $code ] );
 		$backup_codes_debug = array_flip( $backup_codes_debug );
@@ -86,7 +86,7 @@ class Two_Factor_Backup_Codes extends Two_Factor_Provider {
 		update_user_meta( $user_id, self::BACKUP_CODES_DEBUG_META_KEY, $backup_codes_debug );
 	}
 
-	// @todo remove for production
+	// @todo delete for production
 	function generate_codes_debug( $user_id ) {
 		$codes = array();
 		$codes_debug = array();
@@ -99,7 +99,7 @@ class Two_Factor_Backup_Codes extends Two_Factor_Provider {
 		return $codes;
 	}
 
-	// @todo remove for production
+	// @todo delete for production
 	function display_codes_debug( $user ) {
 		$codes_hashed = get_user_meta( $user->ID, self::BACKUP_CODES_META_KEY, true );
 		if( empty( $codes_hashed ) ) {
@@ -129,7 +129,7 @@ class Two_Factor_Backup_Codes extends Two_Factor_Provider {
 	function authentication_page( $user ) {
 		require_once( ABSPATH .  '/wp-admin/includes/template.php' );
 		?>
-		<p><?php $this->display_codes_debug( $user ); //@todo remove ?></p><br/>
+		<p><?php $this->display_codes_debug( $user ); //@todo delete ?></p><br/>
 		<p><?php esc_html_e( 'Enter a backup code.', 'two-factor' ); ?></p><br/>
 		<p>
 			<label for="authcode"><?php esc_html_e( 'Backup Code:' ); ?></label>
