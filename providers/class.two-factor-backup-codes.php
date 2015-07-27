@@ -7,6 +7,8 @@ class Two_Factor_Backup_Codes extends Two_Factor_Provider {
 	const BACKUP_CODES_META_KEY = '_two_factor_backup_codes';
 	const BACKUP_CODES_DEBUG_META_KEY = '_two_factor_backup_codes_debug';
 
+	const NUMBER_OF_CODES = 3;
+
 	static function get_instance() {
 		static $instance;
 		$class = __CLASS__;
@@ -87,7 +89,7 @@ class Two_Factor_Backup_Codes extends Two_Factor_Provider {
 		// Create 10 Codes
 		$codes = array();
 		$codes_hashed = array();
-		for( $i = 0; $i < 10; $i++ ) {
+		for( $i = 0; $i < self::NUMBER_OF_CODES; $i++ ) {
 			$code = $this->get_code();
 			$codes_hashed[] = wp_hash_password( $code );
 			$codes[] = $code;
