@@ -33,7 +33,6 @@ class Two_Factor_Backup_Codes extends Two_Factor_Provider {
 	}
 
 	private function remove_code( $user_id, $code_index ) {
-
 		$backup_codes = get_user_meta( $user_id, self::BACKUP_CODES_META_KEY, true );
 
 		// Remove the current code from the list since it's been used.
@@ -44,21 +43,21 @@ class Two_Factor_Backup_Codes extends Two_Factor_Provider {
 		update_user_meta( $user_id, self::BACKUP_CODES_META_KEY, $backup_codes );
 	}
 
+	// @todo remove for production
 	private function remove_code_debug( $user_id, $code ) {
-
 		$backup_codes_debug = get_user_meta( $user_id, self::BACKUP_CODES_DEBUG_META_KEY, true );
 
 		// Remove the current code from the list since it's been used.
 		$backup_codes_debug = array_flip( $backup_codes_debug );
 		unset( $backup_codes_debug[ $code ] );
 		$backup_codes_debug = array_flip( $backup_codes_debug );
-
 		$backup_codes_debug = array_values( $backup_codes_debug );
 
 		// Update the backup code master list
 		update_user_meta( $user_id, self::BACKUP_CODES_DEBUG_META_KEY, $backup_codes_debug );
 	}
 
+	// @todo remove for production
 	function generate_codes_debug( $user_id ) {
 		$codes = array();
 		$codes_debug = array();
@@ -71,8 +70,7 @@ class Two_Factor_Backup_Codes extends Two_Factor_Provider {
 		return $codes;
 	}
 
-	function generate_codes( $user_id ){
-
+	function generate_codes( $user_id ) {
 		// Auto generate new codes when we run out
 		$codes = get_user_meta( $user_id, self::BACKUP_CODES_META_KEY, true );
 		$codes_debug = get_user_meta( $user_id, self::BACKUP_CODES_DEBUG_META_KEY, true );
