@@ -19,12 +19,11 @@ class Two_Factor_Backup_Codes extends Two_Factor_Provider {
 	}
 
 	function validate_code( $user_id, $code ) {
-
 		$backup_codes = get_user_meta( $user_id, self::BACKUP_CODES_META_KEY, true );
 
-		foreach( $backup_codes as $backup_code ) {
+		foreach( $backup_codes as $code_index => $backup_code ) {
 			if( wp_check_password( $code, $backup_code, $user_id ) ) {
-				$this->remove_code( $user_id, $code );
+				$this->remove_code( $user_id, $code_index );
 				$this->remove_code_debug( $user_id, $code );
 				return true;
 			}
@@ -32,15 +31,12 @@ class Two_Factor_Backup_Codes extends Two_Factor_Provider {
 		return false;
 	}
 
-	function remove_code( $user_id, $code ) {
+	private function remove_code( $user_id, $code_index ) {
 
-		$hashed_code = wp_hash_password( $code );
 		$backup_codes = get_user_meta( $user_id, self::BACKUP_CODES_META_KEY, true );
 
 		// Remove the current code from the list since it's been used.
-		$backup_codes = array_flip( $backup_codes );
-		unset( $backup_codes[ $hashed_code ] );
-		$backup_codes = array_flip( $backup_codes );
+		unset( $backup_codes[ $code_index ] );
 
 		// Update the backup code master list
 		update_user_meta( $user_id, self::BACKUP_CODES_META_KEY, $backup_codes );
@@ -56,7 +52,7 @@ class Two_Factor_Backup_Codes extends Two_Factor_Provider {
 		$backup_codes_debug = array_flip( $backup_codes_debug );
 
 		// Update the backup code master list
-		update_user_meta( $user_id, self::BACKUP_CODES_DEBUG_META_KEY, $backup_codes );
+		update_user_meta( $user_id, self::BACKUP_CODES_DEBUG_META_KEY, $backup_codes_debug );
 	}
 
 	function generate_codes_debug( $user_id ) {
@@ -77,10 +73,13 @@ class Two_Factor_Backup_Codes extends Two_Factor_Provider {
 		$codes = get_user_meta( $user_id, self::BACKUP_CODES_META_KEY, true );
 		$codes_debug = get_user_meta( $user_id, self::BACKUP_CODES_DEBUG_META_KEY, true );
 
-		var_dump( $codes );
-		var_dump( $codes_debug );
-
-		if( ! empty( $codes ) ) return $codes;
+		if( ! empty( $codes ) ) {
+			return $codes;
+		}
+		else {
+			unset( $codes );
+			unset( $codes_debug );
+		}
 
 		// Create 10 Codes
 		$codes = array();
