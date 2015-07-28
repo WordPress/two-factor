@@ -18,23 +18,11 @@ class Two_Factor_Backup_Codes extends Two_Factor_Provider {
 
 	protected function __construct() {
 		//add_action( 'two-factor-user-options-' . __CLASS__, array( $this, 'user_options' ) );
-		return parent::__construct();
-	}
-
-	public static function add_hooks() {
-		$user_id = get_current_user_id();
-		//$primary_provider = get_user_meta( $user_id, Two_Factor_Core::PROVIDER_USER_META_KEY, true );
-		$enabled_providers = Two_Factor_Core::get_enabled_providers_for_user( $user_id );
-
-		// Only do these things when Backup Codes are enabled,
-		if( ! in_array( 'Two_Factor_Backup_Codes', $enabled_providers ) ) {
-			return;
-		}
-
 		add_action( 'admin_notices', array( __CLASS__, 'admin_notices' ) );
 		add_action( 'user_two_factor_options', array( __CLASS__, 'user_two_factor_options' ) );
-
 		add_action( 'wp_ajax_two_factor_backup_codes_generate', array( __CLASS__, 'ajax_generate_json' ) );
+
+		return parent::__construct();
 	}
 
 	public static function admin_notices() {
@@ -56,21 +44,26 @@ class Two_Factor_Backup_Codes extends Two_Factor_Provider {
 		return _x( 'Backup Verification Codes (Single Use)', 'Provider Label', 'two-factor' );
 	}
 
-
 	function is_available_for_user( $user ) {
 		return true;
 	}
 
 	function user_options( $user ) {
+		$user_id = get_current_user_id();
+		$backup_codes = get_user_meta( $user_id, self::BACKUP_CODES_META_KEY, true );
+		$ajax_nonce = wp_create_nonce( 'two-factor-backup-codes-generate-json' );
 		?>
-		<button type="button" class="button button-two-factor-backup-codes-generate button-secondary hide-if-no-js">Generate Verification Codes</button>
+			<button type="button" class="button button-two-factor-backup-codes-generate button-secondary hide-if-no-js">Generate Verification Codes</button>
+			<p class="description"><span class="two-factor-backup-codes-count"><?php echo count( $backup_codes ); ?></span> unused codes remaining.</p>
+			<div class="two-factor-backup-codes-wrapper" style="display:none;">
+				<ol class="two-factor-backup-codes-unused-codes"></ol>
+				<p class="description">Write 'em down y'all!</p>
+			</div>
 		<?php
 	}
 
 	public static function user_two_factor_options() {
 		$user_id = get_current_user_id();
-
-		// Only show this notice if we are out of backup codes
 		$backup_codes = get_user_meta( $user_id, self::BACKUP_CODES_META_KEY, true );
 		$ajax_nonce = wp_create_nonce( 'two-factor-backup-codes-generate-json' );
 		?>
@@ -231,4 +224,3 @@ class Two_Factor_Backup_Codes extends Two_Factor_Provider {
 	}
 
 }
-Two_Factor_Backup_Codes::add_hooks();
