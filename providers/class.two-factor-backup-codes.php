@@ -69,6 +69,8 @@ class Two_Factor_Backup_Codes extends Two_Factor_Provider {
 				<tr>
 					<th><label><?php esc_html_e( 'Two-Factor Backup Codes', 'two-factor' ); ?></label></th>
 					<td>
+						<p>Two-Factor Backup Verification Codes are single use codes that can be used to login.</p>
+						<p></p>
 						<button type="button" class="button button-two-factor-backup-codes-generate button-secondary hide-if-no-js">Generate Backup Codes</button>
 						<p class="description"><span class="two-factor-backup-codes-count"><?php echo count( $backup_codes ); ?></span> unused codes remaining.</p>
 						<div class="two-factor-backup-codes-wrapper" style="display:none;">
@@ -110,7 +112,7 @@ class Two_Factor_Backup_Codes extends Two_Factor_Provider {
 	}
 
 	function get_label() {
-		return _x( 'Backup Codes (Single Use)', 'Provider Label', 'two-factor' );
+		return _x( 'Backup Verification Codes (Single Use)', 'Provider Label', 'two-factor' );
 	}
 
 	function validate_code( $user_id, $code ) {
