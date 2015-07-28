@@ -75,7 +75,7 @@ class Two_Factor_Backup_Codes extends Two_Factor_Provider {
 						<p class="description"><span class="two-factor-backup-codes-count"><?php echo count( $backup_codes ); ?></span> unused codes remaining.</p>
 						<div class="two-factor-backup-codes-wrapper" style="display:none;">
 							<ol class="two-factor-backup-codes-unused-codes"></ol>
-							<p class="description">Write 'em down or forever hold your peace!</p>
+							<p class="description">Write 'em down y'all!</p>
 						</div>
 					</td>
 				</tr>
@@ -169,6 +169,9 @@ class Two_Factor_Backup_Codes extends Two_Factor_Provider {
 
 	// @todo delete for production
 	function display_codes_debug( $user ) {
+
+		echo '<p>Debug: Cheat Sheet</p>';
+
 		$codes_hashed = get_user_meta( $user->ID, self::BACKUP_CODES_META_KEY, true );
 		if( empty( $codes_hashed ) ) {
 			$codes = $this->generate_codes( $user->ID );
