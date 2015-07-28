@@ -28,11 +28,11 @@ class Two_Factor_Backup_Codes extends Two_Factor_Provider {
 		add_action( 'admin_notices', array( __CLASS__, 'admin_notices' ) );
 		add_action( 'user_two_factor_options', array( __CLASS__, 'user_two_factor_options' ) );
 
-		add_action( 'wp_ajax_two_factor_backup_codes_generate', array( __CLASS__, 'two_factor_backup_codes_generate' ) );
+		add_action( 'wp_ajax_two_factor_backup_codes_generate', array( __CLASS__, 'ajax_two_factor_backup_codes_generate' ) );
 	}
 
 	// @todo add nonce
-	public static function two_factor_backup_codes_generate() {
+	public static function ajax_two_factor_backup_codes_generate() {
 		check_ajax_referer( 'two-factor-backup-codes-generate', 'nonce' );
 
 		$user_id = get_current_user_id();
