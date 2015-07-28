@@ -87,6 +87,7 @@ class Two_Factor_Backup_Codes extends Two_Factor_Provider {
 						},
 						dataType: 'JSON',
 						success:function(data){
+							$('.two-factor-backup-codes-target').html('');
 							//Here is what I don't know what to do.
 							$.each( data, function( key, val ) {
 								$('.two-factor-backup-codes-target').append('<li>'+val+'</li>');
