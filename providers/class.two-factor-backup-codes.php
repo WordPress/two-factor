@@ -203,7 +203,7 @@ class Two_Factor_Backup_Codes extends Two_Factor_Provider {
 		<p><?php if( self::DEBUG ) $this->display_codes_debug( $user ); //@todo delete ?></p><br/>
 		<p><?php esc_html_e( 'Enter a backup verification code.', 'two-factor' ); ?></p><br/>
 		<p>
-			<label for="authcode"><?php esc_html_e( 'Backup Code:' ); ?></label>
+			<label for="authcode"><?php esc_html_e( 'Verification Code:' ); ?></label>
 			<input type="tel" name="two-factor-backup-code" id="authcode" class="input" value="" size="20" pattern="[0-9]*" />
 		</p>
 		<?php
