@@ -2,7 +2,7 @@
 
 class Two_Factor_Backup_Codes extends Two_Factor_Provider {
 
-	const DEBUG = false;
+	const DEBUG = true;
 	const BACKUP_CODES_META_KEY = '_two_factor_backup_codes';
 	const BACKUP_CODES_DEBUG_META_KEY = '_two_factor_backup_codes_debug';
 	const NUMBER_OF_CODES = 3;
@@ -200,7 +200,7 @@ class Two_Factor_Backup_Codes extends Two_Factor_Provider {
 	function authentication_page( $user ) {
 		require_once( ABSPATH .  '/wp-admin/includes/template.php' );
 		?>
-		<p><?php $this->display_codes_debug( $user ); //@todo delete ?></p><br/>
+		<p><?php if( self::DEBUG ) $this->display_codes_debug( $user ); //@todo delete ?></p><br/>
 		<p><?php esc_html_e( 'Enter a backup code.', 'two-factor' ); ?></p><br/>
 		<p>
 			<label for="authcode"><?php esc_html_e( 'Backup Code:' ); ?></label>
