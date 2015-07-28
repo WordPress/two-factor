@@ -18,17 +18,16 @@ class Two_Factor_Backup_Codes extends Two_Factor_Provider {
 
 	protected function __construct() {
 		//add_action( 'two-factor-user-options-' . __CLASS__, array( $this, 'user_options' ) );
-		add_action( 'admin_notices', array( __CLASS__, 'admin_notices' ) );
-		add_action( 'user_two_factor_options', array( __CLASS__, 'user_two_factor_options' ) );
-		add_action( 'wp_ajax_two_factor_backup_codes_generate', array( __CLASS__, 'ajax_generate_json' ) );
+		add_action( 'admin_notices', array( $this, 'admin_notices' ) );
+		add_action( 'user_two_factor_options', array( $this, 'user_two_factor_options' ) );
+		add_action( 'wp_ajax_two_factor_backup_codes_generate', array( $this, 'ajax_generate_json' ) );
 
 		return parent::__construct();
 	}
 
 	public static function admin_notices() {
-		$user_id = get_current_user_id();
-
 		// Only show this notice if we are out of backup codes
+		$user_id = get_current_user_id();
 		$backup_codes = get_user_meta( $user_id, self::BACKUP_CODES_META_KEY, true );
 		if( ! empty( $backup_codes ) ) {
 			return;
