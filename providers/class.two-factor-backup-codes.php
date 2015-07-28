@@ -16,12 +16,18 @@ class Two_Factor_Backup_Codes extends Two_Factor_Provider {
 		return $instance;
 	}
 
+	protected function __construct() {
+		//add_action( 'two-factor-user-options-' . __CLASS__, array( $this, 'user_options' ) );
+		return parent::__construct();
+	}
+
 	public static function add_hooks() {
 		$user_id = get_current_user_id();
-		$primary_provider = get_user_meta( $user_id, Two_Factor_Core::PROVIDER_USER_META_KEY, true );
+		//$primary_provider = get_user_meta( $user_id, Two_Factor_Core::PROVIDER_USER_META_KEY, true );
+		$enabled_providers = Two_Factor_Core::get_enabled_providers_for_user( $user_id );
 
-		// Only do these things when Backup Codes are selected as the primary provider.
-		if( 'Two_Factor_Backup_Codes' != $primary_provider ) {
+		// Only do these things when Backup Codes are enabled,
+		if( ! in_array( 'Two_Factor_Backup_Codes', $enabled_providers ) ) {
 			return;
 		}
 
@@ -219,7 +225,9 @@ class Two_Factor_Backup_Codes extends Two_Factor_Provider {
 	}
 
 	function user_options( $user ) {
-
+		?>
+		<button type="button" class="button button-two-factor-backup-codes-generate button-secondary hide-if-no-js">Generate Verification Codes</button>
+		<?php
 	}
 
 }
