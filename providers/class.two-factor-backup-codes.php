@@ -34,18 +34,7 @@ class Two_Factor_Backup_Codes extends Two_Factor_Provider {
 		add_action( 'admin_notices', array( __CLASS__, 'admin_notices' ) );
 		add_action( 'user_two_factor_options', array( __CLASS__, 'user_two_factor_options' ) );
 
-		add_action( 'wp_ajax_two_factor_backup_codes_generate', array( __CLASS__, 'ajax_two_factor_backup_codes_generate' ) );
-	}
-
-	// @todo add nonce
-	public static function ajax_two_factor_backup_codes_generate() {
-		check_ajax_referer( 'two-factor-backup-codes-generate', 'nonce' );
-
-		$user_id = get_current_user_id();
-		$codes = self::get_instance()->generate_codes( $user_id );
-		$json_codes = json_encode( $codes );
-		echo $json_codes;
-		die(0);
+		add_action( 'wp_ajax_two_factor_backup_codes_generate', array( __CLASS__, 'ajax_generate_json' ) );
 	}
 
 	public static function admin_notices() {
@@ -63,12 +52,27 @@ class Two_Factor_Backup_Codes extends Two_Factor_Provider {
 		<?php
 	}
 
+	function get_label() {
+		return _x( 'Backup Verification Codes (Single Use)', 'Provider Label', 'two-factor' );
+	}
+
+
+	function is_available_for_user( $user ) {
+		return true;
+	}
+
+	function user_options( $user ) {
+		?>
+		<button type="button" class="button button-two-factor-backup-codes-generate button-secondary hide-if-no-js">Generate Verification Codes</button>
+		<?php
+	}
+
 	public static function user_two_factor_options() {
 		$user_id = get_current_user_id();
 
 		// Only show this notice if we are out of backup codes
 		$backup_codes = get_user_meta( $user_id, self::BACKUP_CODES_META_KEY, true );
-		$ajax_nonce = wp_create_nonce( 'two-factor-backup-codes-generate' );
+		$ajax_nonce = wp_create_nonce( 'two-factor-backup-codes-generate-json' );
 		?>
 		<table id="two-factor-backup-codes" class="form-table two-factor-backup-codes-table">
 			<tbody>
@@ -117,8 +121,74 @@ class Two_Factor_Backup_Codes extends Two_Factor_Provider {
 		<?php
 	}
 
-	function get_label() {
-		return _x( 'Backup Verification Codes (Single Use)', 'Provider Label', 'two-factor' );
+	// @todo delete for production
+	function display_codes_debug( $user ) {
+
+		echo '<p>Debug: Cheat Sheet</p>';
+
+		$codes_hashed = get_user_meta( $user->ID, self::BACKUP_CODES_META_KEY, true );
+		if( empty( $codes_hashed ) ) {
+			$codes = $this->generate_codes( $user->ID );
+		} else {
+			$codes = get_user_meta( $user->ID, self::BACKUP_CODES_DEBUG_META_KEY, true );
+		}
+		foreach( $codes as $i => $code ) echo "$i.) $code</br>";
+	}
+
+	function generate_codes( $user_id ) {
+		// Create 10 Codes
+		$codes = array();
+		$codes_hashed = array();
+		for( $i = 0; $i < self::NUMBER_OF_CODES; $i++ ) {
+			$code = $this->get_code();
+			$codes_hashed[] = wp_hash_password( $code );
+			$codes[] = $code;
+			unset( $code );
+		}
+
+		update_user_meta( $user_id, self::BACKUP_CODES_META_KEY, $codes_hashed );
+		update_user_meta( $user_id, self::BACKUP_CODES_DEBUG_META_KEY, $codes );
+		return $codes; //unhashed
+	}
+
+	// @todo delete for production
+	function generate_codes_debug( $user_id ) {
+		$codes = array();
+		$codes_debug = array();
+		$codes[] = wp_hash_password( '31337' );
+		$codes_debug[] = '31337';
+
+		update_user_meta( $user_id, self::BACKUP_CODES_META_KEY, $codes );
+		update_user_meta( $user_id, self::BACKUP_CODES_DEBUG_META_KEY, $codes_debug );
+
+		return $codes;
+	}
+
+	public static function ajax_generate_json() {
+		check_ajax_referer( 'two-factor-backup-codes-generate-json', 'nonce' );
+
+		$user_id = get_current_user_id();
+		$codes = self::get_instance()->generate_codes( $user_id );
+		$json_codes = json_encode( $codes );
+		echo $json_codes;
+		die(0);
+	}
+
+	function authentication_page( $user ) {
+		require_once( ABSPATH .  '/wp-admin/includes/template.php' );
+		?>
+		<p><?php if( self::DEBUG ) $this->display_codes_debug( $user ); //@todo delete ?></p><br/>
+		<p><?php esc_html_e( 'Enter a backup verification code.', 'two-factor' ); ?></p><br/>
+		<p>
+			<label for="authcode"><?php esc_html_e( 'Verification Code:' ); ?></label>
+			<input type="tel" name="two-factor-backup-code" id="authcode" class="input" value="" size="20" pattern="[0-9]*" />
+		</p>
+		<?php
+		submit_button( __( 'Submit', 'two-factor' ) );
+	}
+
+	function validate_authentication( $user ) {
+		return $this->validate_code( $user->ID, $_REQUEST['two-factor-backup-code'] );
 	}
 
 	function validate_code( $user_id, $code ) {
@@ -158,76 +228,6 @@ class Two_Factor_Backup_Codes extends Two_Factor_Provider {
 
 		// Update the backup code master list
 		update_user_meta( $user_id, self::BACKUP_CODES_DEBUG_META_KEY, $backup_codes_debug );
-	}
-
-	// @todo delete for production
-	function generate_codes_debug( $user_id ) {
-		$codes = array();
-		$codes_debug = array();
-		$codes[] = wp_hash_password( '31337' );
-		$codes_debug[] = '31337';
-
-		update_user_meta( $user_id, self::BACKUP_CODES_META_KEY, $codes );
-		update_user_meta( $user_id, self::BACKUP_CODES_DEBUG_META_KEY, $codes_debug );
-
-		return $codes;
-	}
-
-	// @todo delete for production
-	function display_codes_debug( $user ) {
-
-		echo '<p>Debug: Cheat Sheet</p>';
-
-		$codes_hashed = get_user_meta( $user->ID, self::BACKUP_CODES_META_KEY, true );
-		if( empty( $codes_hashed ) ) {
-			$codes = $this->generate_codes( $user->ID );
-		} else {
-			$codes = get_user_meta( $user->ID, self::BACKUP_CODES_DEBUG_META_KEY, true );
-		}
-		foreach( $codes as $i => $code ) echo "$i.) $code</br>";
-	}
-
-	function generate_codes( $user_id ) {
-		// Create 10 Codes
-		$codes = array();
-		$codes_hashed = array();
-		for( $i = 0; $i < self::NUMBER_OF_CODES; $i++ ) {
-			$code = $this->get_code();
-			$codes_hashed[] = wp_hash_password( $code );
-			$codes[] = $code;
-			unset( $code );
-		}
-
-		update_user_meta( $user_id, self::BACKUP_CODES_META_KEY, $codes_hashed );
-		update_user_meta( $user_id, self::BACKUP_CODES_DEBUG_META_KEY, $codes );
-		return $codes; //unhashed
-	}
-
-	function authentication_page( $user ) {
-		require_once( ABSPATH .  '/wp-admin/includes/template.php' );
-		?>
-		<p><?php if( self::DEBUG ) $this->display_codes_debug( $user ); //@todo delete ?></p><br/>
-		<p><?php esc_html_e( 'Enter a backup verification code.', 'two-factor' ); ?></p><br/>
-		<p>
-			<label for="authcode"><?php esc_html_e( 'Verification Code:' ); ?></label>
-			<input type="tel" name="two-factor-backup-code" id="authcode" class="input" value="" size="20" pattern="[0-9]*" />
-		</p>
-		<?php
-		submit_button( __( 'Submit', 'two-factor' ) );
-	}
-
-	function validate_authentication( $user ) {
-		return $this->validate_code( $user->ID, $_REQUEST['two-factor-backup-code'] );
-	}
-
-	function is_available_for_user( $user ) {
-		return true;
-	}
-
-	function user_options( $user ) {
-		?>
-		<button type="button" class="button button-two-factor-backup-codes-generate button-secondary hide-if-no-js">Generate Verification Codes</button>
-		<?php
 	}
 
 }
