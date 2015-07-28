@@ -92,7 +92,6 @@ class Two_Factor_Backup_Codes extends Two_Factor_Provider {
 						success:function(data){
 							$('.two-factor-backup-codes-wrapper').show();
 							$('.two-factor-backup-codes-unused-codes').html('');
-							//Here is what I don't know what to do.
 							$.each( data, function( key, val ) {
 								$('.two-factor-backup-codes-unused-codes').append('<li>'+val+'</li>');
 							});
