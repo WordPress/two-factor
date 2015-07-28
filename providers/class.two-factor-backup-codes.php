@@ -39,15 +39,28 @@ class Two_Factor_Backup_Codes extends Two_Factor_Provider {
 		}
 		?>
 			<div class="error">
-				<p><?php _e( 'Two-Factor: You are out of backup codes and need to <a href="' . get_edit_user_link( $user_id ) . '" >regenerate</a>! (debug enabled: codes generated at login)', 'two-factor' ); ?></p>
+				<p><?php _e( 'Two-Factor: You are out of backup codes and need to <a href="' . get_edit_user_link( $user_id ) . '#two-factor-backup-codes" >regenerate</a>! (debug enabled: codes generated at login)', 'two-factor' ); ?></p>
 			</div>
 		<?php
 	}
 
 	public static function user_two_factor_options() {
+		$user_id = get_current_user_id();
+
+		// Only show this notice if we are out of backup codes
+		$backup_codes = get_user_meta( $user_id, self::BACKUP_CODES_META_KEY, true );
 		?>
-		<p><b>Backup Codes</b></p>
-		<p><button type="button" class="button button-secondary hide-if-no-js">Generate Codes</button></p>
+		<table id="two-factor-backup-codes" class="form-table two-factor-backup-codes-table">
+			<tbody>
+				<tr>
+					<th><label><?php esc_html_e( 'Two-Factor Backup Codes', 'two-factor' ); ?></label></th>
+					<td>
+						<button type="button" class="button button-secondary hide-if-no-js">Generate Backup Codes</button>
+						<p class="description"><?php echo count( $backup_codes ) . ' unused codes remaining.'; ?></p>
+					</td>
+				</tr>
+			</tbody>
+		</table>
 		<?php
 	}
 
