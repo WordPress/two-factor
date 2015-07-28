@@ -71,8 +71,9 @@ class Two_Factor_Backup_Codes extends Two_Factor_Provider {
 					<td>
 						<button type="button" class="button button-two-factor-backup-codes-generate button-secondary hide-if-no-js">Generate Backup Codes</button>
 						<p class="description"><span class="two-factor-backup-codes-count"><?php echo count( $backup_codes ); ?></span> unused codes remaining.</p>
-						<div class="two-factor-backup-codes-wrapper">
+						<div class="two-factor-backup-codes-wrapper" style="display:none;">
 							<ol class="two-factor-backup-codes-unused-codes"></ol>
+							<p class="description">Write 'em down or forever hold your peace!</p>
 						</div>
 					</td>
 				</tr>
@@ -89,6 +90,7 @@ class Two_Factor_Backup_Codes extends Two_Factor_Provider {
 						},
 						dataType: 'JSON',
 						success:function(data){
+							$('.two-factor-backup-codes-wrapper').show();
 							$('.two-factor-backup-codes-unused-codes').html('');
 							//Here is what I don't know what to do.
 							$.each( data, function( key, val ) {
