@@ -214,5 +214,13 @@ class Two_Factor_Backup_Codes extends Two_Factor_Provider {
 		return $this->validate_code( $user->ID, $_REQUEST['two-factor-backup-code'] );
 	}
 
+	function is_available_for_user( $user ) {
+		return true;
+	}
+
+	function user_options( $user ) {
+
+	}
+
 }
 Two_Factor_Backup_Codes::add_hooks();
