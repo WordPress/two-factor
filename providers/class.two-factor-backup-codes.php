@@ -27,6 +27,17 @@ class Two_Factor_Backup_Codes extends Two_Factor_Provider {
 
 		add_action( 'admin_notices', array( __CLASS__, 'admin_notices' ) );
 		add_action( 'user_two_factor_options', array( __CLASS__, 'user_two_factor_options' ) );
+
+		add_action( 'wp_ajax_two_factor_backup_codes_print', array( __CLASS__, 'two_factor_backup_codes_generate' ) );
+	}
+
+	// @todo add nonce
+	public static function two_factor_backup_codes_generate() {
+		$user_id = get_current_user_id();
+		$codes = self::get_instance()->generate_codes( $user_id );
+		$json_codes = json_encode( $codes );
+		echo $json_codes;
+		die(0);
 	}
 
 	public static function admin_notices() {
