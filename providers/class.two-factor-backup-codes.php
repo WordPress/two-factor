@@ -5,7 +5,7 @@ class Two_Factor_Backup_Codes extends Two_Factor_Provider {
 	const DEBUG = true;
 	const BACKUP_CODES_META_KEY = '_two_factor_backup_codes';
 	const BACKUP_CODES_DEBUG_META_KEY = '_two_factor_backup_codes_debug';
-	const NUMBER_OF_CODES = 3;
+	const NUMBER_OF_CODES = 10;
 
 	static function get_instance() {
 		static $instance;
@@ -71,7 +71,7 @@ class Two_Factor_Backup_Codes extends Two_Factor_Provider {
 					<td>
 						<p>Two-Factor Backup Verification Codes are single use codes that can be used to login.</p>
 						<p></p>
-						<button type="button" class="button button-two-factor-backup-codes-generate button-secondary hide-if-no-js">Generate Backup Codes</button>
+						<button type="button" class="button button-two-factor-backup-codes-generate button-secondary hide-if-no-js">Generate Verification Codes</button>
 						<p class="description"><span class="two-factor-backup-codes-count"><?php echo count( $backup_codes ); ?></span> unused codes remaining.</p>
 						<div class="two-factor-backup-codes-wrapper" style="display:none;">
 							<ol class="two-factor-backup-codes-unused-codes"></ol>
