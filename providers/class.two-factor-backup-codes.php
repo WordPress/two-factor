@@ -28,7 +28,7 @@ class Two_Factor_Backup_Codes extends Two_Factor_Provider {
 		add_action( 'admin_notices', array( __CLASS__, 'admin_notices' ) );
 		add_action( 'user_two_factor_options', array( __CLASS__, 'user_two_factor_options' ) );
 
-		add_action( 'wp_ajax_two_factor_backup_codes_print', array( __CLASS__, 'two_factor_backup_codes_generate' ) );
+		add_action( 'wp_ajax_two_factor_backup_codes_generate', array( __CLASS__, 'two_factor_backup_codes_generate' ) );
 	}
 
 	// @todo add nonce
@@ -66,12 +66,30 @@ class Two_Factor_Backup_Codes extends Two_Factor_Provider {
 				<tr>
 					<th><label><?php esc_html_e( 'Two-Factor Backup Codes', 'two-factor' ); ?></label></th>
 					<td>
-						<button type="button" class="button button-secondary hide-if-no-js">Generate Backup Codes</button>
-						<p class="description"><?php echo count( $backup_codes ) . ' unused codes remaining.'; ?></p>
+						<button type="button" class="button button-two-factor-backup-codes-generate button-secondary hide-if-no-js">Generate Backup Codes</button>
+						<p class="description"><span class="two-factor-backup-codes-count"><?php echo count( $backup_codes ); ?></span> unused codes remaining.</p>
+
+						<p><div class="two-factor-backup-codes-target"></div></p>
+
 					</td>
 				</tr>
 			</tbody>
 		</table>
+		<script type="text/javascript">
+			jQuery(document).ready(function($) {
+
+
+				$('.button-two-factor-backup-codes-generate').click( function() {
+					$.getJSON( "http://local.wordpress-trunk.dev/wp-admin/admin-ajax.php?action=two_factor_backup_codes_generate", function( data ) {
+						$('.two-factor-backup-codes-target').html('');
+						$.each( data, function( key, val ) {
+							$('.two-factor-backup-codes-target').append('<p>'+key+'.) '+val+'</p>');
+						});
+						$('.two-factor-backup-codes-count').html( data.length );
+					});
+				});
+			});
+		</script>
 		<?php
 	}
 
