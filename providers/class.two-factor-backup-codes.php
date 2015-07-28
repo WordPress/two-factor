@@ -33,6 +33,8 @@ class Two_Factor_Backup_Codes extends Two_Factor_Provider {
 
 	// @todo add nonce
 	public static function two_factor_backup_codes_generate() {
+		check_ajax_referer( 'two-factor-backup-codes-generate', 'nonce' );
+
 		$user_id = get_current_user_id();
 		$codes = self::get_instance()->generate_codes( $user_id );
 		$json_codes = json_encode( $codes );
@@ -60,6 +62,7 @@ class Two_Factor_Backup_Codes extends Two_Factor_Provider {
 
 		// Only show this notice if we are out of backup codes
 		$backup_codes = get_user_meta( $user_id, self::BACKUP_CODES_META_KEY, true );
+		$ajax_nonce = wp_create_nonce( 'two-factor-backup-codes-generate' );
 		?>
 		<table id="two-factor-backup-codes" class="form-table two-factor-backup-codes-table">
 			<tbody>
@@ -68,24 +71,33 @@ class Two_Factor_Backup_Codes extends Two_Factor_Provider {
 					<td>
 						<button type="button" class="button button-two-factor-backup-codes-generate button-secondary hide-if-no-js">Generate Backup Codes</button>
 						<p class="description"><span class="two-factor-backup-codes-count"><?php echo count( $backup_codes ); ?></span> unused codes remaining.</p>
-
 						<p><div class="two-factor-backup-codes-target"></div></p>
-
 					</td>
 				</tr>
 			</tbody>
 		</table>
 		<script type="text/javascript">
 			jQuery(document).ready(function($) {
-
-
 				$('.button-two-factor-backup-codes-generate').click( function() {
-					$.getJSON( "http://local.wordpress-trunk.dev/wp-admin/admin-ajax.php?action=two_factor_backup_codes_generate", function( data ) {
-						$('.two-factor-backup-codes-target').html('');
-						$.each( data, function( key, val ) {
-							$('.two-factor-backup-codes-target').append('<p>'+key+'.) '+val+'</p>');
-						});
-						$('.two-factor-backup-codes-count').html( data.length );
+					jQuery.ajax({
+						url: ajaxurl,
+						data:{
+							action:'two_factor_backup_codes_generate',
+							nonce: '<?php echo $ajax_nonce; ?>',
+						},
+						dataType: 'JSON',
+						success:function(data){
+							//Here is what I don't know what to do.
+							$('.two-factor-backup-codes-target').html('');
+							$.each( data, function( key, val ) {
+								$('.two-factor-backup-codes-target').append('<p>'+key+'.) '+val+'</p>');
+							});
+							$('.two-factor-backup-codes-count').html( data.length );
+						},
+						error: function(errorThrown){
+							alert('error');
+							console.log(errorThrown);
+						}
 					});
 				});
 			});
