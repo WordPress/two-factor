@@ -385,7 +385,7 @@ class Two_Factor_Core {
 		$primary_provider = get_user_meta( $user->ID, self::PROVIDER_USER_META_KEY, true );
 		wp_nonce_field( 'user_two_factor_options', '_nonce_user_two_factor_options', false );
 		?>
-		<h3><?php esc_html_e( 'Two-Factor Options', 'two-factor' ); ?></h3>
+		<h3><?php esc_html_e( 'Two-Factor Authentication', 'two-factor' ); ?></h3>
 		<table class="form-table">
 			<tr>
 				<th>
@@ -416,7 +416,7 @@ class Two_Factor_Core {
 				</td>
 			</tr>
 		</table>
-		<?php do_action( 'user_two_factor_options' );?>
+		<?php do_action( 'after_two_factor_user_options' );?>
 		<?php
 	}
 

@@ -19,7 +19,7 @@ class Two_Factor_Backup_Codes extends Two_Factor_Provider {
 	protected function __construct() {
 		add_action( 'two-factor-user-options-' . __CLASS__, array( $this, 'user_options' ) );
 		add_action( 'admin_notices', array( $this, 'admin_notices' ) );
-		add_action( 'user_two_factor_options', array( $this, 'user_two_factor_options' ) );
+		add_action( 'after_two_factor_user_options', array( $this, 'user_two_factor_options' ) );
 		add_action( 'wp_ajax_two_factor_backup_codes_generate', array( $this, 'ajax_generate_json' ) );
 
 		return parent::__construct();
@@ -69,7 +69,7 @@ class Two_Factor_Backup_Codes extends Two_Factor_Provider {
 						<p>Two-Factor Backup Verification Codes are single use codes that can be used to login.</p>
 						<p></p>
 						<button type="button" class="button button-two-factor-backup-codes-generate button-secondary hide-if-no-js">Generate Verification Codes</button>
-						<p class="description"><span class="two-factor-backup-codes-count"><?php echo count( $backup_codes ); ?></span> unused codes remaining.</p>
+						<!--<p class="description"><span class="two-factor-backup-codes-count"><?php echo count( $backup_codes ); ?></span> unused codes remaining.</p>-->
 						<div class="two-factor-backup-codes-wrapper" style="display:none;">
 							<ol class="two-factor-backup-codes-unused-codes"></ol>
 							<p class="description">Write 'em down y'all!</p>
