@@ -289,7 +289,7 @@ class Two_Factor_Core {
 		$backup_providers = array_diff_key( $available_providers, array( $provider_class => null ) );
 
 		$rememberme = 0;
-		if ( isset ( $_REQUEST['rememberme'] ) && $_REQUEST['rememberme'] ) {
+		if ( isset( $_REQUEST['rememberme'] ) && $_REQUEST['rememberme'] ) {
 			$rememberme = 1;
 		}
 
