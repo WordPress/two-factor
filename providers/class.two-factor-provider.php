@@ -57,8 +57,7 @@ abstract class Two_Factor_Provider {
 	/**
 	 * Whether this Two Factor provider is configured and available for the user specified.
 	 *
-	 * @param $user WP_User
-	 *
+	 * @param WP_User $user WP_User object of the logged-in user.
 	 * @return boolean
 	 */
 	abstract function is_available_for_user( $user );

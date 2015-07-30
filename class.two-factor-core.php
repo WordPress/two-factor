@@ -88,8 +88,7 @@ class Two_Factor_Core {
 	/**
 	 * Get all Two-Factor Auth providers that are enabled for the specified|current user.
 	 *
-	 * @param $user WP_User
-	 *
+	 * @param WP_User $user WP_User object of the logged-in user.
 	 * @return array
 	 */
 	public static function get_enabled_providers_for_user( $user = null ) {
@@ -110,8 +109,7 @@ class Two_Factor_Core {
 	/**
 	 * Get all Two-Factor Auth providers that are both enabled and configured for the specified|current user.
 	 *
-	 * @param $user WP_User
-	 *
+	 * @param WP_User $user WP_User object of the logged-in user.
 	 * @return array
 	 */
 	public static function get_available_providers_for_user( $user = null ) {
@@ -151,7 +149,7 @@ class Two_Factor_Core {
 		// If there's only one available provider, force that to be the primary.
 		if ( empty( $available_providers ) ) {
 			return null;
-		} elseif ( 1 === sizeof( $available_providers ) ) {
+		} elseif ( 1 === count( $available_providers ) ) {
 			$provider = key( $available_providers );
 		} else {
 			$provider = get_user_meta( $user_id, self::PROVIDER_USER_META_KEY, true );
@@ -235,7 +233,7 @@ class Two_Factor_Core {
 	}
 
 	/**
-	 * @todo add description.
+	 * Add short description. @todo
 	 *
 	 * @since 0.1-dev
 	 */
@@ -251,7 +249,7 @@ class Two_Factor_Core {
 
 		$nonce = $_GET['wp-auth-nonce'];
 		if ( true !== self::verify_login_nonce( $user->ID, $nonce ) ) {
-			wp_safe_redirect( get_bloginfo('url') );
+			wp_safe_redirect( get_bloginfo( 'url' ) );
 			exit;
 		}
 
@@ -259,7 +257,7 @@ class Two_Factor_Core {
 		if ( isset( $providers[ $_GET['provider'] ] ) ) {
 			$provider = $providers[ $_GET['provider'] ];
 		} else {
-			wp_die( __( 'Cheatin&#8217; uh?' ), 403 );
+			wp_die( esc_html__( 'Cheatin&#8217; uh?' ), 403 );
 		}
 
 		self::login_html( $user, $_GET['wp-auth-nonce'], $_GET['redirect_to'], '', $provider );
@@ -291,7 +289,7 @@ class Two_Factor_Core {
 		$backup_providers = array_diff_key( $available_providers, array( $provider_class => null ) );
 
 		$rememberme = 0;
-		if ( isset ( $_REQUEST[ 'rememberme' ] ) && $_REQUEST[ 'rememberme' ] ) {
+		if ( isset ( $_REQUEST['rememberme'] ) && $_REQUEST['rememberme'] ) {
 			$rememberme = 1;
 		}
 
@@ -329,7 +327,9 @@ class Two_Factor_Core {
 		</ul>
 		<?php endif; ?>
 
-		<p id="backtoblog"><a href="<?php echo esc_url( home_url( '/' ) ); ?>" title="<?php esc_attr_e( 'Are you lost?' ); ?>"><?php printf( __( '&larr; Back to %s' ), get_bloginfo( 'title', 'display' ) ); ?></a></p>
+		<p id="backtoblog">
+			<a href="<?php echo esc_url( home_url( '/' ) ); ?>" title="<?php esc_attr_e( 'Are you lost?' ); ?>"><?php echo esc_html( sprintf( __( '&larr; Back to %s' ), get_bloginfo( 'title', 'display' ) ) ); ?></a>
+		</p>
 
 		</body>
 		</html>
@@ -405,7 +405,7 @@ class Two_Factor_Core {
 
 		$nonce = $_POST['wp-auth-nonce'];
 		if ( true !== self::verify_login_nonce( $user->ID, $nonce ) ) {
-			wp_safe_redirect( get_bloginfo('url') );
+			wp_safe_redirect( get_bloginfo( 'url' ) );
 			exit;
 		}
 
@@ -414,7 +414,7 @@ class Two_Factor_Core {
 			if ( isset( $providers[ $_POST['provider'] ] ) ) {
 				$provider = $providers[ $_POST['provider'] ];
 			} else {
-				wp_die( __( 'Cheatin&#8217; uh?' ), 403 );
+				wp_die( esc_html__( 'Cheatin&#8217; uh?' ), 403 );
 			}
 		} else {
 			$provider = self::get_primary_provider_for_user( $user->ID );
@@ -428,7 +428,7 @@ class Two_Factor_Core {
 				return;
 			}
 
-			self::login_html( $user, $login_nonce['key'], $_REQUEST['redirect_to'], __( 'ERROR: Invalid verification code.' ) );
+			self::login_html( $user, $login_nonce['key'], $_REQUEST['redirect_to'], esc_html__( 'ERROR: Invalid verification code.' ) );
 			exit;
 		}
 
@@ -459,7 +459,7 @@ class Two_Factor_Core {
 	public static function user_two_factor_options( $user ) {
 		$enabled_providers = get_user_meta( $user->ID, self::ENABLED_PROVIDERS_USER_META_KEY, true );
 		if ( empty( $enabled_providers ) ) {
-			// get_user_meta() has no way of providing a default value.
+			// Because get_user_meta() has no way of providing a default value.
 			$enabled_providers = array();
 		}
 		$primary_provider = get_user_meta( $user->ID, self::PROVIDER_USER_META_KEY, true );
@@ -508,7 +508,7 @@ class Two_Factor_Core {
 	 * @param int $user_id User ID.
 	 */
 	public static function user_two_factor_options_update( $user_id ) {
-		if ( isset( $_POST[ '_nonce_user_two_factor_options' ] ) ) {
+		if ( isset( $_POST['_nonce_user_two_factor_options'] ) ) {
 			check_admin_referer( 'user_two_factor_options', '_nonce_user_two_factor_options' );
 			$providers         = self::get_providers();
 
