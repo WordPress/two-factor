@@ -49,4 +49,14 @@ class Two_Factor_Totp extends Two_Factor_Provider {
 	 */
 	public function validate_authentication( $user ) {}
 
+	/**
+	 * Whether this Two Factor provider is configured and available for the user specified.
+	 *
+	 * @since 0.1-dev
+	 *
+	 * @param WP_User $user WP_User object of the logged-in user.
+	 * @return boolean
+	 */
+	public function is_available_for_user( $user ) {}
+
 }

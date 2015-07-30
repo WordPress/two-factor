@@ -27,7 +27,7 @@ class Two_Factor_Fido_U2f extends Two_Factor_Provider {
 	 *
 	 * @since 0.1-dev
 	 */
-	function get_label() {
+	public function get_label() {
 		return _x( 'FIDO U2f', 'Provider Label' );
 	}
 
@@ -38,7 +38,7 @@ class Two_Factor_Fido_U2f extends Two_Factor_Provider {
 	 *
 	 * @param WP_User $user WP_User object of the logged-in user.
 	 */
-	function authentication_page( $user ) {}
+	public function authentication_page( $user ) {}
 
 	/**
 	 * Validates the users input token.
@@ -47,6 +47,16 @@ class Two_Factor_Fido_U2f extends Two_Factor_Provider {
 	 *
 	 * @param WP_User $user WP_User object of the logged-in user.
 	 */
-	function validate_authentication( $user ) {}
+	public function validate_authentication( $user ) {}
+
+	/**
+	 * Whether this Two Factor provider is configured and available for the user specified.
+	 *
+	 * @since 0.1-dev
+	 *
+	 * @param WP_User $user WP_User object of the logged-in user.
+	 * @return boolean
+	 */
+	public function is_available_for_user( $user ) {}
 
 }

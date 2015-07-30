@@ -29,11 +29,21 @@ class Two_Factor_Email extends Two_Factor_Provider {
 	}
 
 	/**
+	 * Class constructor.
+	 *
+	 * @since 0.1-dev
+	 */
+	protected function __construct() {
+		add_action( 'two-factor-user-options-' . __CLASS__, array( $this, 'user_options' ) );
+		return parent::__construct();
+	}
+
+	/**
 	 * Returns the name of the provider.
 	 *
 	 * @since 0.1-dev
 	 */
-	function get_label() {
+	public function get_label() {
 		return _x( 'Email', 'Provider Label' );
 	}
 
@@ -45,7 +55,7 @@ class Two_Factor_Email extends Two_Factor_Provider {
 	 * @param int $user_id User ID.
 	 * @return string
 	 */
-	function generate_token( $user_id ) {
+	public function generate_token( $user_id ) {
 		$token = $this->get_code();
 		update_user_meta( $user_id, self::TOKEN_META_KEY, wp_hash( $token ) );
 		return $token;
@@ -60,7 +70,7 @@ class Two_Factor_Email extends Two_Factor_Provider {
 	 * @param string $token User token.
 	 * @return boolean
 	 */
-	function validate_token( $user_id, $token ) {
+	public function validate_token( $user_id, $token ) {
 		$hashed_token = get_user_meta( $user_id, self::TOKEN_META_KEY, true );
 		if ( wp_hash( $token ) !== $hashed_token ) {
 			$this->delete_token( $user_id );
@@ -76,7 +86,7 @@ class Two_Factor_Email extends Two_Factor_Provider {
 	 *
 	 * @param int $user_id User ID.
 	 */
-	function delete_token( $user_id ) {
+	public function delete_token( $user_id ) {
 		delete_user_meta( $user_id, self::TOKEN_META_KEY );
 	}
 
@@ -87,7 +97,7 @@ class Two_Factor_Email extends Two_Factor_Provider {
 	 *
 	 * @param WP_User $user WP_User object of the logged-in user.
 	 */
-	function generate_and_email_token( $user ) {
+	public function generate_and_email_token( $user ) {
 		$token = $this->generate_token( $user->ID );
 
 		$subject = wp_strip_all_tags( sprintf( __( 'Your login confirmation code for %s' ), get_bloginfo( 'name' ) ) );
@@ -102,7 +112,7 @@ class Two_Factor_Email extends Two_Factor_Provider {
 	 *
 	 * @param WP_User $user WP_User object of the logged-in user.
 	 */
-	function authentication_page( $user ) {
+	public function authentication_page( $user ) {
 		$this->generate_and_email_token( $user );
 		require_once( ABSPATH .  '/wp-admin/includes/template.php' );
 		?>
@@ -133,8 +143,36 @@ class Two_Factor_Email extends Two_Factor_Provider {
 	 * @param WP_User $user WP_User object of the logged-in user.
 	 * @return boolean
 	 */
-	function validate_authentication( $user ) {
+	public function validate_authentication( $user ) {
 		return $this->validate_token( $user->ID, $_REQUEST['two-factor-email-code'] );
+	}
+
+	/**
+	 * Whether this Two Factor provider is configured and available for the user specified.
+	 *
+	 * @since 0.1-dev
+	 *
+	 * @param WP_User $user WP_User object of the logged-in user.
+	 * @return boolean
+	 */
+	public function is_available_for_user( $user ) {
+		return true;
+	}
+
+	/**
+	 * Inserts markup at the end of the user profile field for this provider.
+	 *
+	 * @since 0.1-dev
+	 *
+	 * @param WP_User $user WP_User object of the logged-in user.
+	 */
+	public function user_options( $user ) {
+		$email = $user->user_email;
+		?>
+		<div>
+			<?php echo sprintf( __( 'Authentication codes will be sent to <kbd>%1$s</kbd>.' ), esc_html( $email ) ); ?>
+		</div>
+		<?php
 	}
 
 }
