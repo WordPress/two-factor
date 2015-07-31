@@ -416,7 +416,6 @@ class Two_Factor_Core {
 				</td>
 			</tr>
 		</table>
-		<?php do_action( 'after_two_factor_user_options' );?>
 		<?php
 	}
 
