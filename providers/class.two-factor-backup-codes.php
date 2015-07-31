@@ -27,8 +27,14 @@ class Two_Factor_Backup_Codes extends Two_Factor_Provider {
 		$user_id = get_current_user_id();
 		$backup_codes = get_user_meta( $user_id, self::BACKUP_CODES_META_KEY, true );
 		if( ! empty( $backup_codes ) ) {
+		//	return;
+		}
+		// Only show this if the provider is enabled
+		$enabled_providers = get_user_meta( $user_id, Two_Factor_Core::ENABLED_PROVIDERS_USER_META_KEY, true );
+		if( ! in_array( 'Two_Factor_Backup_Codes', $enabled_providers ) ) {
 			return;
 		}
+
 		?>
 		<div class="error">
 			<p><?php echo sprintf( __( 'Two-Factor: You are out of backup codes and need to <a href="%1$s#two-factor-backup-codes" >regenerate</a>!', 'two-factor' ), esc_url( get_edit_user_link( $user_id ) ) ); ?></p>
