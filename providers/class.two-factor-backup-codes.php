@@ -31,7 +31,7 @@ class Two_Factor_Backup_Codes extends Two_Factor_Provider {
 		}
 		// Only show this if the provider is enabled
 		$enabled_providers = get_user_meta( $user_id, Two_Factor_Core::ENABLED_PROVIDERS_USER_META_KEY, true );
-		if( ! in_array( 'Two_Factor_Backup_Codes', $enabled_providers ) ) {
+		if( ! in_array( __CLASS__, $enabled_providers ) ) {
 			return;
 		}
 
