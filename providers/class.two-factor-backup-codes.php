@@ -30,9 +30,9 @@ class Two_Factor_Backup_Codes extends Two_Factor_Provider {
 			return;
 		}
 		?>
-			<div class="error">
-				<p><?php _e( 'Two-Factor: You are out of backup codes and need to <a href="' . get_edit_user_link( $user_id ) . '#two-factor-backup-codes" >regenerate</a>!', 'two-factor' ); ?></p>
-			</div>
+		<div class="error">
+			<p><?php echo sprintf( __( 'Two-Factor: You are out of backup codes and need to <a href="%1$s#two-factor-backup-codes" >regenerate</a>!', 'two-factor' ), esc_url( get_edit_user_link( $user_id ) ) ); ?></p>
+		</div>
 		<?php
 	}
 
@@ -49,13 +49,16 @@ class Two_Factor_Backup_Codes extends Two_Factor_Provider {
 		$backup_codes = get_user_meta( $user_id, self::BACKUP_CODES_META_KEY, true );
 		$ajax_nonce = wp_create_nonce( 'two-factor-backup-codes-generate-json' );
 		?>
-		<p>
-			<button type="button" class="button button-two-factor-backup-codes-generate button-secondary hide-if-no-js">Generate Verification Codes</button>
-			<kbd><span class="two-factor-backup-codes-count"><?php echo count( $backup_codes ); ?></span> unused codes remaining.</kbd>
+		<p id="two-factor-backup-codes">
+			<button type="button" class="button button-two-factor-backup-codes-generate button-secondary hide-if-no-js">
+				<?php esc_html_e( 'Generate Verification Codes', 'two-factor' ); ?>
+			</button>
+			<?php echo sprintf( __( '<kbd><span class="two-factor-backup-codes-count">%1$s</span> unused codes remaining.</kbd>', 'two-factor' ), count( $backup_codes ) ); ?>
+
 		</p>
 		<div class="two-factor-backup-codes-wrapper" style="display:none;">
 			<ol class="two-factor-backup-codes-unused-codes"></ol>
-			<p class="description">Write 'em down y'all!</p>
+			<p class="description"><?php esc_html_e( "Write 'em down y'all!" , 'two-factor' ); ?></p>
 		</div>
 		<script type="text/javascript">
 			jQuery(document).ready(function($) {
