@@ -103,7 +103,7 @@ class Two_Factor_Backup_Codes extends Two_Factor_Provider {
 	function ajax_generate_json() {
 		check_ajax_referer( 'two-factor-backup-codes-generate-json', 'nonce' );
 		$user_id = get_current_user_id();
-		$codes = self::get_instance()->generate_codes( $user_id );
+		$codes = $this->generate_codes( $user_id );
 		$json_codes = json_encode( $codes );
 		echo $json_codes;
 		die(0);
@@ -114,7 +114,7 @@ class Two_Factor_Backup_Codes extends Two_Factor_Provider {
 		?>
 		<p><?php esc_html_e( 'Enter a backup verification code.', 'two-factor' ); ?></p><br/>
 		<p>
-			<label for="authcode"><?php esc_html_e( 'Verification Code:' ); ?></label>
+			<label for="authcode"><?php esc_html_e( 'Verification Code:', 'two-factor' ); ?></label>
 			<input type="tel" name="two-factor-backup-code" id="authcode" class="input" value="" size="20" pattern="[0-9]*" />
 		</p>
 		<?php
