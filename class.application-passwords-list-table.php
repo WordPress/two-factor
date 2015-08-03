@@ -1,21 +1,41 @@
 <?php
-
+// Load the parent class if it doesn't exist.
 if ( ! class_exists( 'WP_List_Table' ) ) {
 	require_once ABSPATH . 'wp-admin/includes/class-wp-list-table.php';
 }
 
+/**
+ * Class for displaying the list of application password items.
+ *
+ * @since 0.1-dev
+ * @access private
+ *
+ * @package Two_Factor
+ */
 class Application_Passwords_List_Table extends WP_List_Table {
 
-	function get_columns() {
+	/**
+	 * Get a list of columns.
+	 *
+	 * @since 0.1-dev
+	 *
+	 * @return array
+	 */
+	public function get_columns() {
 		return array(
-			'name'      => __( 'Name', 'two-factor' ),
-			'created'   => __( 'Created', 'two-factor' ),
-			'last_used' => __( 'Last Used', 'two-factor' ),
-			'last_ip'   => __( 'Last IP', 'two-factor' ),
+			'name'      => wp_strip_all_tags( __( 'Name' ) ),
+			'created'   => wp_strip_all_tags( __( 'Created' ) ),
+			'last_used' => wp_strip_all_tags( __( 'Last Used' ) ),
+			'last_ip'   => wp_strip_all_tags( __( 'Last IP' ) ),
 		);
 	}
 
-	function prepare_items() {
+	/**
+	 * Prepares the list of items for displaying.
+	 *
+	 * @since 0.1-dev
+	 */
+	public function prepare_items() {
 		$columns  = $this->get_columns();
 		$hidden   = array();
 		$sortable = array();
@@ -23,8 +43,17 @@ class Application_Passwords_List_Table extends WP_List_Table {
 		$this->_column_headers = array( $columns, $hidden, $sortable, $primary );
 	}
 
-	function column_default( $item, $column_name ) {
-		switch( $column_name ) {
+	/**
+	 * Generates content for a single row of the table
+	 *
+	 * @since 0.1-dev
+	 * @access protected
+	 *
+	 * @param object $item The current item.
+	 * @param string $column_name The current column name.
+	 */
+	protected function column_default( $item, $column_name ) {
+		switch ( $column_name ) {
 			case 'name':
 				$actions = array(
 					'delete' => Application_Passwords::delete_link( $item ),
@@ -32,17 +61,17 @@ class Application_Passwords_List_Table extends WP_List_Table {
 				return esc_html( $item['name'] ) . self::row_actions( $actions );
 			case 'created':
 				if ( empty( $item['created'] ) ) {
-					return __( 'Unknown', 'two-factor' );
+					return esc_html__( 'Unknown' );
 				}
 				return date( get_option( 'date_format', 'r' ), $item['created'] );
 			case 'last_used':
 				if ( empty( $item['last_used'] ) ) {
-					return __( 'Never', 'two-factor' );
+					return esc_html__( 'Never' );
 				}
 				return date( get_option( 'date_format', 'r' ), $item['last_used'] );
 			case 'last_ip':
 				if ( empty( $item['last_ip'] ) ) {
-					return __( 'Never Used', 'two-factor' );
+					return esc_html__( 'Never Used' );
 				}
 				return $item['last_ip'];
 			default:
@@ -51,7 +80,12 @@ class Application_Passwords_List_Table extends WP_List_Table {
 	}
 
 	/**
-	 * Pull into the child class to prevent conflicting nonces.
+	 * Generates custom table navigation to prevent conflicting nonces.
+	 *
+	 * @since 0.1-dev
+	 * @access protected
+	 *
+	 * @param string $which The location of the bulk actions: 'top' or 'bottom'.
 	 */
 	protected function display_tablenav( $which ) {
 		?>
@@ -70,8 +104,15 @@ class Application_Passwords_List_Table extends WP_List_Table {
 		<?php
 	}
 
+	/**
+	 * Generates content for a single row of the table.
+	 *
+	 * @since 0.1-dev
+	 *
+	 * @param object $item The current item.
+	 */
 	public function single_row( $item ) {
-		echo '<tr data-slug="' . Application_Passwords::password_unique_slug( $item ) . '">';
+		echo '<tr data-slug="' . esc_attr( Application_Passwords::password_unique_slug( $item ) ) . '">';
 		$this->single_row_columns( $item );
 		echo '</tr>';
 	}
