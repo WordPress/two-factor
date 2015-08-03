@@ -30,8 +30,7 @@ class Two_Factor_Backup_Codes extends Two_Factor_Provider {
 			return;
 		}
 		// Only show this if the provider is enabled
-		$enabled_providers = get_user_meta( $user_id, Two_Factor_Core::ENABLED_PROVIDERS_USER_META_KEY, true );
-		if( ! in_array( __CLASS__, $enabled_providers ) ) {
+		if( $this->is_enabled() ) {
 			return;
 		}
 
@@ -40,6 +39,15 @@ class Two_Factor_Backup_Codes extends Two_Factor_Provider {
 			<p><?php echo sprintf( __( 'Two-Factor: You are out of backup codes and need to <a href="%1$s#two-factor-backup-codes" >regenerate</a>!', 'two-factor' ), esc_url( get_edit_user_link( $user_id ) ) ); ?></p>
 		</div>
 		<?php
+	}
+
+	function is_enabled() {
+		// Only show this if the provider is enabled
+		$enabled_providers = get_user_meta( $user_id, Two_Factor_Core::ENABLED_PROVIDERS_USER_META_KEY, true );
+		if( in_array( __CLASS__, $enabled_providers ) ) {
+			return true;
+		}
+		return false;
 	}
 
 	function get_label() {
@@ -86,7 +94,7 @@ class Two_Factor_Backup_Codes extends Two_Factor_Provider {
 							$('.two-factor-backup-codes-count').html( data.length );
 						},
 						error: function(errorThrown){
-							alert('error');
+							alert('error'); // @todo: remove for production
 							console.log(errorThrown);
 						}
 					});
