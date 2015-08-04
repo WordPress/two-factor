@@ -20,9 +20,20 @@ if ( ! file_exists( $_tests_dir . '/includes/' ) ) {
 
 require_once $_tests_dir . '/includes/functions.php';
 
-// Activate the plugins.
-if ( defined( 'WP_TEST_ACTIVATED_PLUGINS' ) ) {
-	$GLOBALS['wp_tests_options']['active_plugins'] = explode( ',', WP_TEST_ACTIVATED_PLUGINS );
+function _manually_load_plugin() {
+	if ( defined( 'WP_TEST_ACTIVATED_PLUGINS' ) ) {
+		$active_plugins = get_option( 'active_plugins', array() );
+		$force_plugins = explode( ',', WP_TEST_ACTIVATED_PLUGINS );
+
+		foreach( $force_plugins as $plugin ) {
+			require dirname( __FILE__ ) . '/../../../../' . $plugin;
+
+			$active_plugins[] = $plugin;
+		}
+
+		update_option( 'active_plugins', $active_plugins );
+	}
 }
+tests_add_filter( 'muplugins_loaded', '_manually_load_plugin' );
 
 require $_tests_dir . '/includes/bootstrap.php';
