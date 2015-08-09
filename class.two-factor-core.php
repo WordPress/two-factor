@@ -455,7 +455,7 @@ class Two_Factor_Core {
 	 * @param  array $columns Available columns.
 	 * @return array          Updated array of columns.
 	 */
-	function filter_manage_users_columns( array $columns ) {
+	public static function filter_manage_users_columns( array $columns ) {
 		$columns['two-factor'] = __( 'Two-Factor' );
 		return $columns;
 	}
@@ -468,7 +468,7 @@ class Two_Factor_Core {
 	 * @param  int    $user_id     The user ID.
 	 * @return string              The column output.
 	 */
-	function manage_users_custom_column( $output, $column_name, $user_id ) {
+	public static function manage_users_custom_column( $output, $column_name, $user_id ) {
 
 		if ( 'two-factor' !== $column_name ) {
 			return $output;
