@@ -123,11 +123,11 @@ class Two_Factor_Backup_Codes extends Two_Factor_Provider {
 			<button type="button" class="button button-two-factor-backup-codes-generate button-secondary hide-if-no-js">
 				<?php esc_html_e( 'Generate Verification Codes', 'two-factor' ); ?>
 			</button>
-			<?php echo wp_kses( sprintf( __( '<span class="two-factor-backup-codes-count">%s</span> unused codes remaining.', 'two-factor' ), count( $backup_codes ) ), array( 'span' => array( 'class' => array() ) ) ); ?>
+			<?php echo wp_kses( sprintf( _n( '%s unused code remaining.', '%s unused codes remaining.', count( $backup_codes ) ), '<span class="two-factor-backup-codes-count">' . count( $backup_codes ) . '</span>' ), array( 'span' => array( 'class' => array() ) ) ); ?>
 		</p>
 		<div class="two-factor-backup-codes-wrapper" style="display:none;">
 			<ol class="two-factor-backup-codes-unused-codes"></ol>
-			<p class="description"><?php esc_html_e( "Write 'em down y'all!" , 'two-factor' ); ?></p>
+			<p class="description"><?php esc_html_e( "Write 'em down y'all!" ); ?></p>
 		</div>
 		<script type="text/javascript">
 			jQuery(document).ready(function($) {
@@ -135,8 +135,8 @@ class Two_Factor_Backup_Codes extends Two_Factor_Provider {
 					jQuery.ajax({
 						url: ajaxurl,
 						data:{
-							action:'two_factor_backup_codes_generate',
-							nonce: '<?php echo esc_js( $ajax_nonce ); ?>',
+							action: 'two_factor_backup_codes_generate',
+							nonce: '<?php echo esc_js( $ajax_nonce ); ?>'
 						},
 						dataType: 'JSON',
 						success:function(data){
