@@ -66,7 +66,7 @@ class Two_Factor_Backup_Codes extends Two_Factor_Provider {
 		}
 		?>
 		<div class="error">
-			<p><?php echo sprintf( __( 'Two-Factor: You are out of backup codes and need to <a href="%1$s#two-factor-backup-codes" >regenerate</a>!', 'two-factor' ), esc_url( get_edit_user_link( $user_id ) ) ); ?></p>
+			<p><?php echo esc_html( sprintf( __( 'Two-Factor: You are out of backup codes and need to <a href="%1$s#two-factor-backup-codes" >regenerate</a>!', 'two-factor' ), esc_url( get_edit_user_link( $user_id ) ) ) ); ?></p>
 		</div>
 		<?php
 	}
@@ -121,8 +121,7 @@ class Two_Factor_Backup_Codes extends Two_Factor_Provider {
 			<button type="button" class="button button-two-factor-backup-codes-generate button-secondary hide-if-no-js">
 				<?php esc_html_e( 'Generate Verification Codes', 'two-factor' ); ?>
 			</button>
-			<?php echo sprintf( __( '<kbd><span class="two-factor-backup-codes-count">%1$s</span> unused codes remaining.</kbd>', 'two-factor' ), count( $backup_codes ) ); ?>
-
+			<?php echo esc_html( sprintf( __( '<span class="two-factor-backup-codes-count">%1$s</span> unused codes remaining.', 'two-factor' ), count( $backup_codes ) ) ); ?>
 		</p>
 		<div class="two-factor-backup-codes-wrapper" style="display:none;">
 			<ol class="two-factor-backup-codes-unused-codes"></ol>
@@ -162,12 +161,14 @@ class Two_Factor_Backup_Codes extends Two_Factor_Provider {
 	 * Generates backup codes & updates the user meta.
 	 *
 	 * @since 0.1-dev
+	 *
+	 * @param int $user_id The logged-in user ID.
 	 */
 	public function generate_codes( $user_id ) {
 		$codes = array();
 		$codes_hashed = array();
 
-		for( $i = 0; $i < self::NUMBER_OF_CODES; $i++ ) {
+		for ( $i = 0; $i < self::NUMBER_OF_CODES; $i++ ) {
 			$code = $this->get_code();
 			$codes_hashed[] = wp_hash_password( $code );
 			$codes[] = $code;
@@ -190,10 +191,10 @@ class Two_Factor_Backup_Codes extends Two_Factor_Provider {
 
 		$user_id = get_current_user_id();
 		$codes = $this->generate_codes( $user_id );
-		$json_codes = json_encode( $codes );
+		$json_codes = wp_json_encode( $codes );
 
 		echo $json_codes;
-		die(0);
+		die( 0 );
 	}
 
 	/**
@@ -243,7 +244,7 @@ class Two_Factor_Backup_Codes extends Two_Factor_Provider {
 	public function validate_code( $user_id, $code ) {
 		$backup_codes = get_user_meta( $user_id, self::BACKUP_CODES_META_KEY, true );
 
-		foreach( $backup_codes as $code_index => $backup_code ) {
+		foreach ( $backup_codes as $code_index => $backup_code ) {
 			if ( wp_check_password( $code, $backup_code, $user_id ) ) {
 				$this->delete_code( $user_id, $code_index );
 				return true;
@@ -259,7 +260,6 @@ class Two_Factor_Backup_Codes extends Two_Factor_Provider {
 	 *
 	 * @param int $user_id    The logged-in user ID.
 	 * @param int $code_index The array index of the backup code.
-	 * @return boolean
 	 */
 	public function delete_code( $user_id, $code_index ) {
 		$backup_codes = get_user_meta( $user_id, self::BACKUP_CODES_META_KEY, true );
