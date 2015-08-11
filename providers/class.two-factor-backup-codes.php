@@ -136,7 +136,7 @@ class Two_Factor_Backup_Codes extends Two_Factor_Provider {
 						url: ajaxurl,
 						data:{
 							action:'two_factor_backup_codes_generate',
-							nonce: '<?php echo $ajax_nonce; ?>',
+							nonce: '<?php echo esc_js( $ajax_nonce ); ?>',
 						},
 						dataType: 'JSON',
 						success:function(data){
