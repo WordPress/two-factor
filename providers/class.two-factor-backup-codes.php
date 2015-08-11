@@ -130,31 +130,32 @@ class Two_Factor_Backup_Codes extends Two_Factor_Provider {
 			<p class="description"><?php esc_html_e( "Write 'em down y'all!" ); ?></p>
 		</div>
 		<script type="text/javascript">
-			jQuery(document).ready(function($) {
-				$('.button-two-factor-backup-codes-generate').click( function() {
-					jQuery.ajax({
+			// @todo: move this into a JS file & internationalize the count strings
+			jQuery( document ).ready( function( $ ) {
+				$( '.button-two-factor-backup-codes-generate' ).click( function() {
+					jQuery.ajax( {
 						url: ajaxurl,
-						data:{
+						data: {
 							action: 'two_factor_backup_codes_generate',
 							nonce: '<?php echo esc_js( $ajax_nonce ); ?>'
 						},
 						dataType: 'JSON',
-						success:function(data){
-							$('.two-factor-backup-codes-wrapper').show();
-							$('.two-factor-backup-codes-unused-codes').html('');
+						success: function( data ) {
+							$( '.two-factor-backup-codes-wrapper' ).show();
+							$( '.two-factor-backup-codes-unused-codes' ).html( '' );
 							$.each( data, function( key, val ) {
-								$('.two-factor-backup-codes-unused-codes').append('<li>'+val+'</li>');
-							});
+								$( '.two-factor-backup-codes-unused-codes' ).append( '<li>' + val + '</li>' );
+							} );
 							// Update counter.
-							$('.two-factor-backup-codes-count').html( data.length );
+							$( '.two-factor-backup-codes-count' ).html( data.length );
 						},
-						error: function(errorThrown){
-							alert('error'); // @todo: remove for production
-							console.log(errorThrown);
+						error: function( errorThrown ) {
+							alert( 'error' ); // @todo: remove for production
+							console.log( errorThrown );
 						}
-					});
-				});
-			});
+					} );
+				} );
+			} );
 		</script>
 		<?php
 	}
@@ -193,10 +194,7 @@ class Two_Factor_Backup_Codes extends Two_Factor_Provider {
 
 		$user_id = get_current_user_id();
 		$codes = $this->generate_codes( $user_id );
-		$json_codes = wp_json_encode( $codes );
-
-		echo $json_codes;
-		die( 0 );
+		wp_send_json( $codes );
 	}
 
 	/**
