@@ -113,7 +113,7 @@ class Two_Factor_Backup_Codes extends Two_Factor_Provider {
 	 * @param WP_User $user WP_User object of the logged-in user.
 	 */
 	public function user_options( $user ) {
-		$user_id = get_current_user_id();
+		$user_id = $user->ID;
 		$backup_codes = get_user_meta( $user_id, self::BACKUP_CODES_META_KEY, true );
 		$ajax_nonce = wp_create_nonce( 'two-factor-backup-codes-generate-json' );
 		?>
