@@ -170,7 +170,7 @@ class Two_Factor_Email extends Two_Factor_Provider {
 		$email = $user->user_email;
 		?>
 		<div>
-			<?php echo esc_html( sprintf( __( 'Authentication codes will be sent to <kbd>%1$s</kbd>.' ), $email ) ); ?>
+			<?php echo esc_html( sprintf( __( 'Authentication codes will be sent to %1$s.' ), $email ) ); ?>
 		</div>
 		<?php
 	}
