@@ -66,7 +66,7 @@ class Two_Factor_Backup_Codes extends Two_Factor_Provider {
 		}
 		?>
 		<div class="error">
-			<p><?php echo wp_kses( sprintf( __( 'Two-Factor: You are out of backup codes and need to <a href="%1$s#two-factor-backup-codes" >regenerate</a>!', 'two-factor' ), esc_url( get_edit_user_link( $user_id ) ) ), array( 'a' => array( 'href' => array() ) ) ); ?></p>
+			<p><?php echo wp_kses( sprintf( __( 'Two-Factor: You are out of backup codes and need to <a href="%1$s#two-factor-backup-codes" >regenerate</a>!' ), esc_url( get_edit_user_link( $user_id ) ) ), array( 'a' => array( 'href' => array() ) ) ); ?></p>
 		</div>
 		<?php
 	}
@@ -92,7 +92,7 @@ class Two_Factor_Backup_Codes extends Two_Factor_Provider {
 	 * @since 0.1-dev
 	 */
 	public function get_label() {
-		return _x( 'Backup Verification Codes (Single Use)', 'Provider Label', 'two-factor' );
+		return _x( 'Backup Verification Codes (Single Use)', 'Provider Label' );
 	}
 
 	/**
@@ -121,7 +121,7 @@ class Two_Factor_Backup_Codes extends Two_Factor_Provider {
 		?>
 		<p id="two-factor-backup-codes">
 			<button type="button" class="button button-two-factor-backup-codes-generate button-secondary hide-if-no-js">
-				<?php esc_html_e( 'Generate Verification Codes', 'two-factor' ); ?>
+				<?php esc_html_e( 'Generate Verification Codes' ); ?>
 			</button>
 			<?php echo wp_kses( sprintf( _n( '%s unused code remaining.', '%s unused codes remaining.', count( $backup_codes ) ), '<span class="two-factor-backup-codes-count">' . count( $backup_codes ) . '</span>' ), array( 'span' => array( 'class' => array() ) ) ); ?>
 		</p>
@@ -209,13 +209,13 @@ class Two_Factor_Backup_Codes extends Two_Factor_Provider {
 	public function authentication_page( $user ) {
 		require_once( ABSPATH .  '/wp-admin/includes/template.php' );
 		?>
-		<p><?php esc_html_e( 'Enter a backup verification code.', 'two-factor' ); ?></p><br/>
+		<p><?php esc_html_e( 'Enter a backup verification code.' ); ?></p><br/>
 		<p>
-			<label for="authcode"><?php esc_html_e( 'Verification Code:', 'two-factor' ); ?></label>
+			<label for="authcode"><?php esc_html_e( 'Verification Code:' ); ?></label>
 			<input type="tel" name="two-factor-backup-code" id="authcode" class="input" value="" size="20" pattern="[0-9]*" />
 		</p>
 		<?php
-		submit_button( __( 'Submit', 'two-factor' ) );
+		submit_button( __( 'Submit' ) );
 	}
 
 	/**
