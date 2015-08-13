@@ -8,19 +8,22 @@ class Test_ClassTwoFactorCore extends WP_UnitTestCase {
 	public function test_add_hooks() {
 		Two_Factor_Core::add_hooks();
 
-		$this->assertNotFalse(
+		$this->assertGreaterThan(
+			0,
 			has_action(
 				'init',
 				array( 'Two_Factor_Core', 'get_providers' )
 			)
 		);
-		$this->assertNotFalse(
+		$this->assertGreaterThan(
+			0,
 			has_action(
 				'login_form_validate_2fa',
 				array( 'Two_Factor_Core', 'login_form_validate_2fa' )
 			)
 		);
-		$this->assertNotFalse(
+		$this->assertGreaterThan(
+			0,
 			has_action(
 				'login_form_backup_2fa',
 				array( 'Two_Factor_Core', 'backup_2fa' )

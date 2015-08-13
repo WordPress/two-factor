@@ -108,7 +108,7 @@ class Tests_Two_Factor_Email extends WP_UnitTestCase {
 		$pattern = '/Enter (\d*) to log in./';
 		$content = $GLOBALS['phpmailer']->Body;
 
-		$this->assertNotFalse( preg_match( $pattern, $content, $match ) );
+		$this->assertGreaterThan( 0, preg_match( $pattern, $content, $match ) );
 		$this->assertTrue( $this->provider->validate_token( $user->ID, $match[ 1 ] ) );
 	}
 
