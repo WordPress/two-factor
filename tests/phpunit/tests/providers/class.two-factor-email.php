@@ -15,9 +15,9 @@ class Tests_Two_Factor_Email extends WP_UnitTestCase {
 	 * @see WP_UnitTestCase::setup()
 	 */
 	function setUp() {
-		global $phpmailer;
-
 		parent::setUp();
+
+		add_filter( 'wp_mail', array( $this, 'set_wp_mail_globals' ) );
 
 		$this->provider = Two_Factor_Email::get_instance();
 
@@ -25,6 +25,7 @@ class Tests_Two_Factor_Email extends WP_UnitTestCase {
 			$this->phpmailer = $GLOBALS['phpmailer'];
 			$GLOBALS['phpmailer'] = $this->mockmailer;
 		}
+
 	}
 
 	function tearDown() {
@@ -32,6 +33,21 @@ class Tests_Two_Factor_Email extends WP_UnitTestCase {
 			$GLOBALS['phpmailer'] = $this->phpmailer;
 			$this->phpmailer = null;
 		}
+
+		parent::tearDown();
+	}
+
+	public function set_wp_mail_globals( $args ) {
+		if ( ! isset( $_SERVER['SERVER_NAME'] ) ) {
+			$_SERVER['SERVER_NAME'] = 'example.com';
+			add_action( 'phpmailer_init', array( $this, 'tear_down_wp_mail_globals' ) );
+		}
+
+		return $args;
+	}
+
+	public function tear_down_wp_mail_globals() {
+		unset( $_SERVER['SERVER_NAME'] );
 	}
 
 	function __construct() {
