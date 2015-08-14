@@ -6,7 +6,7 @@
  *
  * @package Two_Factor
  */
-class Two_Factor_Fido_U2f extends Two_Factor_Provider {
+class Two_Factor_FIDO_U2F extends Two_Factor_Provider {
 
 	/**
 	 * Ensures only one instance of this class exists in memory at any one time.
@@ -28,7 +28,7 @@ class Two_Factor_Fido_U2f extends Two_Factor_Provider {
 	 * @since 0.1-dev
 	 */
 	public function get_label() {
-		return _x( 'FIDO U2f', 'Provider Label' );
+		return _x( 'FIDO U2F', 'Provider Label' );
 	}
 
 	/**
