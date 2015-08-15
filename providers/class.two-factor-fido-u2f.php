@@ -23,6 +23,12 @@ class Two_Factor_FIDO_U2F extends Two_Factor_Provider {
 	const REGISTERED_KEY_USER_META_KEY = '_two_factor_fido_u2f_registered_key';
 
 	/**
+	 * The user meta authenticate data.
+	 * @type string
+	 */
+	const AUTH_DATA_USER_META_KEY = '_two_factor_fido_u2f_login_request';
+
+	/**
 	 * Ensures only one instance of this class exists in memory at any one time.
 	 *
 	 * @since 0.1-dev
@@ -45,6 +51,7 @@ class Two_Factor_FIDO_U2F extends Two_Factor_Provider {
 		require_once( TWO_FACTOR_DIR . 'includes/Yubico/U2F.php' );
 		$this->u2f = new u2flib_server\U2F( set_url_scheme( '//' . $_SERVER['HTTP_HOST'] ) );
 
+		add_action( 'login_enqueue_scripts',                array( $this, 'login_enqueue_assets' ) );
 		add_action( 'two-factor-user-options-' . __CLASS__, array( $this, 'user_options' ) );
 		return parent::__construct();
 	}
@@ -59,6 +66,15 @@ class Two_Factor_FIDO_U2F extends Two_Factor_Provider {
 	}
 
 	/**
+	 * Enqueue assets for login form.
+	 *
+	 * @since 0.1-dev
+	 */
+	public function login_enqueue_assets() {
+		wp_enqueue_script( 'u2f-api', plugins_url( 'includes/Google/u2f-api.js', dirname( __FILE__ ) ) );
+	}
+
+	/**
 	 * Prints the form that prompts the user to authenticate.
 	 *
 	 * @since 0.1-dev
@@ -66,10 +82,36 @@ class Two_Factor_FIDO_U2F extends Two_Factor_Provider {
 	 * @param WP_User $user WP_User object of the logged-in user.
 	 */
 	public function authentication_page( $user ) {
-		require_once( ABSPATH .  '/wp-admin/includes/template.php' );
+		require_once( ABSPATH . '/wp-admin/includes/template.php' );
+
+		try {
+			$keys = $this->get_security_keys( $user->ID );
+			$data = $this->u2f->getAuthenticateData( $keys );
+			update_user_meta( $user->ID, self::AUTH_DATA_USER_META_KEY, $data );
+		} catch ( Exception $e ) {
+			?>
+			<p><?php esc_html_e( 'An error occured while creating authentication data.' ); ?></p>
+			<?php
+			return null;
+		}
 		?>
-		<p><?php esc_html_e( 'Now insert (and tap) your Security Key' ); ?></p>
+		<p><?php esc_html_e( 'Now insert (and tap) your Security Key.' ); ?></p>
 		<input type="hidden" name="u2f_response" id="u2f_response" />
+		<script>
+			var request = <?php echo wp_json_encode( $data ); ?>;
+			setTimeout(function() {
+				console.log("sign: ", request);
+
+				u2f.sign(request, function(data) {
+					console.log("Authenticate callback", data);
+
+					var form = document.getElementById('loginform');
+					var field = document.getElementById('u2f_response');
+					field.value = JSON.stringify(data);
+					form.submit();
+				});
+			}, 1000);
+		</script>
 		<?php
 	}
 
@@ -82,7 +124,20 @@ class Two_Factor_FIDO_U2F extends Two_Factor_Provider {
 	 * @return boolean
 	 */
 	public function validate_authentication( $user ) {
-		return true;
+		$requests = get_user_meta( $user->ID, self::AUTH_DATA_USER_META_KEY, true );
+
+		$response = json_decode( stripslashes( $_REQUEST['u2f_response'] ) );
+
+		$keys = $this->get_security_keys( $user->ID );
+
+		try {
+			$reg = $this->u2f->doAuthenticate( $requests, $keys, $response );
+			$this->update_security_key( $user->ID, $reg );
+
+			return true;
+		} catch ( Exception $e ) {
+			return false;
+		}
 	}
 
 	/**
@@ -211,7 +266,7 @@ class Two_Factor_FIDO_U2F extends Two_Factor_Provider {
 			}
 		}
 
-		return add_security_key( $user_id, $data );
+		return $this->add_security_key( $user_id, $data );
 	}
 
 	/**
