@@ -258,7 +258,7 @@ class Two_Factor_FIDO_U2F extends Two_Factor_Provider {
 		$keys = get_user_meta( $user_id, self::REGISTERED_KEY_USER_META_KEY );
 		if ( $keys ) {
 			foreach ( $keys as $index => $key ) {
-				if ( $key->keyHandle === $data->keyHandle ) {
+				if ( $key['keyHandle'] === $data->keyHandle ) {
 					return update_user_meta( $user_id, self::REGISTERED_KEY_USER_META_KEY, (array) $data, $key );
 				}
 			}
