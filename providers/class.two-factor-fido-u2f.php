@@ -49,6 +49,9 @@ class Two_Factor_FIDO_U2F extends Two_Factor_Provider {
 		require_once( TWO_FACTOR_DIR . 'includes/Yubico/U2F.php' );
 		$this->u2f = new u2flib_server\U2F( set_url_scheme( '//' . $_SERVER['HTTP_HOST'] ) );
 
+		require_once( TWO_FACTOR_DIR . 'providers/class.two-factor-fido-u2f-register.php' );
+		Two_Factor_FIDO_U2F_Register::add_hooks();
+
 		add_action( 'login_enqueue_scripts',                array( $this, 'login_enqueue_assets' ) );
 		add_action( 'two-factor-user-options-' . __CLASS__, array( $this, 'user_options' ) );
 		return parent::__construct();
@@ -83,7 +86,7 @@ class Two_Factor_FIDO_U2F extends Two_Factor_Provider {
 		require_once( ABSPATH . '/wp-admin/includes/template.php' );
 
 		try {
-			$keys = $this->get_security_keys( $user->ID );
+			$keys = self::get_security_keys( $user->ID );
 			$data = $this->u2f->getAuthenticateData( $keys );
 			update_user_meta( $user->ID, self::AUTH_DATA_USER_META_KEY, $data );
 		} catch ( Exception $e ) {
@@ -126,11 +129,11 @@ class Two_Factor_FIDO_U2F extends Two_Factor_Provider {
 
 		$response = json_decode( stripslashes( $_REQUEST['u2f_response'] ) );
 
-		$keys = $this->get_security_keys( $user->ID );
+		$keys = self::get_security_keys( $user->ID );
 
 		try {
 			$reg = $this->u2f->doAuthenticate( $requests, $keys, $response );
-			$this->update_security_key( $user->ID, $reg );
+			self::update_security_key( $user->ID, $reg );
 
 			return true;
 		} catch ( Exception $e ) {
@@ -147,7 +150,7 @@ class Two_Factor_FIDO_U2F extends Two_Factor_Provider {
 	 * @return boolean
 	 */
 	public function is_available_for_user( $user ) {
-		return (bool) $this->get_security_keys( $user->ID );
+		return (bool) self::get_security_keys( $user->ID );
 	}
 
 	/**
@@ -174,7 +177,7 @@ class Two_Factor_FIDO_U2F extends Two_Factor_Provider {
 	 * @param object $register The data of registered security key.
 	 * @return int|bool Meta ID on success, false on failure.
 	 */
-	protected function add_security_key( $user_id, $register ) {
+	public static function add_security_key( $user_id, $register ) {
 		if ( ! is_numeric( $user_id ) ) {
 			return false;
 		}
@@ -211,7 +214,7 @@ class Two_Factor_FIDO_U2F extends Two_Factor_Provider {
 	 * @param int $user_id User ID.
 	 * @return array|bool Array of keys on success, false on failure.
 	 */
-	protected function get_security_keys( $user_id ) {
+	public static function get_security_keys( $user_id ) {
 		if ( ! is_numeric( $user_id ) ) {
 			return false;
 		}
@@ -240,7 +243,7 @@ class Two_Factor_FIDO_U2F extends Two_Factor_Provider {
 	 * @param object $data The data of registered security key.
 	 * @return int|bool Meta ID if the key didn't exist, true on successful update, false on failure.
 	 */
-	protected function update_security_key( $user_id, $data ) {
+	public static function update_security_key( $user_id, $data ) {
 		if ( ! is_numeric( $user_id ) ) {
 			return false;
 		}
@@ -264,7 +267,7 @@ class Two_Factor_FIDO_U2F extends Two_Factor_Provider {
 			}
 		}
 
-		return $this->add_security_key( $user_id, $data );
+		return self::add_security_key( $user_id, $data );
 	}
 
 	/**
@@ -276,7 +279,7 @@ class Two_Factor_FIDO_U2F extends Two_Factor_Provider {
 	 * @param string $keyHandle Optional. Key handle.
 	 * @return bool True on success, false on failure.
 	 */
-	protected function delete_security_key( $user_id, $keyHandle = null ) {
+	public function delete_security_key( $user_id, $keyHandle = null ) {
 		global $wpdb;
 
 		if ( ! is_numeric( $user_id ) ) {
