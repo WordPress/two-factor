@@ -10,9 +10,7 @@ class Two_Factor_FIDO_U2F extends Two_Factor_Provider {
 
 	/**
 	 * U2F Library
-	 *
-	 * @since 0.1-dev
-	 * @type u2flib_server\U2F
+	 * @var u2flib_server\U2F
 	 */
 	protected $u2f;
 
