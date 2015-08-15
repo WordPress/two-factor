@@ -273,13 +273,13 @@ class Two_Factor_FIDO_U2F extends Two_Factor_Provider {
 	 * @since 0.1-dev
 	 *
 	 * @param int    $user_id   User ID.
-	 * @param string $keyHandle Key handle.
+	 * @param string $keyHandle Optional. Key handle.
 	 * @return bool True on success, false on failure.
 	 */
-	protected function delete_security_key( $user_id, $keyHandle ) {
+	protected function delete_security_key( $user_id, $keyHandle = null ) {
 		global $wpdb;
 
-		if ( ! is_numeric( $user_id ) || ! $keyHandle ) {
+		if ( ! is_numeric( $user_id ) ) {
 			return false;
 		}
 
