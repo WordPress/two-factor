@@ -22,7 +22,7 @@ require_once( TWO_FACTOR_DIR . 'providers/class.two-factor-provider.php' );
  * Include the core that handles the common bits.
  */
 require_once( TWO_FACTOR_DIR . 'class.two-factor-core.php' );
-Two_Factor_Core::get_instance();
+Two_Factor_Core::add_hooks();
 
 /**
  * Include the application passwords system.
