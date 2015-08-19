@@ -168,20 +168,36 @@ class Two_Factor_Backup_Codes extends Two_Factor_Provider {
 	 *
 	 * @since 0.1-dev
 	 *
-	 * @param int $user_id The logged-in user ID.
+	 * @param int   $user_id The logged-in user ID.
+	 * @param array $args Optional arguments for assinging new codes.
 	 */
-	public function generate_codes( $user_id ) {
+	public function generate_codes( $user_id, $args = '' ) {
+		$user = get_user_by('id', $user_id);
 		$codes = array();
 		$codes_hashed = array();
 
-		for ( $i = 0; $i < self::NUMBER_OF_CODES; $i++ ) {
+		// Check for arguments
+		if( isset( $args['number'] ) ) {
+			$num_codes = (int) $args['number'];
+		} else {
+			$num_codes = self::NUMBER_OF_CODES;
+		}
+
+		// Append or replace (default)
+		if( isset( $args['method'] ) && 'append' == $args['method'] ) {
+			//$num_existing_codes = self::codes_remaining_for_user( $user );
+			$codes_hashed = get_user_meta( $user->ID, self::BACKUP_CODES_META_KEY, true );
+			//$num_codes += $num_existing_codes;
+		}
+
+		for ( $i = 0; $i < $num_codes; $i++ ) {
 			$code = $this->get_code();
 			$codes_hashed[] = wp_hash_password( $code );
 			$codes[] = $code;
 			unset( $code );
 		}
 
-		update_user_meta( $user_id, self::BACKUP_CODES_META_KEY, $codes_hashed );
+		update_user_meta( $user->ID, self::BACKUP_CODES_META_KEY, $codes_hashed );
 
 		// Unhashed.
 		return $codes;
