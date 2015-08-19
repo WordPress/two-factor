@@ -55,7 +55,6 @@ class Two_Factor_Backup_Codes extends Two_Factor_Provider {
 	public static function admin_notices() {
 		// Only show this notice if we are out of backup codes.
 		$user = wp_get_current_user();
-		$backup_codes = get_user_meta( $user->ID, self::BACKUP_CODES_META_KEY, true );
 
 		// Exit if we are not out of codes.
 		if ( 0 < self::codes_remaining_for_user( $user ) ) {
