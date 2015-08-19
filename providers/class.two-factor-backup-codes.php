@@ -74,7 +74,7 @@ class Two_Factor_Backup_Codes extends Two_Factor_Provider {
 		?>
 		<div class="error">
 			<p>
-				<span><?php _e( 'Two-Factor: You are out of backup codes and need to '); ?><span>
+				<span><?php _e( 'Two-Factor: You are out of backup codes and need to ' ); ?><span>
 				<a href="<?php echo get_edit_user_link( $user->ID ); ?>#two-factor-backup-codes">regenerate!</a>
 			</p>
 		</div>
@@ -121,7 +121,7 @@ class Two_Factor_Backup_Codes extends Two_Factor_Provider {
 				<?php esc_html_e( 'Generate Verification Codes' ); ?>
 			</button>
 			<span class="two-factor-backup-codes-count"><?php echo self::codes_remaining_for_user( $user ); ?></span>
-			<span><?php _e( ' unsused codes remaining.'); ?><span>
+			<span><?php _e( ' unsused codes remaining.' ); ?><span>
 		</p>
 		<div class="two-factor-backup-codes-wrapper" style="display:none;">
 			<ol class="two-factor-backup-codes-unused-codes"></ol>
