@@ -121,7 +121,7 @@ class Two_Factor_Backup_Codes extends Two_Factor_Provider {
 				<?php esc_html_e( 'Generate Verification Codes' ); ?>
 			</button>
 			<span class="two-factor-backup-codes-count"><?php echo self::codes_remaining_for_user( $user ); ?></span>
-			<span><?php _e( ' unsused codes remaining.' ); ?><span>
+			<span><?php echo _n( ' unused code remaining.', ' unused codes remaining.', self::codes_remaining_for_user( $user ) ) ?><span>
 		</p>
 		<div class="two-factor-backup-codes-wrapper" style="display:none;">
 			<ol class="two-factor-backup-codes-unused-codes"></ol>
@@ -201,7 +201,7 @@ class Two_Factor_Backup_Codes extends Two_Factor_Provider {
 	public function ajax_generate_json() {
 		$user = get_user_by( 'id', sanitize_text_field( $_REQUEST['user_id'] ) );
 		check_ajax_referer( 'two-factor-backup-codes-generate-json-' . $user->ID, 'nonce' );
-		$codes = $this->generate_codes( $user );
+		$codes = $this->generate_codes( $user, array('number' => '1') );
 		wp_send_json_success( $codes );
 	}
 
