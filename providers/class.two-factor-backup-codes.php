@@ -48,21 +48,20 @@ class Two_Factor_Backup_Codes extends Two_Factor_Provider {
 	}
 
 	/**
-	 * Displays an admin notice when backup codes have ran out.
+	 * Displays an admin notice when backup codes have run out.
 	 *
 	 * @since 0.1-dev
 	 */
 	public static function admin_notices() {
-		// Only show this notice if we are out of backup codes.
 		$user = wp_get_current_user();
 
-		// Exit if we are not out of codes.
-		if ( 0 < self::codes_remaining_for_user( $user ) ) {
+		// Exit if the provider is not enabled.
+		if ( ! in_array( __CLASS__, Two_Factor_Core::get_enabled_providers_for_user( $user->ID ) ) ) {
 			return;
 		}
 
-		// Only show when the provider is enabled.
-		if ( ! in_array( __CLASS__, Two_Factor_Core::get_enabled_providers_for_user( $user->ID ) ) ) {
+		// Exit if we are not out of codes.
+		if ( 0 < self::codes_remaining_for_user( $user ) ) {
 			return;
 		}
 		?>
