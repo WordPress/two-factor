@@ -58,6 +58,11 @@ class Two_Factor_Backup_Codes extends Two_Factor_Provider {
 		$backup_codes = get_user_meta( $user->ID, self::BACKUP_CODES_META_KEY, true );
 
 		// Exit if we are not out of codes
+		/*
+		if( ! self::is_available_for_user( $user ) ) {
+			return;
+		}
+		*/
 		if( 0 < self::codes_remaining_for_user( $user ) ) {
 			return;
 		}
@@ -94,8 +99,8 @@ class Two_Factor_Backup_Codes extends Two_Factor_Provider {
 	 * @return boolean
 	 */
 	public function is_available_for_user( $user ) {
-		$backup_codes = get_user_meta( $user->ID, self::BACKUP_CODES_META_KEY, true );
-		if ( ! empty( $backup_codes ) ) {
+		// Does this user have available codes?
+		if( 0 < self::codes_remaining_for_user( $user ) ) {
 			return true;
 		}
 		return false;
