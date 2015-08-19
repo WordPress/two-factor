@@ -59,7 +59,7 @@ class Two_Factor_Backup_Codes extends Two_Factor_Provider {
 
 		// Exit if we are not out of codes.
 		if ( 0 < self::codes_remaining_for_user( $user ) ) {
-		//	return;
+			return;
 		}
 
 		// Only show when the provider is enabled.
