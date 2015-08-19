@@ -61,7 +61,7 @@ class Two_Factor_Backup_Codes extends Two_Factor_Provider {
 		}
 
 		// Only show when the provider is enabled.
-		if ( false === Two_Factor_Backup_Codes::get_instance()->is_enabled( $user_id ) ) {
+		if ( false === self::is_enabled( $user_id ) ) {
 			return;
 		}
 		?>
@@ -81,9 +81,8 @@ class Two_Factor_Backup_Codes extends Two_Factor_Provider {
 	 *
 	 * @param int $user_id The logged-in user ID.
 	 */
-	public function is_enabled( $user_id ) {
-		$enabled_providers = (array) get_user_meta( $user_id, Two_Factor_Core::ENABLED_PROVIDERS_USER_META_KEY, true );
-		if ( in_array( __CLASS__, $enabled_providers ) ) {
+	public static function is_enabled( $user_id ) {
+		if ( in_array( __CLASS__, Two_Factor_Core::get_enabled_providers_for_user( $user_id ) ) ) {
 			return true;
 		}
 		return false;
