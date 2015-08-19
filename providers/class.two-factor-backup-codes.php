@@ -163,15 +163,15 @@ class Two_Factor_Backup_Codes extends Two_Factor_Provider {
 		$codes = array();
 		$codes_hashed = array();
 
-		// Check for arguments
+		// Check for arguments.
 		if ( isset( $args['number'] ) ) {
 			$num_codes = (int) $args['number'];
 		} else {
 			$num_codes = self::NUMBER_OF_CODES;
 		}
 
-		// Append or replace (default)
-		if ( isset( $args['method'] ) && 'append' == $args['method'] ) {
+		// Append or replace (default).
+		if ( isset( $args['method'] ) && 'append' === $args['method'] ) {
 			$codes_hashed = get_user_meta( $user->ID, self::BACKUP_CODES_META_KEY, true );
 		}
 
@@ -276,7 +276,7 @@ class Two_Factor_Backup_Codes extends Two_Factor_Provider {
 	 * @since 0.1-dev
 	 *
 	 * @param WP_User $user WP_User object of the logged-in user.
-	 * @param int $code_index The array index of the backup code.
+	 * @param string  $code_hashed The hashed the backup code.
 	 */
 	public function delete_code( $user, $code_hashed ) {
 		$backup_codes = get_user_meta( $user->ID, self::BACKUP_CODES_META_KEY, true );
