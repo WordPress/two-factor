@@ -58,11 +58,6 @@ class Two_Factor_Backup_Codes extends Two_Factor_Provider {
 		$backup_codes = get_user_meta( $user->ID, self::BACKUP_CODES_META_KEY, true );
 
 		// Exit if we are not out of codes
-		/*
-		if ( ! self::is_available_for_user( $user ) ) {
-			return;
-		}
-		*/
 		if ( 0 < self::codes_remaining_for_user( $user ) ) {
 			return;
 		}
@@ -74,7 +69,7 @@ class Two_Factor_Backup_Codes extends Two_Factor_Provider {
 		?>
 		<div class="error">
 			<p>
-				<span><?php _e( 'Two-Factor: You are out of backup codes and need to ' ); ?><span>
+				<span><?php esc_html_e( 'Two-Factor: You are out of backup codes and need to ' ); ?><span>
 				<a href="<?php echo get_edit_user_link( $user->ID ); ?>#two-factor-backup-codes">regenerate!</a>
 			</p>
 		</div>
