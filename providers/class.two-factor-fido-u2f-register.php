@@ -9,12 +9,6 @@
 class Two_Factor_FIDO_U2F_Register {
 
 	/**
-	 * U2F Library
-	 * @var u2flib_server\U2F
-	 */
-	public static $u2f;
-
-	/**
 	 * The user meta register data.
 	 * @type string
 	 */
@@ -29,9 +23,6 @@ class Two_Factor_FIDO_U2F_Register {
 	 * @static
 	 */
 	public static function add_hooks() {
-		require_once( TWO_FACTOR_DIR . 'includes/Yubico/U2F.php' );
-		self::$u2f = new u2flib_server\U2F( set_url_scheme( '//' . $_SERVER['HTTP_HOST'] ) );
-
 		add_action( 'admin_enqueue_scripts',    array( __CLASS__, 'enqueue_assets' ) );
 		add_action( 'show_user_profile',        array( __CLASS__, 'show_user_profile' ) );
 		add_action( 'edit_user_profile',        array( __CLASS__, 'show_user_profile' ) );
@@ -55,7 +46,7 @@ class Two_Factor_FIDO_U2F_Register {
 		if ( ! in_array( $hook, array( 'user-edit.php', 'profile.php' ) ) ) {
 			return;
 		}
-		wp_enqueue_script( 'u2f-api', plugins_url( 'includes/Google/u2f-api.js', __FILE__ ) );
+		wp_enqueue_script( 'u2f-api', plugins_url( 'includes/Google/u2f-api.js', dirname( __FILE__ ) ) );
 	}
 
 	/**
@@ -89,7 +80,7 @@ class Two_Factor_FIDO_U2F_Register {
 		}
 
 		try {
-			$data = self::$u2f->getRegisterData( $security_keys );
+			$data = Two_Factor_FIDO_U2F::$u2f->getRegisterData( $security_keys );
 			list( $req,$sigs ) = $data;
 
 			update_user_meta( $user->ID, self::REGISTER_DATA_USER_META_KEY, $req );
@@ -144,7 +135,7 @@ class Two_Factor_FIDO_U2F_Register {
 			<?php endif; ?>
 
 			<?php
-				require( dirname( __FILE__ ) . '/class.two-factor-fido-u2f-register-list-table.php' );
+				require( TWO_FACTOR_DIR . 'providers/class.two-factor-fido-u2f-register-list-table.php' );
 				$u2f_list_table = new Two_Factor_FIDO_U2F_Register_List_Table();
 				$u2f_list_table->items = $security_keys;
 				$u2f_list_table->prepare_items();
@@ -172,7 +163,7 @@ class Two_Factor_FIDO_U2F_Register {
 
 			try {
 				$response = json_decode( stripslashes( $_POST['u2f_response'] ) );
-				$reg = self::$u2f->doRegister( get_user_meta( $user_id, self::REGISTER_DATA_USER_META_KEY, true ), $response );
+				$reg = Two_Factor_FIDO_U2F::$u2f->doRegister( get_user_meta( $user_id, self::REGISTER_DATA_USER_META_KEY, true ), $response );
 				$reg->new = true;
 
 				Two_Factor_FIDO_U2F::add_security_key( $user_id, $reg );

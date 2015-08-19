@@ -12,7 +12,7 @@ class Two_Factor_FIDO_U2F extends Two_Factor_Provider {
 	 * U2F Library
 	 * @var u2flib_server\U2F
 	 */
-	protected $u2f;
+	public static $u2f;
 
 	/**
 	 * The user meta registered key.
@@ -47,7 +47,7 @@ class Two_Factor_FIDO_U2F extends Two_Factor_Provider {
 	 */
 	protected function __construct() {
 		require_once( TWO_FACTOR_DIR . 'includes/Yubico/U2F.php' );
-		$this->u2f = new u2flib_server\U2F( set_url_scheme( '//' . $_SERVER['HTTP_HOST'] ) );
+		self::$u2f = new u2flib_server\U2F( set_url_scheme( '//' . $_SERVER['HTTP_HOST'] ) );
 
 		require_once( TWO_FACTOR_DIR . 'providers/class.two-factor-fido-u2f-register.php' );
 		Two_Factor_FIDO_U2F_Register::add_hooks();
@@ -87,7 +87,7 @@ class Two_Factor_FIDO_U2F extends Two_Factor_Provider {
 
 		try {
 			$keys = self::get_security_keys( $user->ID );
-			$data = $this->u2f->getAuthenticateData( $keys );
+			$data = self::$u2f->getAuthenticateData( $keys );
 			update_user_meta( $user->ID, self::AUTH_DATA_USER_META_KEY, $data );
 		} catch ( Exception $e ) {
 			?>
@@ -132,7 +132,7 @@ class Two_Factor_FIDO_U2F extends Two_Factor_Provider {
 		$keys = self::get_security_keys( $user->ID );
 
 		try {
-			$reg = $this->u2f->doAuthenticate( $requests, $keys, $response );
+			$reg = self::$u2f->doAuthenticate( $requests, $keys, $response );
 			self::update_security_key( $user->ID, $reg );
 
 			return true;
