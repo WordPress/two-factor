@@ -121,15 +121,13 @@ class Two_Factor_Backup_Codes extends Two_Factor_Provider {
 	 * @param WP_User $user WP_User object of the logged-in user.
 	 */
 	public function user_options( $user ) {
-		$user_id = $user->ID;
-		$backup_codes = get_user_meta( $user_id, self::BACKUP_CODES_META_KEY, true );
-		$ajax_nonce = wp_create_nonce( 'two-factor-backup-codes-generate-json-' . $user_id );
+		$ajax_nonce = wp_create_nonce( 'two-factor-backup-codes-generate-json-' . $user->ID );
 		?>
 		<p id="two-factor-backup-codes">
 			<button type="button" class="button button-two-factor-backup-codes-generate button-secondary hide-if-no-js">
 				<?php esc_html_e( 'Generate Verification Codes' ); ?>
 			</button>
-			<span class="two-factor-backup-codes-count"><?php echo count( $backup_codes ); ?></span>
+			<span class="two-factor-backup-codes-count"><?php echo self::codes_remaining_for_user( $user ); ?></span>
 			<span><?php _e( ' unsused codes remaining.'); ?><span>
 		</p>
 		<div class="two-factor-backup-codes-wrapper" style="display:none;">
@@ -144,19 +142,19 @@ class Two_Factor_Backup_Codes extends Two_Factor_Provider {
 						url: ajaxurl,
 						data: {
 							action: 'two_factor_backup_codes_generate',
-							user_id: '<?php echo esc_js( $user_id ); ?>',
+							user_id: '<?php echo esc_js( $user->ID ); ?>',
 							nonce: '<?php echo esc_js( $ajax_nonce ); ?>'
 						},
 						dataType: 'JSON',
-						success: function( data ) {
+						success: function( response ) {
 							$( '.two-factor-backup-codes-wrapper' ).show();
 							$( '.two-factor-backup-codes-unused-codes' ).html( '' );
 
-							$.each( data.data, function( key, val ) {
+							$.each( response.data, function( key, val ) {
 								$( '.two-factor-backup-codes-unused-codes' ).append( '<li>' + val + '</li>' );
 							} );
 							// Update counter.
-							$( '.two-factor-backup-codes-count' ).html( data.length );
+							$( '.two-factor-backup-codes-count' ).html( response.data.length );
 						}
 					} );
 				} );
@@ -199,6 +197,20 @@ class Two_Factor_Backup_Codes extends Two_Factor_Provider {
 		check_ajax_referer( 'two-factor-backup-codes-generate-json-' . $user_id, 'nonce' );
 		$codes = $this->generate_codes( $user_id );
 		wp_send_json_success( $codes );
+	}
+
+	/**
+	 * Returns the number of unused codes for the specified user
+	 *
+	 * @param  WP_User $user WP_User object of the logged-in user.
+	 * @return int     $int  The number of unused codes remaining
+	 */
+	public static function codes_remaining_for_user( $user ) {
+		$backup_codes = get_user_meta( $user->ID, self::BACKUP_CODES_META_KEY, true );
+		if ( is_array( $backup_codes ) && ! empty( $backup_codes ) ) {
+			return count( $backup_codes );
+		}
+		return 0;
 	}
 
 	/**
