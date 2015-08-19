@@ -123,7 +123,7 @@ class Two_Factor_Backup_Codes extends Two_Factor_Provider {
 	public function user_options( $user ) {
 		$user_id = $user->ID;
 		$backup_codes = get_user_meta( $user_id, self::BACKUP_CODES_META_KEY, true );
-		$ajax_nonce = wp_create_nonce( 'two-factor-backup-codes-generate-json' );
+		$ajax_nonce = wp_create_nonce( 'two-factor-backup-codes-generate-json-' . $user_id );
 		?>
 		<p id="two-factor-backup-codes">
 			<button type="button" class="button button-two-factor-backup-codes-generate button-secondary hide-if-no-js">
@@ -195,8 +195,8 @@ class Two_Factor_Backup_Codes extends Two_Factor_Provider {
 	 * @since 0.1-dev
 	 */
 	public function ajax_generate_json() {
-		check_ajax_referer( 'two-factor-backup-codes-generate-json', 'nonce' );
 		$user_id = sanitize_text_field( $_REQUEST['user_id'] );
+		check_ajax_referer( 'two-factor-backup-codes-generate-json-' . $user_id, 'nonce' );
 		$codes = $this->generate_codes( $user_id );
 		wp_send_json_success( $codes );
 	}
