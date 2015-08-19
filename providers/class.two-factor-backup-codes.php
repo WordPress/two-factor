@@ -170,7 +170,7 @@ class Two_Factor_Backup_Codes extends Two_Factor_Provider {
 
 		// Append or replace (default).
 		if ( isset( $args['method'] ) && 'append' === $args['method'] ) {
-			$codes_hashed = get_user_meta( $user->ID, self::BACKUP_CODES_META_KEY, true );
+			$codes_hashed = (array) get_user_meta( $user->ID, self::BACKUP_CODES_META_KEY, true );
 		}
 
 		for ( $i = 0; $i < $num_codes; $i++ ) {
