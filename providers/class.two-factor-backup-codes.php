@@ -201,7 +201,7 @@ class Two_Factor_Backup_Codes extends Two_Factor_Provider {
 	public function ajax_generate_json() {
 		$user = get_user_by( 'id', sanitize_text_field( $_REQUEST['user_id'] ) );
 		check_ajax_referer( 'two-factor-backup-codes-generate-json-' . $user->ID, 'nonce' );
-		$codes = $this->generate_codes( $user, array('number' => '1') );
+		$codes = $this->generate_codes( $user );
 		wp_send_json_success( $codes );
 	}
 
