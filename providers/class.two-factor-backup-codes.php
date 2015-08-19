@@ -54,8 +54,7 @@ class Two_Factor_Backup_Codes extends Two_Factor_Provider {
 	 */
 	public static function admin_notices() {
 		// Only show this notice if we are out of backup codes.
-		$user_id = get_current_user_id();
-		$user = get_user_by( 'id', $user_id );
+		$user = wp_get_current_user();
 		$backup_codes = get_user_meta( $user->ID, self::BACKUP_CODES_META_KEY, true );
 
 		// Exit if we are not out of codes
@@ -71,7 +70,7 @@ class Two_Factor_Backup_Codes extends Two_Factor_Provider {
 		<div class="error">
 			<p>
 				<span><?php _e( 'Two-Factor: You are out of backup codes and need to '); ?><span>
-				<a href="<?php echo get_edit_user_link( $user_id ); ?>#two-factor-backup-codes">regenerate!</a>
+				<a href="<?php echo get_edit_user_link( $user->ID ); ?>#two-factor-backup-codes">regenerate!</a>
 			</p>
 		</div>
 		<?php
@@ -157,11 +156,10 @@ class Two_Factor_Backup_Codes extends Two_Factor_Provider {
 	 *
 	 * @since 0.1-dev
 	 *
-	 * @param int   $user_id The logged-in user ID.
+	 * @param WP_User $user WP_User object of the logged-in user.
 	 * @param array $args Optional arguments for assinging new codes.
 	 */
-	public function generate_codes( $user_id, $args = '' ) {
-		$user = get_user_by( 'id', $user_id );
+	public function generate_codes( $user, $args = '' ) {
 		$codes = array();
 		$codes_hashed = array();
 
@@ -196,9 +194,9 @@ class Two_Factor_Backup_Codes extends Two_Factor_Provider {
 	 * @since 0.1-dev
 	 */
 	public function ajax_generate_json() {
-		$user_id = sanitize_text_field( $_REQUEST['user_id'] );
-		check_ajax_referer( 'two-factor-backup-codes-generate-json-' . $user_id, 'nonce' );
-		$codes = $this->generate_codes( $user_id );
+		$user = get_user_by( 'id', sanitize_text_field( $_REQUEST['user_id'] ) );
+		check_ajax_referer( 'two-factor-backup-codes-generate-json-' . $user->ID, 'nonce' );
+		$codes = $this->generate_codes( $user );
 		wp_send_json_success( $codes );
 	}
 
@@ -246,7 +244,7 @@ class Two_Factor_Backup_Codes extends Two_Factor_Provider {
 	 * @return boolean
 	 */
 	public function validate_authentication( $user ) {
-		return $this->validate_code( $user->ID, $_REQUEST['two-factor-backup-code'] );
+		return $this->validate_code( $user, $_REQUEST['two-factor-backup-code'] );
 	}
 
 	/**
@@ -256,16 +254,16 @@ class Two_Factor_Backup_Codes extends Two_Factor_Provider {
 	 *
 	 * @since 0.1-dev
 	 *
-	 * @param int $user_id The logged-in user ID.
+	 * @param WP_User $user WP_User object of the logged-in user.
 	 * @param int $code    The backup code.
 	 * @return boolean
 	 */
-	public function validate_code( $user_id, $code ) {
-		$backup_codes = get_user_meta( $user_id, self::BACKUP_CODES_META_KEY, true );
+	public function validate_code( $user, $code ) {
+		$backup_codes = get_user_meta( $user->ID, self::BACKUP_CODES_META_KEY, true );
 
 		foreach ( $backup_codes as $code_index => $code_hashed ) {
-			if ( wp_check_password( $code, $code_hashed, $user_id ) ) {
-				$this->delete_code( $user_id, $code_hashed );
+			if ( wp_check_password( $code, $code_hashed, $user->ID ) ) {
+				$this->delete_code( $user, $code_hashed );
 				return true;
 			}
 		}
@@ -277,11 +275,11 @@ class Two_Factor_Backup_Codes extends Two_Factor_Provider {
 	 *
 	 * @since 0.1-dev
 	 *
-	 * @param int $user_id    The logged-in user ID.
+	 * @param WP_User $user WP_User object of the logged-in user.
 	 * @param int $code_index The array index of the backup code.
 	 */
-	public function delete_code( $user_id, $code_hashed ) {
-		$backup_codes = get_user_meta( $user_id, self::BACKUP_CODES_META_KEY, true );
+	public function delete_code( $user, $code_hashed ) {
+		$backup_codes = get_user_meta( $user->ID, self::BACKUP_CODES_META_KEY, true );
 		$backup_codes = array_flip( $backup_codes );
 
 		// Delete the current code from the list since it's been used.
@@ -289,6 +287,6 @@ class Two_Factor_Backup_Codes extends Two_Factor_Provider {
 		$backup_codes = array_values( array_flip( $backup_codes ) );
 
 		// Update the backup code master list.
-		update_user_meta( $user_id, self::BACKUP_CODES_META_KEY, $backup_codes );
+		update_user_meta( $user->ID, self::BACKUP_CODES_META_KEY, $backup_codes );
 	}
 }
