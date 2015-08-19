@@ -69,7 +69,7 @@ class Two_Factor_Backup_Codes extends Two_Factor_Provider {
 		<div class="error">
 			<p>
 				<span><?php esc_html_e( 'Two-Factor: You are out of backup codes and need to ' ); ?><span>
-				<a href="<?php echo esc_url( get_edit_user_link( $user->ID ) . '#two-factor-backup-codes' ); ?>">regenerate!</a>
+				<a href="<?php echo esc_url( get_edit_user_link( $user->ID ) . '#two-factor-backup-codes' ); ?>"><?php esc_html_e( 'regenerate!' ); ?></a>
 			</p>
 		</div>
 		<?php
