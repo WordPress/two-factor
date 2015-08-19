@@ -203,8 +203,8 @@ class Two_Factor_Backup_Codes extends Two_Factor_Provider {
 	/**
 	 * Returns the number of unused codes for the specified user
 	 *
-	 * @param  WP_User $user WP_User object of the logged-in user.
-	 * @return int     $int  The number of unused codes remaining
+	 * @param WP_User $user WP_User object of the logged-in user.
+	 * @return int $int  The number of unused codes remaining
 	 */
 	public static function codes_remaining_for_user( $user ) {
 		$backup_codes = get_user_meta( $user->ID, self::BACKUP_CODES_META_KEY, true );
@@ -254,8 +254,8 @@ class Two_Factor_Backup_Codes extends Two_Factor_Provider {
 	 *
 	 * @since 0.1-dev
 	 *
-	 * @param  WP_User $user WP_User object of the logged-in user.
-	 * @param  int     $code The backup code.
+	 * @param WP_User $user WP_User object of the logged-in user.
+	 * @param int     $code The backup code.
 	 * @return boolean
 	 */
 	public function validate_code( $user, $code ) {
