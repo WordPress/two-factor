@@ -66,7 +66,10 @@ class Two_Factor_Backup_Codes extends Two_Factor_Provider {
 		}
 		?>
 		<div class="error">
-			<p><?php echo wp_kses( sprintf( __( 'Two-Factor: You are out of backup codes and need to <a href="%1$s#two-factor-backup-codes" >regenerate</a>!' ), esc_url( get_edit_user_link( $user_id ) ) ), array( 'a' => array( 'href' => array() ) ) ); ?></p>
+			<p>
+				<span><?php _e( 'Two-Factor: You are out of backup codes and need to '); ?><span>
+				<a href="<?php echo get_edit_user_link( $user_id ); ?>#two-factor-backup-codes">regenerate!</a>
+			</p>
 		</div>
 		<?php
 	}
@@ -123,7 +126,8 @@ class Two_Factor_Backup_Codes extends Two_Factor_Provider {
 			<button type="button" class="button button-two-factor-backup-codes-generate button-secondary hide-if-no-js">
 				<?php esc_html_e( 'Generate Verification Codes' ); ?>
 			</button>
-			<?php echo wp_kses( sprintf( _n( '%s unused code remaining.', '%s unused codes remaining.', count( $backup_codes ) ), '<span class="two-factor-backup-codes-count">' . count( $backup_codes ) . '</span>' ), array( 'span' => array( 'class' => array() ) ) ); ?>
+			<span class="two-factor-backup-codes-count"><?php echo count( $backup_codes ); ?></span>
+			<span><?php _e( ' unsused codes remaining.'); ?><span>
 		</p>
 		<div class="two-factor-backup-codes-wrapper" style="display:none;">
 			<ol class="two-factor-backup-codes-unused-codes"></ol>
