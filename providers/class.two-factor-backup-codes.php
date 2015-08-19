@@ -144,21 +144,19 @@ class Two_Factor_Backup_Codes extends Two_Factor_Provider {
 						url: ajaxurl,
 						data: {
 							action: 'two_factor_backup_codes_generate',
+							user_id: '<?php echo esc_js( $user_id ); ?>',
 							nonce: '<?php echo esc_js( $ajax_nonce ); ?>'
 						},
 						dataType: 'JSON',
 						success: function( data ) {
 							$( '.two-factor-backup-codes-wrapper' ).show();
 							$( '.two-factor-backup-codes-unused-codes' ).html( '' );
-							$.each( data, function( key, val ) {
+
+							$.each( data.data, function( key, val ) {
 								$( '.two-factor-backup-codes-unused-codes' ).append( '<li>' + val + '</li>' );
 							} );
 							// Update counter.
 							$( '.two-factor-backup-codes-count' ).html( data.length );
-						},
-						error: function( errorThrown ) {
-							alert( 'error' ); // @todo: remove for production
-							console.log( errorThrown );
 						}
 					} );
 				} );
@@ -198,10 +196,9 @@ class Two_Factor_Backup_Codes extends Two_Factor_Provider {
 	 */
 	public function ajax_generate_json() {
 		check_ajax_referer( 'two-factor-backup-codes-generate-json', 'nonce' );
-
-		$user_id = get_current_user_id();
+		$user_id = sanitize_text_field( $_REQUEST['user_id'] );
 		$codes = $this->generate_codes( $user_id );
-		wp_send_json( $codes );
+		wp_send_json_success( $codes );
 	}
 
 	/**
