@@ -185,9 +185,7 @@ class Two_Factor_Backup_Codes extends Two_Factor_Provider {
 
 		// Append or replace (default)
 		if( isset( $args['method'] ) && 'append' == $args['method'] ) {
-			//$num_existing_codes = self::codes_remaining_for_user( $user );
 			$codes_hashed = get_user_meta( $user->ID, self::BACKUP_CODES_META_KEY, true );
-			//$num_codes += $num_existing_codes;
 		}
 
 		for ( $i = 0; $i < $num_codes; $i++ ) {
