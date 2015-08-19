@@ -251,9 +251,9 @@ class Two_Factor_Backup_Codes extends Two_Factor_Provider {
 	public function validate_code( $user_id, $code ) {
 		$backup_codes = get_user_meta( $user_id, self::BACKUP_CODES_META_KEY, true );
 
-		foreach ( $backup_codes as $code_index => $backup_code ) {
-			if ( wp_check_password( $code, $backup_code, $user_id ) ) {
-				$this->delete_code( $user_id, $code_index );
+		foreach ( $backup_codes as $code_index => $code_hashed ) {
+			if ( wp_check_password( $code, $code_hashed, $user_id ) ) {
+				$this->delete_code( $user_id, $code_hashed );
 				return true;
 			}
 		}
@@ -268,12 +268,13 @@ class Two_Factor_Backup_Codes extends Two_Factor_Provider {
 	 * @param int $user_id    The logged-in user ID.
 	 * @param int $code_index The array index of the backup code.
 	 */
-	public function delete_code( $user_id, $code_index ) {
+	public function delete_code( $user_id, $code_hashed ) {
 		$backup_codes = get_user_meta( $user_id, self::BACKUP_CODES_META_KEY, true );
+		$backup_codes = array_flip( $backup_codes );
 
 		// Delete the current code from the list since it's been used.
-		unset( $backup_codes[ $code_index ] );
-		$backup_codes = array_values( $backup_codes );
+		unset( $backup_codes[ $code_hashed ] );
+		$backup_codes = array_values( array_flip( $backup_codes ) );
 
 		// Update the backup code master list.
 		update_user_meta( $user_id, self::BACKUP_CODES_META_KEY, $backup_codes );
