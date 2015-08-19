@@ -98,7 +98,7 @@ class Two_Factor_Backup_Codes extends Two_Factor_Provider {
 	}
 
 	/**
-	 * Whether this Two Factor provider is configured and available for the user specified.
+	 * Whether this Two Factor provider is configured and codes are available for the user specified.
 	 *
 	 * @since 0.1-dev
 	 *
@@ -106,7 +106,11 @@ class Two_Factor_Backup_Codes extends Two_Factor_Provider {
 	 * @return boolean
 	 */
 	public function is_available_for_user( $user ) {
-		return true;
+		$backup_codes = get_user_meta( $user->ID, self::BACKUP_CODES_META_KEY, true );
+		if ( ! empty( $backup_codes ) ) {
+			return true;
+		}
+		return false;
 	}
 
 	/**
