@@ -57,7 +57,7 @@ class Two_Factor_Backup_Codes extends Two_Factor_Provider {
 		$user = wp_get_current_user();
 		$backup_codes = get_user_meta( $user->ID, self::BACKUP_CODES_META_KEY, true );
 
-		// Exit if we are not out of codes
+		// Exit if we are not out of codes.
 		if ( 0 < self::codes_remaining_for_user( $user ) ) {
 			return;
 		}
@@ -70,7 +70,7 @@ class Two_Factor_Backup_Codes extends Two_Factor_Provider {
 		<div class="error">
 			<p>
 				<span><?php esc_html_e( 'Two-Factor: You are out of backup codes and need to ' ); ?><span>
-				<a href="<?php echo get_edit_user_link( $user->ID ); ?>#two-factor-backup-codes">regenerate!</a>
+				<a href="<?php echo esc_url( get_edit_user_link( $user->ID ) ); ?>#two-factor-backup-codes">regenerate!</a>
 			</p>
 		</div>
 		<?php
@@ -115,8 +115,8 @@ class Two_Factor_Backup_Codes extends Two_Factor_Provider {
 			<button type="button" class="button button-two-factor-backup-codes-generate button-secondary hide-if-no-js">
 				<?php esc_html_e( 'Generate Verification Codes' ); ?>
 			</button>
-			<span class="two-factor-backup-codes-count"><?php echo self::codes_remaining_for_user( $user ); ?></span>
-			<span><?php echo _n( ' unused code remaining.', ' unused codes remaining.', self::codes_remaining_for_user( $user ) ) ?><span>
+			<span class="two-factor-backup-codes-count"><?php echo esc_html( self::codes_remaining_for_user( $user ) ); ?></span>
+			<span><?php echo esc_html( _n( ' unused code remaining.', ' unused codes remaining.', self::codes_remaining_for_user( $user ) ) ); ?><span>
 		</p>
 		<div class="two-factor-backup-codes-wrapper" style="display:none;">
 			<ol class="two-factor-backup-codes-unused-codes"></ol>
@@ -157,7 +157,7 @@ class Two_Factor_Backup_Codes extends Two_Factor_Provider {
 	 * @since 0.1-dev
 	 *
 	 * @param WP_User $user WP_User object of the logged-in user.
-	 * @param array $args Optional arguments for assinging new codes.
+	 * @param array   $args Optional arguments for assinging new codes.
 	 */
 	public function generate_codes( $user, $args = '' ) {
 		$codes = array();
@@ -254,8 +254,8 @@ class Two_Factor_Backup_Codes extends Two_Factor_Provider {
 	 *
 	 * @since 0.1-dev
 	 *
-	 * @param WP_User $user WP_User object of the logged-in user.
-	 * @param int $code    The backup code.
+	 * @param  WP_User $user WP_User object of the logged-in user.
+	 * @param  int     $code The backup code.
 	 * @return boolean
 	 */
 	public function validate_code( $user, $code ) {
