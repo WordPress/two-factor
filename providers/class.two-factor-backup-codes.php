@@ -55,13 +55,16 @@ class Two_Factor_Backup_Codes extends Two_Factor_Provider {
 	public static function admin_notices() {
 		// Only show this notice if we are out of backup codes.
 		$user_id = get_current_user_id();
-		$backup_codes = get_user_meta( $user_id, self::BACKUP_CODES_META_KEY, true );
-		if ( ! empty( $backup_codes ) ) {
+		$user = get_user_by( 'id', $user_id );
+		$backup_codes = get_user_meta( $user->ID, self::BACKUP_CODES_META_KEY, true );
+
+		// Exit if we are not out of codes
+		if( 0 < self::codes_remaining_for_user( $user ) ) {
 			return;
 		}
 
 		// Only show when the provider is enabled.
-		if ( ! in_array( __CLASS__, Two_Factor_Core::get_enabled_providers_for_user( $user_id ) ) ) {
+		if ( ! in_array( __CLASS__, Two_Factor_Core::get_enabled_providers_for_user( $user->ID ) ) ) {
 			return;
 		}
 		?>
