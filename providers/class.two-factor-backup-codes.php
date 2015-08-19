@@ -61,7 +61,7 @@ class Two_Factor_Backup_Codes extends Two_Factor_Provider {
 		}
 
 		// Only show when the provider is enabled.
-		if ( ! self::is_enabled( $user_id ) ) {
+		if ( ! in_array( __CLASS__, Two_Factor_Core::get_enabled_providers_for_user( $user_id ) ) ) {
 			return;
 		}
 		?>
@@ -72,20 +72,6 @@ class Two_Factor_Backup_Codes extends Two_Factor_Provider {
 			</p>
 		</div>
 		<?php
-	}
-
-	/**
-	 * Verify the provider is enabled.
-	 *
-	 * @since 0.1-dev
-	 *
-	 * @param int $user_id The logged-in user ID.
-	 */
-	public static function is_enabled( $user_id ) {
-		if ( in_array( __CLASS__, Two_Factor_Core::get_enabled_providers_for_user( $user_id ) ) ) {
-			return true;
-		}
-		return false;
 	}
 
 	/**
@@ -172,7 +158,7 @@ class Two_Factor_Backup_Codes extends Two_Factor_Provider {
 	 * @param array $args Optional arguments for assinging new codes.
 	 */
 	public function generate_codes( $user_id, $args = '' ) {
-		$user = get_user_by('id', $user_id);
+		$user = get_user_by( 'id', $user_id );
 		$codes = array();
 		$codes_hashed = array();
 
