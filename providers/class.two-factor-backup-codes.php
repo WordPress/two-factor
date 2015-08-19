@@ -61,7 +61,7 @@ class Two_Factor_Backup_Codes extends Two_Factor_Provider {
 		}
 
 		// Only show when the provider is enabled.
-		if ( false === self::is_enabled( $user_id ) ) {
+		if ( ! self::is_enabled( $user_id ) ) {
 			return;
 		}
 		?>
