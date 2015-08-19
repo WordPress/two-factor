@@ -59,11 +59,11 @@ class Two_Factor_Backup_Codes extends Two_Factor_Provider {
 
 		// Exit if we are not out of codes
 		/*
-		if( ! self::is_available_for_user( $user ) ) {
+		if ( ! self::is_available_for_user( $user ) ) {
 			return;
 		}
 		*/
-		if( 0 < self::codes_remaining_for_user( $user ) ) {
+		if ( 0 < self::codes_remaining_for_user( $user ) ) {
 			return;
 		}
 
@@ -100,7 +100,7 @@ class Two_Factor_Backup_Codes extends Two_Factor_Provider {
 	 */
 	public function is_available_for_user( $user ) {
 		// Does this user have available codes?
-		if( 0 < self::codes_remaining_for_user( $user ) ) {
+		if ( 0 < self::codes_remaining_for_user( $user ) ) {
 			return true;
 		}
 		return false;
@@ -169,14 +169,14 @@ class Two_Factor_Backup_Codes extends Two_Factor_Provider {
 		$codes_hashed = array();
 
 		// Check for arguments
-		if( isset( $args['number'] ) ) {
+		if ( isset( $args['number'] ) ) {
 			$num_codes = (int) $args['number'];
 		} else {
 			$num_codes = self::NUMBER_OF_CODES;
 		}
 
 		// Append or replace (default)
-		if( isset( $args['method'] ) && 'append' == $args['method'] ) {
+		if ( isset( $args['method'] ) && 'append' == $args['method'] ) {
 			$codes_hashed = get_user_meta( $user->ID, self::BACKUP_CODES_META_KEY, true );
 		}
 
