@@ -24,6 +24,21 @@ require_once( TWO_FACTOR_DIR . 'providers/class.two-factor-provider.php' );
 require_once( TWO_FACTOR_DIR . 'class.two-factor-core.php' );
 Two_Factor_Core::add_hooks();
 
+if ( version_compare( PHP_VERSION, '5.3.0', '<' ) ) {
+	/**
+	 * Remove FIDO U2F if PHP 5.2.
+	 *
+	 * @param array $providers Array of providers.
+	 * @return array Array of providers.
+	 */
+	function remove_fido_u2f_support( $providers ) {
+		unset( $providers['Two_Factor_FIDO_U2F'] );
+		return $providers;
+	}
+
+	add_filter( 'two_factor_providers', 'remove_fido_u2f_support' );
+}
+
 /**
  * Include the application passwords system.
  */

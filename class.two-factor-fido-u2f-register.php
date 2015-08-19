@@ -29,8 +29,8 @@ class Two_Factor_FIDO_U2F_Register {
 	 * @static
 	 */
 	public static function add_hooks() {
-		require_once( TWO_FACTOR_DIR . 'includes/Yubico/U2F.compat.php' );
-		self::$u2f = new u2flib_server_U2F( set_url_scheme( '//' . $_SERVER['HTTP_HOST'] ) );
+		require_once( TWO_FACTOR_DIR . 'includes/Yubico/U2F.php' );
+		self::$u2f = new u2flib_server\U2F( set_url_scheme( '//' . $_SERVER['HTTP_HOST'] ) );
 
 		add_action( 'admin_enqueue_scripts',    array( __CLASS__, 'enqueue_assets' ) );
 		add_action( 'show_user_profile',        array( __CLASS__, 'show_user_profile' ) );

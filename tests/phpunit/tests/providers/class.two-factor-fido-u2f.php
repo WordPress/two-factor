@@ -16,8 +16,8 @@ class Tests_Two_Factor_FIDO_U2F extends WP_UnitTestCase {
 	function setUp() {
 		parent::setUp();
 
-		require_once('includes/Yubico/U2F.compat.php');
-		$this->u2f = new u2flib_server_U2F( "http://demo.example.com" );
+		require_once('includes/Yubico/U2F.php');
+		$this->u2f = new u2flib_server\U2F( "http://demo.example.com" );
 
 		$this->provider = Two_Factor_FIDO_U2F::get_instance();
 	}
