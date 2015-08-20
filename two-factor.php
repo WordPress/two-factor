@@ -37,6 +37,28 @@ if ( version_compare( PHP_VERSION, '5.3.0', '<' ) ) {
 	}
 
 	add_filter( 'two_factor_providers', 'remove_fido_u2f_support' );
+
+	/**
+	 * Display PHP Upgrade Notice for FIDO U2F.
+	 */
+	function upgrade_php_nag() {
+		$screen = get_current_screen();
+		if ( in_array( $screen->id, array( 'profile', 'user-edit' ) ) ) {
+			?>
+			<div class="update-nag">
+				<?php
+					printf(
+						esc_html__( 'You are using too old version of PHP to use FIDO U2F as a Two-Factor Option. Please consider %1$supgrading PHP%2$s.' ),
+						'<a href="' . esc_url( 'http://php.net/supported-versions.php' ) . '">',
+						'</a>'
+					);
+				?>
+			</div>
+			<?php
+		}
+	}
+
+	add_action( 'admin_notices', 'upgrade_php_nag' );
 }
 
 /**
