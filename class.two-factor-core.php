@@ -512,7 +512,7 @@ class Two_Factor_Core {
 			check_admin_referer( 'user_two_factor_options', '_nonce_user_two_factor_options' );
 			$providers         = self::get_providers();
 
-			$enabled_providers = $_POST[ self::ENABLED_PROVIDERS_USER_META_KEY ];
+			$enabled_providers = isset( $_POST[ self::ENABLED_PROVIDERS_USER_META_KEY ] ) ? $_POST[ self::ENABLED_PROVIDERS_USER_META_KEY ] : array();
 			$enabled_providers = array_intersect( $enabled_providers, array_keys( $providers ) );
 			update_user_meta( $user_id, self::ENABLED_PROVIDERS_USER_META_KEY, $enabled_providers );
 
