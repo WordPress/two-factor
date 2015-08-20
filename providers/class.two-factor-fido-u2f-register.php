@@ -107,6 +107,7 @@ class Two_Factor_FIDO_U2F_Register {
 					button.addEventListener("click", function(e) {
 						setTimeout(function() {
 							console.log("sign: ", register.request);
+							button.innerText = '<?php echo esc_js( 'Now insert (and tap) your Security Key.' ); ?>';
 
 							u2f.register([register.request], register.sigs, function(data) {
 								console.log("Register callback",data);
