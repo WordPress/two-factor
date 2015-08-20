@@ -328,6 +328,9 @@ class Two_Factor_FIDO_U2F extends Two_Factor_Provider {
 	public static function is_browser_support() {
 		global $is_chrome;
 
-		return $is_chrome && ! wp_is_mobile();
+		require_once( ABSPATH . '/wp-admin/includes/dashboard.php' );
+		$response = wp_check_browser_version();
+
+		return $is_chrome && version_compare( $response['version'], '41' ) >= 0 && ! wp_is_mobile();
 	}
 }
