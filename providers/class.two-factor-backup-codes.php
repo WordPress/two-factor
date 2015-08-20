@@ -123,7 +123,7 @@ class Two_Factor_Backup_Codes extends Two_Factor_Provider {
 		<script type="text/javascript">
 			jQuery( document ).ready( function( $ ) {
 				$( '.button-two-factor-backup-codes-generate' ).click( function() {
-					jQuery.ajax( {
+					$.ajax( {
 						url: ajaxurl,
 						data: {
 							action: 'two_factor_backup_codes_generate',
@@ -193,7 +193,7 @@ class Two_Factor_Backup_Codes extends Two_Factor_Provider {
 	 * @since 0.1-dev
 	 */
 	public function ajax_generate_json() {
-		$user = get_user_by( 'id', sanitize_text_field( $_REQUEST['user_id'] ) );
+		$user = get_user_by( 'id', sanitize_text_field( $_GET['user_id'] ) );
 		check_ajax_referer( 'two-factor-backup-codes-generate-json-' . $user->ID, 'nonce' );
 
 		// Setup the return data.
@@ -249,7 +249,7 @@ class Two_Factor_Backup_Codes extends Two_Factor_Provider {
 	 * @return boolean
 	 */
 	public function validate_authentication( $user ) {
-		return $this->validate_code( $user, $_REQUEST['two-factor-backup-code'] );
+		return $this->validate_code( $user, $_POST['two-factor-backup-code'] );
 	}
 
 	/**
