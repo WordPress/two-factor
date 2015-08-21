@@ -26,19 +26,6 @@ Two_Factor_Core::add_hooks();
 
 if ( version_compare( PHP_VERSION, '5.3.0', '<' ) ) {
 	/**
-	 * Remove FIDO U2F if PHP 5.2.
-	 *
-	 * @param array $providers Array of providers.
-	 * @return array Array of providers.
-	 */
-	function remove_fido_u2f_support( $providers ) {
-		unset( $providers['Two_Factor_FIDO_U2F'] );
-		return $providers;
-	}
-
-	add_filter( 'two_factor_providers', 'remove_fido_u2f_support' );
-
-	/**
 	 * Display PHP Upgrade Notice for FIDO U2F.
 	 */
 	function upgrade_php_nag() {

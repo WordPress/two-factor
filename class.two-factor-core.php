@@ -58,6 +58,11 @@ class Two_Factor_Core {
 			'Two_Factor_Dummy'        => TWO_FACTOR_DIR . 'providers/class.two-factor-dummy.php',
 		);
 
+		// FIDO U2F is PHP 5.3+ only.
+		if ( version_compare( PHP_VERSION, '5.3.0', '<' ) ) {
+			unset( $providers['Two_Factor_FIDO_U2F'] );
+		}
+
 		/**
 		 * Filter the supplied providers.
 		 *
