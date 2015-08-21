@@ -199,7 +199,7 @@ class Two_Factor_FIDO_U2F extends Two_Factor_Provider {
 			'counter'     => $register->counter,
 		);
 
-		$register['name']      = 'New Security Key';
+		$register['name']      = __( 'New Security Key' );
 		$register['added']     = current_time( 'timestamp' );
 		$register['last_used'] = $register['added'];
 
