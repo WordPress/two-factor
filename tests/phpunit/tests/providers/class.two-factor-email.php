@@ -7,51 +7,49 @@ class Tests_Two_Factor_Email extends WP_UnitTestCase {
 
 	protected $provider;
 
-	protected $phpmailer = null, $mockmailer;
+	static protected $phpmailer = null, $mockmailer;
 
 	/**
 	 * Set up a test case.
 	 *
 	 * @see WP_UnitTestCase::setup()
 	 */
-	function setUp() {
+	public function setUp() {
 		parent::setUp();
 
-		add_filter( 'wp_mail', array( $this, 'set_wp_mail_globals' ) );
-
 		$this->provider = Two_Factor_Email::get_instance();
-
-		if ( isset( $GLOBALS['phpmailer'] ) ) {
-			$this->phpmailer = $GLOBALS['phpmailer'];
-			$GLOBALS['phpmailer'] = $this->mockmailer;
-		}
-
 	}
 
-	function tearDown() {
-		if ( isset( $this->phpmailer ) ) {
-			$GLOBALS['phpmailer'] = $this->phpmailer;
-			$this->phpmailer = null;
-		}
+	public function tearDown() {
+		unset( $this->provider );
 
 		parent::tearDown();
 	}
 
-	public function set_wp_mail_globals( $args ) {
-		if ( ! isset( $_SERVER['SERVER_NAME'] ) ) {
-			$_SERVER['SERVER_NAME'] = 'example.com';
-			add_action( 'phpmailer_init', array( $this, 'tear_down_wp_mail_globals' ) );
+	public static function setUpBeforeClass() {
+		parent::setUpBeforeClass();
+
+		Tests_Two_Factor_Email::$mockmailer = new MockPHPMailer();
+
+		if ( isset( $GLOBALS['phpmailer'] ) ) {
+			Tests_Two_Factor_Email::$phpmailer = $GLOBALS['phpmailer'];
+			$GLOBALS['phpmailer'] = Tests_Two_Factor_Email::$mockmailer;
 		}
 
-		return $args;
+		$_SERVER['SERVER_NAME'] = 'example.com';
 	}
 
-	public function tear_down_wp_mail_globals() {
+	public static function tearDownBeforeClass() {
 		unset( $_SERVER['SERVER_NAME'] );
-	}
 
-	function __construct() {
-		$this->mockmailer = new MockPHPMailer();
+		if ( isset( Tests_Two_Factor_Email::$phpmailer ) ) {
+			$GLOBALS['phpmailer'] = Tests_Two_Factor_Email::$phpmailer;
+			Tests_Two_Factor_Email::$phpmailer = null;
+		}
+
+		unset( Tests_Two_Factor_Email::$mockmailer );
+
+		parent::tearDownBeforeClass();
 	}
 
 	/**
