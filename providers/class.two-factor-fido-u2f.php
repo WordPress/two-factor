@@ -307,15 +307,9 @@ class Two_Factor_FIDO_U2F extends Two_Factor_Provider {
 			return false;
 		}
 
-		$query = "DELETE FROM $table WHERE umeta_id IN( " . implode( ',', $meta_ids ) . ' )';
-
-		$count = $wpdb->query( $query );
-
-		if ( ! $count ) {
-			return false;
+		foreach ( $meta_ids as $meta_id ) {
+			delete_metadata_by_mid( 'user', $meta_id );
 		}
-
-		wp_cache_delete( $user_id, 'user_meta' );
 
 		return true;
 	}
