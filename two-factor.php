@@ -24,30 +24,6 @@ require_once( TWO_FACTOR_DIR . 'providers/class.two-factor-provider.php' );
 require_once( TWO_FACTOR_DIR . 'class.two-factor-core.php' );
 Two_Factor_Core::add_hooks();
 
-if ( version_compare( PHP_VERSION, '5.3.0', '<' ) ) {
-	/**
-	 * Display PHP Upgrade Notice for FIDO U2F.
-	 */
-	function upgrade_php_nag() {
-		$screen = get_current_screen();
-		if ( in_array( $screen->id, array( 'profile', 'user-edit' ) ) ) {
-			?>
-			<div class="update-nag">
-				<?php
-					printf(
-						esc_html__( 'You are using too old version of PHP to use FIDO U2F as a Two-Factor Option. Please consider %1$supgrading PHP%2$s.' ),
-						'<a href="' . esc_url( 'http://php.net/supported-versions.php' ) . '">',
-						'</a>'
-					);
-				?>
-			</div>
-			<?php
-		}
-	}
-
-	add_action( 'admin_notices', 'upgrade_php_nag' );
-}
-
 /**
  * Include the application passwords system.
  */
