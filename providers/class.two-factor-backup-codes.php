@@ -52,7 +52,7 @@ class Two_Factor_Backup_Codes extends Two_Factor_Provider {
 	 *
 	 * @since 0.1-dev
 	 */
-	public static function admin_notices() {
+	public function admin_notices() {
 		$user = wp_get_current_user();
 
 		// Return if the provider is not enabled.
@@ -61,7 +61,7 @@ class Two_Factor_Backup_Codes extends Two_Factor_Provider {
 		}
 
 		// Return if we are not out of codes.
-		if ( 0 < self::codes_remaining_for_user( $user ) ) {
+		if ( $this->is_available_for_user( $user ) ) {
 			return;
 		}
 		?>
