@@ -55,7 +55,7 @@ class Two_Factor_Backup_Codes extends Two_Factor_Provider {
 	public static function admin_notices() {
 		$user = wp_get_current_user();
 
-		// Exit if the provider is not enabled.
+		// Return if the provider is not enabled.
 		if ( ! in_array( __CLASS__, Two_Factor_Core::get_enabled_providers_for_user( $user->ID ) ) ) {
 			return;
 		}
@@ -286,9 +286,9 @@ class Two_Factor_Backup_Codes extends Two_Factor_Provider {
 	 */
 	public function delete_code( $user, $code_hashed ) {
 		$backup_codes = get_user_meta( $user->ID, self::BACKUP_CODES_META_KEY, true );
-		$backup_codes = array_flip( $backup_codes );
 
 		// Delete the current code from the list since it's been used.
+		$backup_codes = array_flip( $backup_codes );
 		unset( $backup_codes[ $code_hashed ] );
 		$backup_codes = array_values( array_flip( $backup_codes ) );
 
