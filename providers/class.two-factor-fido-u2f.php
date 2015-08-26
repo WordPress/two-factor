@@ -49,8 +49,8 @@ class Two_Factor_FIDO_U2F extends Two_Factor_Provider {
 		require_once( TWO_FACTOR_DIR . 'includes/Yubico/U2F.php' );
 		self::$u2f = new u2flib_server\U2F( set_url_scheme( '//' . $_SERVER['HTTP_HOST'] ) );
 
-		require_once( TWO_FACTOR_DIR . 'providers/class.two-factor-fido-u2f-register.php' );
-		Two_Factor_FIDO_U2F_Register::add_hooks();
+		require_once( TWO_FACTOR_DIR . 'providers/class.two-factor-fido-u2f-admin.php' );
+		Two_Factor_FIDO_U2F_Admin::add_hooks();
 
 		add_action( 'login_enqueue_scripts',                array( $this, 'login_enqueue_assets' ) );
 		add_action( 'two-factor-user-options-' . __CLASS__, array( $this, 'user_options' ) );

@@ -12,7 +12,7 @@ if ( ! class_exists( 'WP_List_Table' ) ) {
  *
  * @package Two_Factor
  */
-class Two_Factor_FIDO_U2F_Register_List_Table extends WP_List_Table {
+class Two_Factor_FIDO_U2F_Admin_List_Table extends WP_List_Table {
 
 	/**
 	 * Get a list of columns.
@@ -55,7 +55,7 @@ class Two_Factor_FIDO_U2F_Register_List_Table extends WP_List_Table {
 		switch ( $column_name ) {
 			case 'name':
 				$actions = array(
-					'delete' => Two_Factor_FIDO_U2F_Register::delete_link( $item ),
+					'delete' => Two_Factor_FIDO_U2F_Admin::delete_link( $item ),
 				);
 				return esc_html( $item->name ) . self::row_actions( $actions );
 			case 'added':

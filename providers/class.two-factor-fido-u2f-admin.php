@@ -6,7 +6,7 @@
  *
  * @package Two_Factor
  */
-class Two_Factor_FIDO_U2F_Register {
+class Two_Factor_FIDO_U2F_Admin {
 
 	/**
 	 * The user meta register data.
@@ -147,8 +147,8 @@ class Two_Factor_FIDO_U2F_Register {
 			<?php endif; ?>
 
 			<?php
-				require( TWO_FACTOR_DIR . 'providers/class.two-factor-fido-u2f-register-list-table.php' );
-				$u2f_list_table = new Two_Factor_FIDO_U2F_Register_List_Table();
+				require( TWO_FACTOR_DIR . 'providers/class.two-factor-fido-u2f-admin-list-table.php' );
+				$u2f_list_table = new Two_Factor_FIDO_U2F_Admin_List_Table();
 				$u2f_list_table->items = $security_keys;
 				$u2f_list_table->prepare_items();
 				$u2f_list_table->display();
