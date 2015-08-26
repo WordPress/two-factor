@@ -101,41 +101,51 @@ class Two_Factor_FIDO_U2F_Admin {
 					var u2fL10n = <?php echo wp_json_encode( array(
 						'register' => array(
 							'request' => $req,
-							'sigs'    => $sigs
+							'sigs'    => $sigs,
 						),
 						'text' => array(
 							'insert' => esc_html__( 'Now insert (and tap) your Security Key.' ),
 							'error'  => esc_html__( 'Failed...' ),
 						),
 					) ); ?>;
-					var button = document.getElementById('register_security_key');
 
-					button.addEventListener("click", function(e) {
-						setTimeout(function() {
-							console.log("sign: ", u2fL10n.register.request);
-							button.innerText = u2fL10n.text.insert;
+					(function($) {
+						var $button = $( '#register_security_key' );
 
-							u2f.register([u2fL10n.register.request], u2fL10n.register.sigs, function(data) {
-								console.log("Register callback", data);
+						$button.click( function() {
+							if( $button.hasClass( 'clicked' ) ) {
+								return false;
+							} else {
+								$button.addClass( 'clicked' );
+							}
 
-								var form = document.getElementById('your-profile');
-								var flag = document.getElementById('do_new_security_key');
-								var field = document.getElementById('u2f_response');
+							setTimeout( function() {
+								console.log( 'sign', u2fL10n.register.request );
 
-								if(data.errorCode){
-									button.innerText = u2fL10n.text.error;
-									console.log("Registration Failed", data.errorCode);
-									return false;
-								}
+								$button.text( u2fL10n.text.insert )
+									.append( '<span class="spinner is-active" />' );
 
-								flag.value = "true";
-								field.value = JSON.stringify(data);
+								$( '.spinner.is-active', $button ).css( 'margin', '2.5px 0px 0px 5px' );
 
-								// See: http://stackoverflow.com/questions/833032/submit-is-not-a-function-error-in-javascript
-								document.createElement('form').submit.call(form);
-							});
-						}, 1000);
-					});
+								u2f.register( [ u2fL10n.register.request ], u2fL10n.register.sigs, function( data ) {
+									console.log( 'Register callback', data, this );
+
+									if( data.errorCode ){
+										console.log( 'Registration Failed', data.errorCode );
+
+										$button.text( u2fL10n.text.error );
+										return false;
+									}
+
+									$( '#do_new_security_key' ).val( 'true' );
+									$( '#u2f_response' ).val( JSON.stringify( data ) );
+
+									// See: http://stackoverflow.com/questions/833032/submit-is-not-a-function-error-in-javascript
+									$( '<form>' )[0].submit.call( $( '#your-profile' )[0] );
+								} );
+							}, 1000 );
+						} );
+					})(jQuery);
 				</script>
 				<?php else : ?>
 				<p><?php esc_html_e( 'Your browser doesn\'t support FIDO U2F.' ); ?></p>
