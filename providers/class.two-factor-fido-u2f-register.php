@@ -98,26 +98,33 @@ class Two_Factor_FIDO_U2F_Register {
 				<input type="hidden" name="u2f_response" id="u2f_response" />
 				<button type="button" class="button button-secondary" id="register_security_key"><?php esc_html_e( 'Add New' ); ?></button>
 				<script>
-					var register = {
-						request: <?php echo wp_json_encode( $req ); ?>,
-						sigs: <?php echo wp_json_encode( $sigs ); ?>
-					};
+					var u2fL10n = <?php echo wp_json_encode( array(
+						'register' => array(
+							'request' => $req,
+							'sigs'    => $sigs
+						),
+						'text' => array(
+							'insert' => esc_html__( 'Now insert (and tap) your Security Key.' ),
+							'error'  => esc_html__( 'Failed...' ),
+						),
+					) ); ?>;
 					var button = document.getElementById('register_security_key');
 
 					button.addEventListener("click", function(e) {
 						setTimeout(function() {
-							console.log("sign: ", register.request);
-							button.innerText = '<?php echo esc_js( 'Now insert (and tap) your Security Key.' ); ?>';
+							console.log("sign: ", u2fL10n.register.request);
+							button.innerText = u2fL10n.text.insert;
 
-							u2f.register([register.request], register.sigs, function(data) {
-								console.log("Register callback",data);
+							u2f.register([u2fL10n.register.request], u2fL10n.register.sigs, function(data) {
+								console.log("Register callback", data);
 
 								var form = document.getElementById('your-profile');
 								var flag = document.getElementById('do_new_security_key');
 								var field = document.getElementById('u2f_response');
 
 								if(data.errorCode){
-									alert("registration failed with errror: " + data.errorCode);
+									button.innerText = u2fL10n.text.error;
+									console.log("Registration Failed", data.errorCode);
 									return false;
 								}
 
