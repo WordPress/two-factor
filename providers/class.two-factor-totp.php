@@ -65,39 +65,28 @@ class Two_Factor_Totp extends Two_Factor_Provider {
 	 */
 	public function user_two_factor_options( $user ) {
 		wp_nonce_field( 'user_two_factor_totp_options', '_nonce_user_two_factor_totp_options', false );
+		$key = get_user_meta( $user->ID, self::SECRET_META_KEY, true );
+		$this->admin_notices();
 		?>
-		<table class="form-table" id="two-factor-totp-options">
-			<tr>
-				<th>
-					<?php echo esc_html_x( 'Time Based One-Time Password (Google Authenticator) Options', 'Provider Label' ); ?>
-				</th>
-				<td>
-					<?php
-					$key = get_user_meta( $user->ID, self::SECRET_META_KEY, true );
-
-					$this->admin_notices();
-					if ( empty( $key ) ) {
-						$key = $this->generate_key();
-						$site_name = get_bloginfo( 'name', 'display' );
-						?>
-						<img src="<?php echo esc_url( $this->get_google_qr_code( $site_name . ':' . $user->user_login, $key, $site_name ) ); ?>" id="two-factor-totp-qrcode" />
-						<p><strong><?php echo esc_html( $key ); ?></strong></p>
-						<p><?php esc_html_e( 'Please scan the QR code or manually enter the key, then enter an authentication code from your app in order to complete setup' ); ?></p>
-						<p>
-							<label for="two-factor-totp-authcode"><?php esc_html_e( 'Authentication Code:' ); ?></label>
-							<input type="hidden" name="two-factor-totp-key" value="<?php echo esc_attr( $key ) ?>" />
-							<input type="tel" name="two-factor-totp-authcode" id="two-factor-totp-authcode" class="input" value="" size="20" pattern="[0-9]*" />
-						</p>
-						<?php
-					} else {
-						?>
-						<p class="success"><?php esc_html_e( 'Enabled' ); ?></p>
-						<?php
-					}
-					?>
-				</td>
-			</tr>
-		</table>
+		<br />
+		<a href="javascript:;" onclick="jQuery('#two-factor-totp-options').toggle();"><?php esc_html_e( 'View Options &rarr;' ); ?></a>
+		<div id="two-factor-totp-options" style="display:none;">
+			<?php if ( empty( $key ) ) :
+				$key = $this->generate_key();
+				$site_name = get_bloginfo( 'name', 'display' );
+				?>
+				<img src="<?php echo esc_url( $this->get_google_qr_code( $site_name . ':' . $user->user_login, $key, $site_name ) ); ?>" id="two-factor-totp-qrcode" />
+				<p><strong><?php echo esc_html( $key ); ?></strong></p>
+				<p><?php esc_html_e( 'Please scan the QR code or manually enter the key, then enter an authentication code from your app in order to complete setup' ); ?></p>
+				<p>
+					<label for="two-factor-totp-authcode"><?php esc_html_e( 'Authentication Code:' ); ?></label>
+					<input type="hidden" name="two-factor-totp-key" value="<?php echo esc_attr( $key ) ?>" />
+					<input type="tel" name="two-factor-totp-authcode" id="two-factor-totp-authcode" class="input" value="" size="20" pattern="[0-9]*" />
+				</p>
+			<?php else : ?>
+				<p class="success"><?php esc_html_e( 'Enabled' ); ?></p>
+			<?php endif; ?>
+		</div>
 		<?php
 	}
 
