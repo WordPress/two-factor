@@ -309,23 +309,34 @@ class Two_Factor_Core {
 				<input type="hidden" name="rememberme" id="rememberme" value="<?php echo esc_attr( $rememberme ); ?>" />
 
 				<?php $provider->authentication_page( $user ); ?>
-
 		</form>
 
-		<?php if ( $backup_providers ) : ?>
-		<p><a href="#"><?php esc_html_e( 'Or, use a backup method:', 'two-factor' ); ?></a></p>
-		<ul class="backup-methods">
-			<?php foreach ( $backup_providers as $backup_classname => $backup_provider ) : ?>
-				<li><a href="<?php echo esc_url( add_query_arg( urlencode_deep( array(
-								'action'        => 'backup_2fa',
-								'provider'      => $backup_classname,
-								'wp-auth-id'    => $user->ID,
-								'wp-auth-nonce' => $login_nonce,
-								'redirect_to'   => $redirect_to,
-								'rememberme'    => $rememberme,
-							) ) ) ); ?>"><?php $backup_provider->print_label(); ?></a></li>
-			<?php endforeach; ?>
-		</ul>
+		<?php if ( 1 === sizeof( $backup_providers ) ) :
+			$backup_classname = key( $backup_providers );
+			$backup_provider  = $backup_providers[ $backup_classname ];
+			?>
+			<p class="backup-methods"><a href="<?php echo esc_url( add_query_arg( urlencode_deep( array(
+									'action'        => 'backup_2fa',
+									'provider'      => $backup_classname,
+									'wp-auth-id'    => $user->ID,
+									'wp-auth-nonce' => $login_nonce,
+									'redirect_to'   => $redirect_to,
+									'rememberme'    => $rememberme,
+								) ) ) ); ?>"><?php echo esc_html( sprintf( __( 'Or, use your backup method: %s &rarr;', 'two-factor' ), $backup_provider->get_label() ) ); ?></a></p>
+		<?php elseif ( 1 < sizeof( $backup_providers ) ) : ?>
+			<p class="backup-methods"><a href="javascript:;" onclick="document.querySelector('ul.backup-methods').style.display = 'block';"><?php esc_html_e( 'Or, use a backup method…', 'two-factor' ); ?></a></p>
+			<ul class="backup-methods" style="display:none; padding-left: 1.5em;">
+				<?php foreach ( $backup_providers as $backup_classname => $backup_provider ) : ?>
+					<li><a href="<?php echo esc_url( add_query_arg( urlencode_deep( array(
+									'action'        => 'backup_2fa',
+									'provider'      => $backup_classname,
+									'wp-auth-id'    => $user->ID,
+									'wp-auth-nonce' => $login_nonce,
+									'redirect_to'   => $redirect_to,
+									'rememberme'    => $rememberme,
+								) ) ) ); ?>"><?php $backup_provider->print_label(); ?></a></li>
+				<?php endforeach; ?>
+			</ul>
 		<?php endif; ?>
 
 		<p id="backtoblog">
