@@ -67,10 +67,14 @@ class Two_Factor_Backup_Codes extends Two_Factor_Provider {
 		?>
 		<div class="error">
 			<p>
-				<span><?php printf( // WPCS: XSS OK.
-					__( 'Two-Factor: You are out of backup codes and need to <a href="%s">regenerate!</a>' ),
-					esc_url( get_edit_user_link( $user->ID ) . '#two-factor-backup-codes' )
-				); ?><span>
+				<span>
+					<?php
+					printf( // WPCS: XSS OK.
+						__( 'Two-Factor: You are out of backup codes and need to <a href="%s">regenerate!</a>' ),
+						esc_url( get_edit_user_link( $user->ID ) . '#two-factor-backup-codes' )
+					);
+					?>
+				<span>
 			</p>
 		</div>
 		<?php
