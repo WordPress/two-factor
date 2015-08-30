@@ -315,33 +315,53 @@ class Two_Factor_Core {
 			$backup_classname = key( $backup_providers );
 			$backup_provider  = $backup_providers[ $backup_classname ];
 			?>
-			<p class="backup-methods"><a href="<?php echo esc_url( add_query_arg( urlencode_deep( array(
-									'action'        => 'backup_2fa',
-									'provider'      => $backup_classname,
-									'wp-auth-id'    => $user->ID,
-									'wp-auth-nonce' => $login_nonce,
-									'redirect_to'   => $redirect_to,
-									'rememberme'    => $rememberme,
-								) ) ) ); ?>"><?php echo esc_html( sprintf( __( 'Or, use your backup method: %s &rarr;', 'two-factor' ), $backup_provider->get_label() ) ); ?></a></p>
+			<div class="backup-methods-wrap">
+				<p class="backup-methods"><a href="<?php echo esc_url( add_query_arg( urlencode_deep( array(
+										'action'        => 'backup_2fa',
+										'provider'      => $backup_classname,
+										'wp-auth-id'    => $user->ID,
+										'wp-auth-nonce' => $login_nonce,
+										'redirect_to'   => $redirect_to,
+										'rememberme'    => $rememberme,
+									) ) ) ); ?>"><?php echo esc_html( sprintf( __( 'Or, use your backup method: %s &rarr;', 'two-factor' ), $backup_provider->get_label() ) ); ?></a></p>
+			</div>
 		<?php elseif ( 1 < sizeof( $backup_providers ) ) : ?>
-			<p class="backup-methods"><a href="javascript:;" onclick="document.querySelector('ul.backup-methods').style.display = 'block';"><?php esc_html_e( 'Or, use a backup method…', 'two-factor' ); ?></a></p>
-			<ul class="backup-methods" style="display:none; padding-left: 1.5em;">
-				<?php foreach ( $backup_providers as $backup_classname => $backup_provider ) : ?>
-					<li><a href="<?php echo esc_url( add_query_arg( urlencode_deep( array(
-									'action'        => 'backup_2fa',
-									'provider'      => $backup_classname,
-									'wp-auth-id'    => $user->ID,
-									'wp-auth-nonce' => $login_nonce,
-									'redirect_to'   => $redirect_to,
-									'rememberme'    => $rememberme,
-								) ) ) ); ?>"><?php $backup_provider->print_label(); ?></a></li>
-				<?php endforeach; ?>
-			</ul>
+			<div class="backup-methods-wrap">
+				<p class="backup-methods"><a href="javascript:;" onclick="document.querySelector('ul.backup-methods').style.display = 'block';"><?php esc_html_e( 'Or, use a backup method…', 'two-factor' ); ?></a></p>
+				<ul class="backup-methods">
+					<?php foreach ( $backup_providers as $backup_classname => $backup_provider ) : ?>
+						<li><a href="<?php echo esc_url( add_query_arg( urlencode_deep( array(
+										'action'        => 'backup_2fa',
+										'provider'      => $backup_classname,
+										'wp-auth-id'    => $user->ID,
+										'wp-auth-nonce' => $login_nonce,
+										'redirect_to'   => $redirect_to,
+										'rememberme'    => $rememberme,
+									) ) ) ); ?>"><?php $backup_provider->print_label(); ?></a></li>
+					<?php endforeach; ?>
+				</ul>
+			</div>
 		<?php endif; ?>
 
 		<p id="backtoblog">
 			<a href="<?php echo esc_url( home_url( '/' ) ); ?>" title="<?php esc_attr_e( 'Are you lost?' ); ?>"><?php echo esc_html( sprintf( __( '&larr; Back to %s' ), get_bloginfo( 'title', 'display' ) ) ); ?></a>
 		</p>
+
+		<style>
+		/* @todo: migrate to an external stylesheet. */
+		.backup-methods-wrap {
+			margin-top: 16px;
+			padding: 0 24px;
+		}
+		.backup-methods-wrap a {
+			color: #999;
+			text-decoration: none;
+		}
+		ul.backup-methods {
+			display: none;
+			padding-left: 1.5em;
+		}
+		</style>
 
 		</body>
 		</html>
