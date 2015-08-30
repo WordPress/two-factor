@@ -1,0 +1,37 @@
+
+.two-factor-methods-table {
+	background-color: #fff;
+	border: 1px solid #e5e5e5;
+	border-spacing: 0;
+}
+
+.two-factor-methods-table thead,
+.two-factor-methods-table tfoot {
+	background: #fff;
+}
+
+.two-factor-methods-table thead th {
+	padding: 0.5em;
+}
+
+.two-factor-methods-table .col-primary,
+.two-factor-methods-table .col-enabled {
+	width: 5%;
+}
+
+.two-factor-methods-table .col-name {
+	width: 90%;
+}
+
+.two-factor-methods-table tbody th {
+	text-align: center;
+}
+
+.two-factor-methods-table tbody th,
+.two-factor-methods-table tbody td {
+	vertical-align: top;
+}
+
+.two-factor-methods-table tbody tr:nth-child(odd) {
+	background-color: #f9f9f9;
+}

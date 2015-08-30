@@ -458,6 +458,7 @@ class Two_Factor_Core {
 	 * @param WP_User $user WP_User object of the logged-in user.
 	 */
 	public static function user_two_factor_options( $user ) {
+		wp_enqueue_style( 'user-edit-2fa', plugins_url( 'user-edit.css', __FILE__ ) );
 		$enabled_providers = get_user_meta( $user->ID, self::ENABLED_PROVIDERS_USER_META_KEY, true );
 		if ( empty( $enabled_providers ) ) {
 			// Because get_user_meta() has no way of providing a default value.
@@ -476,16 +477,16 @@ class Two_Factor_Core {
 					<table class="two-factor-methods-table">
 						<thead>
 							<tr>
-								<th style="width: 5%;" scope="col"><?php esc_html_e( 'Enabled' ); ?></th>
-								<th style="width: 5%;" scope="col"><?php esc_html_e( 'Primary' ); ?></th>
-								<th style="width: 90%;" scope="col"><?php esc_html_e( 'Name' ); ?></th>
+								<th class="col-enabled" scope="col"><?php esc_html_e( 'Enabled' ); ?></th>
+								<th class="col-primary" scope="col"><?php esc_html_e( 'Primary' ); ?></th>
+								<th class="col-name" scope="col"><?php esc_html_e( 'Name' ); ?></th>
 							</tr>
 						</thead>
 						<tbody>
 						<?php foreach ( self::get_providers() as $class => $object ) : ?>
 							<tr>
-								<td><input type="checkbox" name="<?php echo esc_attr( self::ENABLED_PROVIDERS_USER_META_KEY ); ?>[]" value="<?php echo esc_attr( $class ); ?>" <?php checked( in_array( $class, $enabled_providers ) ); ?> /></td>
-								<td><input type="radio" name="<?php echo esc_attr( self::PROVIDER_USER_META_KEY ); ?>" value="<?php echo esc_attr( $class ); ?>" <?php checked( $class, $primary_provider ); ?> /></td>
+								<th scope="row"><input type="checkbox" name="<?php echo esc_attr( self::ENABLED_PROVIDERS_USER_META_KEY ); ?>[]" value="<?php echo esc_attr( $class ); ?>" <?php checked( in_array( $class, $enabled_providers ) ); ?> /></th>
+								<th scope="row"><input type="radio" name="<?php echo esc_attr( self::PROVIDER_USER_META_KEY ); ?>" value="<?php echo esc_attr( $class ); ?>" <?php checked( $class, $primary_provider ); ?> /></th>
 								<td>
 									<?php $object->print_label(); ?>
 									<?php do_action( 'two-factor-user-options-' . $class, $user ); ?>
