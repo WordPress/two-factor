@@ -339,6 +339,10 @@ class Two_Factor_Core {
 			<a href="<?php echo esc_url( home_url( '/' ) ); ?>" title="<?php esc_attr_e( 'Are you lost?' ); ?>"><?php echo esc_html( sprintf( __( '&larr; Back to %s' ), get_bloginfo( 'title', 'display' ) ) ); ?></a>
 		</p>
 
+		<?php
+		/** This action is documented in wp-login.php */
+		do_action( 'login_footer' ); ?>
+		<div class="clear"></div>
 		</body>
 		</html>
 		<?php
