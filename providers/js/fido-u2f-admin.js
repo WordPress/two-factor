@@ -1,3 +1,4 @@
+/* global u2f, u2fL10n */
 (function($) {
 	var $button = $( '#register_security_key' );
 
@@ -9,17 +10,17 @@
 		}
 
 		setTimeout( function() {
-			console.log( 'sign', u2fL10n.register.request );
+			window.console.log( 'sign', u2fL10n.register.request );
 
 			$button.text( u2fL10n.text.insert ).append( '<span class="spinner is-active" />' );
 
 			$( '.spinner.is-active', $button ).css( 'margin', '2.5px 0px 0px 5px' );
 
 			u2f.register( [ u2fL10n.register.request ], u2fL10n.register.sigs, function( data ) {
-				console.log( 'Register callback', data, this );
+				window.console.log( 'Register callback', data, this );
 
 				if( data.errorCode ){
-					console.log( 'Registration Failed', data.errorCode );
+					window.console.log( 'Registration Failed', data.errorCode );
 
 					$button.text( u2fL10n.text.error );
 					return false;
