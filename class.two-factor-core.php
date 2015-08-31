@@ -471,7 +471,7 @@ class Two_Factor_Core {
 				return;
 			}
 
-			self::login_html( $user, $login_nonce['key'], $_REQUEST['redirect_to'], esc_html__( 'ERROR: Invalid verification code.' ) );
+			self::login_html( $user, $login_nonce['key'], $_REQUEST['redirect_to'], esc_html__( 'ERROR: Invalid verification code.' ), $provider );
 			exit;
 		}
 
