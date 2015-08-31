@@ -311,7 +311,7 @@ class Two_Factor_Core {
 				<?php $provider->authentication_page( $user ); ?>
 		</form>
 
-		<?php if ( 1 === sizeof( $backup_providers ) ) :
+		<?php if ( 1 === count( $backup_providers ) ) :
 			$backup_classname = key( $backup_providers );
 			$backup_provider  = $backup_providers[ $backup_classname ];
 			?>
@@ -325,7 +325,7 @@ class Two_Factor_Core {
 										'rememberme'    => $rememberme,
 									) ) ) ); ?>"><?php echo esc_html( sprintf( __( 'Or, use your backup method: %s &rarr;', 'two-factor' ), $backup_provider->get_label() ) ); ?></a></p>
 			</div>
-		<?php elseif ( 1 < sizeof( $backup_providers ) ) : ?>
+		<?php elseif ( 1 < count( $backup_providers ) ) : ?>
 			<div class="backup-methods-wrap">
 				<p class="backup-methods"><a href="javascript:;" onclick="document.querySelector('ul.backup-methods').style.display = 'block';"><?php esc_html_e( 'Or, use a backup method…', 'two-factor' ); ?></a></p>
 				<ul class="backup-methods">
