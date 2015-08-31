@@ -72,6 +72,10 @@ class Two_Factor_FIDO_U2F extends Two_Factor_Provider {
 	 * @since 0.1-dev
 	 */
 	public function login_enqueue_assets() {
+		if ( ! self::is_browser_support() ) {
+			return;
+		}
+
 		wp_enqueue_script( 'u2f-api', plugins_url( 'includes/Google/u2f-api.js', dirname( __FILE__ ) ), null, null, true );
 	}
 

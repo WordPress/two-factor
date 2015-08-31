@@ -46,6 +46,11 @@ class Two_Factor_FIDO_U2F_Admin {
 		if ( ! in_array( $hook, array( 'user-edit.php', 'profile.php' ) ) ) {
 			return;
 		}
+
+		if ( ! Two_Factor_FIDO_U2F::is_browser_support() ) {
+			return;
+		}
+
 		wp_enqueue_script( 'u2f-api',        plugins_url( 'includes/Google/u2f-api.js', dirname( __FILE__ ) ), null, null, true );
 	}
 
