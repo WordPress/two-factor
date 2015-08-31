@@ -259,11 +259,11 @@ class Two_Factor_FIDO_U2F extends Two_Factor_Provider {
 			return false;
 		}
 
-		$keys = get_user_meta( $user_id, self::REGISTERED_KEY_USER_META_KEY );
+		$keys = self::get_security_keys( $user_id );
 		if ( $keys ) {
-			foreach ( $keys as $index => $key ) {
-				if ( $key['keyHandle'] === $data->keyHandle ) {
-					return update_user_meta( $user_id, self::REGISTERED_KEY_USER_META_KEY, (array) $data, $key );
+			foreach ( $keys as $key ) {
+				if ( $key->keyHandle === $data->keyHandle ) {
+					return update_user_meta( $user_id, self::REGISTERED_KEY_USER_META_KEY, (array) $data, (array) $key );
 				}
 			}
 		}
