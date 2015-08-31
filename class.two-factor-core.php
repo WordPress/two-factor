@@ -309,35 +309,66 @@ class Two_Factor_Core {
 		?>
 
 		<form name="validate_2fa_form" id="loginform" action="<?php echo esc_url( site_url( 'wp-login.php?action=validate_2fa', 'login_post' ) ); ?>" method="post" autocomplete="off">
-				<input type="hidden" name="provider" id="provider" value="<?php echo esc_attr( $provider_class ); ?>" />
-				<input type="hidden" name="wp-auth-id" id="wp-auth-id" value="<?php echo esc_attr( $user->ID ); ?>" />
+				<input type="hidden" name="provider"      id="provider"      value="<?php echo esc_attr( $provider_class ); ?>" />
+				<input type="hidden" name="wp-auth-id"    id="wp-auth-id"    value="<?php echo esc_attr( $user->ID ); ?>" />
 				<input type="hidden" name="wp-auth-nonce" id="wp-auth-nonce" value="<?php echo esc_attr( $login_nonce ); ?>" />
-				<input type="hidden" name="redirect_to" id="redirect_to" value="<?php echo esc_attr( $redirect_to ); ?>" />
-				<input type="hidden" name="rememberme" id="rememberme" value="<?php echo esc_attr( $rememberme ); ?>" />
+				<input type="hidden" name="redirect_to"   id="redirect_to"   value="<?php echo esc_attr( $redirect_to ); ?>" />
+				<input type="hidden" name="rememberme"    id="rememberme"    value="<?php echo esc_attr( $rememberme ); ?>" />
 
 				<?php $provider->authentication_page( $user ); ?>
-
 		</form>
 
-		<?php if ( $backup_providers ) : ?>
-		<p><a href="#"><?php esc_html_e( 'Or, use a backup method:', 'two-factor' ); ?></a></p>
-		<ul class="backup-methods">
-			<?php foreach ( $backup_providers as $backup_classname => $backup_provider ) : ?>
-				<li><a href="<?php echo esc_url( add_query_arg( urlencode_deep( array(
-								'action'        => 'backup_2fa',
-								'provider'      => $backup_classname,
-								'wp-auth-id'    => $user->ID,
-								'wp-auth-nonce' => $login_nonce,
-								'redirect_to'   => $redirect_to,
-								'rememberme'    => $rememberme,
-							) ) ) ); ?>"><?php $backup_provider->print_label(); ?></a></li>
-			<?php endforeach; ?>
-		</ul>
+		<?php if ( 1 === count( $backup_providers ) ) :
+			$backup_classname = key( $backup_providers );
+			$backup_provider  = $backup_providers[ $backup_classname ];
+			?>
+			<div class="backup-methods-wrap">
+				<p class="backup-methods"><a href="<?php echo esc_url( add_query_arg( urlencode_deep( array(
+										'action'        => 'backup_2fa',
+										'provider'      => $backup_classname,
+										'wp-auth-id'    => $user->ID,
+										'wp-auth-nonce' => $login_nonce,
+										'redirect_to'   => $redirect_to,
+										'rememberme'    => $rememberme,
+									) ) ) ); ?>"><?php echo esc_html( sprintf( __( 'Or, use your backup method: %s &rarr;', 'two-factor' ), $backup_provider->get_label() ) ); ?></a></p>
+			</div>
+		<?php elseif ( 1 < count( $backup_providers ) ) : ?>
+			<div class="backup-methods-wrap">
+				<p class="backup-methods"><a href="javascript:;" onclick="document.querySelector('ul.backup-methods').style.display = 'block';"><?php esc_html_e( 'Or, use a backup method…', 'two-factor' ); ?></a></p>
+				<ul class="backup-methods">
+					<?php foreach ( $backup_providers as $backup_classname => $backup_provider ) : ?>
+						<li><a href="<?php echo esc_url( add_query_arg( urlencode_deep( array(
+										'action'        => 'backup_2fa',
+										'provider'      => $backup_classname,
+										'wp-auth-id'    => $user->ID,
+										'wp-auth-nonce' => $login_nonce,
+										'redirect_to'   => $redirect_to,
+										'rememberme'    => $rememberme,
+									) ) ) ); ?>"><?php $backup_provider->print_label(); ?></a></li>
+					<?php endforeach; ?>
+				</ul>
+			</div>
 		<?php endif; ?>
 
 		<p id="backtoblog">
 			<a href="<?php echo esc_url( home_url( '/' ) ); ?>" title="<?php esc_attr_e( 'Are you lost?' ); ?>"><?php echo esc_html( sprintf( __( '&larr; Back to %s' ), get_bloginfo( 'title', 'display' ) ) ); ?></a>
 		</p>
+
+		<style>
+		/* @todo: migrate to an external stylesheet. */
+		.backup-methods-wrap {
+			margin-top: 16px;
+			padding: 0 24px;
+		}
+		.backup-methods-wrap a {
+			color: #999;
+			text-decoration: none;
+		}
+		ul.backup-methods {
+			display: none;
+			padding-left: 1.5em;
+		}
+		</style>
 
 		<?php
 		/** This action is documented in wp-login.php */
@@ -503,6 +534,7 @@ class Two_Factor_Core {
 	 * @param WP_User $user WP_User object of the logged-in user.
 	 */
 	public static function user_two_factor_options( $user ) {
+		wp_enqueue_style( 'user-edit-2fa', plugins_url( 'user-edit.css', __FILE__ ) );
 		$enabled_providers = get_user_meta( $user->ID, self::ENABLED_PROVIDERS_USER_META_KEY, true );
 		if ( empty( $enabled_providers ) ) {
 			// Because get_user_meta() has no way of providing a default value.
@@ -521,16 +553,16 @@ class Two_Factor_Core {
 					<table class="two-factor-methods-table">
 						<thead>
 							<tr>
-								<th style="width: 5%;" scope="col"><?php esc_html_e( 'Enabled' ); ?></th>
-								<th style="width: 5%;" scope="col"><?php esc_html_e( 'Primary' ); ?></th>
-								<th style="width: 90%;" scope="col"><?php esc_html_e( 'Name' ); ?></th>
+								<th class="col-enabled" scope="col"><?php esc_html_e( 'Enabled' ); ?></th>
+								<th class="col-primary" scope="col"><?php esc_html_e( 'Primary' ); ?></th>
+								<th class="col-name" scope="col"><?php esc_html_e( 'Name' ); ?></th>
 							</tr>
 						</thead>
 						<tbody>
 						<?php foreach ( self::get_providers() as $class => $object ) : ?>
 							<tr>
-								<td><input type="checkbox" name="<?php echo esc_attr( self::ENABLED_PROVIDERS_USER_META_KEY ); ?>[]" value="<?php echo esc_attr( $class ); ?>" <?php checked( in_array( $class, $enabled_providers ) ); ?> /></td>
-								<td><input type="radio" name="<?php echo esc_attr( self::PROVIDER_USER_META_KEY ); ?>" value="<?php echo esc_attr( $class ); ?>" <?php checked( $class, $primary_provider ); ?> /></td>
+								<th scope="row"><input type="checkbox" name="<?php echo esc_attr( self::ENABLED_PROVIDERS_USER_META_KEY ); ?>[]" value="<?php echo esc_attr( $class ); ?>" <?php checked( in_array( $class, $enabled_providers ) ); ?> /></th>
+								<th scope="row"><input type="radio" name="<?php echo esc_attr( self::PROVIDER_USER_META_KEY ); ?>" value="<?php echo esc_attr( $class ); ?>" <?php checked( $class, $primary_provider ); ?> /></th>
 								<td>
 									<?php $object->print_label(); ?>
 									<?php do_action( 'two-factor-user-options-' . $class, $user ); ?>
