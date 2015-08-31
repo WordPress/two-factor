@@ -104,7 +104,9 @@ class Two_Factor_FIDO_U2F extends Two_Factor_Provider {
 		<p><?php esc_html_e( 'Now insert (and tap) your Security Key.' ); ?></p>
 		<input type="hidden" name="u2f_response" id="u2f_response" />
 		<script>
-			var request = <?php echo wp_json_encode( $data ); ?>;
+			var u2fL10n = <?php echo wp_json_encode( array(
+				'request' => $data,
+			) ); ?>;
 		</script>
 		<?php
 	}
