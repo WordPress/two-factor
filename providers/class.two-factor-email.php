@@ -113,6 +113,10 @@ class Two_Factor_Email extends Two_Factor_Provider {
 	 * @param WP_User $user WP_User object of the logged-in user.
 	 */
 	public function authentication_page( $user ) {
+		if ( ! $user ) {
+			return;
+		}
+
 		$this->generate_and_email_token( $user );
 		require_once( ABSPATH .  '/wp-admin/includes/template.php' );
 		?>
@@ -144,6 +148,10 @@ class Two_Factor_Email extends Two_Factor_Provider {
 	 * @return boolean
 	 */
 	public function validate_authentication( $user ) {
+		if ( ! isset( $user->ID ) || ! isset( $_REQUEST['two-factor-email-code'] ) ) {
+			return false;
+		}
+
 		return $this->validate_token( $user->ID, $_REQUEST['two-factor-email-code'] );
 	}
 
@@ -174,5 +182,4 @@ class Two_Factor_Email extends Two_Factor_Provider {
 		</div>
 		<?php
 	}
-
 }
