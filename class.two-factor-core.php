@@ -86,7 +86,11 @@ class Two_Factor_Core {
 			 * Confirm that it's been successfully included before instantiating.
 			 */
 			if ( class_exists( $class ) ) {
-				$providers[ $class ] = call_user_func( array( $class, 'get_instance' ) );
+				try {
+					$providers[ $class ] = call_user_func( array( $class, 'get_instance' ) );
+				} catch ( Exception $e ) {
+					// Could not get instance of $class
+				}
 			}
 		}
 
