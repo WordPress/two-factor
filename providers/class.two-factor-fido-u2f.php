@@ -76,7 +76,8 @@ class Two_Factor_FIDO_U2F extends Two_Factor_Provider {
 			return;
 		}
 
-		wp_enqueue_script( 'u2f-api', plugins_url( 'includes/Google/u2f-api.js', dirname( __FILE__ ) ), null, null, true );
+		wp_enqueue_script( 'u2f-api',        plugins_url( 'includes/Google/u2f-api.js', dirname( __FILE__ ) ), null, null, true );
+		wp_enqueue_script( 'fido-u2f-login', plugins_url( 'js/fido-u2f-login.js', __FILE__ ), array( 'jquery', 'u2f-api' ), null, true );
 	}
 
 	/**
@@ -104,18 +105,6 @@ class Two_Factor_FIDO_U2F extends Two_Factor_Provider {
 		<input type="hidden" name="u2f_response" id="u2f_response" />
 		<script>
 			var request = <?php echo wp_json_encode( $data ); ?>;
-			setTimeout(function() {
-				console.log("sign: ", request);
-
-				u2f.sign(request, function(data) {
-					console.log("Authenticate callback", data);
-
-					var form = document.getElementById('loginform');
-					var field = document.getElementById('u2f_response');
-					field.value = JSON.stringify(data);
-					form.submit();
-				});
-			}, 1000);
 		</script>
 		<?php
 	}

@@ -52,6 +52,7 @@ class Two_Factor_FIDO_U2F_Admin {
 		}
 
 		wp_enqueue_script( 'u2f-api',        plugins_url( 'includes/Google/u2f-api.js', dirname( __FILE__ ) ), null, null, true );
+		wp_enqueue_script( 'fido-u2f-admin', plugins_url( 'js/fido-u2f-admin.js', __FILE__ ), array( 'jquery', 'u2f-api' ), null, true );
 	}
 
 	/**
@@ -113,44 +114,6 @@ class Two_Factor_FIDO_U2F_Admin {
 							'error'  => esc_html__( 'Failed...' ),
 						),
 					) ); ?>;
-
-					(function($) {
-						var $button = $( '#register_security_key' );
-
-						$button.click( function() {
-							if( $button.hasClass( 'clicked' ) ) {
-								return false;
-							} else {
-								$button.addClass( 'clicked' );
-							}
-
-							setTimeout( function() {
-								console.log( 'sign', u2fL10n.register.request );
-
-								$button.text( u2fL10n.text.insert )
-									.append( '<span class="spinner is-active" />' );
-
-								$( '.spinner.is-active', $button ).css( 'margin', '2.5px 0px 0px 5px' );
-
-								u2f.register( [ u2fL10n.register.request ], u2fL10n.register.sigs, function( data ) {
-									console.log( 'Register callback', data, this );
-
-									if( data.errorCode ){
-										console.log( 'Registration Failed', data.errorCode );
-
-										$button.text( u2fL10n.text.error );
-										return false;
-									}
-
-									$( '#do_new_security_key' ).val( 'true' );
-									$( '#u2f_response' ).val( JSON.stringify( data ) );
-
-									// See: http://stackoverflow.com/questions/833032/submit-is-not-a-function-error-in-javascript
-									$( '<form>' )[0].submit.call( $( '#your-profile' )[0] );
-								} );
-							}, 1000 );
-						} );
-					})(jQuery);
 				</script>
 				<?php else : ?>
 				<p><?php esc_html_e( 'Your browser doesn\'t support FIDO U2F.' ); ?></p>
