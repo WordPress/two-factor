@@ -174,5 +174,4 @@ class Two_Factor_Email extends Two_Factor_Provider {
 		</div>
 		<?php
 	}
-
 }
