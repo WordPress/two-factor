@@ -46,7 +46,7 @@ class Two_Factor_FIDO_U2F_Admin {
 		if ( ! in_array( $hook, array( 'user-edit.php', 'profile.php' ) ) ) {
 			return;
 		}
-		wp_enqueue_script( 'u2f-api', plugins_url( 'includes/Google/u2f-api.js', dirname( __FILE__ ) ) );
+		wp_enqueue_script( 'u2f-api',        plugins_url( 'includes/Google/u2f-api.js', dirname( __FILE__ ) ), null, null, true );
 	}
 
 	/**
