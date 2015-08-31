@@ -5,11 +5,11 @@ var inlineEditKey;
 inlineEditKey = {
 
 	init : function() {
-		var t = this, row = $('#inline-edit');
+		var t = this, row = $('#security-keys-section #inline-edit');
 
 		t.what = '#key'+'-';
 
-		$('#the-list').on('click', 'a.editinline', function(){
+		$('#security-keys-section #the-list').on('click', 'a.editinline', function(){
 			inlineEditKey.edit(this);
 			return false;
 		});
