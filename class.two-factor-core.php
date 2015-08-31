@@ -89,7 +89,7 @@ class Two_Factor_Core {
 				try {
 					$providers[ $class ] = call_user_func( array( $class, 'get_instance' ) );
 				} catch ( Exception $e ) {
-					echo esc_html( sprintf( __( 'Could not get provider instance: %s', 'two-factor' ), $class ) );
+					unset( $providers[ $class ] );
 				}
 			}
 		}
