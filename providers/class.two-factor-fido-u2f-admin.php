@@ -29,7 +29,7 @@ class Two_Factor_FIDO_U2F_Admin {
 		add_action( 'edit_user_profile_update',    array( __CLASS__, 'catch_submission' ), 0 );
 		add_action( 'load-profile.php',            array( __CLASS__, 'catch_delete_security_key' ) );
 		add_action( 'load-user-edit.php',          array( __CLASS__, 'catch_delete_security_key' ) );
-		add_action( 'wp_ajax_inline-save-key',     array( __CLASS__, 'wp_ajax_inline_save') );
+		add_action( 'wp_ajax_inline-save-key',     array( __CLASS__, 'wp_ajax_inline_save' ) );
 	}
 
 	/**
@@ -78,7 +78,7 @@ class Two_Factor_FIDO_U2F_Admin {
 		) );
 		wp_enqueue_script( 'inline-edit-key', plugins_url( 'js/fido-u2f-admin-inline-edit.js', __FILE__ ), array( 'jquery' ), null, true );
 		wp_localize_script( 'inline-edit-key', 'inlineEditL10n', array(
-			'error' => __('Error while saving the changes.')
+			'error' => esc_html__( 'Error while saving the changes.' ),
 		) );
 	}
 
@@ -246,14 +246,16 @@ class Two_Factor_FIDO_U2F_Admin {
 		require( TWO_FACTOR_DIR . 'providers/class.two-factor-fido-u2f-admin-list-table.php' );
 		$wp_list_table = new Two_Factor_FIDO_U2F_Admin_List_Table();
 
-		if ( ! isset( $_POST['keyHandle'] ) )
+		if ( ! isset( $_POST['keyHandle'] ) ) {
 			wp_die();
+		}
 
 		$user_id = get_current_user_id();
 
 		$security_keys = Two_Factor_FIDO_U2F::get_security_keys( $user_id );
-		if ( ! $security_keys )
+		if ( ! $security_keys ) {
 			wp_die();
+		}
 
 		foreach ( $security_keys as &$key ) {
 			if ( $key->keyHandle === $_POST['keyHandle'] ) {
@@ -265,7 +267,7 @@ class Two_Factor_FIDO_U2F_Admin {
 
 		$updated = Two_Factor_FIDO_U2F::update_security_key( $user_id, $key );
 		if ( ! $updated ) {
-			wp_die( __( 'Item not updated.' ) );
+			wp_die( esc_html__( 'Item not updated.' ) );
 		}
 		$wp_list_table->single_row( $key );
 		wp_die();

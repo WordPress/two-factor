@@ -104,11 +104,11 @@ class Two_Factor_FIDO_U2F_Admin_List_Table extends WP_List_Table {
 	 * @since 0.1-dev
 	 * @access public
 	 *
-	 * @param object $item The current item
+	 * @param object $item The current item.
 	 */
 	public function single_row( $item ) {
 		?>
-		<tr id="key-<?php echo $item->keyHandle; ?>">
+		<tr id="key-<?php echo esc_attr( $item->keyHandle ); ?>">
 		<?php $this->single_row_columns( $item ); ?>
 		</tr>
 		<?php
@@ -125,7 +125,7 @@ class Two_Factor_FIDO_U2F_Admin_List_Table extends WP_List_Table {
 			<table style="display: none">
 				<tbody id="inlineedit">
 					<tr id="inline-edit" class="inline-edit-row" style="display: none">
-						<td colspan="<?php echo $this->get_column_count(); ?>" class="colspanchange">
+						<td colspan="<?php echo esc_attr( $this->get_column_count() ); ?>" class="colspanchange">
 							<fieldset>
 								<div class="inline-edit-col">
 									<h4><?php esc_html_e( 'Quick Edit' ); ?></h4>
@@ -137,14 +137,16 @@ class Two_Factor_FIDO_U2F_Admin_List_Table extends WP_List_Table {
 								</div>
 							</fieldset>
 							<?php
-								$core_columns = array( 'name' => true, 'added' => true, 'last_used' => true );
-								list( $columns ) = $this->get_column_info();
-								foreach ( $columns as $column_name => $column_display_name ) {
-									if ( isset( $core_columns[$column_name] ) )
-										continue;
-									/** This action is documented in wp-admin/includes/class-wp-posts-list-table.php */
-									do_action( 'quick_edit_custom_box', $column_name, 'edit-security-keys' );
+							$core_columns = array( 'name' => true, 'added' => true, 'last_used' => true );
+							list( $columns ) = $this->get_column_info();
+							foreach ( $columns as $column_name => $column_display_name ) {
+								if ( isset( $core_columns[ $column_name ] ) ) {
+									continue;
 								}
+
+								/** This action is documented in wp-admin/includes/class-wp-posts-list-table.php */
+								do_action( 'quick_edit_custom_box', $column_name, 'edit-security-keys' );
+							}
 							?>
 							<p class="inline-edit-save submit">
 								<a href="#inline-edit" class="cancel button-secondary alignleft"><?php esc_html_e( 'Cancel' ); ?></a>
