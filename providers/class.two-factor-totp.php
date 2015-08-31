@@ -57,5 +57,4 @@ class Two_Factor_Totp extends Two_Factor_Provider {
 	 * @param WP_User $user WP_User object of the logged-in user.
 	 */
 	public function is_available_for_user( $user ) {}
-
 }

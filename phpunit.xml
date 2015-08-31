@@ -11,7 +11,10 @@
 	</php>
 	<testsuites>
 		<testsuite>
-			<directory suffix=".php">tests/phpunit/tests</directory>
+			<file>tests/phpunit/tests/two-factor.php</file>
+			<file>tests/phpunit/tests/providers/class.two-factor-dummy.php</file>
+			<!-- This test fails in PHP 5.2. FIDO U2F support is PHP 5.3+ only. -->
+			<file phpVersion="5.3.0" phpVersionOperator=">=">tests/phpunit/tests/providers/class.two-factor-fido-u2f.php</file>
 		</testsuite>
 	</testsuites>
 	<filter>

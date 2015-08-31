@@ -82,5 +82,4 @@ abstract class Two_Factor_Provider {
 		}
 		return $code;
 	}
-
 }

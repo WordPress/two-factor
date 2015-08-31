@@ -40,6 +40,8 @@ class Two_Factor_Core {
 		add_action( 'edit_user_profile',        array( __CLASS__, 'user_two_factor_options' ) );
 		add_action( 'personal_options_update',  array( __CLASS__, 'user_two_factor_options_update' ) );
 		add_action( 'edit_user_profile_update', array( __CLASS__, 'user_two_factor_options_update' ) );
+		add_filter( 'manage_users_columns',       array( __CLASS__, 'filter_manage_users_columns' ) );
+		add_filter( 'manage_users_custom_column', array( __CLASS__, 'manage_users_custom_column' ), 10, 3 );
 	}
 
 	/**
@@ -57,6 +59,11 @@ class Two_Factor_Core {
 			'Two_Factor_Backup_Codes' => TWO_FACTOR_DIR . 'providers/class.two-factor-backup-codes.php',
 			'Two_Factor_Dummy'        => TWO_FACTOR_DIR . 'providers/class.two-factor-dummy.php',
 		);
+
+		// FIDO U2F is PHP 5.3+ only.
+		if ( version_compare( PHP_VERSION, '5.3.0', '<' ) ) {
+			unset( $providers['Two_Factor_FIDO_U2F'] );
+		}
 
 		/**
 		 * Filter the supplied providers.
@@ -363,6 +370,10 @@ class Two_Factor_Core {
 		}
 		</style>
 
+		<?php
+		/** This action is documented in wp-login.php */
+		do_action( 'login_footer' ); ?>
+		<div class="clear"></div>
 		</body>
 		</html>
 		<?php
@@ -477,6 +488,40 @@ class Two_Factor_Core {
 		wp_safe_redirect( $redirect_to );
 
 		exit;
+	}
+
+	/**
+	 * Filter the columns on the Users admin screen.
+	 *
+	 * @param  array $columns Available columns.
+	 * @return array          Updated array of columns.
+	 */
+	public static function filter_manage_users_columns( array $columns ) {
+		$columns['two-factor'] = __( 'Two-Factor' );
+		return $columns;
+	}
+
+	/**
+	 * Output the 2FA column data on the Users screen.
+	 *
+	 * @param  string $output      The column output.
+	 * @param  string $column_name The column ID.
+	 * @param  int    $user_id     The user ID.
+	 * @return string              The column output.
+	 */
+	public static function manage_users_custom_column( $output, $column_name, $user_id ) {
+
+		if ( 'two-factor' !== $column_name ) {
+			return $output;
+		}
+
+		if ( ! self::is_user_using_two_factor( $user_id ) ) {
+			return sprintf( '<span class="dashicons-before dashicons-no-alt">%s</span>', esc_html__( 'Disabled' ) );
+		} else {
+			$provider = self::get_primary_provider_for_user( $user_id );
+			return esc_html( $provider->get_label() );
+		}
+
 	}
 
 	/**
