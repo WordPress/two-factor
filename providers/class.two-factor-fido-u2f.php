@@ -128,6 +128,9 @@ class Two_Factor_FIDO_U2F extends Two_Factor_Provider {
 
 		try {
 			$reg = self::$u2f->doAuthenticate( $requests, $keys, $response );
+
+			$reg->last_used = current_time( 'timestamp' );
+
 			self::update_security_key( $user->ID, $reg );
 
 			return true;
