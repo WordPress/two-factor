@@ -46,7 +46,36 @@ class Two_Factor_FIDO_U2F_Admin {
 		if ( ! in_array( $hook, array( 'user-edit.php', 'profile.php' ) ) ) {
 			return;
 		}
-		wp_enqueue_script( 'u2f-api', plugins_url( 'includes/Google/u2f-api.js', dirname( __FILE__ ) ) );
+
+		if ( ! Two_Factor_FIDO_U2F::is_browser_support() ) {
+			return;
+		}
+
+		wp_enqueue_script( 'u2f-api',        plugins_url( 'includes/Google/u2f-api.js', dirname( __FILE__ ) ), null, null, true );
+		wp_enqueue_script( 'fido-u2f-admin', plugins_url( 'js/fido-u2f-admin.js', __FILE__ ), array( 'jquery', 'u2f-api' ), null, true );
+
+		$user_id = get_current_user_id();
+		$security_keys = Two_Factor_FIDO_U2F::get_security_keys( $user_id );
+
+		try {
+			$data = Two_Factor_FIDO_U2F::$u2f->getRegisterData( $security_keys );
+			list( $req,$sigs ) = $data;
+
+			update_user_meta( $user_id, self::REGISTER_DATA_USER_META_KEY, $req );
+		} catch ( Exception $e ) {
+			return false;
+		}
+
+		wp_localize_script( 'fido-u2f-admin', 'u2fL10n', array(
+			'register' => array(
+				'request' => $req,
+				'sigs'    => $sigs,
+			),
+			'text' => array(
+				'insert' => esc_html__( 'Now insert (and tap) your Security Key.' ),
+				'error'  => esc_html__( 'Failed...' ),
+			),
+		) );
 	}
 
 	/**
@@ -79,14 +108,6 @@ class Two_Factor_FIDO_U2F_Admin {
 			unset( $security_key );
 		}
 
-		try {
-			$data = Two_Factor_FIDO_U2F::$u2f->getRegisterData( $security_keys );
-			list( $req,$sigs ) = $data;
-
-			update_user_meta( $user->ID, self::REGISTER_DATA_USER_META_KEY, $req );
-		} catch ( Exception $e ) {
-			return false;
-		}
 		?>
 		<div class="security-keys" id="security-keys-section">
 			<h3><?php esc_html_e( 'Security Keys' ); ?></h3>
@@ -97,56 +118,6 @@ class Two_Factor_FIDO_U2F_Admin {
 				<input type="hidden" name="do_new_security_key" id="do_new_security_key" />
 				<input type="hidden" name="u2f_response" id="u2f_response" />
 				<button type="button" class="button button-secondary" id="register_security_key"><?php esc_html_e( 'Add New' ); ?></button>
-				<script>
-					var u2fL10n = <?php echo wp_json_encode( array(
-						'register' => array(
-							'request' => $req,
-							'sigs'    => $sigs,
-						),
-						'text' => array(
-							'insert' => esc_html__( 'Now insert (and tap) your Security Key.' ),
-							'error'  => esc_html__( 'Failed...' ),
-						),
-					) ); ?>;
-
-					(function($) {
-						var $button = $( '#register_security_key' );
-
-						$button.click( function() {
-							if( $button.hasClass( 'clicked' ) ) {
-								return false;
-							} else {
-								$button.addClass( 'clicked' );
-							}
-
-							setTimeout( function() {
-								console.log( 'sign', u2fL10n.register.request );
-
-								$button.text( u2fL10n.text.insert )
-									.append( '<span class="spinner is-active" />' );
-
-								$( '.spinner.is-active', $button ).css( 'margin', '2.5px 0px 0px 5px' );
-
-								u2f.register( [ u2fL10n.register.request ], u2fL10n.register.sigs, function( data ) {
-									console.log( 'Register callback', data, this );
-
-									if( data.errorCode ){
-										console.log( 'Registration Failed', data.errorCode );
-
-										$button.text( u2fL10n.text.error );
-										return false;
-									}
-
-									$( '#do_new_security_key' ).val( 'true' );
-									$( '#u2f_response' ).val( JSON.stringify( data ) );
-
-									// See: http://stackoverflow.com/questions/833032/submit-is-not-a-function-error-in-javascript
-									$( '<form>' )[0].submit.call( $( '#your-profile' )[0] );
-								} );
-							}, 1000 );
-						} );
-					})(jQuery);
-				</script>
 				<?php else : ?>
 				<p><?php esc_html_e( 'Your browser doesn\'t support FIDO U2F.' ); ?></p>
 				<?php endif; ?>

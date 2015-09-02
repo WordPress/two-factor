@@ -72,7 +72,12 @@ class Two_Factor_FIDO_U2F extends Two_Factor_Provider {
 	 * @since 0.1-dev
 	 */
 	public function login_enqueue_assets() {
-		wp_enqueue_script( 'u2f-api', plugins_url( 'includes/Google/u2f-api.js', dirname( __FILE__ ) ) );
+		if ( ! self::is_browser_support() ) {
+			return;
+		}
+
+		wp_enqueue_script( 'u2f-api',        plugins_url( 'includes/Google/u2f-api.js', dirname( __FILE__ ) ), null, null, true );
+		wp_enqueue_script( 'fido-u2f-login', plugins_url( 'js/fido-u2f-login.js', __FILE__ ), array( 'jquery', 'u2f-api' ), null, true );
 	}
 
 	/**
@@ -99,19 +104,9 @@ class Two_Factor_FIDO_U2F extends Two_Factor_Provider {
 		<p><?php esc_html_e( 'Now insert (and tap) your Security Key.' ); ?></p>
 		<input type="hidden" name="u2f_response" id="u2f_response" />
 		<script>
-			var request = <?php echo wp_json_encode( $data ); ?>;
-			setTimeout(function() {
-				console.log("sign: ", request);
-
-				u2f.sign(request, function(data) {
-					console.log("Authenticate callback", data);
-
-					var form = document.getElementById('loginform');
-					var field = document.getElementById('u2f_response');
-					field.value = JSON.stringify(data);
-					form.submit();
-				});
-			}, 1000);
+			var u2fL10n = <?php echo wp_json_encode( array(
+				'request' => $data,
+			) ); ?>;
 		</script>
 		<?php
 	}
@@ -259,11 +254,11 @@ class Two_Factor_FIDO_U2F extends Two_Factor_Provider {
 			return false;
 		}
 
-		$keys = get_user_meta( $user_id, self::REGISTERED_KEY_USER_META_KEY );
+		$keys = self::get_security_keys( $user_id );
 		if ( $keys ) {
-			foreach ( $keys as $index => $key ) {
-				if ( $key['keyHandle'] === $data->keyHandle ) {
-					return update_user_meta( $user_id, self::REGISTERED_KEY_USER_META_KEY, (array) $data, $key );
+			foreach ( $keys as $key ) {
+				if ( $key->keyHandle === $data->keyHandle ) {
+					return update_user_meta( $user_id, self::REGISTERED_KEY_USER_META_KEY, (array) $data, (array) $key );
 				}
 			}
 		}
