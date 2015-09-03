@@ -16,10 +16,15 @@ class Tests_Two_Factor_FIDO_U2F extends WP_UnitTestCase {
 	function setUp() {
 		parent::setUp();
 
-		require_once('includes/Yubico/U2F.php');
-		$this->u2f = new u2flib_server\U2F( "http://demo.example.com" );
+		try {
+			require_once('includes/Yubico/U2F.php');
 
-		$this->provider = Two_Factor_FIDO_U2F::get_instance();
+			$this->u2f = new u2flib_server\U2F( "http://demo.example.com" );
+
+			$this->provider = Two_Factor_FIDO_U2F::get_instance();
+		} catch ( Exception $e ) {
+			$this->markTestSkipped( 'Could not create U2F provider!' );
+		}
 	}
 
 	/**
