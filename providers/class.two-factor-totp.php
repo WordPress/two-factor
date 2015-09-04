@@ -35,6 +35,7 @@ class Two_Factor_Totp extends Two_Factor_Provider {
 	protected function __construct() {
 		add_action( 'admin_enqueue_scripts',                array( $this, 'enqueue_assets' ) );
 		add_action( 'wp_ajax_two-factor-totp-get-code',     array( $this, 'ajax_new_code' ) );
+		add_action( 'wp_ajax_two-factor-totp-verify-code',  array( $this, 'ajax_verify_code' ) );
 		add_action( 'two-factor-user-options-' . __CLASS__, array( $this, 'user_two_factor_options' ) );
 		add_action( 'personal_options_update',              array( $this, 'user_two_factor_options_update' ) );
 		add_action( 'edit_user_profile_update',             array( $this, 'user_two_factor_options_update' ) );
@@ -108,7 +109,8 @@ class Two_Factor_Totp extends Two_Factor_Provider {
 				<p><?php esc_html_e( 'Please scan the QR code or manually enter the secret, then enter an authentication code from your app in order to complete setup' ); ?></p>
 				<label for="two-factor-totp-authcode"><?php esc_html_e( 'Authentication Code:' ); ?></label>
 				<input type="hidden" name="two-factor-totp-key" id="two-factor-totp-key" value="<?php echo esc_attr( $key ) ?>" />
-				<input type="tel" name="two-factor-totp-authcode" id="two-factor-totp-authcode" class="input" value="" size="20" pattern="[0-9]*" />
+				<input type="tel" name="two-factor-totp-authcode" id="two-factor-totp-authcode" autocomplete="off" class="input" value="" size="20" pattern="[0-9]*" />
+				<button id="two-factor-totp-verify-authcode" class="button button-two-factor-totp-verify-code button-secondary hide-if-no-js"><?php esc_html_e( 'Verify' ); ?></button>
 			</div>
 			<button id="two-factor-totp-new-secret" class="button button-two-factor-totp-new-secret button-secondary hide-if-no-js"><?php esc_html_e( 'Generate new secret' ); ?></button>
 		</div>
@@ -157,6 +159,28 @@ class Two_Factor_Totp extends Two_Factor_Provider {
 		$return['key'] = $this->generate_key();
 		$return['qrcode_url'] = $this->get_google_qr_code( $site_name . ':' . $_POST['user_login'], $return['key'], $site_name );
 		wp_send_json_success( $return );
+	}
+
+	public function ajax_verify_code() {
+		check_ajax_referer( 'user_two_factor_totp_options', '_nonce_user_two_factor_totp_options' );
+		if ( ! current_user_can( 'edit_user', $_POST['user_id'] ) ) {
+			wp_send_json_error( __('You do not have permission to edit this user.') );
+		}
+
+		if ( $this->_is_valid_authcode( $_POST['key'], $_POST['authcode'] ) ) {
+			if ( ! update_user_meta( $_POST['user_id'], self::SECRET_META_KEY, $_POST['key'] ) ) {
+				wp_send_json_error( __( 'Unable to save two factor secret.' ) );
+			}
+			wp_send_json_success( __( 'Success!' ) );
+		} else {
+			wp_send_json_error( __('The code you supplied is not valid.') );
+		}
+
+		$site_name = get_bloginfo( 'name', 'display' );
+		$return = array();
+		$return['key'] = $this->generate_key();
+		$return['qrcode_url'] = $this->get_google_qr_code( $site_name . ':' . $_POST['user_login'], $return['key'], $site_name );
+		wp_send_json( $return );
 	}
 
 	/**
