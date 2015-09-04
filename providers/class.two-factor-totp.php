@@ -156,7 +156,7 @@ class Two_Factor_Totp extends Two_Factor_Provider {
 		$return = array();
 		$return['key'] = $this->generate_key();
 		$return['qrcode_url'] = $this->get_google_qr_code( $site_name . ':' . $_POST['user_login'], $return['key'], $site_name );
-		wp_send_json( $return );
+		wp_send_json_success( $return );
 	}
 
 	/**

@@ -16,13 +16,12 @@
 
 		$.post( ajaxurl, data,
 			function(r) {
-				console.log( 'r', r );
-				console.log( 'data', data );
-				console.log( 'this', this );
-				$( '#two-factor-totp-qrcode' ).attr( 'src', r.qrcode_url );
-				$( '#two-factor-totp-key' ).val( r.key );
-				$( '#two-factor-totp-key-text' ).html( r.key );
-				$( '#two-factor-totp-verify-code' ).show();
+				if ( r.success ) {
+					$( '#two-factor-totp-qrcode' ).attr( 'src', r.data.qrcode_url );
+					$( '#two-factor-totp-key' ).val( r.data.key );
+					$( '#two-factor-totp-key-text' ).html( r.data.key );
+					$( '#two-factor-totp-verify-code' ).show();
+				}
 				// Remove the clicked class so the button will work again.
 				$button.removeClass( 'clicked' );
 			}
