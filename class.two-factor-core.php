@@ -63,7 +63,7 @@ class Two_Factor_Core {
 		// FIDO U2F is PHP 5.3+ only.
 		if ( version_compare( PHP_VERSION, '5.3.0', '<' ) ) {
 			unset( $providers['Two_Factor_FIDO_U2F'] );
-			trigger_error( sprintf(
+			trigger_error( sprintf( // WPCS: XSS OK.
 				__( 'FIDO U2F is not available because you are using PHP %s. (Requires 5.3 or greater)' ),
 				PHP_VERSION
 			) );
