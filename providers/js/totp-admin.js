@@ -1,5 +1,5 @@
 ( function( $ ) {
-	var $button = $( '#two-factor-new-code' );
+	var $button = $( '#two-factor-totp-new-secret' );
 
 	$button.on( 'click.two-factor-totp-new-code', function( e ) {
 		if( $button.hasClass( 'clicked' ) ) {
