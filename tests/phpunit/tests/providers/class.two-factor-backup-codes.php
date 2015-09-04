@@ -30,7 +30,7 @@ class Tests_Two_Factor_Backup_Codes extends WP_UnitTestCase {
 	 * @covers Two_Factor_Backup_Codes::get_label
 	 */
 	function test_get_label() {
-		$this->assertContains( 'Backup Verification Codes (Single Use)', $this->provider->get_label() );
+		$this->assertContains( 'Backup Verification Codes', $this->provider->get_label() );
 	}
 
 	/**
@@ -87,13 +87,25 @@ class Tests_Two_Factor_Backup_Codes extends WP_UnitTestCase {
 	 * Verify that a validated code can't revalidate for a user.
 	 * @covers Two_Factor_Backup_Codes::generate_codes
 	 * @covers Two_Factor_Backup_Codes::validate_code
-	 * @covers Two_Factor_Backup_Codes::delete_code
 	 */
 	function test_generate_code_and_validate_code_false_validated() {
 		$user = new WP_User( $this->factory->user->create() );
 		$codes = $this->provider->generate_codes( $user, array( 'number' => 1 ) );
 		$validate = $this->provider->validate_code( $user, $codes[0] );
 		$this->assertFalse( $this->provider->validate_code( $user, $codes[0] ) );
+	}
+
+	/**
+	 * Show that validate_code fails for a different user's code.
+	 * @covers Two_Factor_Email::generate_token
+	 * @covers Two_Factor_Email::validate_token
+	 */
+	function test_generate_code_and_validate_code_false_different_users() {
+		$user = new WP_User( $this->factory->user->create() );
+		$user2 = new WP_User( $this->factory->user->create() );
+		$codes = $this->provider->generate_codes( $user, array( 'number' => 1 ) );
+		$codes2 = $this->provider->generate_codes( $user2, array( 'number' => 1 ) );
+		$this->assertFalse( $this->provider->validate_code( $user2, $codes[0] ) );
 	}
 
 }

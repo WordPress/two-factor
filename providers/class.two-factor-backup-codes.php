@@ -273,10 +273,12 @@ class Two_Factor_Backup_Codes extends Two_Factor_Provider {
 	public function validate_code( $user, $code ) {
 		$backup_codes = get_user_meta( $user->ID, self::BACKUP_CODES_META_KEY, true );
 
-		foreach ( $backup_codes as $code_index => $code_hashed ) {
-			if ( wp_check_password( $code, $code_hashed, $user->ID ) ) {
-				$this->delete_code( $user, $code_hashed );
-				return true;
+		if( is_array( $backup_codes ) && ! empty( $backup_codes ) ) {
+			foreach ( $backup_codes as $code_index => $code_hashed ) {
+				if ( wp_check_password( $code, $code_hashed, $user->ID ) ) {
+					$this->delete_code( $user, $code_hashed );
+					return true;
+				}
 			}
 		}
 		return false;
