@@ -63,8 +63,24 @@ class Tests_Two_Factor_Backup_Codes extends WP_UnitTestCase {
 	 */
 	function test_is_available_for_user() {
 		$user = new WP_User( $this->factory->user->create() );
-		$code = $this->provider->generate_codes( $user );
+		$codes = $this->provider->generate_codes( $user );
 		$this->assertTrue( $this->provider->is_available_for_user( $user ) );
+	}
+
+
+	/**
+	 * Verify that codes generate and are validate.
+	 * @covers Two_Factor_Backup_Codes::generate_codes
+	 * @covers Two_Factor_Backup_Codes::validate_code
+	 * @covers Two_Factor_Backup_Codes::codes_remaining_for_user
+	 */
+	function test_generate_codes_and_validate_codes() {
+		$user = new WP_User( $this->factory->user->create() );
+		$codes = $this->provider->generate_codes( $user );
+		foreach( $codes as $code ) {
+			$this->assertTrue( $this->provider->validate_code( $user, $code ) );
+		}
+		$this->assertEquals( $this->provider->codes_remaining_for_user( $user ), 0 );
 	}
 
 }
