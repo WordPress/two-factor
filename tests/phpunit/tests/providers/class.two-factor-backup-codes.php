@@ -84,7 +84,7 @@ class Tests_Two_Factor_Backup_Codes extends WP_UnitTestCase {
 	}
 
 	/**
-	 * Verify that a validated code can't revalidate for a user.
+	 * Verify that a validated code can't resued by a user.
 	 * @covers Two_Factor_Backup_Codes::generate_codes
 	 * @covers Two_Factor_Backup_Codes::validate_code
 	 */
