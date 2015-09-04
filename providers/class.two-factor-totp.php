@@ -33,6 +33,8 @@ class Two_Factor_Totp extends Two_Factor_Provider {
 	 * Class constructor. Sets up hooks, etc.
 	 */
 	protected function __construct() {
+		add_action( 'admin_enqueue_scripts',                array( $this, 'enqueue_assets' ) );
+		add_action( 'wp_ajax_two-factor-totp-get-code',     array( $this, 'ajax_new_code' ) );
 		add_action( 'two-factor-user-options-' . __CLASS__, array( $this, 'user_two_factor_options' ) );
 		add_action( 'personal_options_update',              array( $this, 'user_two_factor_options_update' ) );
 		add_action( 'edit_user_profile_update',             array( $this, 'user_two_factor_options_update' ) );
@@ -59,6 +61,23 @@ class Two_Factor_Totp extends Two_Factor_Provider {
 	}
 
 	/**
+	 * Enqueue assets.
+	 *
+	 * @since 0.1-dev
+	 *
+	 * @access public
+	 *
+	 * @param string $hook Current page.
+	 */
+	public function enqueue_assets( $hook ) {
+		if ( ! in_array( $hook, array( 'user-edit.php', 'profile.php' ) ) ) {
+			return;
+		}
+
+		wp_enqueue_script( 'two-factor-totp-admin', plugins_url( 'js/totp-admin.js', __FILE__ ), array( 'jquery' ), null, true );
+	}
+
+	/**
 	 * Display TOTP options on the user settings page.
 	 *
 	 * @param WP_User $user The current user being edited.
@@ -71,21 +90,27 @@ class Two_Factor_Totp extends Two_Factor_Provider {
 		<br />
 		<a href="javascript:;" onclick="jQuery('#two-factor-totp-options').toggle();"><?php esc_html_e( 'View Options &rarr;' ); ?></a>
 		<div id="two-factor-totp-options" style="display:none;">
-			<?php if ( empty( $key ) ) :
+			<?php
+			if ( empty( $key ) ) {
 				$key = $this->generate_key();
-				$site_name = get_bloginfo( 'name', 'display' );
+				$enabled = false;
+			} else {
+				$enabled = true;
 				?>
-				<img src="<?php echo esc_url( $this->get_google_qr_code( $site_name . ':' . $user->user_login, $key, $site_name ) ); ?>" id="two-factor-totp-qrcode" />
-				<p><strong><?php echo esc_html( $key ); ?></strong></p>
-				<p><?php esc_html_e( 'Please scan the QR code or manually enter the key, then enter an authentication code from your app in order to complete setup' ); ?></p>
-				<p>
-					<label for="two-factor-totp-authcode"><?php esc_html_e( 'Authentication Code:' ); ?></label>
-					<input type="hidden" name="two-factor-totp-key" value="<?php echo esc_attr( $key ) ?>" />
-					<input type="tel" name="two-factor-totp-authcode" id="two-factor-totp-authcode" class="input" value="" size="20" pattern="[0-9]*" />
-				</p>
-			<?php else : ?>
-				<p class="success"><?php esc_html_e( 'Enabled' ); ?></p>
-			<?php endif; ?>
+				<p class="success"><?php esc_html_e( 'This is already successfully enabled. To add another device, rescan this code. You can also use the "Generate new secret" button to generate a new secret to use. Successfully verifying a code with a new secret will invalidate all codes generated with the old one.' ); ?></p>
+				<?php
+			}
+			$site_name = get_bloginfo( 'name', 'display' );
+			?>
+			<img src="<?php echo esc_url( $this->get_google_qr_code( $site_name . ':' . $user->user_login, $key, $site_name ) ); ?>" id="two-factor-totp-qrcode" />
+			<p>Secret: <strong id="two-factor-totp-key-text"><?php echo esc_html( $key ); ?></strong></p>
+			<div id="two-factor-totp-verify-code"<?php if ( $enabled ) { echo ' style="display: none;"'; } ?>>
+				<p><?php esc_html_e( 'Please scan the QR code or manually enter the secret, then enter an authentication code from your app in order to complete setup' ); ?></p>
+				<label for="two-factor-totp-authcode"><?php esc_html_e( 'Authentication Code:' ); ?></label>
+				<input type="hidden" name="two-factor-totp-key" id="two-factor-totp-key" value="<?php echo esc_attr( $key ) ?>" />
+				<input type="tel" name="two-factor-totp-authcode" id="two-factor-totp-authcode" class="input" value="" size="20" pattern="[0-9]*" />
+			</div>
+			<button id="two-factor-new-code"><?php esc_html_e( 'Generate new secret' ); ?></button>
 		</div>
 		<?php
 	}
@@ -123,6 +148,15 @@ class Two_Factor_Totp extends Two_Factor_Provider {
 				update_user_meta( $user_id, self::NOTICES_META_KEY, $notices );
 			}
 		}
+	}
+
+	public function ajax_new_code() {
+		check_ajax_referer( 'user_two_factor_totp_options', '_nonce_user_two_factor_totp_options' );
+		$site_name = get_bloginfo( 'name', 'display' );
+		$return = array();
+		$return['key'] = $this->generate_key();
+		$return['qrcode_url'] = $this->get_google_qr_code( $site_name . ':' . $_POST['user_login'], $return['key'], $site_name );
+		wp_send_json( $return );
 	}
 
 	/**
