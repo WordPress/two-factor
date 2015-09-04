@@ -101,7 +101,7 @@ class Tests_Two_Factor_Backup_Codes extends WP_UnitTestCase {
 
 	/**
 	 * Show that validate_code fails for a different user's code.
-	 * @covers Two_Factor_Backup_Codes::generate_code
+	 * @covers Two_Factor_Backup_Codes::generate_codes
 	 * @covers Two_Factor_Backup_Codes::validate_code
 	 */
 	function test_generate_code_and_validate_code_false_different_users() {
