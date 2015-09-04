@@ -108,8 +108,9 @@ class Tests_Two_Factor_Backup_Codes extends WP_UnitTestCase {
 		$user = new WP_User( $this->factory->user->create() );
 		$codes = $this->provider->generate_codes( $user, array( 'number' => 1 ) );
 
-		$codes2 = $this->provider->generate_codes( $user2, array( 'number' => 1 ) );
 		$user2 = new WP_User( $this->factory->user->create() );
+		$codes2 = $this->provider->generate_codes( $user2, array( 'number' => 1 ) );
+
 
 		$this->assertFalse( $this->provider->validate_code( $user2, $codes[0] ) );
 	}
