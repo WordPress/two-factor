@@ -53,7 +53,9 @@ class Tests_Two_Factor_Backup_Codes extends WP_UnitTestCase {
 		$user = new WP_User( $this->factory->user->create() );
 		$code = $this->provider->generate_codes( $user, array( 'number' => 1 ) );
 		$_POST['two-factor-backup-code'] = $code[0];
+
 		$this->assertTrue( $this->provider->validate_authentication( $user ) );
+
 		unset( $_POST['two-factor-backup-code'] );
 	}
 
@@ -64,6 +66,7 @@ class Tests_Two_Factor_Backup_Codes extends WP_UnitTestCase {
 	function test_is_available_for_user() {
 		$user = new WP_User( $this->factory->user->create() );
 		$codes = $this->provider->generate_codes( $user );
+
 		$this->assertTrue( $this->provider->is_available_for_user( $user ) );
 	}
 
@@ -92,6 +95,7 @@ class Tests_Two_Factor_Backup_Codes extends WP_UnitTestCase {
 		$user = new WP_User( $this->factory->user->create() );
 		$codes = $this->provider->generate_codes( $user, array( 'number' => 1 ) );
 		$validate = $this->provider->validate_code( $user, $codes[0] );
+
 		$this->assertFalse( $this->provider->validate_code( $user, $codes[0] ) );
 	}
 
@@ -102,9 +106,11 @@ class Tests_Two_Factor_Backup_Codes extends WP_UnitTestCase {
 	 */
 	function test_generate_code_and_validate_code_false_different_users() {
 		$user = new WP_User( $this->factory->user->create() );
-		$user2 = new WP_User( $this->factory->user->create() );
 		$codes = $this->provider->generate_codes( $user, array( 'number' => 1 ) );
+
 		$codes2 = $this->provider->generate_codes( $user2, array( 'number' => 1 ) );
+		$user2 = new WP_User( $this->factory->user->create() );
+
 		$this->assertFalse( $this->provider->validate_code( $user2, $codes[0] ) );
 	}
 
