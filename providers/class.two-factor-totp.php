@@ -110,7 +110,7 @@ class Two_Factor_Totp extends Two_Factor_Provider {
 				<input type="hidden" name="two-factor-totp-key" id="two-factor-totp-key" value="<?php echo esc_attr( $key ) ?>" />
 				<input type="tel" name="two-factor-totp-authcode" id="two-factor-totp-authcode" class="input" value="" size="20" pattern="[0-9]*" />
 			</div>
-			<button id="two-factor-new-code"><?php esc_html_e( 'Generate new secret' ); ?></button>
+			<button id="two-factor-new-code" class="button button-two-factor-totp-new-secret button-secondary hide-if-no-js"><?php esc_html_e( 'Generate new secret' ); ?></button>
 		</div>
 		<?php
 	}
