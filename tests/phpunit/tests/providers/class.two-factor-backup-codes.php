@@ -83,4 +83,17 @@ class Tests_Two_Factor_Backup_Codes extends WP_UnitTestCase {
 		$this->assertEquals( $this->provider->codes_remaining_for_user( $user ), 0 );
 	}
 
+	/**
+	 * Show that a validated code can't revalidate for a user.
+	 * @covers Two_Factor_Backup_Codes::generate_codes
+	 * @covers Two_Factor_Backup_Codes::validate_code
+	 * @covers Two_Factor_Backup_Codes::delete_code
+	 */
+	function test_generate_code_and_validate_code_false_validated() {
+		$user = new WP_User( $this->factory->user->create() );
+		$codes = $this->provider->generate_codes( $user, array( 'number' => 1 ) );
+		$validate = $this->provider->validate_code( $user, $codes[0] );
+		$this->assertFalse( $this->provider->validate_code( $user, $codes[0] ) );
+	}
+
 }
