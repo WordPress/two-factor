@@ -16,6 +16,10 @@ class Tests_Two_Factor_FIDO_U2F extends WP_UnitTestCase {
 	function setUp() {
 		parent::setUp();
 
+		if ( version_compare( phpversion(), '5.3.0', '<' ) ) {
+			$this->markTestSkipped( 'FIDO U2F support is PHP 5.3+ only.' );
+		}
+
 		try {
 			require_once('includes/Yubico/U2F.php');
 
