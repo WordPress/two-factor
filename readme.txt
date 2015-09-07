@@ -1,26 +1,23 @@
 === Two-Factor ===
-Contributors: georgestephanis
-Tags: two factor, authentication, login, two factor authentication
-Requires at least: 4.0
-Tested up to: 4.0
+Contributors: georgestephanis, valendesigns, stevenkword, extendwings, sgrant, aaroncampbell, johnbillion, stevegrunwell, netweb
+Tags: two factor, two step, authentication, login, totp, fido u2f, email, backup codes, 2fa
+Requires at least: 4.3
+Tested up to: 4.4
 Stable tag: trunk
 
-A prototype extensible core to enable Two-Factor Authentication.
+A feature plugin for core to provide Two-Factor Authentication.
 
 == Description ==
 
-For more info, see: http://stephanis.info/2013/08/14/two-cents-on-two-factor/
+In order to better combat brute force login attempts and stolen passwords, WordPress needs a standardized-yet-extensible core system for providing opt-in Two-Factor Authentication to users.  This, hopefully, is that system.
+
+We are aiming to be ready to merge in to Core in February of 2016, during the 4.5 release cycle.
+
+For more history, see: http://stephanis.info/2013/08/14/two-cents-on-two-factor/
 
 == Get Involved ==
 
-Weekly meetings are Thursdays at 5pm Eastern Time in #core-passwords on wordpress.slack.com
+Active development is taking place on GitHub, at https://github.com/georgestephanis/two-factor/
 
-== Developers ==
+Weekly meetings are Thursdays at 5pm Eastern Time in the #core-passwords channel on http://wordpress.slack.com/ -- if you don't have a Slack account, sign up at http://chat.wordpress.org/
 
-If you'd like to create your own two-factor provider, take a look at the (tentatively bundled) Dummy class (providers/class.two-factor-dummy.php).  All providers behave as Singletons (currently) storing the instance as a static in the `get_instance()` method.  All providers are currently child classes of the `Two_Factor_Provider` class as well, and you must write three methods (at minimum):
-
-* `get_label()` -- It returns the unescaped human readable name of your method.
-* `authentication_page()` -- It prints out the contents of the `<form>` that displays as the interstitial login page.
-* `validate_authentication()` -- It processes the submission from the interstitial login page, and returns either `true` or `false` for whether the user has passed the check.
-
-There's also some more details in the GitHub Repository Wiki.
