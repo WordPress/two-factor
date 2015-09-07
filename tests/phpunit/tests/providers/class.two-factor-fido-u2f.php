@@ -23,9 +23,9 @@ class Tests_Two_Factor_FIDO_U2F extends WP_UnitTestCase {
 		}
 
 		try {
-			require_once( 'tests/phpunit/includes/u2f.php' );
+			require_once( 'includes/Yubico/U2F.php' );
 
-			$this->u2f = Yubico_U2F_Wrapper::get( 'http://demo.example.com' );
+			$this->u2f = new u2flib_server\U2F( 'http://demo.example.com' );
 
 			$this->provider = Two_Factor_FIDO_U2F::get_instance();
 		} catch ( Exception $e ) {
