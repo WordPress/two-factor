@@ -12,6 +12,8 @@
 	<testsuites>
 		<testsuite>
 			<directory suffix=".php">tests/phpunit/tests</directory>
+			<exclude>tests/phpunit/tests/providers/class.two-factor-fido-u2f.php</exclude>
+			<file phpVersion="5.3.0">tests/phpunit/tests/providers/class.two-factor-fido-u2f.php</file>
 		</testsuite>
 	</testsuites>
 	<filter>
