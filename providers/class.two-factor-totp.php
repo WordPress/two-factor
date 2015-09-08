@@ -114,7 +114,6 @@ class Two_Factor_Totp extends Two_Factor_Provider {
 			if ( empty( $_POST['two-factor-totp-authcode'] ) ) {
 				$notices['error'][] = __( 'Two Factor Authentication not activated, you must specify authcode to ensure it is properly set up. Please re-scan the QR code and enter the code provided by your application.' );
 			} else {
-
 				if ( $this->_is_valid_authcode( $_POST['two-factor-totp-key'], $_POST['two-factor-totp-authcode'] ) ) {
 					if ( ! update_user_meta( $user_id, self::SECRET_META_KEY, $_POST['two-factor-totp-key'] ) ) {
 						$notices['error'][] = __( 'Unable to save Two Factor Authentication code. Please re-scan the QR code and enter the code provided by your application.' );
@@ -122,7 +121,6 @@ class Two_Factor_Totp extends Two_Factor_Provider {
 				} else {
 					$notices['error'][] = __( 'Two Factor Authentication not activated, the authentication code you entered was not valid. Please re-scan the QR code and enter the code provided by your application.' );
 				}
-
 			}
 
 			if ( ! empty( $notices ) ) {
