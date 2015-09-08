@@ -64,6 +64,10 @@ class Two_Factor_Totp extends Two_Factor_Provider {
 	 * @param WP_User $user The current user being edited.
 	 */
 	public function user_two_factor_options( $user ) {
+		if ( ! isset( $user->ID ) ) {
+			return false;
+		}
+
 		wp_nonce_field( 'user_two_factor_totp_options', '_nonce_user_two_factor_totp_options', false );
 		$key = get_user_meta( $user->ID, self::SECRET_META_KEY, true );
 		$this->admin_notices();
@@ -71,7 +75,7 @@ class Two_Factor_Totp extends Two_Factor_Provider {
 		<br />
 		<a href="javascript:;" onclick="jQuery('#two-factor-totp-options').toggle();"><?php esc_html_e( 'View Options &rarr;' ); ?></a>
 		<div id="two-factor-totp-options" style="display:none;">
-			<?php if ( empty( $key ) ) :
+			<?php if ( empty( $key ) ) {
 				$key = $this->generate_key();
 				$site_name = get_bloginfo( 'name', 'display' );
 				?>
@@ -83,9 +87,9 @@ class Two_Factor_Totp extends Two_Factor_Provider {
 					<input type="hidden" name="two-factor-totp-key" value="<?php echo esc_attr( $key ) ?>" />
 					<input type="tel" name="two-factor-totp-authcode" id="two-factor-totp-authcode" class="input" value="" size="20" pattern="[0-9]*" />
 				</p>
-			<?php else : ?>
+			<?php } else { ?>
 				<p class="success"><?php esc_html_e( 'Enabled' ); ?></p>
-			<?php endif; ?>
+			<?php } ?>
 		</div>
 		<?php
 	}
@@ -101,22 +105,24 @@ class Two_Factor_Totp extends Two_Factor_Provider {
 
 			$current_key = get_user_meta( $user_id, self::SECRET_META_KEY, true );
 			// If the key hasn't changed or is invalid, do nothing.
-			if ( $current_key === $_POST['two-factor-totp-key'] || ! preg_match( '/^[' . $this->_base_32_chars . ']+$/', $_POST['two-factor-totp-key'] ) ) {
-				return;
+			if ( ! isset( $_POST['two-factor-totp-key'] ) || $current_key === $_POST['two-factor-totp-key'] || ! preg_match( '/^[' . $this->_base_32_chars . ']+$/', $_POST['two-factor-totp-key'] ) ) {
+				return false;
 			}
 
 			$notices = array();
 
 			if ( empty( $_POST['two-factor-totp-authcode'] ) ) {
 				$notices['error'][] = __( 'Two Factor Authentication not activated, you must specify authcode to ensure it is properly set up. Please re-scan the QR code and enter the code provided by your application.' );
-			}
-
-			if ( $this->_is_valid_authcode( $_POST['two-factor-totp-key'], $_POST['two-factor-totp-authcode'] ) ) {
-				if ( ! update_user_meta( $user_id, self::SECRET_META_KEY, $_POST['two-factor-totp-key'] ) ) {
-					$notices['error'][] = __( 'Unable to save Two Factor Authentication code. Please re-scan the QR code and enter the code provided by your application.' );
-				}
 			} else {
-				$notices['error'][] = __( 'Two Factor Authentication not activated, the authentication code you entered was not valid. Please re-scan the QR code and enter the code provided by your application.' );
+
+				if ( $this->_is_valid_authcode( $_POST['two-factor-totp-key'], $_POST['two-factor-totp-authcode'] ) ) {
+					if ( ! update_user_meta( $user_id, self::SECRET_META_KEY, $_POST['two-factor-totp-key'] ) ) {
+						$notices['error'][] = __( 'Unable to save Two Factor Authentication code. Please re-scan the QR code and enter the code provided by your application.' );
+					}
+				} else {
+					$notices['error'][] = __( 'Two Factor Authentication not activated, the authentication code you entered was not valid. Please re-scan the QR code and enter the code provided by your application.' );
+				}
+
 			}
 
 			if ( ! empty( $notices ) ) {
@@ -248,7 +254,7 @@ class Two_Factor_Totp extends Two_Factor_Provider {
 	 *
 	 * @return string The totp code
 	 */
-	private function calc_totp( $key, $step_count = false, $digits = self::DEFAULT_DIGIT_COUNT, $hash = self::DEFAULT_CRYPTO, $time_step = self::DEFAULT_TIME_STEP_SEC ) {
+	public function calc_totp( $key, $step_count = false, $digits = self::DEFAULT_DIGIT_COUNT, $hash = self::DEFAULT_CRYPTO, $time_step = self::DEFAULT_TIME_STEP_SEC ) {
 		$secret = $this->base32_decode( $key );
 
 		if ( false === $step_count ) {
