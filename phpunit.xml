@@ -1,6 +1,6 @@
-<phpunit 
+<phpunit
 	bootstrap="tests/phpunit/includes/bootstrap.php"
-	backupGlobals="false" 
+	backupGlobals="false"
 	colors="true"
 	convertErrorsToExceptions="true"
 	convertNoticesToExceptions="true"
@@ -13,6 +13,7 @@
 		<testsuite>
 			<file>tests/phpunit/tests/two-factor.php</file>
 			<file>tests/phpunit/tests/providers/class.two-factor-dummy.php</file>
+			<file>tests/phpunit/tests/providers/class.two-factor-backup-codes.php</file>
 			<!-- This test fails in PHP 5.2. FIDO U2F support is PHP 5.3+ only. -->
 			<file phpVersion="5.3.0" phpVersionOperator=">=">tests/phpunit/tests/providers/class.two-factor-fido-u2f.php</file>
 		</testsuite>
