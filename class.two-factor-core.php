@@ -583,6 +583,14 @@ class Two_Factor_Core {
 			</tr>
 		</table>
 		<?php
+		/**
+		 * Fires after the Two Factor methods table.
+		 *
+		 * To be used by Two Factor methods to add settings UI.
+		 *
+		 * @since 0.1-dev
+		 */
+		do_action( 'show_user_security_settings' );
 	}
 
 	/**

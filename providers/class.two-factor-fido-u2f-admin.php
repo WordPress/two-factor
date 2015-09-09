@@ -23,13 +23,12 @@ class Two_Factor_FIDO_U2F_Admin {
 	 * @static
 	 */
 	public static function add_hooks() {
-		add_action( 'admin_enqueue_scripts',    array( __CLASS__, 'enqueue_assets' ) );
-		add_action( 'show_user_profile',        array( __CLASS__, 'show_user_profile' ) );
-		add_action( 'edit_user_profile',        array( __CLASS__, 'show_user_profile' ) );
-		add_action( 'personal_options_update',  array( __CLASS__, 'catch_submission' ), 0 );
-		add_action( 'edit_user_profile_update', array( __CLASS__, 'catch_submission' ), 0 );
-		add_action( 'load-profile.php',         array( __CLASS__, 'catch_delete_security_key' ) );
-		add_action( 'load-user-edit.php',       array( __CLASS__, 'catch_delete_security_key' ) );
+		add_action( 'admin_enqueue_scripts',       array( __CLASS__, 'enqueue_assets' ) );
+		add_action( 'show_user_security_settings', array( __CLASS__, 'show_user_profile' ) );
+		add_action( 'personal_options_update',     array( __CLASS__, 'catch_submission' ), 0 );
+		add_action( 'edit_user_profile_update',    array( __CLASS__, 'catch_submission' ), 0 );
+		add_action( 'load-profile.php',            array( __CLASS__, 'catch_delete_security_key' ) );
+		add_action( 'load-user-edit.php',          array( __CLASS__, 'catch_delete_security_key' ) );
 	}
 
 	/**
@@ -81,7 +80,7 @@ class Two_Factor_FIDO_U2F_Admin {
 	/**
 	 * Display the security key section in a users profile.
 	 *
-	 * This executes during the `show_user_profile` & `edit_user_profile` actions.
+	 * This executes during the `show_user_security_settings` action.
 	 *
 	 * @since 0.1-dev
 	 *
