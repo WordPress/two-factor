@@ -303,6 +303,7 @@ class Two_Factor_Core {
 
 		$available_providers = self::get_available_providers_for_user( $user );
 		$backup_providers = array_diff_key( $available_providers, array( $provider_class => null ) );
+		$interim_login = isset( $_REQUEST['interim-login'] );
 
 		$rememberme = 0;
 		if ( isset( $_REQUEST['rememberme'] ) && $_REQUEST['rememberme'] ) {
@@ -320,7 +321,11 @@ class Two_Factor_Core {
 				<input type="hidden" name="provider"      id="provider"      value="<?php echo esc_attr( $provider_class ); ?>" />
 				<input type="hidden" name="wp-auth-id"    id="wp-auth-id"    value="<?php echo esc_attr( $user->ID ); ?>" />
 				<input type="hidden" name="wp-auth-nonce" id="wp-auth-nonce" value="<?php echo esc_attr( $login_nonce ); ?>" />
-				<input type="hidden" name="redirect_to"   id="redirect_to"   value="<?php echo esc_attr( $redirect_to ); ?>" />
+				<?php   if ( $interim_login ) { ?>
+					<input type="hidden" name="interim-login" value="1" />
+				<?php   } else { ?>
+					<input type="hidden" name="redirect_to" value="<?php echo esc_attr( $redirect_to ); ?>" />
+				<?php   } ?>
 				<input type="hidden" name="rememberme"    id="rememberme"    value="<?php echo esc_attr( $rememberme ); ?>" />
 
 				<?php $provider->authentication_page( $user ); ?>
@@ -492,6 +497,29 @@ class Two_Factor_Core {
 
 		wp_set_auth_cookie( $user->ID, $rememberme );
 
+		// Must be global because that's how login_header() uses it.
+		global $interim_login;
+		$interim_login = isset($_REQUEST['interim-login']);
+
+		if ( $interim_login ) {
+			$customize_login = isset( $_REQUEST['customize-login'] );
+			if ( $customize_login ) {
+				wp_enqueue_script( 'customize-base' );
+			}
+			$message = '<p class="message">' . __('You have logged in successfully.') . '</p>';
+			$interim_login = 'success';
+			login_header( '', $message ); ?>
+			</div>
+			<?php
+			/** This action is documented in wp-login.php */
+			do_action( 'login_footer' ); ?>
+			<?php if ( $customize_login ) : ?>
+				<script type="text/javascript">setTimeout( function(){ new wp.customize.Messenger({ url: '<?php echo wp_customize_url(); ?>', channel: 'login' }).send('login') }, 1000 );</script>
+			<?php endif; ?>
+			</body></html>
+			<?php
+			exit;
+		}
 		$redirect_to = apply_filters( 'login_redirect', $_REQUEST['redirect_to'], $_REQUEST['redirect_to'], $user );
 		wp_safe_redirect( $redirect_to );
 
