@@ -2,6 +2,28 @@
 
 class Test_ClassTwoFactorCore extends WP_UnitTestCase {
 
+	public static function setUpBeforeClass() {
+		parent::setUpBeforeClass();
+
+		set_error_handler( array( 'Test_ClassTwoFactorCore', 'error_handler' ) );
+	}
+
+	public static function tearDownAfterClass() {
+		restore_error_handler();
+
+		parent::tearDownAfterClass();
+	}
+
+	public static function error_handler( $errno, $errstr ) {
+		if ( E_USER_NOTICE != $errno ) {
+			echo 'Received a non-notice error: ' . $errstr;
+
+			return false;
+		}
+
+		return true;
+	}
+
 	/**
 	 * @covers Two_Factor_Core::add_hooks
 	 */
