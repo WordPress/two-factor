@@ -303,7 +303,7 @@ class Two_Factor_Core {
 
 		$available_providers = self::get_available_providers_for_user( $user );
 		$backup_providers = array_diff_key( $available_providers, array( $provider_class => null ) );
-		$interim_login = isset( $_REQUEST['interim-login'] );
+		$interim_login = isset( $_REQUEST['interim-login'] ); // WPCS: override ok.
 
 		$rememberme = 0;
 		if ( isset( $_REQUEST['rememberme'] ) && $_REQUEST['rememberme'] ) {
@@ -499,7 +499,7 @@ class Two_Factor_Core {
 
 		// Must be global because that's how login_header() uses it.
 		global $interim_login;
-		$interim_login = isset( $_REQUEST['interim-login'] );
+		$interim_login = isset( $_REQUEST['interim-login'] ); // WPCS: override ok.
 
 		if ( $interim_login ) {
 			$customize_login = isset( $_REQUEST['customize-login'] );
@@ -507,14 +507,14 @@ class Two_Factor_Core {
 				wp_enqueue_script( 'customize-base' );
 			}
 			$message = '<p class="message">' . __( 'You have logged in successfully.' ) . '</p>';
-			$interim_login = 'success';
+			$interim_login = 'success'; // WPCS: override ok.
 			login_header( '', $message ); ?>
 			</div>
 			<?php
 			/** This action is documented in wp-login.php */
 			do_action( 'login_footer' ); ?>
 			<?php if ( $customize_login ) : ?>
-				<script type="text/javascript">setTimeout( function(){ new wp.customize.Messenger({ url: '<?php echo wp_customize_url(); ?>', channel: 'login' }).send('login') }, 1000 );</script>
+				<script type="text/javascript">setTimeout( function(){ new wp.customize.Messenger({ url: '<?php echo wp_customize_url(); /* WPCS: XSS OK. */ ?>', channel: 'login' }).send('login') }, 1000 );</script>
 			<?php endif; ?>
 			</body></html>
 			<?php
