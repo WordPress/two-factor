@@ -211,7 +211,7 @@ class Application_Passwords {
 
 		$new_item  = array(
 			'name'      => $name,
-		  'raw'       => $new_password, // THIS LINE GETS DELETED IN SUBSEQUENT REQUEST.
+			'raw'       => $new_password, // THIS LINE GETS DELETED IN SUBSEQUENT REQUEST.
 			'password'  => $hashed_password,
 			'created'   => time(),
 			'last_used' => null,
