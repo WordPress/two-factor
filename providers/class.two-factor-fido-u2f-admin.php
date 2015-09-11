@@ -29,6 +29,7 @@ class Two_Factor_FIDO_U2F_Admin {
 		add_action( 'edit_user_profile_update',    array( __CLASS__, 'catch_submission' ), 0 );
 		add_action( 'load-profile.php',            array( __CLASS__, 'catch_delete_security_key' ) );
 		add_action( 'load-user-edit.php',          array( __CLASS__, 'catch_delete_security_key' ) );
+		add_action( 'wp_ajax_inline-save-key',     array( __CLASS__, 'wp_ajax_inline_save' ) );
 	}
 
 	/**
@@ -74,6 +75,10 @@ class Two_Factor_FIDO_U2F_Admin {
 				'insert' => esc_html__( 'Now insert (and tap) your Security Key.' ),
 				'error'  => esc_html__( 'Failed...' ),
 			),
+		) );
+		wp_enqueue_script( 'inline-edit-key', plugins_url( 'js/fido-u2f-admin-inline-edit.js', __FILE__ ), array( 'jquery' ), null, true );
+		wp_localize_script( 'inline-edit-key', 'inlineEditL10n', array(
+			'error' => esc_html__( 'Error while saving the changes.' ),
 		) );
 	}
 
@@ -132,6 +137,7 @@ class Two_Factor_FIDO_U2F_Admin {
 				$u2f_list_table->items = $security_keys;
 				$u2f_list_table->prepare_items();
 				$u2f_list_table->display();
+				$u2f_list_table->inline_edit();
 			?>
 		</div>
 		<?php
@@ -194,6 +200,20 @@ class Two_Factor_FIDO_U2F_Admin {
 		}
 	}
 
+	/**
+	 * Generate a link to rename a specified security key.
+	 *
+	 * @since 0.1-dev
+	 *
+	 * @access public
+	 * @static
+	 *
+	 * @param array $item The current item.
+	 * @return string
+	 */
+	public static function rename_link( $item ) {
+		return sprintf( '<a href="#" class="editinline">%s</a>', esc_html__( 'Rename' ) );
+	}
 
 	/**
 	 * Generate a link to delete a specified security key.
@@ -210,5 +230,46 @@ class Two_Factor_FIDO_U2F_Admin {
 		$delete_link = add_query_arg( 'delete_security_key', $item->keyHandle );
 		$delete_link = wp_nonce_url( $delete_link, "delete_security_key-{$item->keyHandle}", '_nonce_delete_security_key' );
 		return sprintf( '<a href="%1$s">%2$s</a>', esc_url( $delete_link ), esc_html__( 'Delete' ) );
+	}
+
+	/**
+	 * Ajax handler for quick edit saving for a security key.
+	 *
+	 * @since 0.1-dev
+	 *
+	 * @access public
+	 * @static
+	 */
+	public static function wp_ajax_inline_save() {
+		check_ajax_referer( 'keyinlineeditnonce', '_inline_edit' );
+
+		require( TWO_FACTOR_DIR . 'providers/class.two-factor-fido-u2f-admin-list-table.php' );
+		$wp_list_table = new Two_Factor_FIDO_U2F_Admin_List_Table();
+
+		if ( ! isset( $_POST['keyHandle'] ) ) {
+			wp_die();
+		}
+
+		$user_id = get_current_user_id();
+
+		$security_keys = Two_Factor_FIDO_U2F::get_security_keys( $user_id );
+		if ( ! $security_keys ) {
+			wp_die();
+		}
+
+		foreach ( $security_keys as &$key ) {
+			if ( $key->keyHandle === $_POST['keyHandle'] ) {
+				break;
+			}
+		}
+
+		$key->name = $_POST['name'];
+
+		$updated = Two_Factor_FIDO_U2F::update_security_key( $user_id, $key );
+		if ( ! $updated ) {
+			wp_die( esc_html__( 'Item not updated.' ) );
+		}
+		$wp_list_table->single_row( $key );
+		wp_die();
 	}
 }

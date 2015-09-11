@@ -54,10 +54,16 @@ class Two_Factor_FIDO_U2F_Admin_List_Table extends WP_List_Table {
 	protected function column_default( $item, $column_name ) {
 		switch ( $column_name ) {
 			case 'name':
+				$out = '<div class="hidden" id="inline_' . esc_attr( $item->keyHandle ) . '">';
+				$out .= '<div class="name">' . esc_html( $item->name ) . '</div>';
+				$out .= '</div>';
+
 				$actions = array(
+					'rename hide-if-no-js' => Two_Factor_FIDO_U2F_Admin::rename_link( $item ),
 					'delete' => Two_Factor_FIDO_U2F_Admin::delete_link( $item ),
 				);
-				return esc_html( $item->name ) . self::row_actions( $actions );
+
+				return esc_html( $item->name ) . $out . self::row_actions( $actions );
 			case 'added':
 				return date( get_option( 'date_format', 'r' ), $item->added );
 			case 'last_used':
@@ -89,6 +95,72 @@ class Two_Factor_FIDO_U2F_Admin_List_Table extends WP_List_Table {
 
 			<br class="clear" />
 		</div>
+		<?php
+	}
+
+	/**
+	 * Generates content for a single row of the table
+	 *
+	 * @since 0.1-dev
+	 * @access public
+	 *
+	 * @param object $item The current item.
+	 */
+	public function single_row( $item ) {
+		?>
+		<tr id="key-<?php echo esc_attr( $item->keyHandle ); ?>">
+		<?php $this->single_row_columns( $item ); ?>
+		</tr>
+		<?php
+	}
+
+	/**
+	 * Outputs the hidden row displayed when inline editing
+	 *
+	 * @since 0.1-dev
+	 */
+	public function inline_edit() {
+		?>
+		<form method="get">
+			<table style="display: none">
+				<tbody id="inlineedit">
+					<tr id="inline-edit" class="inline-edit-row" style="display: none">
+						<td colspan="<?php echo esc_attr( $this->get_column_count() ); ?>" class="colspanchange">
+							<fieldset>
+								<div class="inline-edit-col">
+									<h4><?php esc_html_e( 'Quick Edit' ); ?></h4>
+
+									<label>
+										<span class="title"><?php esc_html_e( 'Name' ); ?></span>
+										<span class="input-text-wrap"><input type="text" name="name" class="ptitle" value="" /></span>
+									</label>
+								</div>
+							</fieldset>
+							<?php
+							$core_columns = array( 'name' => true, 'added' => true, 'last_used' => true );
+							list( $columns ) = $this->get_column_info();
+							foreach ( $columns as $column_name => $column_display_name ) {
+								if ( isset( $core_columns[ $column_name ] ) ) {
+									continue;
+								}
+
+								/** This action is documented in wp-admin/includes/class-wp-posts-list-table.php */
+								do_action( 'quick_edit_custom_box', $column_name, 'edit-security-keys' );
+							}
+							?>
+							<p class="inline-edit-save submit">
+								<a href="#inline-edit" class="cancel button-secondary alignleft"><?php esc_html_e( 'Cancel' ); ?></a>
+								<a href="#inline-edit" class="save button-primary alignright"><?php esc_html_e( 'Update' ); ?></a>
+								<span class="spinner"></span>
+								<span class="error" style="display:none;"></span>
+								<?php wp_nonce_field( 'keyinlineeditnonce', '_inline_edit', false ); ?>
+								<br class="clear" />
+							</p>
+						</td>
+					</tr>
+				</tbody>
+			</table>
+		</form>
 		<?php
 	}
 }
