@@ -2,6 +2,8 @@
 
 class Test_ClassTwoFactorCore extends WP_UnitTestCase {
 
+	private $old_user_id;
+
 	public static function setUpBeforeClass() {
 		parent::setUpBeforeClass();
 
@@ -22,6 +24,30 @@ class Test_ClassTwoFactorCore extends WP_UnitTestCase {
 		}
 
 		return true;
+	}
+
+	public function get_dummy_user( $meta_key = array( 'Two_Factor_Dummy' => 'Two_Factor_Dummy' ) ) {
+		$user = new WP_User( $this->factory->user->create() );
+		$this->old_user_id = get_current_user_id();
+		wp_set_current_user( $user->ID );
+
+		$key = '_nonce_user_two_factor_options';
+		$_POST[$key] = wp_create_nonce( 'user_two_factor_options' );
+		$_REQUEST[$key] = $_POST[$key];
+
+		$_POST[Two_Factor_Core::ENABLED_PROVIDERS_USER_META_KEY] = $meta_key;
+
+		Two_Factor_Core::user_two_factor_options_update( $user->ID );
+
+		return $user;
+	}
+
+	public function clean_dummy_user() {
+		unset( $_POST[Two_Factor_Core::ENABLED_PROVIDERS_USER_META_KEY] );
+
+		$key = '_nonce_user_two_factor_options';
+		unset( $_REQUEST[$key] );
+		unset( $_POST[$key] );
 	}
 
 	/**
@@ -57,9 +83,7 @@ class Test_ClassTwoFactorCore extends WP_UnitTestCase {
 	 * @covers Two_Factor_Core::get_providers
 	 */
 	public function test_get_providers_not_empty() {
-		$result = Two_Factor_Core::get_providers();
-
-		$this->assertNotEmpty( $result );
+		$this->assertNotEmpty( Two_Factor_Core::get_providers() );
 	}
 
 	/**
@@ -77,9 +101,7 @@ class Test_ClassTwoFactorCore extends WP_UnitTestCase {
 	 * @covers Two_Factor_Core::get_enabled_providers_for_user
 	 */
 	public function test_get_enabled_providers_for_user_not_logged_in() {
-		$result = Two_Factor_Core::get_enabled_providers_for_user();
-
-		$this->assertEmpty( $result );
+		$this->assertEmpty( Two_Factor_Core::get_enabled_providers_for_user() );
 	}
 
 	/**
@@ -90,11 +112,72 @@ class Test_ClassTwoFactorCore extends WP_UnitTestCase {
 		$old_user_id = get_current_user_id();
 		wp_set_current_user( $user->ID );
 
-		$result = Two_Factor_Core::get_enabled_providers_for_user();
-
-		$this->assertEmpty( $result );
+		$this->assertEmpty( Two_Factor_Core::get_enabled_providers_for_user() );
 
 		wp_set_current_user( $old_user_id );
 	}
 
+	/**
+	 * @covers Two_Factor_Core::get_enabled_providers_for_user
+	 * @covers Two_Factor_Core::get_available_providers_for_user
+	 * @covers Two_Factor_Core::user_two_factor_options_update
+	 */
+	public function test_get_enabled_providers_for_user_logged_in_and_set_provider() {
+		$user = $this->get_dummy_user();
+
+		$this->assertCount( 1, Two_Factor_Core::get_available_providers_for_user( $user->ID ) );
+		$this->assertCount( 1, Two_Factor_Core::get_enabled_providers_for_user( $user->ID ) );
+
+		wp_set_current_user( $this->old_user_id );
+		$this->clean_dummy_user();
+	}
+
+	/**
+	 * @covers Two_Factor_Core::get_enabled_providers_for_user
+	 * @covers Two_Factor_Core::get_available_providers_for_user
+	 * @covers Two_Factor_Core::user_two_factor_options_update
+	 */
+	public function test_get_enabled_providers_for_user_logged_in_and_set_provider_bad_enabled() {
+		$user = $this->get_dummy_user( 'test_badness' );
+
+		$this->assertEmpty( Two_Factor_Core::get_available_providers_for_user( $user->ID ) );
+		$this->assertEmpty( Two_Factor_Core::get_enabled_providers_for_user( $user->ID ) );
+
+		wp_set_current_user( $this->old_user_id );
+		$this->clean_dummy_user();
+	}
+
+	/**
+	 * @covers Two_Factor_Core::get_available_providers_for_user
+	 */
+	public function test_get_available_providers_for_user_not_logged_in() {
+		$this->assertEmpty( Two_Factor_Core::get_available_providers_for_user() );
+	}
+
+	/**
+	 * @covers Two_Factor_Core::get_available_providers_for_user
+	 */
+	public function test_get_available_providers_for_user_logged_in() {
+		$user = new WP_User( $this->factory->user->create() );
+		$old_user_id = get_current_user_id();
+		wp_set_current_user( $user->ID );
+
+		$this->assertEmpty( Two_Factor_Core::get_available_providers_for_user() );
+
+		wp_set_current_user( $old_user_id );
+	}
+
+	/**
+	 * @covers Two_Factor_Core::get_primary_provider_for_user
+	 */
+	public function test_get_primary_provider_for_user_not_logged_in() {
+		$this->assertEmpty( Two_Factor_Core::get_primary_provider_for_user() );
+	}
+
+	/**
+	 * @covers Two_Factor_Core::is_user_using_two_factor
+	 */
+	public function test_is_user_using_two_factor_not_logged_in() {
+		$this->assertFalse( Two_Factor_Core::is_user_using_two_factor() );
+	}
 }
