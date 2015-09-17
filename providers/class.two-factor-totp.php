@@ -231,7 +231,8 @@ class Two_Factor_Totp extends Two_Factor_Provider {
 	 * @return string Binary packed string.
 	 */
 	private static function pack64( $value ) {
-		if ( version_compare( PHP_VERSION, '5.6.3', '>=' ) ) {
+		// We can use the new 64bit pack functionality if we're on PHP 5.6.3+ in 64bit mode (PHP_INT_SIZE == 8)
+		if ( version_compare( PHP_VERSION, '5.6.3', '>=' ) && PHP_INT_SIZE >= 8 ) {
 			return pack( 'J', $value );
 		}
 		$highmap = 0xffffffff << 32;
