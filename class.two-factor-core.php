@@ -618,7 +618,7 @@ class Two_Factor_Core {
 		 *
 		 * @since 0.1-dev
 		 */
-		do_action( 'show_user_security_settings' );
+		do_action( 'show_user_security_settings', $user );
 	}
 
 	/**
