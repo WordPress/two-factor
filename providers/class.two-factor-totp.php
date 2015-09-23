@@ -285,9 +285,11 @@ class Two_Factor_Totp extends Two_Factor_Provider {
 	 * @return string A URL to use as an img src to display the QR code
 	 */
 	public function get_google_qr_code( $name, $key, $title = null ) {
+		// Pre-encode spaces because iOS chokes on them
+		$name = str_replace( ' ', '%20', $name );
 		$google_url = urlencode( 'otpauth://totp/' . $name . '?secret=' . $key );
 		if ( isset( $title ) ) {
-			$google_url .= urlencode( '&issuer=' . urlencode( $title ) );
+			$google_url .= urlencode( '&issuer=' . rawurlencode( $title ) );
 		}
 		return 'https://chart.googleapis.com/chart?chs=200x200&chld=M|0&cht=qr&chl=' . $google_url;
 	}
