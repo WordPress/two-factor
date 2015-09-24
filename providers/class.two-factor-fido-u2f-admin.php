@@ -66,16 +66,18 @@ class Two_Factor_FIDO_U2F_Admin {
 			return false;
 		}
 
-		wp_localize_script( 'fido-u2f-admin', 'u2fL10n', array(
+		$translation_array = array(
 			'register' => array(
 				'request' => $req,
-				'sigs'    => $sigs,
+				'sigs' => $sigs,
 			),
 			'text' => array(
 				'insert' => esc_html__( 'Now insert (and tap) your Security Key.' ),
-				'error'  => esc_html__( 'Failed...' ),
+				'error' => esc_html__( 'Failed...' ),
 			),
-		) );
+		);
+
+		wp_localize_script( 'fido-u2f-admin', 'u2fL10n', $translation_array );
 		wp_enqueue_script( 'inline-edit-key', plugins_url( 'js/fido-u2f-admin-inline-edit.js', __FILE__ ), array( 'jquery' ), null, true );
 		wp_localize_script( 'inline-edit-key', 'inlineEditL10n', array(
 			'error' => esc_html__( 'Error while saving the changes.' ),
@@ -172,8 +174,8 @@ class Two_Factor_FIDO_U2F_Admin {
 			delete_user_meta( $user_id, self::REGISTER_DATA_USER_META_KEY );
 
 			wp_safe_redirect( add_query_arg( array(
-					'new_app_pass' => 1,
-				), wp_get_referer() ) . '#security-keys-section' );
+				'new_app_pass' => 1,
+			), wp_get_referer() ) . '#security-keys-section' );
 			exit;
 		}
 	}

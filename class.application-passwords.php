@@ -163,8 +163,8 @@ class Application_Passwords {
 			self::create_new_application_password( $user_id, sanitize_text_field( $_POST['new_application_password_name'] ) );
 
 			wp_safe_redirect( add_query_arg( array(
-					'new_app_pass' => 1,
-				), wp_get_referer() ) . '#application-passwords-section' );
+				'new_app_pass' => 1,
+			), wp_get_referer() ) . '#application-passwords-section' );
 			exit;
 		}
 	}
