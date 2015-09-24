@@ -339,13 +339,13 @@ class Two_Factor_Core {
 			?>
 			<div class="backup-methods-wrap">
 				<p class="backup-methods"><a href="<?php echo esc_url( add_query_arg( urlencode_deep( array(
-										'action'        => 'backup_2fa',
-										'provider'      => $backup_classname,
-										'wp-auth-id'    => $user->ID,
-										'wp-auth-nonce' => $login_nonce,
-										'redirect_to'   => $redirect_to,
-										'rememberme'    => $rememberme,
-									) ), $wp_login_url ) ); ?>"><?php echo esc_html( sprintf( __( 'Or, use your backup method: %s &rarr;', 'two-factor' ), $backup_provider->get_label() ) ); ?></a></p>
+					'action'        => 'backup_2fa',
+					'provider'      => $backup_classname,
+					'wp-auth-id'    => $user->ID,
+					'wp-auth-nonce' => $login_nonce,
+					'redirect_to'   => $redirect_to,
+					'rememberme'    => $rememberme,
+				) ), $wp_login_url ) ); ?>"><?php echo esc_html( sprintf( __( 'Or, use your backup method: %s &rarr;', 'two-factor' ), $backup_provider->get_label() ) ); ?></a></p>
 			</div>
 		<?php elseif ( 1 < count( $backup_providers ) ) : ?>
 			<div class="backup-methods-wrap">
@@ -353,13 +353,13 @@ class Two_Factor_Core {
 				<ul class="backup-methods">
 					<?php foreach ( $backup_providers as $backup_classname => $backup_provider ) : ?>
 						<li><a href="<?php echo esc_url( add_query_arg( urlencode_deep( array(
-										'action'        => 'backup_2fa',
-										'provider'      => $backup_classname,
-										'wp-auth-id'    => $user->ID,
-										'wp-auth-nonce' => $login_nonce,
-										'redirect_to'   => $redirect_to,
-										'rememberme'    => $rememberme,
-									) ), $wp_login_url ) ); ?>"><?php $backup_provider->print_label(); ?></a></li>
+							'action'        => 'backup_2fa',
+							'provider'      => $backup_classname,
+							'wp-auth-id'    => $user->ID,
+							'wp-auth-nonce' => $login_nonce,
+							'redirect_to'   => $redirect_to,
+							'rememberme'    => $rememberme,
+						) ), $wp_login_url ) ); ?>"><?php $backup_provider->print_label(); ?></a></li>
 					<?php endforeach; ?>
 				</ul>
 			</div>
