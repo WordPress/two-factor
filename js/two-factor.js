@@ -17,4 +17,19 @@ jQuery(document).ready(function ($) {
 		});
 	});
 
+	$('#do_new_application_password').on('click', function( e ) {
+		e.preventDefault();
+		var app_name = $('input[name="new_application_password_name"]').val();
+		var nonce    = $('input[name="create_application_password"]').val();
+		var data = {
+			'app_name'                          : app_name,
+			'action'                            : 'create_application_password',
+			'create_application_password': nonce,
+		};
+
+		$.post(ajaxurl, data, function(r) {
+			alert(r);
+		});
+	});
+
 });

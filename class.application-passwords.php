@@ -23,14 +23,15 @@ class Application_Passwords {
 	 * @static
 	 */
 	public static function add_hooks() {
-		add_filter( 'authenticate',                array( __CLASS__, 'authenticate' ), 10, 3 );
-		add_action( 'show_user_security_settings', array( __CLASS__, 'show_user_profile' ) );
-		add_action( 'personal_options_update',     array( __CLASS__, 'catch_submission' ), 0 );
-		add_action( 'edit_user_profile_update',    array( __CLASS__, 'catch_submission' ), 0 );
-		add_action( 'load-profile.php',            array( __CLASS__, 'catch_delete_application_password' ) );
-		add_action( 'load-user-edit.php',          array( __CLASS__, 'catch_delete_application_password' ) );
-		add_action( 'admin_enqueue_scripts',       array( __CLASS__, 'enqueue_scripts' ) );
+		add_filter( 'authenticate',                        array( __CLASS__, 'authenticate' ), 10, 3 );
+		add_action( 'show_user_security_settings',         array( __CLASS__, 'show_user_profile' ) );
+		add_action( 'personal_options_update',             array( __CLASS__, 'catch_submission' ), 0 );
+		add_action( 'edit_user_profile_update',            array( __CLASS__, 'catch_submission' ), 0 );
+		add_action( 'load-profile.php',                    array( __CLASS__, 'catch_delete_application_password' ) );
+		add_action( 'load-user-edit.php',                  array( __CLASS__, 'catch_delete_application_password' ) );
+		add_action( 'admin_enqueue_scripts',               array( __CLASS__, 'enqueue_scripts' ) );
 		add_action( 'wp_ajax_delete_application_password', array( __CLASS__, 'ajax_delete_application_password' ) );
+		add_action( 'wp_ajax_create_application_password', array( __CLASS__, 'ajax_create_application_password' ) );
 	}
 
 	/**
@@ -131,6 +132,7 @@ class Application_Passwords {
 			<p><?php esc_html_e( 'Application Passwords are used to allow authentication via non-interactive systems, such as XMLRPC, where you would not otherwise be able to use your normal password due to the inability to complete the second factor of authentication.' ); ?></p>
 			<div class="create-application-password">
 				<input type="text" size="30" name="new_application_password_name" placeholder="<?php esc_attr_e( 'New Application Password Name' ); ?>" />
+				<?php wp_nonce_field( 'create_application_password', '_nonce_create_application_password' ); ?>
 				<?php submit_button( __( 'Add New' ), 'secondary', 'do_new_application_password', false ); ?>
 			</div>
 
@@ -239,6 +241,31 @@ class Application_Passwords {
 		self::set_user_application_passwords( $user_id, $passwords );
 
 		return self::chunk_password( $new_password );
+	}
+
+	/**
+	 * Create application password via ajax
+	 *
+	 * @since 0.1-dev
+	 *
+	 * @access public
+	 * @static
+	 */
+	public static function ajax_create_application_password() {
+		$user_id = get_current_user_id();
+		$name = $_POST['app_name'];
+		if ( ! isset( $_POST['create_application_password'] ) || wp_verify_nonce( $_POST['_nonce_create_application_password'], 'create_application_password') ) {
+			$res = self::create_new_application_password( $user_id, $name );
+
+			if ( $res ) {
+				wp_send_json_success( array( 'new_pass' => $res ) );
+				wp_die();
+			}
+		}
+
+		wp_send_json_error();
+		wp_die();
+
 	}
 
 	/**
