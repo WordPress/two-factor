@@ -33,6 +33,14 @@ class Application_Passwords {
 		add_action( 'wp_ajax_delete_application_password', array( __CLASS__, 'ajax_delete_application_password' ) );
 	}
 
+	/**
+	 * Add scripts
+	 *
+	 * @since 0.1-dev
+	 *
+	 * @access public
+	 * @static
+	 */
 	public static function enqueue_scripts() {
 		wp_enqueue_script( 'two-factor', TWO_FACTOR_URL . 'js/two-factor.js', array( 'jquery' ), '0.1-dev', true );
 	}
@@ -250,8 +258,9 @@ class Application_Passwords {
 			$res = self::delete_application_password( $user_id, $slug );
 		}
 
-		if ( true === $res )
+		if ( true === $res ) {
 			wp_send_json_success();
+		}
 
 		wp_send_json_error();
 		wp_die();
@@ -271,8 +280,6 @@ class Application_Passwords {
 	public static function delete_link( $item ) {
 		$slug = self::password_unique_slug( $item );
 		$delete_link = add_query_arg( 'delete_application_password', $slug );
-	//	$delete_link = wp_nonce_url( $delete_link, "delete_application_password-{$slug}", '_nonce_delete_application_password' );
-	//	return sprintf( '<a href="%1$s">%2$s</a>', esc_url( $delete_link ), esc_html__( 'Delete' ) );
 		$nonce = wp_create_nonce( "delete_application_password-{$slug}" );
 		$delete_link .= '&_nonce_delete_application_password=' . $nonce;
 		return sprintf( '<a data-delete-application-password="%1$s" data-nonce="%2$s" data-action="%3$s" href="%4$s">%5$s</a>', $slug, $nonce, 'delete_application_password', esc_url( $delete_link ), esc_html__( 'Delete', 'two-factor' ) );
