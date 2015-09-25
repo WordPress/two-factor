@@ -1,0 +1,4 @@
+**/vendor/**
+**/*.min.js
+**/node_modules/**
+**/u2f-api.js

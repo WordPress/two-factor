@@ -1,0 +1,29 @@
+<phpunit
+	bootstrap="tests/phpunit/includes/bootstrap.php"
+	backupGlobals="false"
+	colors="true"
+	convertErrorsToExceptions="true"
+	convertNoticesToExceptions="true"
+	convertWarningsToExceptions="true"
+	>
+	<php>
+		<const name="WP_TEST_ACTIVATED_PLUGINS" value="two-factor/two-factor.php" />
+	</php>
+	<testsuites>
+		<testsuite>
+			<directory suffix=".php">tests/phpunit/tests</directory>
+			<exclude>tests/phpunit/tests/providers/class.two-factor-fido-u2f.php</exclude>
+			<file phpVersion="5.3.0" phpVersionOperator=">=">tests/phpunit/tests/providers/class.two-factor-fido-u2f.php</file>
+		</testsuite>
+	</testsuites>
+	<filter>
+		<whitelist processUncoveredFilesFromWhitelist="false">
+			<directory suffix=".php">.</directory>
+			<exclude>
+				<directory suffix=".php">bin</directory>
+				<directory suffix=".php">tests</directory>
+				<directory suffix=".php">vendor</directory>
+			</exclude>
+		</whitelist>
+	</filter>
+</phpunit>
