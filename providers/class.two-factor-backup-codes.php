@@ -125,6 +125,7 @@ class Two_Factor_Backup_Codes extends Two_Factor_Provider {
 		<div class="two-factor-backup-codes-wrapper" style="display:none;">
 			<ol class="two-factor-backup-codes-unused-codes"></ol>
 			<p class="description"><?php esc_html_e( 'Write these down!  Once you navigate away from this page, you will not be able to view these codes again.' ); ?></p>
+			<button type="button" class="button secondary-button two-factor-print-backup-codes">Print Codes</button>
 		</div>
 		<script type="text/javascript">
 			jQuery( document ).ready( function( $ ) {
@@ -140,7 +141,7 @@ class Two_Factor_Backup_Codes extends Two_Factor_Provider {
 						dataType: 'JSON',
 						success: function( response ) {
 							$( '.two-factor-backup-codes-wrapper' ).show();
-							$( '.two-factor-backup-codes-unused-codes' ).html( '' );
+							$( '.two-factor-backup-codes-unused-codes' ).html( '<p>Backup codes for ' + document.domain + '</p>' );
 
 							// Append the codes.
 							$.each( response.data.codes, function( key, val ) {
@@ -151,6 +152,10 @@ class Two_Factor_Backup_Codes extends Two_Factor_Provider {
 							$( '.two-factor-backup-codes-count' ).html( response.data.i18n );
 						}
 					} );
+				} );
+				$( '.two-factor-print-backup-codes' ).click(function(e) {
+					e.preventDefault();
+					window.print();
 				} );
 			} );
 		</script>
