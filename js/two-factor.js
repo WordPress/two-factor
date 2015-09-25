@@ -10,7 +10,7 @@ jQuery(document).ready(function ($) {
 		};
 
 		$.post(ajaxurl, data, function(r) {
-			if( true == r.success ) {
+			if( true === r.success ) {
 				$('tr[data-slug="' + $(link).data('deleteApplicationPassword') + '"]').remove();
 			}
 		});
