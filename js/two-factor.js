@@ -1,35 +1,33 @@
 /* global ajaxurl */
 jQuery(document).ready(function ($) {
 
-	$('.delete').on('click', function( e ) {
-		e.preventDefault();
-		var link = $(this).find('a');
+	$( '#application-passwords-section .delete' ).on( 'click', function( event ) {
+		var link = $( this ).find( 'a' );
 		var data = {
-			'_nonce_delete_application_password': $(link).data('nonce'),
-			'delete_application_password':        $(link).data('deleteApplicationPassword'),
+			'_nonce_delete_application_password': $( link ).data( 'nonce' ),
+			'delete_application_password':        $( link ).data( 'deleteApplicationPassword' ),
 			'action':                             $(link).data('action')
 		};
 
-		$.post(ajaxurl, data, function(r) {
-			if( true === r.success ) {
-				$('tr[data-slug="' + $(link).data('deleteApplicationPassword') + '"]').remove();
+		$.post( ajaxurl, data, function( r ) {
+			if ( true === r.success ) {
+				$( 'tr[data-slug="' + $(link).data('deleteApplicationPassword') + '"]' ).remove();
 			}
 		});
+		event.preventDefault();
 	});
 
-	$('#do_new_application_password').on('click', function( e ) {
-		e.preventDefault();
-		var app_name = $('input[name="new_application_password_name"]').val();
-		var nonce    = $('input[name="create_application_password"]').val();
+	$( '#do_new_application_password' ).on( 'click', function( event ) {
 		var data = {
-			'app_name'                          : app_name,
-			'action'                            : 'create_application_password',
-			'create_application_password': nonce,
+			'app_name':                    $( 'input[name="new_application_password_name"]' ).val(),
+			'action':                      'create_application_password',
+			'create_application_password': $( 'input[name="create_application_pasword"]' ).val(),
 		};
 
-		$.post(ajaxurl, data, function(r) {
+		$.post( ajaxurl, data, function( r ) {
 			alert(r);
 		});
+		event.preventDefault();
 	});
 
 });

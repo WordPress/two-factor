@@ -254,18 +254,15 @@ class Application_Passwords {
 	public static function ajax_create_application_password() {
 		$user_id = get_current_user_id();
 		$name = $_POST['app_name'];
-		if ( ! isset( $_POST['create_application_password'] ) || wp_verify_nonce( $_POST['_nonce_create_application_password'], 'create_application_password') ) {
+		if ( isset( $_POST['create_application_password'] ) && wp_verify_nonce( $_POST['_nonce_create_application_password'], 'create_application_password') ) {
 			$res = self::create_new_application_password( $user_id, $name );
 
 			if ( $res ) {
 				wp_send_json_success( array( 'new_pass' => $res ) );
-				wp_die();
 			}
 		}
 
 		wp_send_json_error();
-		wp_die();
-
 	}
 
 	/**
