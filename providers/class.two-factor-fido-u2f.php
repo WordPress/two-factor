@@ -96,7 +96,7 @@ class Two_Factor_FIDO_U2F extends Two_Factor_Provider {
 			update_user_meta( $user->ID, self::AUTH_DATA_USER_META_KEY, $data );
 		} catch ( Exception $e ) {
 			?>
-			<p><?php esc_html_e( 'An error occured while creating authentication data.' ); ?></p>
+			<p><?php esc_html_e( 'An error occurred while creating authentication data.' ); ?></p>
 			<?php
 			return null;
 		}
