@@ -287,7 +287,6 @@ class Application_Passwords {
 		}
 
 		wp_send_json_error();
-		wp_die();
 	}
 
 	/**
