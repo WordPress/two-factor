@@ -1,5 +1,5 @@
 /* global ajaxurl */
-jQuery(document).ready(function ($) {
+jQuery( document ).ready( function ( $ ) {
 
 	$( '#application-passwords-section .delete' ).on( 'click', function( event ) {
 		var link = $( this ).find( 'a' );
@@ -21,11 +21,11 @@ jQuery(document).ready(function ($) {
 		var data = {
 			'app_name':                    $( 'input[name="new_application_password_name"]' ).val(),
 			'action':                      'create_application_password',
-			'create_application_password': $( 'input[name="create_application_pasword"]' ).val(),
+			'create_application_password': $( 'input[name="create_application_pasword"]' ).val()
 		};
 
 		$.post( ajaxurl, data, function( r ) {
-			alert(r);
+			// TODO: handle adding the app password
 		});
 		event.preventDefault();
 	});
