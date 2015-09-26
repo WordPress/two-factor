@@ -4,11 +4,11 @@ var inlineEditKey;
 ( function( $ ) {
 	inlineEditKey = {
 
-		init : function() {
+		init: function() {
 			var t = this,
 				row = $( '#security-keys-section #inline-edit' );
 
-			t.what = '#key'+'-';
+			t.what = '#key-';
 
 			$( '#security-keys-section #the-list' ).on( 'click', 'a.editinline', function() {
 				inlineEditKey.edit( this );
@@ -37,12 +37,12 @@ var inlineEditKey;
 			} );
 		},
 
-		toggle : function( el ) {
+		toggle: function( el ) {
 			var t = this;
-			$( t.what+t.getId( el ) ).css( 'display' ) === 'none' ? t.revert() : t.edit( el );
+			'none' === $( t.what + t.getId( el ) ).css( 'display' ) ? t.revert() : t.edit( el );
 		},
 
-		edit : function( id ) {
+		edit: function( id ) {
 			var editRow, rowData, val,
 				t = this;
 			t.revert();
@@ -51,25 +51,25 @@ var inlineEditKey;
 				id = t.getId( id );
 			}
 
-			editRow = $( '#inline-edit' ).clone( true ), rowData = $( '#inline_'+id );
+			editRow = $( '#inline-edit' ).clone( true ), rowData = $( '#inline_' + id );
 			$( 'td', editRow ).attr( 'colspan', $( 'th:visible, td:visible', '#security-keys-section .widefat thead' ).length );
 
-			$( t.what+id ).hide().after( editRow ).after( '<tr class="hidden"></tr>' );
+			$( t.what + id ).hide().after( editRow ).after( '<tr class="hidden"></tr>' );
 
-			val = $('.name', rowData);
+			val = $( '.name', rowData );
 			val.find( 'img' ).replaceWith( function() {
 				return this.alt;
 			} );
 			val = val.text();
 			$( ':input[name="name"]', editRow ).val( val );
 
-			$( editRow ).attr( 'id', 'edit-'+id ).addClass( 'inline-editor' ).show();
-			$( '.ptitle', editRow ).eq(0).focus();
+			$( editRow ).attr( 'id', 'edit-' + id ).addClass( 'inline-editor' ).show();
+			$( '.ptitle', editRow ).eq( 0 ).focus();
 
 			return false;
 		},
 
-		save : function( id ) {
+		save: function( id ) {
 			var params, fields;
 
 			if ( 'object' === typeof id ) {
@@ -83,56 +83,56 @@ var inlineEditKey;
 				keyHandle: id
 			};
 
-			fields = $( '#edit-'+id ).find( ':input' ).serialize();
+			fields = $( '#edit-' + id ).find( ':input' ).serialize();
 			params = fields + '&' + $.param( params );
 
 			// Make ajax request.
 			$.post( ajaxurl, params,
 				function( r ) {
-					var row, new_id, option_value;
+					var row, newID, optionValue;
 					$( '#security-keys-section table.widefat .spinner' ).removeClass( 'is-active' );
 
-					if (r) {
+					if ( r ) {
 						if ( -1 !== r.indexOf( '<tr' ) ) {
-							$( inlineEditKey.what+id ).siblings( 'tr.hidden' ).addBack().remove();
-							new_id = $( r ).attr( 'id' );
+							$( inlineEditKey.what + id ).siblings( 'tr.hidden' ).addBack().remove();
+							newID = $( r ).attr( 'id' );
 
-							$( '#edit-'+id ).before( r ).remove();
+							$( '#edit-' + id ).before( r ).remove();
 
-							if ( new_id ) {
-								option_value = new_id.replace( 'key-', '' );
-								row = $( '#' + new_id );
+							if ( newID ) {
+								optionValue = newID.replace( 'key-', '' );
+								row = $( '#' + newID );
 							} else {
-								option_value = id;
+								optionValue = id;
 								row = $( inlineEditKey.what + id );
 							}
 
 							row.hide().fadeIn();
 						} else {
-							$( '#edit-'+id+' .inline-edit-save .error').html( r ).show();
+							$( '#edit-' + id + ' .inline-edit-save .error').html( r ).show();
 						}
 					} else {
-						$( '#edit-'+id+' .inline-edit-save .error' ).html( inlineEditL10n.error ).show();
+						$( '#edit-' + id + ' .inline-edit-save .error' ).html( inlineEditL10n.error ).show();
 					}
 				}
 			);
 			return false;
 		},
 
-		revert : function() {
+		revert: function() {
 			var id = $( '#security-keys-section table.widefat tr.inline-editor' ).attr( 'id' );
 
 			if ( id ) {
 				$( '#security-keys-section table.widefat .spinner' ).removeClass( 'is-active' );
-				$( '#'+id ).siblings( 'tr.hidden' ).addBack().remove();
+				$( '#' + id ).siblings( 'tr.hidden' ).addBack().remove();
 				id = id.replace( /\w+\-/, '' );
-				$( this.what+id ).show();
+				$( this.what + id ).show();
 			}
 
 			return false;
 		},
 
-		getId : function( o ) {
+		getId: function( o ) {
 			var id = 'TR' === o.tagName ? o.id : $( o ).parents( 'tr' ).attr( 'id' );
 			return id.replace( /\w+\-/, '' );
 		}
