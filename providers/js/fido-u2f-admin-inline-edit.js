@@ -109,7 +109,7 @@ var inlineEditKey;
 
 							row.hide().fadeIn();
 						} else {
-							$( '#edit-' + id + ' .inline-edit-save .error').html( r ).show();
+							$( '#edit-' + id + ' .inline-edit-save .error' ).html( r ).show();
 						}
 					} else {
 						$( '#edit-' + id + ' .inline-edit-save .error' ).html( inlineEditL10n.error ).show();
@@ -138,7 +138,7 @@ var inlineEditKey;
 		}
 	};
 
-	$( document ).ready( function(){
+	$( document ).ready( function() {
 		inlineEditKey.init();
 	} );
 

@@ -1,5 +1,5 @@
 /* global u2f, u2fL10n */
-(function($) {
+( function( $ ) {
 	var $button = $( '#register_security_key' );
 
 	$button.click( function() {
@@ -19,7 +19,7 @@
 			u2f.register( [ u2fL10n.register.request ], u2fL10n.register.sigs, function( data ) {
 				window.console.log( 'Register callback', data, this );
 
-				if( data.errorCode ){
+				if ( data.errorCode ) {
 					window.console.log( 'Registration Failed', data.errorCode );
 
 					$button.text( u2fL10n.text.error );
@@ -34,4 +34,4 @@
 			} );
 		}, 1000 );
 	} );
-})(jQuery);
+} )( jQuery );
