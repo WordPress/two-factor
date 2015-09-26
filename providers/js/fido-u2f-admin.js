@@ -3,7 +3,7 @@
 	var $button = $( '#register_security_key' );
 
 	$button.click( function() {
-		if( $button.hasClass( 'clicked' ) ) {
+		if ( $button.hasClass( 'clicked' ) ) {
 			return false;
 		} else {
 			$button.addClass( 'clicked' );
