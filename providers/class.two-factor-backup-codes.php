@@ -124,11 +124,11 @@ class Two_Factor_Backup_Codes extends Two_Factor_Provider {
 		</p>
 		<div class="two-factor-backup-codes-wrapper" style="display:none;">
 			<ol class="two-factor-backup-codes-unused-codes"></ol>
-			<p class="description"><?php esc_html_e( 'Write these down!  Once you navigate away from this page, you will not be able to view these codes again.' ); ?></p>
-			<button type="button" class="button secondary-button two-factor-print-backup-codes">Print Codes</button>
+			<p class="description"><?php esc_html_e( 'Write these down! Once you navigate away from this page, you will not be able to view these codes again.' ); ?></p>
+			<button type="button" class="button secondary-button button-two-factor-backup-codes-print hide-if-no-js">Print Codes</button>
 		</div>
 		<script type="text/javascript">
-			jQuery( document ).ready( function( $ ) {
+			( function( $ ) {
 				$( '.button-two-factor-backup-codes-generate' ).click( function() {
 					$.ajax( {
 						method: 'POST',
@@ -141,7 +141,7 @@ class Two_Factor_Backup_Codes extends Two_Factor_Provider {
 						dataType: 'JSON',
 						success: function( response ) {
 							$( '.two-factor-backup-codes-wrapper' ).show();
-							$( '.two-factor-backup-codes-unused-codes' ).html( '<p>Backup codes for ' + document.domain + '</p>' );
+							$( '.two-factor-backup-codes-unused-codes' ).html( '' );
 
 							// Append the codes.
 							$.each( response.data.codes, function( key, val ) {
@@ -153,11 +153,27 @@ class Two_Factor_Backup_Codes extends Two_Factor_Provider {
 						}
 					} );
 				} );
-				$( '.two-factor-print-backup-codes' ).click(function(e) {
-					e.preventDefault();
-					window.print();
+
+				$( '.button-two-factor-backup-codes-print' ).click( function( event ) {
+					var $window = window.open( '', '', 'height=800, width=800' ),
+						codes = $( '.two-factor-backup-codes-unused-codes' ).html(),
+						string = '<?php esc_html_e( 'Backup codes for %s' ) ?>',
+						title = string.replace( /%s/g, document.domain );
+
+					$window.document.write( '<html><head><title>' + title + '</title><style>' );
+					$window.document.write( 'body { padding: 1.5em; }' );
+					$window.document.write( 'ol { list-style-type: none; padding: 0; }' );
+					$window.document.write( 'li { padding-top: .25em; }' );
+					$window.document.write( '</style></head><body>' );
+					$window.document.write( '<div><p>' + title + '</p>' );
+					$window.document.write( '<ol>' + codes + '</ol></div>' );
+					$window.document.write( '</body></html>' );
+					$window.document.close();
+					$window.print();
+
+					event.preventDefault();
 				} );
-			} );
+			} )( jQuery );
 		</script>
 		<?php
 	}
