@@ -11,12 +11,12 @@
 			};
 
 		$.post( ajaxurl, data, function( response ) {
-			if ( true === response.success ) {
-				var $items = $( '#application-passwords-section tbody#the-list' ),
-					$newAppPass = $( '.new-application-password' ),
-					$row = $( 'tr[data-slug="' + $link.data( 'slug' ) + '"]' ),
-					$name = $row.find( '.column-name > span' ).text();
+			var $items = $( '#application-passwords-section tbody#the-list' ),
+				$newAppPass = $( '.new-application-password' ),
+				$row = $( 'tr[data-slug="' + $link.data( 'slug' ) + '"]' ),
+				$name = $row.find( '.column-name > span' ).text();
 
+			if ( true === response.success ) {
 				$row.remove();
 
 				if ( 0 < $newAppPass.length && $name === $newAppPass.find( 'strong' ).text() ) {
@@ -47,7 +47,7 @@
 					if ( response.data.notice ) {
 						if ( 0 === $element.length ) {
 							$( '.create-application-password' ).after( '<p class="new-application-password"></p>' );
-							$element = $( '.new-application-password' );
+							$element = $( '.new-application-password' )
 						}
 
 						$element.html( response.data.notice );
