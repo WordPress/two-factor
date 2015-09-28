@@ -1,5 +1,5 @@
 /* global u2f, u2fL10n */
-(function($) {
+( function( $ ) {
 	setTimeout( function() {
 		window.console.log( 'sign', u2fL10n.request );
 
@@ -10,4 +10,4 @@
 			$( '#loginform' ).submit();
 		} );
 	}, 1000 );
-})(jQuery);
+} )( jQuery );

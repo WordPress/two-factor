@@ -46,6 +46,10 @@ class Two_Factor_FIDO_U2F extends Two_Factor_Provider {
 	 * @since 0.1-dev
 	 */
 	protected function __construct() {
+		if ( version_compare( PHP_VERSION, '5.3.0', '<' ) ) {
+			return;
+		}
+
 		require_once( TWO_FACTOR_DIR . 'includes/Yubico/U2F.php' );
 		self::$u2f = new u2flib_server\U2F( set_url_scheme( '//' . $_SERVER['HTTP_HOST'] ) );
 
@@ -96,7 +100,7 @@ class Two_Factor_FIDO_U2F extends Two_Factor_Provider {
 			update_user_meta( $user->ID, self::AUTH_DATA_USER_META_KEY, $data );
 		} catch ( Exception $e ) {
 			?>
-			<p><?php esc_html_e( 'An error occured while creating authentication data.' ); ?></p>
+			<p><?php esc_html_e( 'An error occurred while creating authentication data.' ); ?></p>
 			<?php
 			return null;
 		}
