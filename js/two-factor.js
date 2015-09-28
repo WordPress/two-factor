@@ -47,7 +47,7 @@
 					if ( response.data.notice ) {
 						if ( 0 === $element.length ) {
 							$( '.create-application-password' ).after( '<p class="new-application-password"></p>' );
-							$element = $( '.new-application-password' )
+							$element = $( '.new-application-password' );
 						}
 
 						$element.html( response.data.notice );
