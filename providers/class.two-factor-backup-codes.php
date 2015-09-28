@@ -125,7 +125,7 @@ class Two_Factor_Backup_Codes extends Two_Factor_Provider {
 		<div class="two-factor-backup-codes-wrapper" style="display:none;">
 			<ol class="two-factor-backup-codes-unused-codes"></ol>
 			<p class="description"><?php esc_html_e( 'Write these down! Once you navigate away from this page, you will not be able to view these codes again.' ); ?></p>
-			<button type="button" class="button secondary-button button-two-factor-backup-codes-print hide-if-no-js">Print Codes</button>
+			<button type="button" class="button secondary-button button-two-factor-backup-codes-print hide-if-no-js"><?php esc_html_e( 'Print Codes' ); ?></button>
 		</div>
 		<script type="text/javascript">
 			( function( $ ) {
