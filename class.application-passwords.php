@@ -197,8 +197,8 @@ class Application_Passwords {
 	 */
 	public static function catch_delete_application_password() {
 		$user_id = get_current_user_id();
-		if ( ! empty( $_REQUEST[ 'slug' ] ) ) {
-			$slug = $_REQUEST[ 'slug' ];
+		if ( ! empty( $_REQUEST['slug'] ) ) {
+			$slug = $_REQUEST['slug'];
 			check_admin_referer( "delete_application_password-{$slug}", '_nonce_delete_application_password' );
 
 			self::delete_application_password( $user_id, $slug );
@@ -252,22 +252,22 @@ class Application_Passwords {
 	 * @static
 	 */
 	public static function ajax_create_application_password() {
-		if ( ! empty( $_POST[ 'slug' ] ) && ! empty( $_POST[ 'user_id' ] ) ) {
+		if ( ! empty( $_POST['slug'] ) && ! empty( $_POST['user_id'] ) ) {
 			check_admin_referer( 'create_application_password', '_nonce_create_application_password' );
 
 			// @todo verify user permissions if creating another users app password
-			$user = get_userdata( $_POST[ 'user_id' ] );
+			$user = get_userdata( $_POST['user_id'] );
 			if ( false === $user ) {
 				wp_send_json_error();
 			}
 
-			$response = self::create_new_application_password( $_POST[ 'user_id' ], $_POST[ 'slug' ] );
+			$response = self::create_new_application_password( $_POST['user_id'], $_POST['slug'] );
 
 			if ( $response ) {
 				// @todo implement self::set_user_application_passwords() so the next page load doesn't display this info.
 				$notice = sprintf(
 					esc_html_x( 'Your new password for %1$s is %2$s.', 'application, password' ),
-					'<strong>' . esc_html( $_POST[ 'slug' ] ) . '</strong>',
+					'<strong>' . esc_html( $_POST['slug'] ) . '</strong>',
 					'<kbd>' . esc_html( $response ) . '</kbd>'
 				);
 
@@ -288,21 +288,21 @@ class Application_Passwords {
 	 * @static
 	 */
 	public static function ajax_delete_application_password() {
-		if ( ! empty( $_POST[ 'slug' ] ) && ! empty( $_POST[ 'user_id' ] ) ) {
-			check_admin_referer( 'delete_application_password-' . $_POST[ 'slug' ], '_nonce_delete_application_password' );
+		if ( ! empty( $_POST['slug'] ) && ! empty( $_POST['user_id'] ) ) {
+			check_admin_referer( 'delete_application_password-' . $_POST['slug'], '_nonce_delete_application_password' );
 
 			// @todo verify user permissions if deleting another users app password
-			$user = get_userdata( $_POST[ 'user_id' ] );
+			$user = get_userdata( $_POST['user_id'] );
 			if ( false === $user ) {
 				wp_send_json_error();
 			}
 
-			$response = self::delete_application_password( $_POST[ 'user_id' ], $_POST[ 'slug' ] );
+			$response = self::delete_application_password( $_POST['user_id'], $_POST['slug'] );
 
 			if ( true === $response ) {
 				// @todo handle immediately deleting a password after creating it.
 				$empty = '<tr class="no-items"><td class="colspanchange" colspan="4">' . esc_html__( 'No items found.' ) . '</td></tr>';
-				wp_send_json_success( array( 'empty' =>  $empty ) );
+				wp_send_json_success( array( 'empty' => $empty ) );
 			}
 		}
 
