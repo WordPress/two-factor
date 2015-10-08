@@ -125,6 +125,9 @@ class Two_Factor_Backup_Codes extends Two_Factor_Provider {
 		<div class="two-factor-backup-codes-wrapper" style="display:none;">
 			<ol class="two-factor-backup-codes-unused-codes"></ol>
 			<p class="description"><?php esc_html_e( 'Write these down!  Once you navigate away from this page, you will not be able to view these codes again.' ); ?></p>
+			<p>
+				<a class="button button-two-factor-backup-codes-download button-secondary hide-if-no-js"	 href="javascript:void(0);" id="two-factor-backup-codes-download-link" download="two-factor-backup-codes.txt"><?php esc_html_e( 'Download Codes' ); ?></a>
+			<p>
 		</div>
 		<script type="text/javascript">
 			jQuery( document ).ready( function( $ ) {
@@ -141,7 +144,6 @@ class Two_Factor_Backup_Codes extends Two_Factor_Provider {
 						success: function( response ) {
 							$( '.two-factor-backup-codes-wrapper' ).show();
 							$( '.two-factor-backup-codes-unused-codes' ).html( '' );
-
 							// Append the codes.
 							$.each( response.data.codes, function( key, val ) {
 								$( '.two-factor-backup-codes-unused-codes' ).append( '<li>' + val + '</li>' );
@@ -149,6 +151,17 @@ class Two_Factor_Backup_Codes extends Two_Factor_Provider {
 
 							// Update counter.
 							$( '.two-factor-backup-codes-count' ).html( response.data.i18n );
+
+							// Build the download link
+							var txt_data = 'data:application/txt;charset=utf-8,' + '\n';
+							txt_data += 'Two-Factor Backup Codes for <?php echo site_url(); ?>' + '\n\n';
+							var count = 1;
+							$.each( response.data.codes, function( key, val ) {
+								txt_data += count + '. ' + val + '\n';
+								count++;
+							} );
+							$( '#two-factor-backup-codes-download-link' ).attr( 'href', encodeURI( txt_data ) );
+
 						}
 					} );
 				} );
