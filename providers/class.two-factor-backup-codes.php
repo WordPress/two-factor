@@ -154,7 +154,9 @@ class Two_Factor_Backup_Codes extends Two_Factor_Provider {
 
 							// Build the download link
 							var txt_data = 'data:application/txt;charset=utf-8,' + '\n';
-							txt_data += 'Two-Factor Backup Codes for <?php echo site_url(); ?>' + '\n\n';
+							var title = '<?php esc_html_e( "Two-Factor Backup Codes for %s" ); ?>';
+							txt_data += title.replace( /%s/g, document.domain ) + '\n\n';
+
 							var count = 1;
 							$.each( response.data.codes, function( key, val ) {
 								txt_data += count + '. ' + val + '\n';
