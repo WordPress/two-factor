@@ -153,7 +153,7 @@ class Two_Factor_Backup_Codes extends Two_Factor_Provider {
 							$( '.two-factor-backup-codes-count' ).html( response.data.i18n );
 
 							// Build the download link
-							var txt_data = 'data:application/txt;charset=utf-8,' + '\n';
+							var txt_data = 'data:application/text;charset=utf-8,' + '\n';
 							var title = '<?php esc_html_e( "Two-Factor Backup Codes for %s" ); ?>';
 							txt_data += title.replace( /%s/g, document.domain ) + '\n\n';
 
