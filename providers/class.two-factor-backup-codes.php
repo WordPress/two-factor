@@ -167,7 +167,7 @@ class Two_Factor_Backup_Codes extends Two_Factor_Provider {
 						}
 					} );
 				} );
-			} );
+			} )( jQuery );
 		</script>
 		<?php
 	}
