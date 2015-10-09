@@ -130,7 +130,7 @@ class Two_Factor_Backup_Codes extends Two_Factor_Provider {
 			<p>
 		</div>
 		<script type="text/javascript">
-			jQuery( document ).ready( function( $ ) {
+			( function( $ ) {
 				$( '.button-two-factor-backup-codes-generate' ).click( function() {
 					$.ajax( {
 						method: 'POST',
