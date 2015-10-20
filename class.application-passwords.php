@@ -23,7 +23,7 @@ class Application_Passwords {
 	 * @static
 	 */
 	public static function add_hooks() {
-		add_filter( 'authenticate',                array( __CLASS__, 'authenticate' ), 10, 3 );
+		add_filter( 'authenticate',                array( __CLASS__, 'authenticate' ), 50, 3 );
 		add_action( 'show_user_security_settings', array( __CLASS__, 'show_user_profile' ) );
 		add_action( 'personal_options_update',     array( __CLASS__, 'catch_submission' ), 0 );
 		add_action( 'edit_user_profile_update',    array( __CLASS__, 'catch_submission' ), 0 );
@@ -72,6 +72,11 @@ class Application_Passwords {
 				update_user_meta( $user->ID, self::USERMETA_KEY_APPLICATION_PASSWORDS, $hashed_passwords );
 				return $user;
 			}
+		}
+
+		// If the user uses two factor and no valid API credentials were used, return an error
+		if ( Two_Factor_Core::is_user_using_two_factor( $user->ID ) ) {
+			return new WP_Error( 'invalid_application_credentials', __( '<strong>ERROR</strong>: Invalid API credentials provided.' ) );
 		}
 
 		// By default, return what we've been passed.
