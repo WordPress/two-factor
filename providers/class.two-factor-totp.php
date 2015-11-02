@@ -22,7 +22,7 @@ class Two_Factor_Totp extends Two_Factor_Provider {
 	 */
 	const NOTICES_META_KEY = '_two_factor_totp_notices';
 
-	const DEFAULT_KEY_BIT_SIZE = 80;
+	const DEFAULT_KEY_BIT_SIZE = 128;
 	const DEFAULT_CRYPTO = 'sha1';
 	const DEFAULT_DIGIT_COUNT = 6;
 	const DEFAULT_TIME_STEP_SEC = 30;
