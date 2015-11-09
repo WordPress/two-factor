@@ -222,7 +222,7 @@ class Two_Factor_Totp extends Two_Factor_Provider {
 	 *
 	 * @return string Binary packed string.
 	 */
-	private static function pack64( $value ) {
+	public static function pack64( $value ) {
 		// 64bit mode (PHP_INT_SIZE == 8).
 		if ( PHP_INT_SIZE >= 8 ) {
 			// If we're on PHP 5.6.3+ we can use the new 64bit pack functionality.
@@ -238,8 +238,10 @@ class Two_Factor_Totp extends Two_Factor_Provider {
 			 */
 			$higher = 0;
 		}
+
 		$lowmap  = 0xffffffff;
 		$lower   = $value & $lowmap;
+
 		return pack( 'NN', $higher, $lower );
 	}
 
