@@ -22,7 +22,7 @@ class Two_Factor_Totp extends Two_Factor_Provider {
 	 */
 	const NOTICES_META_KEY = '_two_factor_totp_notices';
 
-	const DEFAULT_KEY_BIT_SIZE = 80;
+	const DEFAULT_KEY_BIT_SIZE = 160;
 	const DEFAULT_CRYPTO = 'sha1';
 	const DEFAULT_DIGIT_COUNT = 6;
 	const DEFAULT_TIME_STEP_SEC = 30;
@@ -209,18 +209,11 @@ class Two_Factor_Totp extends Two_Factor_Provider {
 	 * @return string $bitsize long string composed of available base32 chars.
 	 */
 	public function generate_key( $bitsize = self::DEFAULT_KEY_BIT_SIZE ) {
-		if ( 8 > $bitsize || 0 !== $bitsize % 8 ) {
-			// @TODO: handle this case.
-			wp_die( -1 );
-		}
+		$bytes = ceil( $bitsize / 8 );
 
-		$s 	= '';
+		$secret = wp_generate_password( $bytes, true, true );
 
-		for ( $i = 0; $i < $bitsize / 8; $i++ ) {
-			$s .= $this->_base_32_chars[ rand( 0, 31 ) ];
-		}
-
-		return $s;
+		return $this->base32_encode( $secret );
 	}
 
 	/**
@@ -341,6 +334,34 @@ class Two_Factor_Totp extends Two_Factor_Provider {
 		</script>
 		<?php
 		submit_button( __( 'Authenticate' ) );
+	}
+
+	/**
+	 * Returns a base32 encoded string.
+	 *
+	 * @param string $string String to be encoded using base32.
+	 *
+	 * @return string base32 encoded string without padding.
+	 */
+	public function base32_encode( $string ) {
+		if ( empty( $string ) ) {
+			return '';
+		}
+
+		$binary_string = '';
+
+		foreach ( str_split( $string ) as $character ) {
+			$binary_string .= str_pad( base_convert( ord( $character ), 10, 2 ), 8, '0', STR_PAD_LEFT );
+		}
+
+		$five_bit_sections = str_split( $binary_string, 5 );
+		$base32_string = '';
+
+		foreach ( $five_bit_sections as $five_bit_section ) {
+			$base32_string .= $this->_base_32_chars[ base_convert( str_pad( $five_bit_section, 5, '0' ), 2, 10 ) ];
+		}
+
+		return $base32_string;
 	}
 
 	/**
