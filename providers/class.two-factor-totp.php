@@ -75,7 +75,7 @@ class Two_Factor_Totp extends Two_Factor_Provider {
 		<a href="javascript:;" onclick="jQuery('#two-factor-totp-options').toggle();"><?php esc_html_e( 'View Options &rarr;' ); ?></a>
 		<div id="two-factor-totp-options" style="display:none;">
 			<?php if ( empty( $key ) ) {
-				$key = self::generate_key();
+				$key = $this->generate_key();
 				$site_name = get_bloginfo( 'name', 'display' );
 				?>
 				<img src="<?php echo esc_url( $this->get_google_qr_code( $site_name . ':' . $user->user_login, $key, $site_name ) ); ?>" id="two-factor-totp-qrcode" />
