@@ -175,7 +175,7 @@ class Two_Factor_Totp extends Two_Factor_Provider {
 	 *
 	 * @return bool Whether the code is valid within the time frame
 	 */
-	private static function is_valid_authcode( $key, $authcode ) {
+	public static function is_valid_authcode( $key, $authcode ) {
 		/**
 		 * Filter the maximum ticks to allow when checking valid codes.
 		 *
