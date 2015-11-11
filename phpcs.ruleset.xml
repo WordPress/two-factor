@@ -12,6 +12,7 @@
 	</rule>
 	<rule ref="WordPress-Extra">
 		<exclude name="WordPress.CSRF.NonceVerification" />
+		<exclude name="WordPress.WP.PreparedSQL.NotPrepared" />
 	</rule>
 
 	<exclude-pattern>*/dev-lib/*</exclude-pattern>
