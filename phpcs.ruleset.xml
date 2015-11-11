@@ -2,9 +2,10 @@
 <ruleset name="WordPress Coding Standards for Plugins">
 	<description>Generally-applicable sniffs for WordPress plugins</description>
 
-	<exclude-pattern>*/bin/*</exclude-pattern>
+	<exclude-pattern>*/dev-lib/*</exclude-pattern>
 	<exclude-pattern>*/tests/*</exclude-pattern>
 	<exclude-pattern>*/vendor/*</exclude-pattern>
+	<exclude-pattern>*/Yubico/*</exclude-pattern>
 
 	<rule ref="WordPress-Core"/>
 	<rule ref="WordPress-Docs">
