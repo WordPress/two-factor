@@ -160,4 +160,36 @@ class Tests_Two_Factor_Totp extends WP_UnitTestCase {
 		$this->assertTrue( $this->provider->is_available_for_user( $user ) );
 	}
 
+	/**
+	 * @covers Two_Factor_Totp::base32_encode
+	 */
+	public function test_base32_encode() {
+		$string = 'EV5XW7TOL4QHIKBIGVEU23KAFRND66LY';
+		$string_base32 = 'IVLDKWCXG5KE6TBUKFEESS2CJFDVMRKVGIZUWQKGKJHEINRWJRMQ';
+
+		$this->assertEquals( $string_base32, $this->provider->base32_encode( $string ) );
+	}
+
+	/**
+	 * @covers Two_Factor_Totp::base32_encode
+	 */
+	public function test_base32_decode() {
+		$string = 'EV5XW7TOL4QHIKBIGVEU23KAFRND66LY';
+		$string_base32 = 'IVLDKWCXG5KE6TBUKFEESS2CJFDVMRKVGIZUWQKGKJHEINRWJRMQ';
+
+		$this->assertEquals( $string, $this->provider->base32_decode( $string_base32 ) );
+	}
+
+	/**
+	 * @covers Two_Factor_Totp::is_valid_authcode
+	 * @covers Two_Factor_Totp::generate_key
+	 * @covers Two_Factor_Totp::calc_totp
+	 */
+	public function test_is_valid_authcode() {
+		$key = $this->provider->generate_key();
+		$authcode = $this->provider->calc_totp( $key );
+
+		$this->assertTrue( $this->provider->is_valid_authcode( $key, $authcode ) );
+	}
+
 }
