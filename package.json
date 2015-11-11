@@ -1,0 +1,22 @@
+{
+	"name": "two-factor",
+	"title": "Two Factor",
+	"homepage": "https://github.com/georgestephanis/two-factor",
+	"repository": {
+		"type": "git",
+		"url": "https://github.com/georgestephanis/two-factor.git"
+	},
+	"author": "georgestephanis",
+	"license": "GPL-2.0+",
+	"devDependencies": {
+		"grunt": "~0.4.5",
+		"grunt-checktextdomain": "~1.0.0",
+		"grunt-contrib-clean": "^0.6.0",
+		"grunt-contrib-copy": "~0.8.2",
+		"grunt-contrib-cssmin": "^0.14.0",
+		"grunt-contrib-jshint": "~0.11.3",
+		"grunt-contrib-uglify": "^0.10.0",
+		"grunt-shell": "~1.1.2",
+		"grunt-wp-deploy": "^1.1.0"
+	}
+}
