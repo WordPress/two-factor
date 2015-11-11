@@ -9,7 +9,7 @@ A feature plugin for core to provide Two-Factor Authentication.
 **Tested up to:** 4.4  
 **Stable tag:** trunk (master)  
 
-[![Build Status](https://travis-ci.org/georgestephanis/two-factor.svg?branch=master)](https://travis-ci.org/georgestephanis/two-factor) [![Build Status](https://coveralls.io/repos/georgestephanis/two-factor/badge.svg?branch=master)](https://coveralls.io/github/georgestephanis/two-factor) 
+[![Build Status](https://travis-ci.org/georgestephanis/two-factor.svg?branch=master)](https://travis-ci.org/georgestephanis/two-factor) [![Build Status](https://coveralls.io/repos/georgestephanis/two-factor/badge.svg?branch=master)](https://coveralls.io/github/georgestephanis/two-factor) [![devDependency Status](https://david-dm.org/georgestephanis/two-factor/dev-status.svg)](https://david-dm.org/georgestephanis/two-factor#info=devDependencies) 
 
 ## Description ##
 
