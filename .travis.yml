@@ -1,36 +1,31 @@
 sudo: false
 
 language:
-  - php
+    - php
 
 php:
-  - 5.2
-  - 5.3
-  - 5.4
-  - 5.5
-  - 5.6
-  - hhvm
-  - 7.0
+    - 5.2
+    - 5.3
+    - 5.4
+    - 5.5
+    - 5.6
+    - 7.0
 
 env:
-  - WP_VERSION=latest WP_MULTISITE=0
-  - WP_VERSION=latest WP_MULTISITE=1
-  - WP_VERSION=trunk WP_MULTISITE=0
-  - WP_VERSION=trunk WP_MULTISITE=1
+    - WP_VERSION=trunk WP_MULTISITE=0
+    - WP_VERSION=trunk WP_MULTISITE=1
 
 matrix:
   allow_failures:
     - php: 5.2
-    - php: hhvm
-    - php: 7.0
 
 before_script:
-  - export BIN_PATH=bin
-  - if [ ! -e "$BIN_PATH" ] && [ -L .travis.yml ]; then export BIN_PATH=$( dirname $( readlink .travis.yml ) ); fi
-  - source $BIN_PATH/travis.before_script.sh
+    - export DEV_LIB_PATH=dev-lib
+    - if [ ! -e "$DEV_LIB_PATH" ] && [ -L .travis.yml ]; then export DEV_LIB_PATH=$( dirname $( readlink .travis.yml ) ); fi
+    - source $DEV_LIB_PATH/travis.before_script.sh
 
 script:
-  - $BIN_PATH/travis.script.sh
+    - $DEV_LIB_PATH/travis.script.sh
 
 after_script:
-  - $BIN_PATH/travis.after_script.sh
+    - $DEV_LIB_PATH/travis.after_script.sh
