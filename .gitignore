@@ -1,0 +1,6 @@
+.DS_Store
+
+# Grunt
+/build/
+/node_modules/
+npm-debug.log

@@ -15,15 +15,6 @@ class Tests_Two_factor extends WP_UnitTestCase {
 	}
 
 	/**
-	 * Check that the plugin is active.
-	 */
-	function test_is_plugin_active() {
-
-		$this->assertTrue( is_plugin_active( 'two-factor/two-factor.php' ) );
-
-	}
-
-	/**
 	 * Check that the TWO_FACTOR_DIR constant is defined.
 	 */
 	function test_constant_defined() {
