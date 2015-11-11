@@ -34,7 +34,7 @@ module.exports = function( grunt ) {
 				command: 'cd ./dev-lib && ./generate-markdown-readme' // Genrate the readme.md
 			},
 			phpunit: {
-				command: 'vagrant ssh -c "cd <%= vvv.plugin %> && phpunit"' 
+				command: 'vagrant ssh -c "cd <%= vvv.plugin %> && phpunit"'
 			},
 			phpunit_c: {
 				command: 'vagrant ssh -c "cd <%= vvv.plugin %> && phpunit --coverage-html <%= vvv.coverage %>"'
