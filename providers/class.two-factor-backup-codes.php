@@ -142,28 +142,28 @@ class Two_Factor_Backup_Codes extends Two_Factor_Provider {
 						},
 						dataType: 'JSON',
 						success: function( response ) {
+							var $codesList = $( '.two-factor-backup-codes-unused-codes' );
+
 							$( '.two-factor-backup-codes-wrapper' ).show();
-							$( '.two-factor-backup-codes-unused-codes' ).html( '' );
+							$codesList.html( '' );
+
 							// Append the codes.
-							$.each( response.data.codes, function( key, val ) {
-								$( '.two-factor-backup-codes-unused-codes' ).append( '<li>' + val + '</li>' );
-							} );
+							for ( i = 0; i < response.data.codes.length; i++ ) {
+								$codesList.append( '<li>' + response.data.codes[ i ] + '</li>' );
+							}
 
 							// Update counter.
-							$( '.two-factor-backup-codes-count' ).html( response.data.i18n );
+							$( '.two-factor-backup-codes-count' ).html( response.data.i18n.count );
 
 							// Build the download link
 							var txt_data = 'data:application/text;charset=utf-8,' + '\n';
-							var title = '<?php esc_html_e( 'Two-Factor Backup Codes for %s' ); ?>';
-							txt_data += title.replace( /%s/g, document.domain ) + '\n\n';
+							txt_data += response.data.i18n.title.replace( /%s/g, document.domain ) + '\n\n';
 
-							var count = 1;
-							$.each( response.data.codes, function( key, val ) {
-								txt_data += count + '. ' + val + '\n';
-								count++;
-							} );
+							for ( i = 0; i < response.data.codes.length; i++ ) {
+								txt_data += i + 1 + '. ' + response.data.codes[ i ] + '\n';
+							}
+
 							$( '#two-factor-backup-codes-download-link' ).attr( 'href', encodeURI( txt_data ) );
-
 						}
 					} );
 				} );
@@ -221,7 +221,10 @@ class Two_Factor_Backup_Codes extends Two_Factor_Provider {
 		// Setup the return data.
 		$codes = $this->generate_codes( $user );
 		$count = self::codes_remaining_for_user( $user );
-		$i18n = esc_html( sprintf( _n( '%s unused code remaining.', '%s unused codes remaining.', $count ), $count ) );
+		$i18n = array(
+			'count' => esc_html( sprintf( _n( '%s unused code remaining.', '%s unused codes remaining.', $count ), $count ) ),
+			'title' => esc_html__( 'Two-Factor Backup Codes for %s' ),
+		);
 
 		// Send the response.
 		wp_send_json_success( array( 'codes' => $codes, 'i18n' => $i18n ) );
