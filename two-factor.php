@@ -14,6 +14,11 @@
 define( 'TWO_FACTOR_DIR', plugin_dir_path( __FILE__ ) );
 
 /**
+ * Shortcut constant to url of this file.
+ */
+define( 'TWO_FACTOR_URL', plugin_dir_url( __FILE__ ) );
+
+/**
  * Include the base class here, so that other plugins can also extend it.
  */
 require_once( TWO_FACTOR_DIR . 'providers/class.two-factor-provider.php' );

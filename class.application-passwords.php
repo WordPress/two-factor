@@ -23,12 +23,27 @@ class Application_Passwords {
 	 * @static
 	 */
 	public static function add_hooks() {
-		add_filter( 'authenticate',                array( __CLASS__, 'authenticate' ), 10, 3 );
-		add_action( 'show_user_security_settings', array( __CLASS__, 'show_user_profile' ) );
-		add_action( 'personal_options_update',     array( __CLASS__, 'catch_submission' ), 0 );
-		add_action( 'edit_user_profile_update',    array( __CLASS__, 'catch_submission' ), 0 );
-		add_action( 'load-profile.php',            array( __CLASS__, 'catch_delete_application_password' ) );
-		add_action( 'load-user-edit.php',          array( __CLASS__, 'catch_delete_application_password' ) );
+		add_filter( 'authenticate',                        array( __CLASS__, 'authenticate' ), 10, 3 );
+		add_action( 'show_user_security_settings',         array( __CLASS__, 'show_user_profile' ) );
+		add_action( 'personal_options_update',             array( __CLASS__, 'catch_submission' ), 0 );
+		add_action( 'edit_user_profile_update',            array( __CLASS__, 'catch_submission' ), 0 );
+		add_action( 'load-profile.php',                    array( __CLASS__, 'catch_delete_application_password' ) );
+		add_action( 'load-user-edit.php',                  array( __CLASS__, 'catch_delete_application_password' ) );
+		add_action( 'admin_enqueue_scripts',               array( __CLASS__, 'enqueue_scripts' ) );
+		add_action( 'wp_ajax_delete_application_password', array( __CLASS__, 'ajax_delete_application_password' ) );
+		add_action( 'wp_ajax_create_application_password', array( __CLASS__, 'ajax_create_application_password' ) );
+	}
+
+	/**
+	 * Add scripts
+	 *
+	 * @since 0.1-dev
+	 *
+	 * @access public
+	 * @static
+	 */
+	public static function enqueue_scripts() {
+		wp_enqueue_script( 'two-factor', TWO_FACTOR_URL . 'js/two-factor.js', array( 'jquery' ), '0.1-dev', true );
 	}
 
 	/**
@@ -112,11 +127,12 @@ class Application_Passwords {
 			self::set_user_application_passwords( $user->ID, $application_passwords );
 		}
 		?>
-		<div class="application-passwords" id="application-passwords-section">
+		<div class="application-passwords" id="application-passwords-section" data-user-id="<?php echo esc_attr( $user->ID ); ?>">
 			<h3><?php esc_html_e( 'Application Passwords' ); ?></h3>
 			<p><?php esc_html_e( 'Application Passwords are used to allow authentication via non-interactive systems, such as XMLRPC, where you would not otherwise be able to use your normal password due to the inability to complete the second factor of authentication.' ); ?></p>
 			<div class="create-application-password">
 				<input type="text" size="30" name="new_application_password_name" placeholder="<?php esc_attr_e( 'New Application Password Name' ); ?>" />
+				<?php wp_nonce_field( 'create_application_password', '_nonce_create_application_password' ); ?>
 				<?php submit_button( __( 'Add New' ), 'secondary', 'do_new_application_password', false ); ?>
 			</div>
 
@@ -181,8 +197,8 @@ class Application_Passwords {
 	 */
 	public static function catch_delete_application_password() {
 		$user_id = get_current_user_id();
-		if ( ! empty( $_REQUEST['delete_application_password'] ) ) {
-			$slug = $_REQUEST['delete_application_password'];
+		if ( ! empty( $_REQUEST['slug'] ) ) {
+			$slug = $_REQUEST['slug'];
 			check_admin_referer( "delete_application_password-{$slug}", '_nonce_delete_application_password' );
 
 			self::delete_application_password( $user_id, $slug );
@@ -228,6 +244,72 @@ class Application_Passwords {
 	}
 
 	/**
+	 * Create application password via ajax
+	 *
+	 * @since 0.1-dev
+	 *
+	 * @access public
+	 * @static
+	 */
+	public static function ajax_create_application_password() {
+		if ( ! empty( $_POST['slug'] ) && ! empty( $_POST['user_id'] ) ) {
+			check_admin_referer( 'create_application_password', '_nonce_create_application_password' );
+
+			// @todo verify user permissions if creating another users app password
+			$user = get_userdata( $_POST['user_id'] );
+			if ( false === $user ) {
+				wp_send_json_error();
+			}
+
+			$response = self::create_new_application_password( $_POST['user_id'], $_POST['slug'] );
+
+			if ( $response ) {
+				// @todo implement self::set_user_application_passwords() so the next page load doesn't display this info.
+				$notice = sprintf(
+					esc_html_x( 'Your new password for %1$s is %2$s.', 'application, password' ),
+					'<strong>' . esc_html( $_POST['slug'] ) . '</strong>',
+					'<kbd>' . esc_html( $response ) . '</kbd>'
+				);
+
+				// @todo implement list table HTML for this item.
+				wp_send_json_success( array( 'notice' => $notice ) );
+			}
+		}
+
+		wp_send_json_error();
+	}
+
+	/**
+	 * Delete application passwords via ajax
+	 *
+	 * @since 0.1-dev
+	 *
+	 * @access public
+	 * @static
+	 */
+	public static function ajax_delete_application_password() {
+		if ( ! empty( $_POST['slug'] ) && ! empty( $_POST['user_id'] ) ) {
+			check_admin_referer( 'delete_application_password-' . $_POST['slug'], '_nonce_delete_application_password' );
+
+			// @todo verify user permissions if deleting another users app password
+			$user = get_userdata( $_POST['user_id'] );
+			if ( false === $user ) {
+				wp_send_json_error();
+			}
+
+			$response = self::delete_application_password( $_POST['user_id'], $_POST['slug'] );
+
+			if ( true === $response ) {
+				// @todo handle immediately deleting a password after creating it.
+				$empty = '<tr class="no-items"><td class="colspanchange" colspan="4">' . esc_html__( 'No items found.' ) . '</td></tr>';
+				wp_send_json_success( array( 'empty' => $empty ) );
+			}
+		}
+
+		wp_send_json_error();
+	}
+
+	/**
 	 * Generate a link to delete a specified application password.
 	 *
 	 * @since 0.1-dev
@@ -241,8 +323,9 @@ class Application_Passwords {
 	public static function delete_link( $item ) {
 		$slug = self::password_unique_slug( $item );
 		$delete_link = add_query_arg( 'delete_application_password', $slug );
-		$delete_link = wp_nonce_url( $delete_link, "delete_application_password-{$slug}", '_nonce_delete_application_password' );
-		return sprintf( '<a href="%1$s">%2$s</a>', esc_url( $delete_link ), esc_html__( 'Delete' ) );
+		$nonce = wp_create_nonce( "delete_application_password-{$slug}" );
+		$delete_link .= '&_nonce_delete_application_password=' . $nonce;
+		return sprintf( '<a data-slug="%1$s" data-nonce="%2$s" href="%3$s">%4$s</a>', $slug, $nonce, esc_url( $delete_link ), esc_html__( 'Delete', 'two-factor' ) );
 	}
 
 	/**

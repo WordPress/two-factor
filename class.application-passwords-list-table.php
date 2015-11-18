@@ -58,7 +58,7 @@ class Application_Passwords_List_Table extends WP_List_Table {
 				$actions = array(
 					'delete' => Application_Passwords::delete_link( $item ),
 				);
-				return esc_html( $item['name'] ) . self::row_actions( $actions );
+				return '<span>' . esc_html( $item['name'] ) . '</span>' . self::row_actions( $actions );
 			case 'created':
 				if ( empty( $item['created'] ) ) {
 					return esc_html__( 'Unknown' );
