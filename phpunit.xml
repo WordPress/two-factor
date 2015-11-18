@@ -1,5 +1,5 @@
 <phpunit
-	bootstrap="tests/phpunit/includes/bootstrap.php"
+	bootstrap="dev-lib/phpunit-plugin-bootstrap.php"
 	backupGlobals="false"
 	colors="true"
 	convertErrorsToExceptions="true"
@@ -11,9 +11,9 @@
 	</php>
 	<testsuites>
 		<testsuite>
-			<directory suffix=".php">tests/phpunit/tests</directory>
-			<exclude>tests/phpunit/tests/providers/class.two-factor-fido-u2f.php</exclude>
-			<file phpVersion="5.3.0" phpVersionOperator=">=">tests/phpunit/tests/providers/class.two-factor-fido-u2f.php</file>
+			<directory suffix=".php">tests</directory>
+			<exclude>tests/providers/class.two-factor-fido-u2f.php</exclude>
+			<file phpVersion="5.3.0" phpVersionOperator=">=">tests/providers/class.two-factor-fido-u2f.php</file>
 		</testsuite>
 	</testsuites>
 	<filter>
