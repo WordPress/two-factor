@@ -581,28 +581,39 @@ class Two_Factor_Core {
 		$primary_provider = get_user_meta( $user->ID, self::PROVIDER_USER_META_KEY, true );
 		wp_nonce_field( 'user_two_factor_options', '_nonce_user_two_factor_options', false );
 		?>
-		<input type="hidden" name="<?php echo esc_attr( self::ENABLED_PROVIDERS_USER_META_KEY ); ?>[]" value="<?php /* Dummy input so $_POST value is passed when no providers are enabled. */ ?>" />
+		<h3><?php esc_html_e( 'Two Step Authentication' ); ?></h3>
+
 		<table class="form-table">
 			<tr>
 				<th>
-					<?php esc_html_e( 'Two-Factor Options' ); ?>
+					<label for="<?php echo esc_attr( self::PROVIDER_USER_META_KEY ); ?>"><?php esc_html_e( 'Primary Method' ); ?></label>
 				</th>
 				<td>
-					<table class="two-factor-methods-table">
+					<select name="<?php echo esc_attr( self::PROVIDER_USER_META_KEY ); ?>">
+						<option value=""><?php esc_html_e( 'None' ) ?></option>
+						<?php foreach ( self::get_providers() as $class => $object ) : ?>
+							<option value="<?php echo esc_attr( $class ); ?>" <?php checked( $class, $primary_provider ); ?>><?php echo esc_html( $object->get_label() ) ?></option>
+						<?php endforeach ?>
+					</select>
+				</td>
+			</tr>
+			<tr>
+				<th><?php esc_html_e( 'Available Methods' ); ?></th>
+				<td>
+					<table class="two-factor-methods-table wp-list-table widefat">
 						<thead>
 							<tr>
 								<th class="col-enabled" scope="col"><?php esc_html_e( 'Enabled' ); ?></th>
-								<th class="col-primary" scope="col"><?php esc_html_e( 'Primary' ); ?></th>
 								<th class="col-name" scope="col"><?php esc_html_e( 'Name' ); ?></th>
 							</tr>
 						</thead>
 						<tbody>
+						<input type="hidden" name="<?php echo esc_attr( self::ENABLED_PROVIDERS_USER_META_KEY ); ?>[]" value="<?php /* Dummy input so $_POST value is passed when no providers are enabled. */ ?>" />
 						<?php foreach ( self::get_providers() as $class => $object ) : ?>
 							<tr>
 								<th scope="row"><input type="checkbox" name="<?php echo esc_attr( self::ENABLED_PROVIDERS_USER_META_KEY ); ?>[]" value="<?php echo esc_attr( $class ); ?>" <?php checked( in_array( $class, $enabled_providers ) ); ?> /></th>
-								<th scope="row"><input type="radio" name="<?php echo esc_attr( self::PROVIDER_USER_META_KEY ); ?>" value="<?php echo esc_attr( $class ); ?>" <?php checked( $class, $primary_provider ); ?> /></th>
 								<td>
-									<?php $object->print_label(); ?>
+									<h4 class="two-factor-provider-label"><?php $object->print_label(); ?></h4>
 									<?php do_action( 'two-factor-user-options-' . $class, $user ); ?>
 								</td>
 							</tr>

@@ -71,9 +71,8 @@ class Two_Factor_Totp extends Two_Factor_Provider {
 		$key = get_user_meta( $user->ID, self::SECRET_META_KEY, true );
 		$this->admin_notices();
 		?>
-		<br />
-		<a href="javascript:;" onclick="jQuery('#two-factor-totp-options').toggle();"><?php esc_html_e( 'View Options &rarr;' ); ?></a>
-		<div id="two-factor-totp-options" style="display:none;">
+
+		<div id="two-factor-totp-options">
 			<?php if ( empty( $key ) ) {
 				$key = $this->generate_key();
 				$site_name = get_bloginfo( 'name', 'display' );
@@ -87,7 +86,7 @@ class Two_Factor_Totp extends Two_Factor_Provider {
 					<input type="tel" name="two-factor-totp-authcode" id="two-factor-totp-authcode" class="input" value="" size="20" pattern="[0-9]*" />
 				</p>
 			<?php } else { ?>
-				<p class="success"><?php esc_html_e( 'Enabled' ); ?></p>
+				<p><?php esc_html_e( 'Enabled.' ); ?></p>
 			<?php } ?>
 		</div>
 		<?php

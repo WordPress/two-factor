@@ -54,10 +54,9 @@ class Two_Factor_FIDO_U2F extends Two_Factor_Provider {
 		self::$u2f = new u2flib_server\U2F( set_url_scheme( '//' . $_SERVER['HTTP_HOST'] ) );
 
 		require_once( TWO_FACTOR_DIR . 'providers/class.two-factor-fido-u2f-admin.php' );
-		Two_Factor_FIDO_U2F_Admin::add_hooks();
+		Two_Factor_FIDO_U2F_Admin::add_hooks( __CLASS__ );
 
-		add_action( 'login_enqueue_scripts',                array( $this, 'login_enqueue_assets' ) );
-		add_action( 'two-factor-user-options-' . __CLASS__, array( $this, 'user_options' ) );
+		add_action( 'login_enqueue_scripts', array( $this, 'login_enqueue_assets' ) );
 		return parent::__construct();
 	}
 
@@ -67,7 +66,7 @@ class Two_Factor_FIDO_U2F extends Two_Factor_Provider {
 	 * @since 0.1-dev
 	 */
 	public function get_label() {
-		return _x( 'FIDO U2F', 'Provider Label' );
+		return _x( 'Security Keys (FIDO U2F)', 'Provider Label' );
 	}
 
 	/**
@@ -153,21 +152,6 @@ class Two_Factor_FIDO_U2F extends Two_Factor_Provider {
 	 */
 	public function is_available_for_user( $user ) {
 		return self::is_browser_support() && (bool) self::get_security_keys( $user->ID );
-	}
-
-	/**
-	 * Inserts markup at the end of the user profile field for this provider.
-	 *
-	 * @since 0.1-dev
-	 *
-	 * @param WP_User $user WP_User object of the logged-in user.
-	 */
-	public function user_options( $user ) {
-		?>
-		<div>
-			<?php echo esc_html( __( 'You need to register security keys such as Yubikey.' ) ); ?>
-		</div>
-		<?php
 	}
 
 	/**

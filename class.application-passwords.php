@@ -112,35 +112,40 @@ class Application_Passwords {
 			self::set_user_application_passwords( $user->ID, $application_passwords );
 		}
 		?>
-		<div class="application-passwords" id="application-passwords-section">
-			<h3><?php esc_html_e( 'Application Passwords' ); ?></h3>
-			<p><?php esc_html_e( 'Application Passwords are used to allow authentication via non-interactive systems, such as XMLRPC, where you would not otherwise be able to use your normal password due to the inability to complete the second factor of authentication.' ); ?></p>
-			<div class="create-application-password">
-				<input type="text" size="30" name="new_application_password_name" placeholder="<?php esc_attr_e( 'New Application Password Name' ); ?>" />
-				<?php submit_button( __( 'Add New' ), 'secondary', 'do_new_application_password', false ); ?>
-			</div>
+		<table class="form-table application-passwords" id="application-passwords-section">
+			<tr>
+				<th><?php esc_html_e( 'Application Passwords' ); ?></th>
+				<td>
+					<p><?php esc_html_e( 'Application Passwords are used to allow authentication via non-interactive systems, such as XMLRPC, where you would not otherwise be able to use your normal password due to the inability to complete the second factor of authentication.' ); ?></p>
 
-			<?php if ( $new_password ) : ?>
-			<p class="new-application-password">
-				<?php
-				printf(
-					esc_html_x( 'Your new password for %1$s is %2$s.', 'application, password' ),
-					'<strong>' . esc_html( $new_password_name ) . '</strong>',
-					'<kbd>' . esc_html( self::chunk_password( $new_password ) ) . '</kbd>'
-				);
-				?>
-			</p>
-			<?php endif; ?>
+					<p class="create-application-password">
+						<input type="text" size="30" name="new_application_password_name" placeholder="<?php esc_attr_e( 'Enter Application Name' ); ?>" />
+						<?php submit_button( __( 'Add New' ), 'secondary', 'do_new_application_password', false ); ?>
+					</p>
 
-			<?php
-				require( dirname( __FILE__ ) . '/class.application-passwords-list-table.php' );
-				// @todo Isn't this class already loaded in Two_Factor_Core::get_providers()?
-				$application_passwords_list_table = new Application_Passwords_List_Table();
-				$application_passwords_list_table->items = $application_passwords;
-				$application_passwords_list_table->prepare_items();
-				$application_passwords_list_table->display();
-			?>
-		</div>
+					<?php if ( $new_password ) : ?>
+					<p class="new-application-password">
+						<?php
+						printf(
+							esc_html_x( 'Your new password for %1$s is %2$s.', 'application, password' ),
+							'<strong>' . esc_html( $new_password_name ) . '</strong>',
+							'<kbd>' . esc_html( self::chunk_password( $new_password ) ) . '</kbd>'
+						);
+						?>
+					</p>
+					<?php endif; ?>
+
+					<?php
+						require( dirname( __FILE__ ) . '/class.application-passwords-list-table.php' );
+						// @todo Isn't this class already loaded in Two_Factor_Core::get_providers()?
+						$application_passwords_list_table = new Application_Passwords_List_Table();
+						$application_passwords_list_table->items = $application_passwords;
+						$application_passwords_list_table->prepare_items();
+						$application_passwords_list_table->display();
+					?>
+				</td>
+			</tr>
+		</table>
 		<?php
 	}
 
