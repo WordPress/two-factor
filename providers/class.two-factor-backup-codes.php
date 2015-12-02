@@ -125,9 +125,12 @@ class Two_Factor_Backup_Codes extends Two_Factor_Provider {
 		<div class="two-factor-backup-codes-wrapper" style="display:none;">
 			<ol class="two-factor-backup-codes-unused-codes"></ol>
 			<p class="description"><?php esc_html_e( 'Write these down!  Once you navigate away from this page, you will not be able to view these codes again.' ); ?></p>
+			<p>
+				<a class="button button-two-factor-backup-codes-download button-secondary hide-if-no-js"	 href="javascript:void(0);" id="two-factor-backup-codes-download-link" download="two-factor-backup-codes.txt"><?php esc_html_e( 'Download Codes' ); ?></a>
+			<p>
 		</div>
 		<script type="text/javascript">
-			jQuery( document ).ready( function( $ ) {
+			( function( $ ) {
 				$( '.button-two-factor-backup-codes-generate' ).click( function() {
 					$.ajax( {
 						method: 'POST',
@@ -139,20 +142,32 @@ class Two_Factor_Backup_Codes extends Two_Factor_Provider {
 						},
 						dataType: 'JSON',
 						success: function( response ) {
+							var $codesList = $( '.two-factor-backup-codes-unused-codes' );
+
 							$( '.two-factor-backup-codes-wrapper' ).show();
-							$( '.two-factor-backup-codes-unused-codes' ).html( '' );
+							$codesList.html( '' );
 
 							// Append the codes.
-							$.each( response.data.codes, function( key, val ) {
-								$( '.two-factor-backup-codes-unused-codes' ).append( '<li>' + val + '</li>' );
-							} );
+							for ( i = 0; i < response.data.codes.length; i++ ) {
+								$codesList.append( '<li>' + response.data.codes[ i ] + '</li>' );
+							}
 
 							// Update counter.
-							$( '.two-factor-backup-codes-count' ).html( response.data.i18n );
+							$( '.two-factor-backup-codes-count' ).html( response.data.i18n.count );
+
+							// Build the download link
+							var txt_data = 'data:application/text;charset=utf-8,' + '\n';
+							txt_data += response.data.i18n.title.replace( /%s/g, document.domain ) + '\n\n';
+
+							for ( i = 0; i < response.data.codes.length; i++ ) {
+								txt_data += i + 1 + '. ' + response.data.codes[ i ] + '\n';
+							}
+
+							$( '#two-factor-backup-codes-download-link' ).attr( 'href', encodeURI( txt_data ) );
 						}
 					} );
 				} );
-			} );
+			} )( jQuery );
 		</script>
 		<?php
 	}
@@ -206,7 +221,10 @@ class Two_Factor_Backup_Codes extends Two_Factor_Provider {
 		// Setup the return data.
 		$codes = $this->generate_codes( $user );
 		$count = self::codes_remaining_for_user( $user );
-		$i18n = esc_html( sprintf( _n( '%s unused code remaining.', '%s unused codes remaining.', $count ), $count ) );
+		$i18n = array(
+			'count' => esc_html( sprintf( _n( '%s unused code remaining.', '%s unused codes remaining.', $count ), $count ) ),
+			'title' => esc_html__( 'Two-Factor Backup Codes for %s' ),
+		);
 
 		// Send the response.
 		wp_send_json_success( array( 'codes' => $codes, 'i18n' => $i18n ) );

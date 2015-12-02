@@ -22,12 +22,12 @@ class Two_Factor_Totp extends Two_Factor_Provider {
 	 */
 	const NOTICES_META_KEY = '_two_factor_totp_notices';
 
-	const DEFAULT_KEY_BIT_SIZE = 80;
+	const DEFAULT_KEY_BIT_SIZE = 160;
 	const DEFAULT_CRYPTO = 'sha1';
 	const DEFAULT_DIGIT_COUNT = 6;
 	const DEFAULT_TIME_STEP_SEC = 30;
 	const DEFAULT_TIME_STEP_ALLOWANCE = 4;
-	private $_base_32_chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ234567';
+	private static $_base_32_chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ234567';
 
 	/**
 	 * Class constructor. Sets up hooks, etc.
@@ -42,11 +42,10 @@ class Two_Factor_Totp extends Two_Factor_Provider {
 	/**
 	 * Ensures only one instance of this class exists in memory at any one time.
 	 */
-	static function get_instance() {
+	public static function get_instance() {
 		static $instance;
-		$class = __CLASS__;
-		if ( ! is_a( $instance, $class ) ) {
-			$instance = new $class;
+		if ( ! isset( $instance ) ) {
+			$instance = new self();
 		}
 		return $instance;
 	}
@@ -105,7 +104,7 @@ class Two_Factor_Totp extends Two_Factor_Provider {
 
 			$current_key = get_user_meta( $user_id, self::SECRET_META_KEY, true );
 			// If the key hasn't changed or is invalid, do nothing.
-			if ( ! isset( $_POST['two-factor-totp-key'] ) || $current_key === $_POST['two-factor-totp-key'] || ! preg_match( '/^[' . $this->_base_32_chars . ']+$/', $_POST['two-factor-totp-key'] ) ) {
+			if ( ! isset( $_POST['two-factor-totp-key'] ) || $current_key === $_POST['two-factor-totp-key'] || ! preg_match( '/^[' . self::$_base_32_chars . ']+$/', $_POST['two-factor-totp-key'] ) ) {
 				return false;
 			}
 
@@ -114,7 +113,7 @@ class Two_Factor_Totp extends Two_Factor_Provider {
 			if ( empty( $_POST['two-factor-totp-authcode'] ) ) {
 				$notices['error'][] = __( 'Two Factor Authentication not activated, you must specify authcode to ensure it is properly set up. Please re-scan the QR code and enter the code provided by your application.' );
 			} else {
-				if ( $this->_is_valid_authcode( $_POST['two-factor-totp-key'], $_POST['two-factor-totp-authcode'] ) ) {
+				if ( $this->is_valid_authcode( $_POST['two-factor-totp-key'], $_POST['two-factor-totp-authcode'] ) ) {
 					if ( ! update_user_meta( $user_id, self::SECRET_META_KEY, $_POST['two-factor-totp-key'] ) ) {
 						$notices['error'][] = __( 'Unable to save Two Factor Authentication code. Please re-scan the QR code and enter the code provided by your application.' );
 					}
@@ -164,7 +163,8 @@ class Two_Factor_Totp extends Two_Factor_Provider {
 	 */
 	public function validate_authentication( $user ) {
 		$key = get_user_meta( $user->ID, self::SECRET_META_KEY, true );
-		return $this->_is_valid_authcode( $key, $_REQUEST['authcode'] );
+
+		return $this->is_valid_authcode( $key, $_REQUEST['authcode'] );
 	}
 
 	/**
@@ -175,7 +175,7 @@ class Two_Factor_Totp extends Two_Factor_Provider {
 	 *
 	 * @return bool Whether the code is valid within the time frame
 	 */
-	private function _is_valid_authcode( $key, $authcode ) {
+	public static function is_valid_authcode( $key, $authcode ) {
 		/**
 		 * Filter the maximum ticks to allow when checking valid codes.
 		 *
@@ -188,13 +188,13 @@ class Two_Factor_Totp extends Two_Factor_Provider {
 
 		// Array of all ticks to allow, sorted using absolute value to test closest match first.
 		$ticks = range( - $max_ticks, $max_ticks );
-		usort( $ticks, array( $this, 'abssort' ) );
+		usort( $ticks, array( __CLASS__, 'abssort' ) );
 
 		$time = time() / self::DEFAULT_TIME_STEP_SEC;
 
 		foreach ( $ticks as $offset ) {
 			$log_time = $time + $offset;
-			if ( $this->calc_totp( $key, $log_time ) === $authcode ) {
+			if ( self::calc_totp( $key, $log_time ) === $authcode ) {
 				return true;
 			}
 		}
@@ -208,19 +208,11 @@ class Two_Factor_Totp extends Two_Factor_Provider {
 	 *
 	 * @return string $bitsize long string composed of available base32 chars.
 	 */
-	public function generate_key( $bitsize = self::DEFAULT_KEY_BIT_SIZE ) {
-		if ( 8 > $bitsize || 0 !== $bitsize % 8 ) {
-			// @TODO: handle this case.
-			wp_die( -1 );
-		}
+	public static function generate_key( $bitsize = self::DEFAULT_KEY_BIT_SIZE ) {
+		$bytes = ceil( $bitsize / 8 );
+		$secret = wp_generate_password( $bytes, true, true );
 
-		$s 	= '';
-
-		for ( $i = 0; $i < $bitsize / 8; $i++ ) {
-			$s .= $this->_base_32_chars[ rand( 0, 31 ) ];
-		}
-
-		return $s;
+		return self::base32_encode( $secret );
 	}
 
 	/**
@@ -230,7 +222,7 @@ class Two_Factor_Totp extends Two_Factor_Provider {
 	 *
 	 * @return string Binary packed string.
 	 */
-	private static function pack64( $value ) {
+	public static function pack64( $value ) {
 		// 64bit mode (PHP_INT_SIZE == 8).
 		if ( PHP_INT_SIZE >= 8 ) {
 			// If we're on PHP 5.6.3+ we can use the new 64bit pack functionality.
@@ -246,8 +238,10 @@ class Two_Factor_Totp extends Two_Factor_Provider {
 			 */
 			$higher = 0;
 		}
+
 		$lowmap  = 0xffffffff;
 		$lower   = $value & $lowmap;
+
 		return pack( 'NN', $higher, $lower );
 	}
 
@@ -262,14 +256,14 @@ class Two_Factor_Totp extends Two_Factor_Provider {
 	 *
 	 * @return string The totp code
 	 */
-	public function calc_totp( $key, $step_count = false, $digits = self::DEFAULT_DIGIT_COUNT, $hash = self::DEFAULT_CRYPTO, $time_step = self::DEFAULT_TIME_STEP_SEC ) {
-		$secret = $this->base32_decode( $key );
+	public static function calc_totp( $key, $step_count = false, $digits = self::DEFAULT_DIGIT_COUNT, $hash = self::DEFAULT_CRYPTO, $time_step = self::DEFAULT_TIME_STEP_SEC ) {
+		$secret = self::base32_decode( $key );
 
 		if ( false === $step_count ) {
 			$step_count = floor( time() / $time_step );
 		}
 
-		$timestamp = $this->pack64( $step_count );
+		$timestamp = self::pack64( $step_count );
 
 		$hash = hash_hmac( $hash, $timestamp, $secret, true );
 
@@ -294,7 +288,7 @@ class Two_Factor_Totp extends Two_Factor_Provider {
 	 *
 	 * @return string A URL to use as an img src to display the QR code
 	 */
-	public function get_google_qr_code( $name, $key, $title = null ) {
+	public static function get_google_qr_code( $name, $key, $title = null ) {
 		// Pre-encode spaces because iOS chokes on them.
 		$name = str_replace( ' ', '%20', $name );
 		$google_url = urlencode( 'otpauth://totp/' . $name . '?secret=' . $key );
@@ -344,6 +338,34 @@ class Two_Factor_Totp extends Two_Factor_Provider {
 	}
 
 	/**
+	 * Returns a base32 encoded string.
+	 *
+	 * @param string $string String to be encoded using base32.
+	 *
+	 * @return string base32 encoded string without padding.
+	 */
+	public static function base32_encode( $string ) {
+		if ( empty( $string ) ) {
+			return '';
+		}
+
+		$binary_string = '';
+
+		foreach ( str_split( $string ) as $character ) {
+			$binary_string .= str_pad( base_convert( ord( $character ), 10, 2 ), 8, '0', STR_PAD_LEFT );
+		}
+
+		$five_bit_sections = str_split( $binary_string, 5 );
+		$base32_string = '';
+
+		foreach ( $five_bit_sections as $five_bit_section ) {
+			$base32_string .= self::$_base_32_chars[ base_convert( str_pad( $five_bit_section, 5, '0' ), 2, 10 ) ];
+		}
+
+		return $base32_string;
+	}
+
+	/**
 	 * Decode a base32 string and return a binary representation
 	 *
 	 * @param string $base32_string The base 32 string to decode.
@@ -352,11 +374,11 @@ class Two_Factor_Totp extends Two_Factor_Provider {
 	 *
 	 * @return string Binary representation of decoded string
 	 */
-	public function base32_decode( $base32_string ) {
+	public static function base32_decode( $base32_string ) {
 
 		$base32_string 	= strtoupper( $base32_string );
 
-		if ( ! preg_match( '/^[' . $this->_base_32_chars . ']+$/', $base32_string, $match ) ) {
+		if ( ! preg_match( '/^[' . self::$_base_32_chars . ']+$/', $base32_string, $match ) ) {
 			throw new Exception( 'Invalid characters in the base32 string.' );
 		}
 
@@ -368,7 +390,7 @@ class Two_Factor_Totp extends Two_Factor_Provider {
 		for ( $i = 0; $i < $l; $i++ ) {
 
 			$n = $n << 5; // Move buffer left by 5 to make room.
-			$n = $n + strpos( $this->_base_32_chars, $base32_string[ $i ] ); 	// Add value into buffer.
+			$n = $n + strpos( self::$_base_32_chars, $base32_string[ $i ] ); 	// Add value into buffer.
 			$j += 5; // Keep track of number of bits in buffer.
 
 			if ( $j >= 8 ) {
@@ -388,7 +410,7 @@ class Two_Factor_Totp extends Two_Factor_Provider {
 	 *
 	 * @return int -1, 0, or 1 as needed by usort
 	 */
-	private function abssort( $a, $b ) {
+	private static function abssort( $a, $b ) {
 		$a = abs( $a );
 		$b = abs( $b );
 		if ( $a === $b ) {
