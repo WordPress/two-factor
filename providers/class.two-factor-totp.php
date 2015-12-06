@@ -102,32 +102,34 @@ class Two_Factor_Totp extends Two_Factor_Provider {
 	 * @param integer $user_id The user ID whose options are being updated.
 	 */
 	public function user_two_factor_options_update( $user_id ) {
-		if ( ! empty( $_POST['do_totp_authcode'] ) && isset( $_POST['_nonce_user_two_factor_totp_options'] ) ) {
-			check_admin_referer( 'user_two_factor_totp_options', '_nonce_user_two_factor_totp_options' );
+		if ( empty( $_POST['do_totp_authcode'] ) || ! isset( $_POST['_nonce_user_two_factor_totp_options'] ) ) {
+			return false;
+		}
 
-			$current_key = get_user_meta( $user_id, self::SECRET_META_KEY, true );
-			// If the key hasn't changed or is invalid, do nothing.
-			if ( ! isset( $_POST['two-factor-totp-key'] ) || $current_key === $_POST['two-factor-totp-key'] || ! preg_match( '/^[' . self::$_base_32_chars . ']+$/', $_POST['two-factor-totp-key'] ) ) {
-				return false;
-			}
+		check_admin_referer( 'user_two_factor_totp_options', '_nonce_user_two_factor_totp_options' );
 
-			$notices = array();
+		$current_key = get_user_meta( $user_id, self::SECRET_META_KEY, true );
+		// If the key hasn't changed or is invalid, do nothing.
+		if ( ! isset( $_POST['two-factor-totp-key'] ) || $current_key === $_POST['two-factor-totp-key'] || ! preg_match( '/^[' . self::$_base_32_chars . ']+$/', $_POST['two-factor-totp-key'] ) ) {
+			return false;
+		}
 
-			if ( empty( $_POST['two-factor-totp-authcode'] ) ) {
-				$notices['error'][] = __( 'Two Factor Authentication not activated, you must specify authcode to ensure it is properly set up. Please re-scan the QR code and enter the code provided by your application.' );
-			} else {
-				if ( $this->is_valid_authcode( $_POST['two-factor-totp-key'], $_POST['two-factor-totp-authcode'] ) ) {
-					if ( ! update_user_meta( $user_id, self::SECRET_META_KEY, $_POST['two-factor-totp-key'] ) ) {
-						$notices['error'][] = __( 'Unable to save Two Factor Authentication code. Please re-scan the QR code and enter the code provided by your application.' );
-					}
-				} else {
-					$notices['error'][] = __( 'Two Factor Authentication not activated, the authentication code you entered was not valid. Please re-scan the QR code and enter the code provided by your application.' );
+		$notices = array();
+
+		if ( empty( $_POST['two-factor-totp-authcode'] ) ) {
+			$notices['error'][] = __( 'Two Factor Authentication not activated, you must specify authcode to ensure it is properly set up. Please re-scan the QR code and enter the code provided by your application.' );
+		} else {
+			if ( $this->is_valid_authcode( $_POST['two-factor-totp-key'], $_POST['two-factor-totp-authcode'] ) ) {
+				if ( ! update_user_meta( $user_id, self::SECRET_META_KEY, $_POST['two-factor-totp-key'] ) ) {
+					$notices['error'][] = __( 'Unable to save Two Factor Authentication code. Please re-scan the QR code and enter the code provided by your application.' );
 				}
+			} else {
+				$notices['error'][] = __( 'Two Factor Authentication not activated, the authentication code you entered was not valid. Please re-scan the QR code and enter the code provided by your application.' );
 			}
+		}
 
-			if ( ! empty( $notices ) ) {
-				update_user_meta( $user_id, self::NOTICES_META_KEY, $notices );
-			}
+		if ( ! empty( $notices ) ) {
+			update_user_meta( $user_id, self::NOTICES_META_KEY, $notices );
 		}
 	}
 
