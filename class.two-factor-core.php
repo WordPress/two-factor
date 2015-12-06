@@ -636,24 +636,30 @@ class Two_Factor_Core {
 	 * @param int $user_id User ID.
 	 */
 	public static function user_two_factor_options_update( $user_id ) {
-		if ( isset( $_POST['_nonce_user_two_factor_options'] ) ) {
-			check_admin_referer( 'user_two_factor_options', '_nonce_user_two_factor_options' );
-			$providers         = self::get_providers();
-
-			if ( ! isset( $_POST[ self::ENABLED_PROVIDERS_USER_META_KEY ] ) ||
-					! is_array( $_POST[ self::ENABLED_PROVIDERS_USER_META_KEY ] ) ) {
-				return;
-			}
-
-			$enabled_providers = $_POST[ self::ENABLED_PROVIDERS_USER_META_KEY ];
-			$enabled_providers = array_intersect( $enabled_providers, array_keys( $providers ) );
-			update_user_meta( $user_id, self::ENABLED_PROVIDERS_USER_META_KEY, $enabled_providers );
-
-			// Whitelist the new values to only the available classes and empty.
-			$new_provider = isset( $_POST[ self::PROVIDER_USER_META_KEY ] ) ? $_POST[ self::PROVIDER_USER_META_KEY ] : '';
-			if ( empty( $new_provider ) || array_key_exists( $new_provider, $providers ) ) {
-				update_user_meta( $user_id, self::PROVIDER_USER_META_KEY, $new_provider );
-			}
+		if ( ! isset( $_POST['_nonce_user_two_factor_options'] ) ) {
+			return;
 		}
+
+		check_admin_referer( 'user_two_factor_options', '_nonce_user_two_factor_options' );
+
+		if ( ! isset( $_POST[ self::ENABLED_PROVIDERS_USER_META_KEY ] ) ||
+				! is_array( $_POST[ self::ENABLED_PROVIDERS_USER_META_KEY ] ) ) {
+			return;
+		}
+
+		$providers         = self::get_providers();
+		$enabled_providers = $_POST[ self::ENABLED_PROVIDERS_USER_META_KEY ];
+		$primary_provider  = isset( $_POST[ self::PROVIDER_USER_META_KEY ] ) ? $_POST[ self::PROVIDER_USER_META_KEY ] : '';
+
+		// Whitelist the new values to only the available classes and empty.
+		if ( empty( $primary_provider ) || array_key_exists( $primary_provider, $providers ) ) {
+			array_push( $enabled_providers, $primary_provider );
+			array_unique( $enabled_providers );
+
+			update_user_meta( $user_id, self::PROVIDER_USER_META_KEY, $primary_provider );
+		}
+
+		$enabled_providers = array_intersect( $enabled_providers, array_keys( $providers ) );
+		update_user_meta( $user_id, self::ENABLED_PROVIDERS_USER_META_KEY, $enabled_providers );
 	}
 }
