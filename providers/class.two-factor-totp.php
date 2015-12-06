@@ -102,7 +102,7 @@ class Two_Factor_Totp extends Two_Factor_Provider {
 	 * @param integer $user_id The user ID whose options are being updated.
 	 */
 	public function user_two_factor_options_update( $user_id ) {
-		if ( ! empty( $_POST['do_totp_authcode'] ) ) {
+		if ( ! empty( $_POST['do_totp_authcode'] ) && isset( $_POST['_nonce_user_two_factor_totp_options'] ) ) {
 			check_admin_referer( 'user_two_factor_totp_options', '_nonce_user_two_factor_totp_options' );
 
 			$current_key = get_user_meta( $user_id, self::SECRET_META_KEY, true );
