@@ -42,6 +42,15 @@ class Two_Factor_Core {
 		add_action( 'edit_user_profile_update', array( __CLASS__, 'user_two_factor_options_update' ) );
 		add_filter( 'manage_users_columns',       array( __CLASS__, 'filter_manage_users_columns' ) );
 		add_filter( 'manage_users_custom_column', array( __CLASS__, 'manage_users_custom_column' ), 10, 3 );
+		add_action( 'admin_menu',               array( __CLASS__, 'admin_menu' ) );
+	}
+
+	/**
+	 * Add in an admin menu page under the Users menu.
+	 */
+	public static function admin_menu() {
+		// Use `exist` capability to mirror core's user profile page.
+		add_users_page( __( 'Two-Factor Settings' ), __( 'Two-Factor' ), 'exist', 'two-factor', array( __CLASS__, 'admin_page_two_factor' ) );
 	}
 
 	/**
@@ -652,5 +661,88 @@ class Two_Factor_Core {
 				update_user_meta( $user_id, self::PROVIDER_USER_META_KEY, $new_provider );
 			}
 		}
+	}
+
+	/**
+	 * Secondary profile page under Users > Two Factor
+	 */
+	public static function admin_page_two_factor() {
+		$user = wp_get_current_user();
+		$providers = self::get_providers();
+		$enabled_providers = get_user_meta( $user->ID, self::ENABLED_PROVIDERS_USER_META_KEY, true );
+		if ( empty( $enabled_providers ) ) {
+			// Because get_user_meta() has no way of providing a default value.
+			$enabled_providers = array();
+		}
+		$primary_provider = get_user_meta( $user->ID, self::PROVIDER_USER_META_KEY, true );
+		?>
+		<div class="wrap">
+			<?php screen_icon(); ?>
+			<h2><?php esc_html_e( 'Two Factor Authentication' ); ?></h2>
+
+			<div class="initial-config">
+				<p><?php esc_html_e( 'To set up two-factor authentication, you will need to enter a login code sent to your email address.' ); ?></p>
+
+				<p><?php printf( __( 'Emailed authentication codes will be sent to <tt>%1$s</tt>.  If you would like to change this email address, you can update it on <a href="%2$s">your user profile page</a>.' ), $user->user_email, get_edit_user_link( $user->ID ) ); ?></p>
+				<p>
+					<button class="button-primary email-code"><?php esc_html_e( 'Email code' ); ?></button>
+					<span class="email-sent"><?php esc_html_e( 'Email sent. If it doesn\'t arrive, you may request a new code in three minutes.' ); ?></span>
+				</p>
+
+				<form class="initial-config-code">
+					<p><label for="email-code"><?php esc_html_e( 'Please check your email for the code, and enter it here and activate two-factor.' ); ?></label></p>
+					<input type="text" id="email-code" pattern="\d{6}" placeholder="######" maxlength="6" required />
+					<?php submit_button( __( 'Verify' ), 'primary', 'submit', false ); ?>
+				</form>
+			</div>
+
+			<div class="normal-config">
+				<p><?php esc_html_e( 'Great!  Now that you\'ve got email configured for two-factor authentication, you can set up some alternate methods as well. These can be useful in a variety of circumstances where email is difficult to access.' ); ?></p>
+				<section class="providers">
+					<?php foreach ( $providers as $class => $object ) : ?>
+						<div class="provider" data-enabled="<?php echo in_array( $class, $enabled_providers ) ? 'y' : 'n'; ?>" data-primary="<?php echo ( $class === $primary_provider ) ? 'y' : 'n'; ?>" data-has-options="<?php echo has_action( 'two-factor-user-options-' . $class ) ? 'y' : 'n'; ?>">
+							<div class="label"><?php $object->print_label(); ?></div>
+							<?php if ( has_action( 'two-factor-user-options-' . $class ) ) : ?>
+								<a class="show-extra-options" href="#"><?php esc_html_e( 'Show extra options &rarr;' ); ?></a>
+								<div class="extra-options">
+									<?php do_action( 'two-factor-user-options-' . $class, $user ); ?>
+								</div>
+							<?php endif; ?>
+					<?php endforeach; ?>
+				</section>
+			</div>
+
+		</div><!-- .wrap -->
+		<style>
+		.providers {
+			background: #fff;
+			border: 1px solid #555;
+			border-radius: 3px;
+		}
+		.providers .provider .label {
+			font-size: 1.8em;
+			padding: 0.5em 1em;
+			background: #ccc;
+		}
+		</style>
+		<script>
+/*		(function($){
+			$('.initial-config-code, .email-sent, .normal-config').hide();
+
+			$('.initial-config .email-code').click(function(){
+				$(this).prop( 'disabled', true );
+				$('.initial-config-code, .email-sent').delay(500).show(1);
+				// Add a 3 minute timeout to reenable the button to request a new email.
+			});
+
+			$('.initial-config-code').submit(function(e){
+				e.preventDefault();
+				$(this).find('input').prop( 'disabled', true );
+				$('.normal-config').delay(500).show(1);
+				$('.initial-config').delay(500).hide(1);
+			});
+		})(jQuery);
+/*  */	</script>
+		<?php
 	}
 }
