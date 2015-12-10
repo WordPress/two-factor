@@ -581,13 +581,15 @@ class Two_Factor_Core {
 		$primary_provider = get_user_meta( $user->ID, self::PROVIDER_USER_META_KEY, true );
 		wp_nonce_field( 'user_two_factor_options', '_nonce_user_two_factor_options', false );
 		?>
-		<h3><?php esc_html_e( 'Two Step Authentication' ); ?></h3>
+		<h3><?php esc_html_e( 'Two Step Verification' ); ?></h3>
 
-		<table class="form-table">
+		<table class="form-table two-factor-verification" id="two-factor-verification">
 			<tr>
-				<th><?php esc_html_e( 'Authentication Methods' ); ?></th>
+				<th><?php esc_html_e( 'Verification Methods' ); ?></th>
 				<td>
-					<table class="two-factor-methods-table wp-list-table widefat">
+					<p class="two-factor-introduction"><?php esc_html_e( 'With Two Step Verification, WordPress requires something you know (your password) and something you have (like your phone or security key) to sign in.' ) ?></p>
+
+					<table class="two-factor-methods-table widefat">
 						<thead>
 							<tr>
 								<th class="col-enabled" scope="col"><?php esc_html_e( 'Enabled' ); ?></th>

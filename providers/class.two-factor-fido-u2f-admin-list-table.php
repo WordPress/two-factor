@@ -23,9 +23,9 @@ class Two_Factor_FIDO_U2F_Admin_List_Table extends WP_List_Table {
 	 */
 	public function get_columns() {
 		return array(
-			'name'      => wp_strip_all_tags( __( 'Name' ) ),
-			'added'   => wp_strip_all_tags( __( 'Added' ) ),
-			'last_used' => wp_strip_all_tags( __( 'Last Used' ) ),
+			'name' => __( 'Name' ),
+			'added' => __( 'Added' ),
+			'last_used' => __( 'Last Used' ),
 		);
 	}
 

@@ -10,6 +10,10 @@
 	background: #fff;
 }
 
+.two-factor-methods-table tfoot {
+	display:none;
+}
+
 .two-factor-methods-table .col-primary,
 .two-factor-methods-table .col-enabled {
 	width: 5%;
@@ -29,11 +33,15 @@
 }
 
 .two-factor-methods-table td p {
-	margin:1em 0 0;
+	margin: 1em 0 0;
 }
 .two-factor-methods-table th,
 .application-passwords table th {
 	padding: 10px;
+}
+
+.application-passwords tfoot {
+	display: none;
 }
 
 .two-factor-provider-label {
@@ -44,4 +52,8 @@
 .application-passwords table,
 .security-keys table {
 	margin: 1em 0;
+}
+
+.two-factor-verification .two-factor-introduction {
+	margin-bottom:1em;
 }

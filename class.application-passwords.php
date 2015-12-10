@@ -136,12 +136,14 @@ class Application_Passwords {
 					<?php endif; ?>
 
 					<?php
-						require( dirname( __FILE__ ) . '/class.application-passwords-list-table.php' );
-						// @todo Isn't this class already loaded in Two_Factor_Core::get_providers()?
-						$application_passwords_list_table = new Application_Passwords_List_Table();
-						$application_passwords_list_table->items = $application_passwords;
-						$application_passwords_list_table->prepare_items();
-						$application_passwords_list_table->display();
+						if ( ! empty( $application_passwords ) ) {
+							require( dirname( __FILE__ ) . '/class.application-passwords-list-table.php' );
+							// @todo Isn't this class already loaded in Two_Factor_Core::get_providers()?
+							$application_passwords_list_table = new Application_Passwords_List_Table();
+							$application_passwords_list_table->items = $application_passwords;
+							$application_passwords_list_table->prepare_items();
+							$application_passwords_list_table->display();
+						}
 					?>
 				</td>
 			</tr>
