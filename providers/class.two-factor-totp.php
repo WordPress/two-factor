@@ -54,7 +54,7 @@ class Two_Factor_Totp extends Two_Factor_Provider {
 	 * Returns the name of the provider.
 	 */
 	public function get_label() {
-		return _x( 'Time Based One-Time Password (Google Authenticator)', 'Provider Label' );
+		return _x( 'Time Based One-Time Password', 'Provider Label' );
 	}
 
 	/**
