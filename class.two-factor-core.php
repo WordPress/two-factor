@@ -585,20 +585,7 @@ class Two_Factor_Core {
 
 		<table class="form-table">
 			<tr>
-				<th>
-					<label for="<?php echo esc_attr( self::PROVIDER_USER_META_KEY ); ?>"><?php esc_html_e( 'Primary Method' ); ?></label>
-				</th>
-				<td>
-					<select name="<?php echo esc_attr( self::PROVIDER_USER_META_KEY ); ?>">
-						<option value=""><?php esc_html_e( 'None' ) ?></option>
-						<?php foreach ( self::get_providers() as $class => $object ) : ?>
-							<option value="<?php echo esc_attr( $class ); ?>" <?php checked( $class, $primary_provider ); ?>><?php echo esc_html( $object->get_label() ) ?></option>
-						<?php endforeach ?>
-					</select>
-				</td>
-			</tr>
-			<tr>
-				<th><?php esc_html_e( 'Available Methods' ); ?></th>
+				<th><?php esc_html_e( 'Authentication Methods' ); ?></th>
 				<td>
 					<table class="two-factor-methods-table wp-list-table widefat">
 						<thead>
