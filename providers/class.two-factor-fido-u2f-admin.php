@@ -145,7 +145,7 @@ class Two_Factor_FIDO_U2F_Admin {
 				}
 			?>
 
-			<p><?php esc_html_e( 'FIDO U2F is only supported in Chrome 40 or newer.' ); ?> <a href="https://support.google.com/accounts/answer/6103523"><?php esc_html_e( 'You can find FIDO U2F Security Key devices for sale from here.' ); ?></a></p>
+			<p><?php esc_html_e( 'Security Keys are only supported in Chrome 40 or newer.' ); ?> <a href="https://support.google.com/accounts/answer/6103523"><?php esc_html_e( 'You can find Security Key devices for sale from here.' ); ?></a></p>
 		</div>
 		<?php
 	}
