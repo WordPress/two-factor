@@ -38,6 +38,10 @@ class Two_Factor_Email extends Two_Factor_Provider {
 		return parent::__construct();
 	}
 
+	public function get_priority() {
+		return 8;
+	}
+
 	/**
 	 * Returns the name of the provider.
 	 *

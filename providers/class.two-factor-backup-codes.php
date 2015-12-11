@@ -47,6 +47,10 @@ class Two_Factor_Backup_Codes extends Two_Factor_Provider {
 		return parent::__construct();
 	}
 
+	public function get_priority() {
+		return 6;
+	}
+
 	/**
 	 * Displays an admin notice when backup codes have run out.
 	 *

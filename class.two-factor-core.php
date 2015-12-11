@@ -52,6 +52,7 @@ class Two_Factor_Core {
 	 * @return array
 	 */
 	public static function get_providers() {
+		$provider_priority = array();
 		$providers = array(
 			'Two_Factor_Email'        => TWO_FACTOR_DIR . 'providers/class.two-factor-email.php',
 			'Two_Factor_Totp'         => TWO_FACTOR_DIR . 'providers/class.two-factor-totp.php',
@@ -91,12 +92,18 @@ class Two_Factor_Core {
 			 */
 			if ( class_exists( $class ) ) {
 				try {
-					$providers[ $class ] = call_user_func( array( $class, 'get_instance' ) );
+					$provider_instance = call_user_func( array( $class, 'get_instance' ) );
+
+					$providers[ $class ] = $provider_instance;
+					$provider_priority[ $class ] = $provider_instance->get_priority();
 				} catch ( Exception $e ) {
 					unset( $providers[ $class ] );
 				}
 			}
 		}
+
+		// Sort providers by their priorities, descending
+		asort( $provider_priority );
 
 		return $providers;
 	}

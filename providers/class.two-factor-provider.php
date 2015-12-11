@@ -17,6 +17,10 @@ abstract class Two_Factor_Provider {
 		return $this;
 	}
 
+	public function get_priority() {
+		return 10;
+	}
+
 	/**
 	 * Returns the name of the provider.
 	 *

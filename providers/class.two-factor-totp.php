@@ -50,6 +50,10 @@ class Two_Factor_Totp extends Two_Factor_Provider {
 		return $instance;
 	}
 
+	public function get_priority() {
+		return 4;
+	}
+
 	/**
 	 * Returns the name of the provider.
 	 */
