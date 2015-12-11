@@ -592,8 +592,8 @@ class Two_Factor_Core {
 					<table class="two-factor-methods-table widefat">
 						<thead>
 							<tr>
-								<th class="col-enabled" scope="col"><?php esc_html_e( 'Enabled' ); ?></th>
-								<th class="col-name" scope="col"><?php esc_html_e( 'Name' ); ?></th>
+								<th class="col-enabled" scope="col"><span class="screen-reader-text"><?php esc_html_e( 'Enabled' ); ?></span></th>
+								<th class="col-name" scope="col"><?php esc_html_e( 'Verification Method' ); ?></th>
 							</tr>
 						</thead>
 						<tbody>
