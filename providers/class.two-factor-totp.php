@@ -50,11 +50,15 @@ class Two_Factor_Totp extends Two_Factor_Provider {
 		return $instance;
 	}
 
+	public function get_priority() {
+		return 4;
+	}
+
 	/**
 	 * Returns the name of the provider.
 	 */
 	public function get_label() {
-		return _x( 'Time Based One-Time Password (Google Authenticator)', 'Provider Label' );
+		return _x( 'Verification Codes', 'Provider Label' );
 	}
 
 	/**
@@ -71,23 +75,22 @@ class Two_Factor_Totp extends Two_Factor_Provider {
 		$key = get_user_meta( $user->ID, self::SECRET_META_KEY, true );
 		$this->admin_notices();
 		?>
-		<br />
-		<a href="javascript:;" onclick="jQuery('#two-factor-totp-options').toggle();"><?php esc_html_e( 'View Options &rarr;' ); ?></a>
-		<div id="two-factor-totp-options" style="display:none;">
+
+		<div id="two-factor-totp-options">
 			<?php if ( empty( $key ) ) {
 				$key = $this->generate_key();
 				$site_name = get_bloginfo( 'name', 'display' );
 				?>
-				<img src="<?php echo esc_url( $this->get_google_qr_code( $site_name . ':' . $user->user_login, $key, $site_name ) ); ?>" id="two-factor-totp-qrcode" />
-				<p><strong><?php echo esc_html( $key ); ?></strong></p>
 				<p><?php esc_html_e( 'Please scan the QR code or manually enter the key, then enter an authentication code from your app in order to complete setup' ); ?></p>
+				<p><img src="<?php echo esc_url( $this->get_google_qr_code( $site_name . ':' . $user->user_login, $key, $site_name ) ); ?>" id="two-factor-totp-qrcode" /></p>
+				<p><strong><?php echo esc_html( $key ); ?></strong></p>
 				<p>
 					<label for="two-factor-totp-authcode"><?php esc_html_e( 'Authentication Code:' ); ?></label>
 					<input type="hidden" name="two-factor-totp-key" value="<?php echo esc_attr( $key ) ?>" />
 					<input type="tel" name="two-factor-totp-authcode" id="two-factor-totp-authcode" class="input" value="" size="20" pattern="[0-9]*" />
 				</p>
 			<?php } else { ?>
-				<p class="success"><?php esc_html_e( 'Enabled' ); ?></p>
+				<p><?php esc_html_e( 'Enabled.' ); ?></p>
 			<?php } ?>
 		</div>
 		<?php

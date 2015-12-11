@@ -22,14 +22,17 @@ class Two_Factor_FIDO_U2F_Admin {
 	 * @access public
 	 * @static
 	 */
-	public static function add_hooks() {
+	public static function add_hooks( $provider = null ) {
 		add_action( 'admin_enqueue_scripts',       array( __CLASS__, 'enqueue_assets' ) );
-		add_action( 'show_user_security_settings', array( __CLASS__, 'show_user_profile' ) );
 		add_action( 'personal_options_update',     array( __CLASS__, 'catch_submission' ), 0 );
 		add_action( 'edit_user_profile_update',    array( __CLASS__, 'catch_submission' ), 0 );
 		add_action( 'load-profile.php',            array( __CLASS__, 'catch_delete_security_key' ) );
 		add_action( 'load-user-edit.php',          array( __CLASS__, 'catch_delete_security_key' ) );
 		add_action( 'wp_ajax_inline-save-key',     array( __CLASS__, 'wp_ajax_inline_save' ) );
+
+		if ( ! empty( $provider ) ) {
+			add_action( 'two-factor-user-options-' . $provider, array( __CLASS__, 'show_user_profile' ) );
+		}
 	}
 
 	/**
@@ -101,6 +104,7 @@ class Two_Factor_FIDO_U2F_Admin {
 		$new_key = false;
 
 		$security_keys = Two_Factor_FIDO_U2F::get_security_keys( $user->ID );
+
 		if ( $security_keys ) {
 			foreach ( $security_keys as &$security_key ) {
 				if ( property_exists( $security_key, 'new' ) ) {
@@ -116,31 +120,32 @@ class Two_Factor_FIDO_U2F_Admin {
 
 		?>
 		<div class="security-keys" id="security-keys-section">
-			<h3><?php esc_html_e( 'Security Keys' ); ?></h3>
-			<p><?php esc_html_e( 'FIDO U2F is only supported in Chrome 41+.' ); ?></p>
-			<p><a href="https://support.google.com/accounts/answer/6103523"><?php esc_html_e( 'You can find FIDO U2F Security Key devices for sale from here.' ); ?></a></p>
 			<div class="register-security-key">
-				<?php if ( Two_Factor_FIDO_U2F::is_browser_support() ) : ?>
+				<?php if ( Two_Factor_FIDO_U2F::is_browser_support() ) : // @todo do this in JS instead ?>
 				<input type="hidden" name="do_new_security_key" id="do_new_security_key" />
 				<input type="hidden" name="u2f_response" id="u2f_response" />
-				<button type="button" class="button button-secondary" id="register_security_key"><?php esc_html_e( 'Add New' ); ?></button>
+				<p><button type="button" class="button button-secondary" id="register_security_key"><?php esc_html_e( 'Register New Key' ); ?></button></p>
 				<?php else : ?>
 				<p><?php esc_html_e( 'Your browser doesn\'t support FIDO U2F.' ); ?></p>
 				<?php endif; ?>
 			</div>
 
-			<?php if ( $new_key ) : ?>
+			<?php if ( $new_key ) : // @todo toggle this in JS instead ?>
 			<p class="new-security-key"><?php esc_html_e( 'Your new security key registered.' ); ?></p>
 			<?php endif; ?>
 
 			<?php
-				require( TWO_FACTOR_DIR . 'providers/class.two-factor-fido-u2f-admin-list-table.php' );
-				$u2f_list_table = new Two_Factor_FIDO_U2F_Admin_List_Table();
-				$u2f_list_table->items = $security_keys;
-				$u2f_list_table->prepare_items();
-				$u2f_list_table->display();
-				$u2f_list_table->inline_edit();
+				if ( ! empty( $security_keys ) ) {
+					require( TWO_FACTOR_DIR . 'providers/class.two-factor-fido-u2f-admin-list-table.php' );
+					$u2f_list_table = new Two_Factor_FIDO_U2F_Admin_List_Table();
+					$u2f_list_table->items = $security_keys;
+					$u2f_list_table->prepare_items();
+					$u2f_list_table->display();
+					$u2f_list_table->inline_edit();
+				}
 			?>
+
+			<p><?php esc_html_e( 'Security Keys are only supported in Chrome 40 or newer.' ); ?> <a href="https://support.google.com/accounts/answer/6103523"><?php esc_html_e( 'You can find Security Key devices for sale from here.' ); ?></a></p>
 		</div>
 		<?php
 	}

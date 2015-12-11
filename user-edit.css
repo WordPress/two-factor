@@ -10,8 +10,8 @@
 	background: #fff;
 }
 
-.two-factor-methods-table thead th {
-	padding: 0.5em;
+.two-factor-methods-table tfoot {
+	display:none;
 }
 
 .two-factor-methods-table .col-primary,
@@ -23,10 +23,6 @@
 	width: 90%;
 }
 
-.two-factor-methods-table tbody th {
-	text-align: center;
-}
-
 .two-factor-methods-table tbody th,
 .two-factor-methods-table tbody td {
 	vertical-align: top;
@@ -34,4 +30,33 @@
 
 .two-factor-methods-table tbody tr:nth-child(odd) {
 	background-color: #f9f9f9;
+}
+
+.two-factor-methods-table td p {
+	margin: 1em 0 0;
+}
+.two-factor-methods-table th,
+.application-passwords table th {
+	padding: 10px;
+}
+.two-factor-methods-table tr .method-enable input {
+	margin:4px;
+}
+
+.application-passwords tfoot {
+	display: none;
+}
+
+.two-factor-provider-label {
+	margin: 0;
+	line-height: 1;
+}
+
+.application-passwords table,
+.security-keys table {
+	margin: 1em 0;
+}
+
+.two-factor-verification .two-factor-introduction {
+	margin-bottom:1em;
 }

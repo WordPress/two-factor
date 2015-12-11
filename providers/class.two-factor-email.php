@@ -38,6 +38,10 @@ class Two_Factor_Email extends Two_Factor_Provider {
 		return parent::__construct();
 	}
 
+	public function get_priority() {
+		return 8;
+	}
+
 	/**
 	 * Returns the name of the provider.
 	 *
@@ -177,9 +181,9 @@ class Two_Factor_Email extends Two_Factor_Provider {
 	public function user_options( $user ) {
 		$email = $user->user_email;
 		?>
-		<div>
+		<p>
 			<?php echo esc_html( sprintf( __( 'Authentication codes will be sent to %1$s.' ), $email ) ); ?>
-		</div>
+		</p>
 		<?php
 	}
 }

@@ -52,6 +52,7 @@ class Two_Factor_Core {
 	 * @return array
 	 */
 	public static function get_providers() {
+		$provider_priority = array();
 		$providers = array(
 			'Two_Factor_Email'        => TWO_FACTOR_DIR . 'providers/class.two-factor-email.php',
 			'Two_Factor_Totp'         => TWO_FACTOR_DIR . 'providers/class.two-factor-totp.php',
@@ -91,12 +92,18 @@ class Two_Factor_Core {
 			 */
 			if ( class_exists( $class ) ) {
 				try {
-					$providers[ $class ] = call_user_func( array( $class, 'get_instance' ) );
+					$provider_instance = call_user_func( array( $class, 'get_instance' ) );
+
+					$providers[ $class ] = $provider_instance;
+					$provider_priority[ $class ] = $provider_instance->get_priority();
 				} catch ( Exception $e ) {
 					unset( $providers[ $class ] );
 				}
 			}
 		}
+
+		// Sort providers by their priorities, descending
+		asort( $provider_priority );
 
 		return $providers;
 	}
@@ -581,28 +588,28 @@ class Two_Factor_Core {
 		$primary_provider = get_user_meta( $user->ID, self::PROVIDER_USER_META_KEY, true );
 		wp_nonce_field( 'user_two_factor_options', '_nonce_user_two_factor_options', false );
 		?>
-		<input type="hidden" name="<?php echo esc_attr( self::ENABLED_PROVIDERS_USER_META_KEY ); ?>[]" value="<?php /* Dummy input so $_POST value is passed when no providers are enabled. */ ?>" />
-		<table class="form-table">
+		<h3><?php esc_html_e( 'Two Step Verification' ); ?></h3>
+
+		<table class="form-table two-factor-verification" id="two-factor-verification">
 			<tr>
-				<th>
-					<?php esc_html_e( 'Two-Factor Options' ); ?>
-				</th>
+				<th><?php esc_html_e( 'Verification Methods' ); ?></th>
 				<td>
-					<table class="two-factor-methods-table">
+					<p class="two-factor-introduction"><?php esc_html_e( 'With Two Step Verification, WordPress requires something you know (your password) and something you have (like your phone or security key) to sign in.' ) ?></p>
+
+					<table class="two-factor-methods-table widefat">
 						<thead>
 							<tr>
-								<th class="col-enabled" scope="col"><?php esc_html_e( 'Enabled' ); ?></th>
-								<th class="col-primary" scope="col"><?php esc_html_e( 'Primary' ); ?></th>
-								<th class="col-name" scope="col"><?php esc_html_e( 'Name' ); ?></th>
+								<th class="col-enabled" scope="col"><span class="screen-reader-text"><?php esc_html_e( 'Enabled' ); ?></span></th>
+								<th class="col-name" scope="col"><?php esc_html_e( 'Verification Method' ); ?></th>
 							</tr>
 						</thead>
 						<tbody>
+						<input type="hidden" name="<?php echo esc_attr( self::ENABLED_PROVIDERS_USER_META_KEY ); ?>[]" value="<?php /* Dummy input so $_POST value is passed when no providers are enabled. */ ?>" />
 						<?php foreach ( self::get_providers() as $class => $object ) : ?>
 							<tr>
-								<th scope="row"><input type="checkbox" name="<?php echo esc_attr( self::ENABLED_PROVIDERS_USER_META_KEY ); ?>[]" value="<?php echo esc_attr( $class ); ?>" <?php checked( in_array( $class, $enabled_providers ) ); ?> /></th>
-								<th scope="row"><input type="radio" name="<?php echo esc_attr( self::PROVIDER_USER_META_KEY ); ?>" value="<?php echo esc_attr( $class ); ?>" <?php checked( $class, $primary_provider ); ?> /></th>
+								<th class="method-enable" scope="row"><input type="checkbox" id="method-<?php echo esc_attr( $class ); ?>" name="<?php echo esc_attr( self::ENABLED_PROVIDERS_USER_META_KEY ); ?>[]" value="<?php echo esc_attr( $class ); ?>" <?php checked( in_array( $class, $enabled_providers ) ); ?> /></th>
 								<td>
-									<?php $object->print_label(); ?>
+									<h4 class="two-factor-provider-label"><label for="method-<?php echo esc_attr( $class ); ?>"><?php $object->print_label(); ?></a></h4>
 									<?php do_action( 'two-factor-user-options-' . $class, $user ); ?>
 								</td>
 							</tr>
