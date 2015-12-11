@@ -600,9 +600,9 @@ class Two_Factor_Core {
 						<input type="hidden" name="<?php echo esc_attr( self::ENABLED_PROVIDERS_USER_META_KEY ); ?>[]" value="<?php /* Dummy input so $_POST value is passed when no providers are enabled. */ ?>" />
 						<?php foreach ( self::get_providers() as $class => $object ) : ?>
 							<tr>
-								<th scope="row"><input type="checkbox" name="<?php echo esc_attr( self::ENABLED_PROVIDERS_USER_META_KEY ); ?>[]" value="<?php echo esc_attr( $class ); ?>" <?php checked( in_array( $class, $enabled_providers ) ); ?> /></th>
+								<th class="method-enable" scope="row"><input type="checkbox" id="method-<?php echo esc_attr( $class ); ?>" name="<?php echo esc_attr( self::ENABLED_PROVIDERS_USER_META_KEY ); ?>[]" value="<?php echo esc_attr( $class ); ?>" <?php checked( in_array( $class, $enabled_providers ) ); ?> /></th>
 								<td>
-									<h4 class="two-factor-provider-label"><?php $object->print_label(); ?></h4>
+									<h4 class="two-factor-provider-label"><label for="method-<?php echo esc_attr( $class ); ?>"><?php $object->print_label(); ?></a></h4>
 									<?php do_action( 'two-factor-user-options-' . $class, $user ); ?>
 								</td>
 							</tr>

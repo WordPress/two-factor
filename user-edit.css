@@ -39,6 +39,9 @@
 .application-passwords table th {
 	padding: 10px;
 }
+.two-factor-methods-table tr .method-enable input {
+	margin:4px;
+}
 
 .application-passwords tfoot {
 	display: none;
