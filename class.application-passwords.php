@@ -119,7 +119,7 @@ class Application_Passwords {
 		$new_password    = wp_generate_password( 16, false );
 		$hashed_password = wp_hash_password( $new_password );
 		$new_item        = array(
-			'name'      => $name,
+			'name'      => $data['name'],
 			'password'  => $hashed_password,
 			'created'   => time(),
 			'last_used' => null,
