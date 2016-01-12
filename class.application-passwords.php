@@ -82,10 +82,6 @@ class Application_Passwords {
 	 * @return array
 	 */
 	public static function rest_list_application_passwords( $data ) {
-		if ( empty( $data['user_id'] ) ) {
-			$data['user_id'] = get_current_user_id();
-		}
-
 		$application_passwords = self::get_user_application_passwords( $data['user_id'] );
 		$with_slugs = array();
 
@@ -114,10 +110,6 @@ class Application_Passwords {
 	 * @return array
 	 */
 	public static function rest_add_application_password( $data ) {
-		if ( empty( $data['user_id'] ) ) {
-			$data['user_id'] = get_current_user_id();
-		}
-
 		if ( ! isset( $data['name'] ) ) {
 			$data['name'] = __( 'Unnamed Application Password' );
 		}
@@ -166,10 +158,6 @@ class Application_Passwords {
 	 * @return bool
 	 */
 	public static function rest_delete_application_password( $data ) {
-		if ( empty( $data['user_id'] ) ) {
-			$data['user_id'] = get_current_user_id();
-		}
-
 		return self::delete_application_password( $data['user_id'], $data['slug'] );
 	}
 
