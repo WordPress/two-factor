@@ -34,6 +34,11 @@ class Application_Passwords {
 
 	/**
 	 * Handle declaration of REST API endpoints.
+	 *
+	 * @since 0.1-dev
+	 *
+	 * @access public
+	 * @static
 	 */
 	public static function rest_api_init() {
 		/**
@@ -64,6 +69,18 @@ class Application_Passwords {
 		) );
 	}
 
+	/**
+	 * REST API endpoint to list existing application passwords for a user.
+	 *
+	 * @since 0.1-dev
+	 *
+	 * @access public
+	 * @static
+	 *
+	 * @param $data
+	 *
+	 * @return array
+	 */
 	public static function rest_list_application_passwords( $data ) {
 		if ( empty( $data['user_id'] ) ) {
 			$data['user_id'] = get_current_user_id();
@@ -84,6 +101,18 @@ class Application_Passwords {
 		return $with_slugs;
 	}
 
+	/**
+	 * REST API endpoint to add a new application password for a user.
+	 *
+	 * @since 0.1-dev
+	 *
+	 * @access public
+	 * @static
+	 *
+	 * @param $data
+	 *
+	 * @return array
+	 */
 	public static function rest_add_application_password( $data ) {
 		if ( empty( $data['user_id'] ) ) {
 			$data['user_id'] = get_current_user_id();
@@ -124,6 +153,18 @@ class Application_Passwords {
 		);
 	}
 
+	/**
+	 * REST API endpoint to delete a given application password.
+	 *
+	 * @since 0.1-dev
+	 *
+	 * @access public
+	 * @static
+	 *
+	 * @param $data
+	 *
+	 * @return bool
+	 */
 	public static function rest_delete_application_password( $data ) {
 		if ( empty( $data['user_id'] ) ) {
 			$data['user_id'] = get_current_user_id();
