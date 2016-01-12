@@ -39,12 +39,6 @@ class Application_Passwords {
 		/**
 		 * List existing application passwords
 		 */
-		register_rest_route( '2fa/v1', '/application-passwords/mine', array(
-			'methods' => 'GET',
-			'callback' => __CLASS__ . '::rest_list_application_passwords',
-			'permission_callback' => __CLASS__ . '::rest_edit_self_callback',
-		) );
-
 		register_rest_route( '2fa/v1', '/application-passwords/(?P<user_id>[\d]+)', array(
 			'methods' => 'GET',
 			'callback' => __CLASS__ . '::rest_list_application_passwords',
@@ -54,12 +48,6 @@ class Application_Passwords {
 		/**
 		 * Add new application passwords
 		 */
-		register_rest_route( '2fa/v1', '/application-passwords/mine/add', array(
-			'methods' => 'POST',
-			'callback' => __CLASS__ . '::rest_add_application_password',
-			'permission_callback' => __CLASS__ . '::rest_edit_self_callback',
-		) );
-
 		register_rest_route( '2fa/v1', '/application-passwords/(?P<user_id>[\d]+)/add', array(
 			'methods' => 'POST',
 			'callback' => __CLASS__ . '::rest_add_application_password',
@@ -69,12 +57,6 @@ class Application_Passwords {
 		/**
 		 * Delete an application password
 		 */
-		register_rest_route( '2fa/v1', '/application-passwords/mine/(?P<slug>[\da-fA-F]{12})', array(
-			'methods' => 'DELETE',
-			'callback' => __CLASS__ . '::rest_delete_application_password',
-			'permission_callback' => __CLASS__ . '::rest_edit_self_callback',
-		) );
-
 		register_rest_route( '2fa/v1', '/application-passwords/(?P<user_id>[\d]+)/(?P<slug>[\da-fA-F]{12})', array(
 			'methods' => 'DELETE',
 			'callback' => __CLASS__ . '::rest_delete_application_password',
