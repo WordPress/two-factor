@@ -57,6 +57,11 @@ class Application_Passwords {
 			'methods' => WP_REST_Server::CREATABLE,
 			'callback' => __CLASS__ . '::rest_add_application_password',
 			'permission_callback' => __CLASS__ . '::rest_edit_user_callback',
+			'args' => array(
+				'name' => array(
+					'required' => true,
+				),
+			),
 		) );
 
 		/**
@@ -110,11 +115,6 @@ class Application_Passwords {
 	 * @return array
 	 */
 	public static function rest_add_application_password( $data ) {
-		// name is passed in as a GET argument, so let's provide a default fallback.
-		if ( ! isset( $data['name'] ) ) {
-			$data['name'] = __( 'Unnamed Application Password' );
-		}
-
 		// Modified version of `self::create_new_application_password` as that only returns the pw, not the row.
 		$new_password    = wp_generate_password( 16, false );
 		$hashed_password = wp_hash_password( $new_password );
