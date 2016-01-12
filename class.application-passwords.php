@@ -42,7 +42,7 @@ class Application_Passwords {
 		register_rest_route( '2fa/v1', '/application-passwords/(?P<user_id>[\d]+)', array(
 			'methods' => 'GET',
 			'callback' => __CLASS__ . '::rest_list_application_passwords',
-			'permission_callback' => __CLASS__ . '::rest_edit_other_user_callback',
+			'permission_callback' => __CLASS__ . '::rest_edit_user_callback',
 		) );
 
 		/**
@@ -51,7 +51,7 @@ class Application_Passwords {
 		register_rest_route( '2fa/v1', '/application-passwords/(?P<user_id>[\d]+)/add', array(
 			'methods' => 'POST',
 			'callback' => __CLASS__ . '::rest_add_application_password',
-			'permission_callback' => __CLASS__ . '::rest_edit_other_user_callback',
+			'permission_callback' => __CLASS__ . '::rest_edit_user_callback',
 		) );
 
 		/**
@@ -60,7 +60,7 @@ class Application_Passwords {
 		register_rest_route( '2fa/v1', '/application-passwords/(?P<user_id>[\d]+)/(?P<slug>[\da-fA-F]{12})', array(
 			'methods' => 'DELETE',
 			'callback' => __CLASS__ . '::rest_delete_application_password',
-			'permission_callback' => __CLASS__ . '::rest_edit_other_user_callback',
+			'permission_callback' => __CLASS__ . '::rest_edit_user_callback',
 		) );
 	}
 
@@ -132,12 +132,20 @@ class Application_Passwords {
 		return self::delete_application_password( $data['user_id'], $data['slug'] );
 	}
 
-	public static function rest_edit_self_callback() {
-		return current_user_can( 'exists' );
-	}
-
-	public static function rest_edit_other_user_callback() {
-		return current_user_can( 'edit_users' );
+	/**
+	 * Whether or not the current user can edit the specified user.
+	 *
+	 * @since 0.1-dev
+	 *
+	 * @access public
+	 * @static
+	 *
+	 * @param $data
+	 *
+	 * @return bool
+	 */
+	public static function rest_edit_user_callback( $data ) {
+		return current_user_can( 'edit_user', $data['user_id'] );
 	}
 
 	/**
