@@ -29,6 +29,133 @@ class Application_Passwords {
 		add_action( 'edit_user_profile_update',    array( __CLASS__, 'catch_submission' ), 0 );
 		add_action( 'load-profile.php',            array( __CLASS__, 'catch_delete_application_password' ) );
 		add_action( 'load-user-edit.php',          array( __CLASS__, 'catch_delete_application_password' ) );
+		add_action( 'rest_api_init',               array( __CLASS__, 'rest_api_init' ) );
+	}
+
+	/**
+	 * Handle declaration of REST API endpoints.
+	 */
+	public static function rest_api_init() {
+		/**
+		 * List existing application passwords
+		 */
+		register_rest_route( '2fa/v1', '/application-passwords/mine', array(
+			'methods' => 'GET',
+			'callback' => __CLASS__ . '::rest_list_application_passwords',
+			'permission_callback' => __CLASS__ . '::rest_edit_self_callback',
+		) );
+
+		register_rest_route( '2fa/v1', '/application-passwords/(?P<user_id>[\d]+)', array(
+			'methods' => 'GET',
+			'callback' => __CLASS__ . '::rest_list_application_passwords',
+			'permission_callback' => __CLASS__ . '::rest_edit_other_user_callback',
+		) );
+
+		/**
+		 * Add new application passwords
+		 */
+		register_rest_route( '2fa/v1', '/application-passwords/mine/add', array(
+			'methods' => 'POST',
+			'callback' => __CLASS__ . '::rest_add_application_password',
+			'permission_callback' => __CLASS__ . '::rest_edit_self_callback',
+		) );
+
+		register_rest_route( '2fa/v1', '/application-passwords/(?P<user_id>[\d]+)/add', array(
+			'methods' => 'POST',
+			'callback' => __CLASS__ . '::rest_add_application_password',
+			'permission_callback' => __CLASS__ . '::rest_edit_other_user_callback',
+		) );
+
+		/**
+		 * Delete an application password
+		 */
+		register_rest_route( '2fa/v1', '/application-passwords/mine/(?P<slug>[\da-fA-F]{12})', array(
+			'methods' => 'DELETE',
+			'callback' => __CLASS__ . '::rest_delete_application_password',
+			'permission_callback' => __CLASS__ . '::rest_edit_self_callback',
+		) );
+
+		register_rest_route( '2fa/v1', '/application-passwords/(?P<user_id>[\d]+)/(?P<slug>[\da-fA-F]{12})', array(
+			'methods' => 'DELETE',
+			'callback' => __CLASS__ . '::rest_delete_application_password',
+			'permission_callback' => __CLASS__ . '::rest_edit_other_user_callback',
+		) );
+	}
+
+	public static function rest_list_application_passwords( $data ) {
+		if ( empty( $data['user_id'] ) ) {
+			$data['user_id'] = get_current_user_id();
+		}
+
+		$application_passwords = self::get_user_application_passwords( $data['user_id'] );
+		$with_slugs = array();
+
+		if ( $application_passwords ) {
+			foreach ( $application_passwords as $item ) {
+				$item['slug'] = self::password_unique_slug( $item );
+				unset( $item['raw'] );
+				unset( $item['password'] );
+				$with_slugs[ $item['slug'] ] = $item;
+			}
+		}
+
+		return $with_slugs;
+	}
+
+	public static function rest_add_application_password( $data ) {
+		if ( empty( $data['user_id'] ) ) {
+			$data['user_id'] = get_current_user_id();
+		}
+
+		if ( ! isset( $data['name'] ) ) {
+			$data['name'] = __( 'Unnamed Application Password' );
+		}
+
+		// Modified version of `self::create_new_application_password` as that only returns the pw, not the row.
+		$new_password    = wp_generate_password( 16, false );
+		$hashed_password = wp_hash_password( $new_password );
+		$new_item        = array(
+			'name'      => $name,
+			'password'  => $hashed_password,
+			'created'   => time(),
+			'last_used' => null,
+			'last_ip'   => null,
+		);
+
+		// Fetch the existing records.
+		$passwords = self::get_user_application_passwords( $user_id );
+		if ( ! $passwords ) {
+			$passwords = array();
+		}
+
+		// Save the new one in the db.
+		$passwords[] = $new_item;
+		self::set_user_application_passwords( $user_id, $passwords );
+
+		// Some tidying before we return it.
+		$new_item['slug'] = self::password_unique_slug( $new_item );
+		unset( $new_item['password'] );
+
+		return array(
+			'row'      => $new_item,
+			'password' => self::chunk_password( $new_password )
+		);
+	}
+
+	public static function rest_delete_application_password( $data ) {
+		if ( empty( $data['user_id'] ) ) {
+			$data['user_id'] = get_current_user_id();
+		}
+
+		return self::delete_application_password( $data['user_id'], $data['slug'] );
+	}
+
+	public static function rest_edit_self_callback() {
+		return current_user_can( 'exists' );
+	}
+
+	public static function rest_edit_other_user_callback() {
+		return current_user_can( 'edit_users' );
 	}
 
 	/**
