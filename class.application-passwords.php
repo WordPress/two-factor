@@ -110,6 +110,7 @@ class Application_Passwords {
 	 * @return array
 	 */
 	public static function rest_add_application_password( $data ) {
+		// name is passed in as a GET argument, so let's provide a default fallback.
 		if ( ! isset( $data['name'] ) ) {
 			$data['name'] = __( 'Unnamed Application Password' );
 		}
