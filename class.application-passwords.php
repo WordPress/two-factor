@@ -107,8 +107,6 @@ class Application_Passwords {
 
 				if ( empty( $item['last_ip'] ) ) {
 					$item['last_ip'] =  __( 'Never Used' );
-				} else {
-					$item['last_ip'] = date( get_option( 'date_format', 'r' ), $item['last_ip'] );
 				}
 
 				$with_slugs[ $item['slug'] ] = $item;
