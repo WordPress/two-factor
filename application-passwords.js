@@ -5,6 +5,7 @@
 		$newAppPassField  = $newAppPassForm.find( '.input' ),
 		$newAppPassButton = $newAppPassForm.find( '.button' ),
 		$appPassTbody     = $appPassSection.find( 'tbody' ),
+		$appPassTrNoItems = $appPassTbody.find( '.no-items' ),
 		tmplNewAppPass    = wp.template( 'new-application-password' ),
 		tmplAppPassRow    = wp.template( 'application-password-row' );
 
@@ -39,6 +40,8 @@
 			} ) );
 
 			$appPassTbody.prepend( tmplAppPassRow( response.row ) );
+
+			$appPassTrNoItems.remove();
 		} );
 	});
 })(jQuery,appPass);
