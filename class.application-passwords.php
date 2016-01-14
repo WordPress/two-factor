@@ -29,6 +29,168 @@ class Application_Passwords {
 		add_action( 'edit_user_profile_update',    array( __CLASS__, 'catch_submission' ), 0 );
 		add_action( 'load-profile.php',            array( __CLASS__, 'catch_delete_application_password' ) );
 		add_action( 'load-user-edit.php',          array( __CLASS__, 'catch_delete_application_password' ) );
+		add_action( 'rest_api_init',               array( __CLASS__, 'rest_api_init' ) );
+	}
+
+	/**
+	 * Handle declaration of REST API endpoints.
+	 *
+	 * @since 0.1-dev
+	 *
+	 * @access public
+	 * @static
+	 */
+	public static function rest_api_init() {
+		/**
+		 * List existing application passwords
+		 */
+		register_rest_route( '2fa/v1', '/application-passwords/(?P<user_id>[\d]+)', array(
+			'methods' => WP_REST_Server::READABLE,
+			'callback' => __CLASS__ . '::rest_list_application_passwords',
+			'permission_callback' => __CLASS__ . '::rest_edit_user_callback',
+		) );
+
+		/**
+		 * Add new application passwords
+		 */
+		register_rest_route( '2fa/v1', '/application-passwords/(?P<user_id>[\d]+)/add', array(
+			'methods' => WP_REST_Server::CREATABLE,
+			'callback' => __CLASS__ . '::rest_add_application_password',
+			'permission_callback' => __CLASS__ . '::rest_edit_user_callback',
+			'args' => array(
+				'name' => array(
+					'required' => true,
+				),
+			),
+		) );
+
+		/**
+		 * Delete an application password
+		 */
+		register_rest_route( '2fa/v1', '/application-passwords/(?P<user_id>[\d]+)/(?P<slug>[\da-fA-F]{12})', array(
+			'methods' => WP_REST_Server::DELETABLE,
+			'callback' => __CLASS__ . '::rest_delete_application_password',
+			'permission_callback' => __CLASS__ . '::rest_edit_user_callback',
+		) );
+	}
+
+	/**
+	 * REST API endpoint to list existing application passwords for a user.
+	 *
+	 * @since 0.1-dev
+	 *
+	 * @access public
+	 * @static
+	 *
+	 * @param $data
+	 *
+	 * @return array
+	 */
+	public static function rest_list_application_passwords( $data ) {
+		$application_passwords = self::get_user_application_passwords( $data['user_id'] );
+		$with_slugs = array();
+
+		if ( $application_passwords ) {
+			foreach ( $application_passwords as $item ) {
+				$item['slug'] = self::password_unique_slug( $item );
+				unset( $item['raw'] );
+				unset( $item['password'] );
+
+				if ( empty( $item['last_used'] ) ) {
+					$item['last_used'] =  __( 'Never' );
+				} else {
+					$item['last_used'] = date( get_option( 'date_format', 'r' ), $item['last_used'] );
+				}
+
+				if ( empty( $item['last_ip'] ) ) {
+					$item['last_ip'] =  __( 'Never Used' );
+				} else {
+					$item['last_ip'] = date( get_option( 'date_format', 'r' ), $item['last_ip'] );
+				}
+
+				$with_slugs[ $item['slug'] ] = $item;
+			}
+		}
+
+		return $with_slugs;
+	}
+
+	/**
+	 * REST API endpoint to add a new application password for a user.
+	 *
+	 * @since 0.1-dev
+	 *
+	 * @access public
+	 * @static
+	 *
+	 * @param $data
+	 *
+	 * @return array
+	 */
+	public static function rest_add_application_password( $data ) {
+		// Modified version of `self::create_new_application_password` as that only returns the pw, not the row.
+		$new_password    = wp_generate_password( 16, false );
+		$hashed_password = wp_hash_password( $new_password );
+		$new_item        = array(
+			'name'      => $data['name'],
+			'password'  => $hashed_password,
+			'created'   => time(),
+			'last_used' => null,
+			'last_ip'   => null,
+		);
+
+		// Fetch the existing records.
+		$passwords = self::get_user_application_passwords( $data['user_id'] );
+		if ( ! $passwords ) {
+			$passwords = array();
+		}
+
+		// Save the new one in the db.
+		$passwords[] = $new_item;
+		self::set_user_application_passwords( $data['user_id'], $passwords );
+
+		// Some tidying before we return it.
+		$new_item['last_used'] = __( 'Never' );
+		$new_item['last_ip']   = __( 'Never Used' );
+		$new_item['slug']      = self::password_unique_slug( $new_item );
+		unset( $new_item['password'] );
+
+		return array(
+			'row'      => $new_item,
+			'password' => self::chunk_password( $new_password )
+		);
+	}
+
+	/**
+	 * REST API endpoint to delete a given application password.
+	 *
+	 * @since 0.1-dev
+	 *
+	 * @access public
+	 * @static
+	 *
+	 * @param $data
+	 *
+	 * @return bool
+	 */
+	public static function rest_delete_application_password( $data ) {
+		return self::delete_application_password( $data['user_id'], $data['slug'] );
+	}
+
+	/**
+	 * Whether or not the current user can edit the specified user.
+	 *
+	 * @since 0.1-dev
+	 *
+	 * @access public
+	 * @static
+	 *
+	 * @param $data
+	 *
+	 * @return bool
+	 */
+	public static function rest_edit_user_callback( $data ) {
+		return current_user_can( 'edit_user', $data['user_id'] );
 	}
 
 	/**
@@ -91,6 +253,14 @@ class Application_Passwords {
 	 * @param WP_User $user WP_User object of the logged-in user.
 	 */
 	public static function show_user_profile( $user ) {
+		wp_enqueue_script( 'application-passwords', plugin_dir_url( __FILE__ ) . 'application-passwords.js', array() );
+		wp_localize_script( 'application-passwords', 'appPass', array(
+			'root'       => esc_url_raw( rest_url() ),
+			'namespace'  => '2fa/v1',
+			'nonce'      => wp_create_nonce( 'wp_rest' ),
+			'user_id'    => $user->ID,
+		) );
+
 		wp_nonce_field( "user_application_passwords-{$user->ID}", '_nonce_user_application_passwords' );
 		$new_password      = null;
 		$new_password_name = null;
@@ -116,7 +286,7 @@ class Application_Passwords {
 			<h3><?php esc_html_e( 'Application Passwords' ); ?></h3>
 			<p><?php esc_html_e( 'Application Passwords are used to allow authentication via non-interactive systems, such as XMLRPC, where you would not otherwise be able to use your normal password due to the inability to complete the second factor of authentication.' ); ?></p>
 			<div class="create-application-password">
-				<input type="text" size="30" name="new_application_password_name" placeholder="<?php esc_attr_e( 'New Application Password Name' ); ?>" />
+				<input type="text" size="30" name="new_application_password_name" placeholder="<?php esc_attr_e( 'New Application Password Name' ); ?>" class="input" />
 				<?php submit_button( __( 'Add New' ), 'secondary', 'do_new_application_password', false ); ?>
 			</div>
 
@@ -141,6 +311,34 @@ class Application_Passwords {
 				$application_passwords_list_table->display();
 			?>
 		</div>
+
+		<script type="text/html" id="tmpl-new-application-password">
+			<p class="new-application-password">
+				<?php
+				printf(
+					esc_html_x( 'Your new password for %1$s is %2$s.', 'application, password' ),
+					'<strong>{{ data.name }}</strong>',
+					'<kbd>{{ data.password }}</kbd>'
+				);
+				?>
+			</p>
+		</script>
+		<script type="text/html" id="tmpl-application-password-row">
+			<tr data-slug="{{ data.slug }}">
+				<td class="name column-name has-row-actions column-primary" data-colname="<?php echo esc_attr( 'Name' ); ?>">
+					{{ data.name }}
+				</td>
+				<td class="created column-created" data-colname="<?php echo esc_attr( 'Created' ); ?>">
+					{{ data.created }}
+				</td>
+				<td class="last_used column-last_used" data-colname="<?php echo esc_attr( 'Last Used' ); ?>">
+					{{ data.last_used }}
+				</td>
+				<td class="last_ip column-last_ip" data-colname="<?php echo esc_attr( 'Last IP' ); ?>">
+					{{ data.last_ip }}
+				</td>
+			</tr>
+		</script>
 		<?php
 	}
 
