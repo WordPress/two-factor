@@ -97,6 +97,8 @@ class Application_Passwords {
 				unset( $item['raw'] );
 				unset( $item['password'] );
 
+				$item['created'] = date( get_option( 'date_format', 'r' ), $item['created'] );
+
 				if ( empty( $item['last_used'] ) ) {
 					$item['last_used'] =  __( 'Never' );
 				} else {
@@ -105,8 +107,6 @@ class Application_Passwords {
 
 				if ( empty( $item['last_ip'] ) ) {
 					$item['last_ip'] =  __( 'Never Used' );
-				} else {
-					$item['last_ip'] = date( get_option( 'date_format', 'r' ), $item['last_ip'] );
 				}
 
 				$with_slugs[ $item['slug'] ] = $item;
@@ -151,9 +151,10 @@ class Application_Passwords {
 		self::set_user_application_passwords( $data['user_id'], $passwords );
 
 		// Some tidying before we return it.
+		$new_item['slug']      = self::password_unique_slug( $new_item );
+		$new_item['created']   = date( get_option( 'date_format', 'r' ), $new_item['created'] );
 		$new_item['last_used'] = __( 'Never' );
 		$new_item['last_ip']   = __( 'Never Used' );
-		$new_item['slug']      = self::password_unique_slug( $new_item );
 		unset( $new_item['password'] );
 
 		return array(
