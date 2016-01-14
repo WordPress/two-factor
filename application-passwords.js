@@ -44,4 +44,22 @@
 			$appPassTrNoItems.remove();
 		} );
 	});
+
+	$appPassTbody.on( 'click', '.delete a', function(e){
+		e.preventDefault();
+		var $tr  = $( e.target ).closest( 'tr' ),
+			slug = $tr.data( 'slug' );
+
+		$.ajax( {
+			url        : appPass.root + appPass.namespace + '/application-passwords/' + appPass.user_id + '/' + slug,
+			method     : 'DELETE',
+			beforeSend : function ( xhr ) {
+				xhr.setRequestHeader( 'X-WP-Nonce', appPass.nonce );
+			}
+		} ).done( function ( response ) {
+			if ( response ) {
+				$tr.remove();
+			}
+		} );
+	});
 })(jQuery,appPass);
