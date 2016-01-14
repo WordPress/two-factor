@@ -30,6 +30,7 @@ class Application_Passwords {
 		add_action( 'load-profile.php',            array( __CLASS__, 'catch_delete_application_password' ) );
 		add_action( 'load-user-edit.php',          array( __CLASS__, 'catch_delete_application_password' ) );
 		add_action( 'rest_api_init',               array( __CLASS__, 'rest_api_init' ) );
+		add_filter( 'determine_current_user',      array( __CLASS__, 'rest_api_auth_handler' ), 20 );
 	}
 
 	/**
@@ -194,6 +195,39 @@ class Application_Passwords {
 	}
 
 	/**
+	 * Loosely Based on https://github.com/WP-API/Basic-Auth/blob/master/basic-auth.php
+	 *
+	 * @since 0.1-dev
+	 *
+	 * @access public
+	 * @static
+	 *
+	 * @param $user
+	 *
+	 * @return WP_User|bool
+	 */
+	public static function rest_api_auth_handler( $user ){
+		// Don't authenticate twice
+		if ( ! empty( $input_user ) ) {
+			return $input_user;
+		}
+
+		// Check that we're trying to authenticate
+		if ( ! isset( $_SERVER['PHP_AUTH_USER'] ) ) {
+			return $input_user;
+		}
+
+		$user = self::authenticate( $input_user, $_SERVER['PHP_AUTH_USER'], $_SERVER['PHP_AUTH_PW'] );
+
+		if ( is_a( $user, 'WP_User' ) ) {
+			return $user->ID;
+		}
+
+		// If it wasn't a user what got returned, just pass on what we had received originally.
+		return $input_user;
+	}
+
+	/**
 	 * Filter the user to authenticate.
 	 *
 	 * @since 0.1-dev
@@ -204,9 +238,11 @@ class Application_Passwords {
 	 * @param WP_User $input_user User to authenticate.
 	 * @param string  $username   User login.
 	 * @param string  $password   User password.
+	 *
+	 * @return mixed
 	 */
 	public static function authenticate( $input_user, $username, $password ) {
-		$api_request = ( defined( 'XMLRPC_REQUEST' ) && XMLRPC_REQUEST );
+		$api_request = ( defined( 'XMLRPC_REQUEST' ) && XMLRPC_REQUEST ) || ( defined( 'REST_REQUEST' ) && REST_REQUEST );
 		if ( ! apply_filters( 'application_password_is_api_request', $api_request ) ) {
 			return $input_user;
 		}
@@ -221,6 +257,8 @@ class Application_Passwords {
 		/*
 		 * Strip out anything non-alphanumeric. This is so passwords can be used with
 		 * or without spaces to indicate the groupings for readability.
+		 *
+		 * Generated application passwords are exclusively alphanumeric.
 		 */
 		$password = preg_replace( '/[^a-z\d]/i', '', $password );
 
@@ -530,6 +568,8 @@ class Application_Passwords {
 	 *
 	 * @param int   $user_id User ID.
 	 * @param array $passwords Application passwords.
+	 *
+	 * @return bool
 	 */
 	public static function set_user_application_passwords( $user_id, $passwords ) {
 		return update_user_meta( $user_id, self::USERMETA_KEY_APPLICATION_PASSWORDS, $passwords );
