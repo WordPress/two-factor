@@ -22,7 +22,7 @@
 		$newAppPassButton.prop('disabled', true);
 
 		$.ajax( {
-			url        : appPass.root + '2fa/v1/application-passwords/' + appPass.user_id + '/add',
+			url        : appPass.root + appPass.namespace + '/application-passwords/' + appPass.user_id + '/add',
 			method     : 'POST',
 			beforeSend : function ( xhr ) {
 				xhr.setRequestHeader( 'X-WP-Nonce', appPass.nonce );

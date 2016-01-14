@@ -256,6 +256,7 @@ class Application_Passwords {
 		wp_enqueue_script( 'application-passwords', plugin_dir_url( __FILE__ ) . 'application-passwords.js', array() );
 		wp_localize_script( 'application-passwords', 'appPass', array(
 			'root'       => esc_url_raw( rest_url() ),
+			'namespace'  => '2fa/v1',
 			'nonce'      => wp_create_nonce( 'wp_rest' ),
 			'user_id'    => $user->ID,
 		) );
