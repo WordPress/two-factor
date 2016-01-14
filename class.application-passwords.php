@@ -30,6 +30,7 @@ class Application_Passwords {
 		add_action( 'load-profile.php',            array( __CLASS__, 'catch_delete_application_password' ) );
 		add_action( 'load-user-edit.php',          array( __CLASS__, 'catch_delete_application_password' ) );
 		add_action( 'rest_api_init',               array( __CLASS__, 'rest_api_init' ) );
+		add_filter( 'determine_current_user',      array( __CLASS__, 'rest_api_auth_handler' ), 20 );
 	}
 
 	/**
@@ -191,6 +192,39 @@ class Application_Passwords {
 	 */
 	public static function rest_edit_user_callback( $data ) {
 		return current_user_can( 'edit_user', $data['user_id'] );
+	}
+
+	/**
+	 * Loosely Based on https://github.com/WP-API/Basic-Auth/blob/master/basic-auth.php
+	 *
+	 * @since 0.1-dev
+	 *
+	 * @access public
+	 * @static
+	 *
+	 * @param $user
+	 *
+	 * @return WP_User|bool
+	 */
+	public static function rest_api_auth_handler( $user ){
+		// Don't authenticate twice
+		if ( ! empty( $input_user ) ) {
+			return $input_user;
+		}
+
+		// Check that we're trying to authenticate
+		if ( ! isset( $_SERVER['PHP_AUTH_USER'] ) ) {
+			return $input_user;
+		}
+
+		$user = self::authenticate( $input_user, $_SERVER['PHP_AUTH_USER'], $_SERVER['PHP_AUTH_PW'] );
+
+		if ( is_a( $user, 'WP_User' ) ) {
+			return $user->ID;
+		}
+
+		// If it wasn't a user what got returned, just pass on what we had received originally.
+		return $input_user;
 	}
 
 	/**
