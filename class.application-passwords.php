@@ -150,9 +150,9 @@ class Application_Passwords {
 		self::set_user_application_passwords( $data['user_id'], $passwords );
 
 		// Some tidying before we return it.
-		$new_item['slug'] = self::password_unique_slug( $new_item );
 		$new_item['last_used'] = __( 'Never' );
 		$new_item['last_ip']   = __( 'Never Used' );
+		$new_item['slug']      = self::password_unique_slug( $new_item );
 		unset( $new_item['password'] );
 
 		return array(
