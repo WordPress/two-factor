@@ -95,6 +95,19 @@ class Application_Passwords {
 				$item['slug'] = self::password_unique_slug( $item );
 				unset( $item['raw'] );
 				unset( $item['password'] );
+
+				if ( empty( $item['last_used'] ) ) {
+					$item['last_used'] =  __( 'Never' );
+				} else {
+					$item['last_used'] = date( get_option( 'date_format', 'r' ), $item['last_used'] );
+				}
+
+				if ( empty( $item['last_ip'] ) ) {
+					$item['last_ip'] =  __( 'Never Used' );
+				} else {
+					$item['last_ip'] = date( get_option( 'date_format', 'r' ), $item['last_ip'] );
+				}
+
 				$with_slugs[ $item['slug'] ] = $item;
 			}
 		}
@@ -138,6 +151,8 @@ class Application_Passwords {
 
 		// Some tidying before we return it.
 		$new_item['slug'] = self::password_unique_slug( $new_item );
+		$new_item['last_used'] = __( 'Never' );
+		$new_item['last_ip']   = __( 'Never Used' );
 		unset( $new_item['password'] );
 
 		return array(
@@ -238,6 +253,13 @@ class Application_Passwords {
 	 * @param WP_User $user WP_User object of the logged-in user.
 	 */
 	public static function show_user_profile( $user ) {
+		wp_enqueue_script( 'application-passwords', plugin_dir_url( __FILE__ ) . 'application-passwords.js', array() );
+		wp_localize_script( 'application-passwords', 'appPass', array(
+			'root'       => esc_url_raw( rest_url() ),
+			'nonce'      => wp_create_nonce( 'wp_rest' ),
+			'user_id'    => $user->ID,
+		) );
+
 		wp_nonce_field( "user_application_passwords-{$user->ID}", '_nonce_user_application_passwords' );
 		$new_password      = null;
 		$new_password_name = null;
@@ -263,7 +285,7 @@ class Application_Passwords {
 			<h3><?php esc_html_e( 'Application Passwords' ); ?></h3>
 			<p><?php esc_html_e( 'Application Passwords are used to allow authentication via non-interactive systems, such as XMLRPC, where you would not otherwise be able to use your normal password due to the inability to complete the second factor of authentication.' ); ?></p>
 			<div class="create-application-password">
-				<input type="text" size="30" name="new_application_password_name" placeholder="<?php esc_attr_e( 'New Application Password Name' ); ?>" />
+				<input type="text" size="30" name="new_application_password_name" placeholder="<?php esc_attr_e( 'New Application Password Name' ); ?>" class="input" />
 				<?php submit_button( __( 'Add New' ), 'secondary', 'do_new_application_password', false ); ?>
 			</div>
 
@@ -288,6 +310,34 @@ class Application_Passwords {
 				$application_passwords_list_table->display();
 			?>
 		</div>
+
+		<script type="text/html" id="tmpl-new-application-password">
+			<p class="new-application-password">
+				<?php
+				printf(
+					esc_html_x( 'Your new password for %1$s is %2$s.', 'application, password' ),
+					'<strong>{{ data.name }}</strong>',
+					'<kbd>{{ data.password }}</kbd>'
+				);
+				?>
+			</p>
+		</script>
+		<script type="text/html" id="tmpl-application-password-row">
+			<tr data-slug="{{ data.slug }}">
+				<td class="name column-name has-row-actions column-primary" data-colname="Name">
+					{{ data.name }}
+				</td>
+				<td class="created column-created" data-colname="Created">
+					January 14, 2016
+				</td>
+				<td class="last_used column-last_used" data-colname="Last Used">
+					Never
+				</td>
+				<td class="last_ip column-last_ip" data-colname="Last IP">
+					Never Used
+				</td>
+			</tr>
+		</script>
 		<?php
 	}
 
