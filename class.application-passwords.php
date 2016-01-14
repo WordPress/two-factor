@@ -324,17 +324,17 @@ class Application_Passwords {
 		</script>
 		<script type="text/html" id="tmpl-application-password-row">
 			<tr data-slug="{{ data.slug }}">
-				<td class="name column-name has-row-actions column-primary" data-colname="Name">
+				<td class="name column-name has-row-actions column-primary" data-colname="<?php echo esc_attr( 'Name' ); ?>">
 					{{ data.name }}
 				</td>
-				<td class="created column-created" data-colname="Created">
-					January 14, 2016
+				<td class="created column-created" data-colname="<?php echo esc_attr( 'Created' ); ?>">
+					{{ data.created }}
 				</td>
-				<td class="last_used column-last_used" data-colname="Last Used">
-					Never
+				<td class="last_used column-last_used" data-colname="<?php echo esc_attr( 'Last Used' ); ?>">
+					{{ data.last_used }}
 				</td>
-				<td class="last_ip column-last_ip" data-colname="Last IP">
-					Never Used
+				<td class="last_ip column-last_ip" data-colname="<?php echo esc_attr( 'Last IP' ); ?>">
+					{{ data.last_ip }}
 				</td>
 			</tr>
 		</script>
