@@ -238,6 +238,8 @@ class Application_Passwords {
 	 * @param WP_User $input_user User to authenticate.
 	 * @param string  $username   User login.
 	 * @param string  $password   User password.
+	 *
+	 * @return mixed
 	 */
 	public static function authenticate( $input_user, $username, $password ) {
 		$api_request = ( defined( 'XMLRPC_REQUEST' ) && XMLRPC_REQUEST );
@@ -255,6 +257,8 @@ class Application_Passwords {
 		/*
 		 * Strip out anything non-alphanumeric. This is so passwords can be used with
 		 * or without spaces to indicate the groupings for readability.
+		 *
+		 * Generated application passwords are exclusively alphanumeric.
 		 */
 		$password = preg_replace( '/[^a-z\d]/i', '', $password );
 
@@ -564,6 +568,8 @@ class Application_Passwords {
 	 *
 	 * @param int   $user_id User ID.
 	 * @param array $passwords Application passwords.
+	 *
+	 * @return bool
 	 */
 	public static function set_user_application_passwords( $user_id, $passwords ) {
 		return update_user_meta( $user_id, self::USERMETA_KEY_APPLICATION_PASSWORDS, $passwords );
