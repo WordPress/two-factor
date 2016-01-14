@@ -140,14 +140,14 @@ class Application_Passwords {
 		);
 
 		// Fetch the existing records.
-		$passwords = self::get_user_application_passwords( $user_id );
+		$passwords = self::get_user_application_passwords( $data['user_id'] );
 		if ( ! $passwords ) {
 			$passwords = array();
 		}
 
 		// Save the new one in the db.
 		$passwords[] = $new_item;
-		self::set_user_application_passwords( $user_id, $passwords );
+		self::set_user_application_passwords( $data['user_id'], $passwords );
 
 		// Some tidying before we return it.
 		$new_item['slug'] = self::password_unique_slug( $new_item );
