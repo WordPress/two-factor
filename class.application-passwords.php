@@ -206,7 +206,7 @@ class Application_Passwords {
 	 *
 	 * @return WP_User|bool
 	 */
-	public static function rest_api_auth_handler( $user ){
+	public static function rest_api_auth_handler( $input_user ){
 		// Don't authenticate twice
 		if ( ! empty( $input_user ) ) {
 			return $input_user;
