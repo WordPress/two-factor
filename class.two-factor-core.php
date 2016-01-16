@@ -10,18 +10,21 @@ class Two_Factor_Core {
 
 	/**
 	 * The user meta provider key.
+	 *
 	 * @type string
 	 */
 	const PROVIDER_USER_META_KEY = '_two_factor_provider';
 
 	/**
 	 * The user meta enabled providers key.
+	 *
 	 * @type string
 	 */
 	const ENABLED_PROVIDERS_USER_META_KEY = '_two_factor_enabled_providers';
 
 	/**
 	 * The user meta nonce key.
+	 *
 	 * @type string
 	 */
 	const USER_META_NONCE_KEY    = '_two_factor_nonce';

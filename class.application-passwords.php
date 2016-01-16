@@ -10,6 +10,7 @@ class Application_Passwords {
 
 	/**
 	 * The user meta application password key.
+	 *
 	 * @type string
 	 */
 	const USERMETA_KEY_APPLICATION_PASSWORDS = '_application_passwords';
@@ -100,13 +101,13 @@ class Application_Passwords {
 				$item['created'] = date( get_option( 'date_format', 'r' ), $item['created'] );
 
 				if ( empty( $item['last_used'] ) ) {
-					$item['last_used'] =  __( 'Never' );
+					$item['last_used'] = __( 'Never' );
 				} else {
 					$item['last_used'] = date( get_option( 'date_format', 'r' ), $item['last_used'] );
 				}
 
 				if ( empty( $item['last_ip'] ) ) {
-					$item['last_ip'] =  __( 'Never Used' );
+					$item['last_ip'] = __( 'Never Used' );
 				}
 
 				$with_slugs[ $item['slug'] ] = $item;
@@ -159,7 +160,7 @@ class Application_Passwords {
 
 		return array(
 			'row'      => $new_item,
-			'password' => self::chunk_password( $new_password )
+			'password' => self::chunk_password( $new_password ),
 		);
 	}
 
@@ -203,17 +204,17 @@ class Application_Passwords {
 	 * @access public
 	 * @static
 	 *
-	 * @param $user
+	 * @param $input_user int|bool User ID if one has been determined, false otherwise.
 	 *
 	 * @return WP_User|bool
 	 */
-	public static function rest_api_auth_handler( $input_user ){
-		// Don't authenticate twice
+	public static function rest_api_auth_handler( $input_user ) {
+		// Don't authenticate twice.
 		if ( ! empty( $input_user ) ) {
 			return $input_user;
 		}
 
-		// Check that we're trying to authenticate
+		// Check that we're trying to authenticate.
 		if ( ! isset( $_SERVER['PHP_AUTH_USER'] ) ) {
 			return $input_user;
 		}
