@@ -10,8 +10,9 @@
 		tmplAppPassRow    = wp.template( 'application-password-row' );
 
 	$newAppPassButton.click( function( e ) {
-		e.preventDefault();
 		var name = $newAppPassField.val();
+
+		e.preventDefault();
 
 		if ( 0 === name.length ) {
 			$newAppPassField.focus();
@@ -31,7 +32,7 @@
 				name: name
 			}
 		} ).done( function( response ) {
-			$newAppPassField.prop( 'disabled', false ).val('');
+			$newAppPassField.prop( 'disabled', false ).val( '' );
 			$newAppPassButton.prop( 'disabled', false );
 
 			$newAppPassForm.after( tmplNewAppPass( {
@@ -46,9 +47,10 @@
 	});
 
 	$appPassTbody.on( 'click', '.delete a', function( e ) {
-		e.preventDefault();
 		var $tr  = $( e.target ).closest( 'tr' ),
 			slug = $tr.data( 'slug' );
+
+		e.preventDefault();
 
 		$.ajax( {
 			url:        appPass.root + appPass.namespace + '/application-passwords/' + appPass.user_id + '/' + slug,
