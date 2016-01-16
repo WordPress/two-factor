@@ -56,6 +56,18 @@ class Two_Factor_FIDO_U2F_Admin {
 		wp_enqueue_script( 'fido-u2f-admin', plugins_url( 'js/fido-u2f-admin.js', __FILE__ ), array( 'jquery', 'u2f-api' ), null, true );
 
 		$user_id = get_current_user_id();
+		if ( 'user-edit.php' == $hook ) {
+			if ( empty( $_POST['user_id'] ) ) {
+				if ( empty( $_GET['user_id'] ) ) {
+					$user_id = '';
+				} else {
+					$user_id = $_GET['user_id'];
+				}
+			} else {
+				$user_id = $_POST['user_id'];
+			}
+		}
+
 		$security_keys = Two_Factor_FIDO_U2F::get_security_keys( $user_id );
 
 		try {
