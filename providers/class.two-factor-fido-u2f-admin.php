@@ -10,6 +10,7 @@ class Two_Factor_FIDO_U2F_Admin {
 
 	/**
 	 * The user meta register data.
+	 *
 	 * @type string
 	 */
 	const REGISTER_DATA_USER_META_KEY = '_two_factor_fido_u2f_register_request';

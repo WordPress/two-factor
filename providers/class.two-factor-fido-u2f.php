@@ -10,18 +10,21 @@ class Two_Factor_FIDO_U2F extends Two_Factor_Provider {
 
 	/**
 	 * U2F Library
+	 *
 	 * @var u2flib_server\U2F
 	 */
 	public static $u2f;
 
 	/**
 	 * The user meta registered key.
+	 *
 	 * @type string
 	 */
 	const REGISTERED_KEY_USER_META_KEY = '_two_factor_fido_u2f_registered_key';
 
 	/**
 	 * The user meta authenticate data.
+	 *
 	 * @type string
 	 */
 	const AUTH_DATA_USER_META_KEY = '_two_factor_fido_u2f_login_request';

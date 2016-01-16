@@ -12,12 +12,14 @@ class Two_Factor_Totp extends Two_Factor_Provider {
 
 	/**
 	 * The user meta token key.
+	 *
 	 * @var string
 	 */
 	const SECRET_META_KEY = '_two_factor_totp_key';
 
 	/**
 	 * The user meta token key.
+	 *
 	 * @var string
 	 */
 	const NOTICES_META_KEY = '_two_factor_totp_notices';

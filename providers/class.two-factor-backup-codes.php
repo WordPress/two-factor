@@ -10,12 +10,14 @@ class Two_Factor_Backup_Codes extends Two_Factor_Provider {
 
 	/**
 	 * The user meta backup codes key.
+	 *
 	 * @type string
 	 */
 	const BACKUP_CODES_META_KEY = '_two_factor_backup_codes';
 
 	/**
 	 * The number backup codes.
+	 *
 	 * @type int
 	 */
 	const NUMBER_OF_CODES = 10;

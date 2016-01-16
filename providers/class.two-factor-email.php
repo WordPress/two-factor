@@ -10,6 +10,7 @@ class Two_Factor_Email extends Two_Factor_Provider {
 
 	/**
 	 * The user meta token key.
+	 *
 	 * @type string
 	 */
 	const TOKEN_META_KEY = '_two_factor_email_token';
