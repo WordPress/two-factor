@@ -53,8 +53,11 @@ class Two_Factor_FIDO_U2F extends Two_Factor_Provider {
 			return;
 		}
 
+		$app_url_parts = parse_url( home_url() );
+		$app_url = sprintf( '%s://%s', $app_url_parts['scheme'], $app_url_parts['host'] );
+
 		require_once( TWO_FACTOR_DIR . 'includes/Yubico/U2F.php' );
-		self::$u2f = new u2flib_server\U2F( set_url_scheme( '//' . $_SERVER['HTTP_HOST'] ) );
+		self::$u2f = new u2flib_server\U2F( $app_url );
 
 		require_once( TWO_FACTOR_DIR . 'providers/class.two-factor-fido-u2f-admin.php' );
 		Two_Factor_FIDO_U2F_Admin::add_hooks();
