@@ -84,7 +84,7 @@ class Application_Passwords {
 	 * @access public
 	 * @static
 	 *
-	 * @param $data
+	 * @param WP_REST_Request $data Request used to generate the response.
 	 *
 	 * @return array
 	 */
@@ -125,7 +125,7 @@ class Application_Passwords {
 	 * @access public
 	 * @static
 	 *
-	 * @param $data
+	 * @param WP_REST_Request $data Request used to generate the response.
 	 *
 	 * @return array
 	 */
@@ -172,7 +172,7 @@ class Application_Passwords {
 	 * @access public
 	 * @static
 	 *
-	 * @param $data
+	 * @param WP_REST_Request $data Request used to generate the response.
 	 *
 	 * @return bool
 	 */
@@ -188,7 +188,7 @@ class Application_Passwords {
 	 * @access public
 	 * @static
 	 *
-	 * @param $data
+	 * @param WP_REST_Request $data Request used to generate the response.
 	 *
 	 * @return bool
 	 */
@@ -204,7 +204,7 @@ class Application_Passwords {
 	 * @access public
 	 * @static
 	 *
-	 * @param $input_user int|bool User ID if one has been determined, false otherwise.
+	 * @param int|bool $input_user User ID if one has been determined, false otherwise.
 	 *
 	 * @return WP_User|bool
 	 */
