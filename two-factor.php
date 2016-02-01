@@ -23,9 +23,3 @@ require_once( TWO_FACTOR_DIR . 'providers/class.two-factor-provider.php' );
  */
 require_once( TWO_FACTOR_DIR . 'class.two-factor-core.php' );
 Two_Factor_Core::add_hooks();
-
-/**
- * Include the application passwords system.
- */
-require_once( TWO_FACTOR_DIR . 'class.application-passwords.php' );
-Application_Passwords::add_hooks();
