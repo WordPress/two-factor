@@ -15,7 +15,12 @@
 
 		$( '.spinner.is-active', $button ).css( 'margin', '2.5px 0px 0px 5px' );
 
-		u2f.register( u2fL10n.register.request.appId, [ u2fL10n.register.request ], u2fL10n.register.sigs, function( data ) {
+		var registerRequest = {
+			version: u2fL10n.register.request.version,
+			challenge: u2fL10n.register.request.challenge,
+		};
+
+		u2f.register( u2fL10n.register.request.appId, [ registerRequest ], u2fL10n.register.sigs, function( data ) {
 			if ( data.errorCode ) {
 				window.console.log( 'Registration Failed', data.errorCode );
 
