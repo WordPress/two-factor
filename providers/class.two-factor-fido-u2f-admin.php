@@ -48,10 +48,6 @@ class Two_Factor_FIDO_U2F_Admin {
 			return;
 		}
 
-		if ( ! Two_Factor_FIDO_U2F::is_browser_support() ) {
-			return;
-		}
-
 		wp_enqueue_script( 'u2f-api',        plugins_url( 'includes/Google/u2f-api.js', dirname( __FILE__ ) ), null, null, true );
 		wp_enqueue_script( 'fido-u2f-admin', plugins_url( 'js/fido-u2f-admin.js', __FILE__ ), array( 'jquery', 'u2f-api' ), null, true );
 
