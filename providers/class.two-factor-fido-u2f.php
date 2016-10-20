@@ -154,7 +154,7 @@ class Two_Factor_FIDO_U2F extends Two_Factor_Provider {
 	 * @return boolean
 	 */
 	public function is_available_for_user( $user ) {
-		return (bool) self::get_security_keys( $user->ID );
+		return (bool) self::get_security_keys( $user->ID ) && is_ssl();
 	}
 
 	/**
