@@ -53,8 +53,8 @@ class Two_Factor_FIDO_U2F extends Two_Factor_Provider {
 			return;
 		}
 
-		$app_url_parts = parse_url( home_url() );
-		$app_url = sprintf( '%s://%s', $app_url_parts['scheme'], $app_url_parts['host'] );
+		// U2F requires the App Id to be HTTPS
+		$app_url = set_url_scheme( site_url(), 'https' );
 
 		require_once( TWO_FACTOR_DIR . 'includes/Yubico/U2F.php' );
 		self::$u2f = new u2flib_server\U2F( $app_url );
@@ -82,11 +82,7 @@ class Two_Factor_FIDO_U2F extends Two_Factor_Provider {
 	 * @since 0.1-dev
 	 */
 	public function login_enqueue_assets() {
-		if ( ! self::is_browser_support() ) {
-			return;
-		}
-
-		wp_enqueue_script( 'u2f-api',        plugins_url( 'includes/Google/u2f-api.js', dirname( __FILE__ ) ), null, null, true );
+		wp_register_script( 'u2f-api',       plugins_url( 'includes/Google/u2f-api.js', dirname( __FILE__ ) ), null, null, true );
 		wp_enqueue_script( 'fido-u2f-login', plugins_url( 'js/fido-u2f-login.js', __FILE__ ), array( 'jquery', 'u2f-api' ), null, true );
 	}
 
@@ -158,7 +154,7 @@ class Two_Factor_FIDO_U2F extends Two_Factor_Provider {
 	 * @return boolean
 	 */
 	public function is_available_for_user( $user ) {
-		return self::is_browser_support() && (bool) self::get_security_keys( $user->ID );
+		return (bool) self::get_security_keys( $user->ID ) && is_ssl();
 	}
 
 	/**
@@ -321,19 +317,5 @@ class Two_Factor_FIDO_U2F extends Two_Factor_Provider {
 		}
 
 		return true;
-	}
-
-	/**
-	 * Detect browser support for FIDO U2F.
-	 *
-	 * @since 0.1-dev
-	 */
-	public static function is_browser_support() {
-		global $is_chrome;
-
-		require_once( ABSPATH . '/wp-admin/includes/dashboard.php' );
-		$response = wp_check_browser_version();
-
-		return $is_chrome && version_compare( $response['version'], '41' ) >= 0 && ! wp_is_mobile();
 	}
 }

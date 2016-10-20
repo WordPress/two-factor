@@ -48,11 +48,7 @@ class Two_Factor_FIDO_U2F_Admin {
 			return;
 		}
 
-		if ( ! Two_Factor_FIDO_U2F::is_browser_support() ) {
-			return;
-		}
-
-		wp_enqueue_script( 'u2f-api',        plugins_url( 'includes/Google/u2f-api.js', dirname( __FILE__ ) ), null, null, true );
+		wp_register_script( 'u2f-api',       plugins_url( 'includes/Google/u2f-api.js', dirname( __FILE__ ) ), null, null, true );
 		wp_enqueue_script( 'fido-u2f-admin', plugins_url( 'js/fido-u2f-admin.js', __FILE__ ), array( 'jquery', 'u2f-api' ), null, true );
 
 		$user_id = get_current_user_id();
@@ -118,16 +114,14 @@ class Two_Factor_FIDO_U2F_Admin {
 		?>
 		<div class="security-keys" id="security-keys-section">
 			<h3><?php esc_html_e( 'Security Keys' ); ?></h3>
-			<p><?php esc_html_e( 'FIDO U2F is only supported in Chrome 41+.' ); ?></p>
+			<div class="u2f-not-supported">
+				<p><?php esc_html_e( 'Your browser doesn\'t support FIDO U2F.' ); ?></p>
+			</div>
 			<p><a href="https://support.google.com/accounts/answer/6103523"><?php esc_html_e( 'You can find FIDO U2F Security Key devices for sale from here.' ); ?></a></p>
 			<div class="register-security-key">
-				<?php if ( Two_Factor_FIDO_U2F::is_browser_support() ) : ?>
 				<input type="hidden" name="do_new_security_key" id="do_new_security_key" />
 				<input type="hidden" name="u2f_response" id="u2f_response" />
 				<button type="button" class="button button-secondary" id="register_security_key"><?php esc_html_e( 'Add New' ); ?></button>
-				<?php else : ?>
-				<p><?php esc_html_e( 'Your browser doesn\'t support FIDO U2F.' ); ?></p>
-				<?php endif; ?>
 			</div>
 
 			<?php if ( $new_key ) : ?>
