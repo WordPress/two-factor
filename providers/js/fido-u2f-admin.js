@@ -17,7 +17,7 @@
 
 		var registerRequest = {
 			version: u2fL10n.register.request.version,
-			challenge: u2fL10n.register.request.challenge,
+			challenge: u2fL10n.register.request.challenge
 		};
 
 		u2f.register( u2fL10n.register.request.appId, [ registerRequest ], u2fL10n.register.sigs, function( data ) {
