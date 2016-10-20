@@ -53,8 +53,8 @@ class Two_Factor_FIDO_U2F extends Two_Factor_Provider {
 			return;
 		}
 
-		$app_url_parts = parse_url( home_url() );
-		$app_url = sprintf( '%s://%s', $app_url_parts['scheme'], $app_url_parts['host'] );
+		// U2F requires the App Id to be HTTPS
+		$app_url = set_url_scheme( site_url(), 'https' );
 
 		require_once( TWO_FACTOR_DIR . 'includes/Yubico/U2F.php' );
 		self::$u2f = new u2flib_server\U2F( $app_url );
