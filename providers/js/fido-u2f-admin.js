@@ -3,6 +3,8 @@
 	var $button = $( '#register_security_key' );
 
 	$button.click( function() {
+		var registerRequest;
+
 		if ( $button.hasClass( 'clicked' ) ) {
 			return false;
 		} else {
@@ -15,7 +17,7 @@
 
 		$( '.spinner.is-active', $button ).css( 'margin', '2.5px 0px 0px 5px' );
 
-		var registerRequest = {
+		registerRequest = {
 			version: u2fL10n.register.request.version,
 			challenge: u2fL10n.register.request.challenge
 		};
