@@ -1,11 +1,17 @@
 /* global u2f, u2fL10n */
 ( function( $ ) {
+	if ( 'undefined' === typeof u2fL10n ) {
+		return false;
+	}
+
 	window.console.log( 'sign', u2fL10n.request );
 
 	u2f.sign( u2fL10n.request[0].appId, u2fL10n.request[0].challenge, u2fL10n.request, function( data ) {
 		window.console.log( 'Authenticate callback', data );
 
-		$( '#u2f_response' ).val( JSON.stringify( data ) );
-		$( '#loginform' ).submit();
+		if ( ! data.errorCode ) {
+			$( '#u2f_response' ).val( JSON.stringify( data ) );
+			$( '#loginform' ).submit();
+		}
 	} );
 } )( jQuery );
