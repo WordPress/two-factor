@@ -52,12 +52,10 @@ class Two_Factor_FIDO_U2F_Admin {
 			return;
 		}
 
-		wp_enqueue_script( 'u2f-api',        plugins_url( 'includes/Google/u2f-api.js', dirname( __FILE__ ) ), null, null, true );
-		wp_enqueue_script( 'fido-u2f-admin', plugins_url( 'js/fido-u2f-admin.js', __FILE__ ), array( 'jquery', 'u2f-api' ), null, true );
-
 		$user_id = get_current_user_id();
 		$security_keys = Two_Factor_FIDO_U2F::get_security_keys( $user_id );
 
+		// @todo Ensure that scripts don't fail because of missing u2fL10n
 		try {
 			$data = Two_Factor_FIDO_U2F::$u2f->getRegisterData( $security_keys );
 			list( $req,$sigs ) = $data;
@@ -66,6 +64,18 @@ class Two_Factor_FIDO_U2F_Admin {
 		} catch ( Exception $e ) {
 			return false;
 		}
+
+		wp_enqueue_script(
+			'fido-u2f-admin',
+			plugins_url( 'js/fido-u2f-admin.js', __FILE__ ),
+			array( 'jquery', 'fido-u2f-api' ),
+			'0.1.0-dev.1',
+			true
+		);
+
+		/**
+		 * Pass a U2F challenge and user data to our scripts
+		 */
 
 		$translation_array = array(
 			'register' => array(
@@ -78,11 +88,31 @@ class Two_Factor_FIDO_U2F_Admin {
 			),
 		);
 
-		wp_localize_script( 'fido-u2f-admin', 'u2fL10n', $translation_array );
-		wp_enqueue_script( 'inline-edit-key', plugins_url( 'js/fido-u2f-admin-inline-edit.js', __FILE__ ), array( 'jquery' ), null, true );
-		wp_localize_script( 'inline-edit-key', 'inlineEditL10n', array(
-			'error' => esc_html__( 'Error while saving the changes.' ),
-		) );
+		wp_localize_script(
+			'fido-u2f-admin',
+			'u2fL10n',
+			$translation_array
+		);
+
+		/**
+		 * Script for admin UI
+		 */
+
+		wp_enqueue_script(
+			'inline-edit-key',
+			plugins_url( 'js/fido-u2f-admin-inline-edit.js', __FILE__ ),
+			array( 'jquery' ),
+			'0.1.0-dev.1',
+			true
+		);
+
+		wp_localize_script(
+			'inline-edit-key',
+			'inlineEditL10n',
+			array(
+				'error' => esc_html__( 'Error while saving the changes.' ),
+			)
+		);
 	}
 
 	/**
