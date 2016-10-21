@@ -2,6 +2,7 @@ sudo: false
 
 language:
     - php
+    - node_js
 
 php:
     - 5.2
@@ -22,10 +23,11 @@ matrix:
 before_script:
     - export DEV_LIB_PATH=dev-lib
     - if [ ! -e "$DEV_LIB_PATH" ] && [ -L .travis.yml ]; then export DEV_LIB_PATH=$( dirname $( readlink .travis.yml ) ); fi
-    - source $DEV_LIB_PATH/travis.before_script.sh
+    - if [ ! -e "$DEV_LIB_PATH" ]; then git clone https://github.com/xwp/wp-dev-lib.git $DEV_LIB_PATH; fi
+    - source $DEV_LIB_PATH/travis.install.sh
 
 script:
-    - $DEV_LIB_PATH/travis.script.sh
+    - source $DEV_LIB_PATH/travis.script.sh
 
 after_script:
-    - $DEV_LIB_PATH/travis.after_script.sh
+    - source $DEV_LIB_PATH/travis.after_script.sh
