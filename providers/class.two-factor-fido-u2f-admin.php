@@ -161,7 +161,7 @@ class Two_Factor_FIDO_U2F_Admin {
 	 */
 	public static function catch_submission( $user_id ) {
 		if ( ! empty( $_REQUEST['do_new_security_key'] ) ) {
-			check_admin_referer( "user_security_keys-{$user_id}", '_nonce_user_security_keys' );
+			check_admin_referer( sprintf( 'user_security_keys-%s', $user_id ), '_nonce_user_security_keys' );
 
 			try {
 				$response = json_decode( stripslashes( $_POST['u2f_response'] ) );
@@ -175,9 +175,15 @@ class Two_Factor_FIDO_U2F_Admin {
 
 			delete_user_meta( $user_id, self::REGISTER_DATA_USER_META_KEY );
 
-			wp_safe_redirect( add_query_arg( array(
+			$redirect_url = add_query_arg( array(
 				'new_app_pass' => 1,
-			), wp_get_referer() ) . '#security-keys-section' );
+			) );
+
+			$redirect_url = remove_query_arg( array(
+				'wp_http_referer',
+			), $redirect_url );
+
+			wp_safe_redirect(  $redirect_url . '#security-keys-section' );
 			exit;
 		}
 	}
@@ -194,13 +200,21 @@ class Two_Factor_FIDO_U2F_Admin {
 	 */
 	public static function catch_delete_security_key() {
 		if ( ! empty( $_REQUEST['delete_security_key'] ) ) {
-			$user_id = self::get_profile_user_id();
 			$slug = $_REQUEST['delete_security_key'];
-			check_admin_referer( "delete_security_key-{$slug}", '_nonce_delete_security_key' );
+			check_admin_referer( sprintf( 'delete_security_key-%s', $slug ), '_nonce_delete_security_key' );
 
+			$user_id = self::get_profile_user_id();
 			Two_Factor_FIDO_U2F::delete_security_key( $user_id, $slug );
 
-			wp_safe_redirect( remove_query_arg( 'new_app_pass', wp_get_referer() ) . '#security-keys-section' );
+			$redirect_url = remove_query_arg( array(
+				'new_app_pass',
+				'wp_http_referer',
+				'delete_security_key',
+				'_nonce_delete_security_key',
+			), wp_get_referer() );
+
+			wp_safe_redirect( $redirect_url . '#security-keys-section' );
+			exit;
 		}
 	}
 
@@ -231,8 +245,17 @@ class Two_Factor_FIDO_U2F_Admin {
 	 * @return string
 	 */
 	public static function delete_link( $item ) {
-		$delete_link = add_query_arg( 'delete_security_key', $item->keyHandle );
-		$delete_link = wp_nonce_url( $delete_link, "delete_security_key-{$item->keyHandle}", '_nonce_delete_security_key' );
+		$delete_link = add_query_arg( array(
+			'user_id' => self::get_profile_user_id(),
+			'delete_security_key' => $item->keyHandle,
+			'_nonce_delete_security_key' => wp_create_nonce( sprintf( 'delete_security_key-%s', $item->keyHandle ) ),
+		), wp_get_referer() );
+
+		$delete_link = remove_query_arg( array(
+			'wp_http_referer',
+			'new_app_pass',
+		), $delete_link );
+
 		return sprintf( '<a href="%1$s">%2$s</a>', esc_url( $delete_link ), esc_html__( 'Delete' ) );
 	}
 
