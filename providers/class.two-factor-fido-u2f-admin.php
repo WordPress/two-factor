@@ -177,7 +177,7 @@ class Two_Factor_FIDO_U2F_Admin {
 
 			$redirect_url = add_query_arg( array(
 				'new_app_pass' => 1,
-			) );
+			), wp_get_referer() );
 
 			$redirect_url = remove_query_arg( array(
 				'wp_http_referer',
