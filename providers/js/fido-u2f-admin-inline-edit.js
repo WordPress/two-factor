@@ -79,6 +79,7 @@ var inlineEditKey;
 			$( '#security-keys-section table.widefat .spinner' ).addClass( 'is-active' );
 
 			params = {
+				userId: window.u2fL10n.userId,
 				action: 'inline-save-key',
 				keyHandle: id
 			};

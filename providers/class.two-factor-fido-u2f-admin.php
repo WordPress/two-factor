@@ -68,6 +68,7 @@ class Two_Factor_FIDO_U2F_Admin {
 		}
 
 		$translation_array = array(
+			'userId' => $user_id,
 			'register' => array(
 				'request' => $req,
 				'sigs' => $sigs,
