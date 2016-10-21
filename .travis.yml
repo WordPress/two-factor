@@ -27,7 +27,7 @@ before_script:
     - source $DEV_LIB_PATH/travis.install.sh
 
 script:
-    - $DEV_LIB_PATH/travis.script.sh
+    - source $DEV_LIB_PATH/travis.script.sh
 
 after_script:
-    - $DEV_LIB_PATH/travis.after_script.sh
+    - source $DEV_LIB_PATH/travis.after_script.sh
