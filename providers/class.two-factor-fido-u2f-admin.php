@@ -245,7 +245,13 @@ class Two_Factor_FIDO_U2F_Admin {
 	 * @static
 	 */
 	public static function wp_ajax_inline_save() {
-		check_ajax_referer( 'keyinlineeditnonce', '_inline_edit' );
+		if ( ! isset( $_REQUEST['userId'] ) ) {
+			wp_die();
+		}
+
+		$user_id = intval( $_REQUEST['userId'] );
+
+		check_ajax_referer( 'keyinlineeditnonce_' . $user_id, '_inline_edit' );
 
 		require( TWO_FACTOR_DIR . 'providers/class.two-factor-fido-u2f-admin-list-table.php' );
 		$wp_list_table = new Two_Factor_FIDO_U2F_Admin_List_Table();
@@ -253,8 +259,6 @@ class Two_Factor_FIDO_U2F_Admin {
 		if ( ! isset( $_POST['keyHandle'] ) ) {
 			wp_die();
 		}
-
-		$user_id = get_current_user_id();
 
 		$security_keys = Two_Factor_FIDO_U2F::get_security_keys( $user_id );
 		if ( ! $security_keys ) {
@@ -275,5 +279,15 @@ class Two_Factor_FIDO_U2F_Admin {
 		}
 		$wp_list_table->single_row( $key );
 		wp_die();
+	}
+
+	public static function get_profile_user_id() {
+		if ( isset( $_REQUEST['user_id'] ) && current_user_can( 'edit_user', $_REQUEST['user_id'] ) ) {
+			return intval( $_REQUEST['user_id'] );
+		} elseif ( is_user_logged_in() ) {
+			return get_current_user_id();
+		}
+
+		return false;
 	}
 }

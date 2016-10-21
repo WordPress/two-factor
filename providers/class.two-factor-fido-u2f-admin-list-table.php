@@ -24,7 +24,7 @@ class Two_Factor_FIDO_U2F_Admin_List_Table extends WP_List_Table {
 	public function get_columns() {
 		return array(
 			'name'      => wp_strip_all_tags( __( 'Name' ) ),
-			'added'   => wp_strip_all_tags( __( 'Added' ) ),
+			'added'     => wp_strip_all_tags( __( 'Added' ) ),
 			'last_used' => wp_strip_all_tags( __( 'Last Used' ) ),
 		);
 	}
@@ -120,6 +120,8 @@ class Two_Factor_FIDO_U2F_Admin_List_Table extends WP_List_Table {
 	 * @since 0.1-dev
 	 */
 	public function inline_edit() {
+		$user_id = Two_Factor_FIDO_U2F_Admin::get_profile_user_id();
+
 		?>
 		<table style="display: none">
 			<tbody id="inlineedit">
@@ -152,7 +154,7 @@ class Two_Factor_FIDO_U2F_Admin_List_Table extends WP_List_Table {
 							<a href="#inline-edit" class="save button-primary alignright"><?php esc_html_e( 'Update' ); ?></a>
 							<span class="spinner"></span>
 							<span class="error" style="display:none;"></span>
-							<?php wp_nonce_field( 'keyinlineeditnonce', '_inline_edit', false ); ?>
+							<?php wp_nonce_field( 'keyinlineeditnonce_' . $user_id, '_inline_edit', false ); ?>
 							<br class="clear" />
 						</p>
 					</td>
