@@ -101,6 +101,15 @@ class Two_Factor_FIDO_U2F extends Two_Factor_Provider {
 	public function authentication_page( $user ) {
 		require_once( ABSPATH . '/wp-admin/includes/template.php' );
 
+		// U2F doesn't work without HTTPS
+		if ( ! is_ssl() ) {
+			?>
+			<p><?php esc_html_e( 'U2F requires an HTTPS connection.' ); ?></p>
+			<?php
+
+			return;
+		}
+
 		try {
 			$keys = self::get_security_keys( $user->ID );
 			$data = self::$u2f->getAuthenticateData( $keys );
