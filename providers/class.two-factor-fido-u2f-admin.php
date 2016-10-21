@@ -193,8 +193,8 @@ class Two_Factor_FIDO_U2F_Admin {
 	 * @static
 	 */
 	public static function catch_delete_security_key() {
-		$user_id = get_current_user_id();
 		if ( ! empty( $_REQUEST['delete_security_key'] ) ) {
+			$user_id = self::get_profile_user_id();
 			$slug = $_REQUEST['delete_security_key'];
 			check_admin_referer( "delete_security_key-{$slug}", '_nonce_delete_security_key' );
 
