@@ -13,8 +13,7 @@ function login_header( $title = 'Log In', $message = '', $wp_error = '' ) {
 	// Don't index any of these forms
 	add_action( 'login_head', 'wp_no_robots' );
 
-	if ( wp_is_mobile() )
-		add_action( 'login_head', 'wp_login_viewport_meta' );
+	add_action( 'login_head', 'wp_login_viewport_meta' );
 
 	if ( empty($wp_error) )
 		$wp_error = new WP_Error();
@@ -22,7 +21,7 @@ function login_header( $title = 'Log In', $message = '', $wp_error = '' ) {
 	// Shake it!
 	$shake_error_codes = array( 'empty_password', 'empty_email', 'invalid_email', 'invalidcombo', 'empty_username', 'invalid_username', 'incorrect_password' );
 	/**
-	 * Filter the error codes array for shaking the login form.
+	 * Filters the error codes array for shaking the login form.
 	 *
 	 * @since 3.0.0
 	 *
@@ -33,98 +32,108 @@ function login_header( $title = 'Log In', $message = '', $wp_error = '' ) {
 	if ( $shake_error_codes && $wp_error->get_error_code() && in_array( $wp_error->get_error_code(), $shake_error_codes ) )
 		add_action( 'login_head', 'wp_shake_js', 12 );
 
+	$separator = is_rtl() ? ' &rsaquo; ' : ' &lsaquo; ';
+
 	?><!DOCTYPE html>
 	<!--[if IE 8]>
-	<html xmlns="http://www.w3.org/1999/xhtml" class="ie8" <?php language_attributes(); ?>>
+		<html xmlns="http://www.w3.org/1999/xhtml" class="ie8" <?php language_attributes(); ?>>
 	<![endif]-->
 	<!--[if !(IE 8) ]><!-->
-	<html xmlns="http://www.w3.org/1999/xhtml" <?php language_attributes(); ?>>
+		<html xmlns="http://www.w3.org/1999/xhtml" <?php language_attributes(); ?>>
 	<!--<![endif]-->
 	<head>
-		<meta http-equiv="Content-Type" content="<?php bloginfo('html_type'); ?>; charset=<?php bloginfo('charset'); ?>" />
-		<title><?php bloginfo('name'); ?> &rsaquo; <?php echo $title; ?></title>
+	<meta http-equiv="Content-Type" content="<?php bloginfo('html_type'); ?>; charset=<?php bloginfo('charset'); ?>" />
+	<title><?php echo get_bloginfo( 'name', 'display' ) . $separator . $title; ?></title>
+	<?php
+
+	wp_enqueue_style( 'login' );
+
+	/*
+	 * Remove all stored post data on logging out.
+	 * This could be added by add_action('login_head'...) like wp_shake_js(),
+	 * but maybe better if it's not removable by plugins
+	 */
+	if ( 'loggedout' == $wp_error->get_error_code() ) {
+		?>
+		<script>if("sessionStorage" in window){try{for(var key in sessionStorage){if(key.indexOf("wp-autosave-")!=-1){sessionStorage.removeItem(key)}}}catch(e){}};</script>
+		<?php
+	}
+
+	/**
+	 * Enqueue scripts and styles for the login page.
+	 *
+	 * @since 3.1.0
+	 */
+	do_action( 'login_enqueue_scripts' );
+
+	/**
+	 * Fires in the login page header after scripts are enqueued.
+	 *
+	 * @since 2.1.0
+	 */
+	do_action( 'login_head' );
+
+	if ( is_multisite() ) {
+		$login_header_url   = network_home_url();
+		$login_header_title = get_network()->site_name;
+	} else {
+		$login_header_url   = __( 'https://wordpress.org/' );
+		$login_header_title = __( 'Powered by WordPress' );
+	}
+
+	/**
+	 * Filters link URL of the header logo above login form.
+	 *
+	 * @since 2.1.0
+	 *
+	 * @param string $login_header_url Login header logo URL.
+	 */
+	$login_header_url = apply_filters( 'login_headerurl', $login_header_url );
+
+	/**
+	 * Filters the title attribute of the header logo above login form.
+	 *
+	 * @since 2.1.0
+	 *
+	 * @param string $login_header_title Login header logo title attribute.
+	 */
+	$login_header_title = apply_filters( 'login_headertitle', $login_header_title );
+
+	$classes = array( 'login-action-' . $action, 'wp-core-ui' );
+	if ( is_rtl() )
+		$classes[] = 'rtl';
+	if ( $interim_login ) {
+		$classes[] = 'interim-login';
+		?>
+		<style type="text/css">html{background-color: transparent;}</style>
 		<?php
 
-		wp_admin_css( 'login', true );
+		if ( 'success' ===  $interim_login )
+			$classes[] = 'interim-login-success';
+	}
+	$classes[] =' locale-' . sanitize_html_class( strtolower( str_replace( '_', '-', get_locale() ) ) );
 
-		/*
-		 * Remove all stored post data on logging out.
-		 * This could be added by add_action('login_head'...) like wp_shake_js(),
-		 * but maybe better if it's not removable by plugins
-		 */
-		if ( 'loggedout' == $wp_error->get_error_code() ) {
-			?>
-			<script>if("sessionStorage" in window){try{for(var key in sessionStorage){if(key.indexOf("wp-autosave-")!=-1){sessionStorage.removeItem(key)}}}catch(e){}};</script>
-			<?php
-		}
+	/**
+	 * Filters the login page body classes.
+	 *
+	 * @since 3.5.0
+	 *
+	 * @param array  $classes An array of body classes.
+	 * @param string $action  The action that brought the visitor to the login page.
+	 */
+	$classes = apply_filters( 'login_body_class', $classes, $action );
 
-		/**
-		 * Enqueue scripts and styles for the login page.
-		 *
-		 * @since 3.1.0
-		 */
-		do_action( 'login_enqueue_scripts' );
-		/**
-		 * Fires in the login page header after scripts are enqueued.
-		 *
-		 * @since 2.1.0
-		 */
-		do_action( 'login_head' );
-
-		if ( is_multisite() ) {
-			$login_header_url   = network_home_url();
-			$login_header_title = get_current_site()->site_name;
-		} else {
-			$login_header_url   = __( 'https://wordpress.org/' );
-			$login_header_title = __( 'Powered by WordPress' );
-		}
-
-		/**
-		 * Filter link URL of the header logo above login form.
-		 *
-		 * @since 2.1.0
-		 *
-		 * @param string $login_header_url Login header logo URL.
-		 */
-		$login_header_url = apply_filters( 'login_headerurl', $login_header_url );
-		/**
-		 * Filter the title attribute of the header logo above login form.
-		 *
-		 * @since 2.1.0
-		 *
-		 * @param string $login_header_title Login header logo title attribute.
-		 */
-		$login_header_title = apply_filters( 'login_headertitle', $login_header_title );
-
-		$classes = array( 'login-action-' . $action, 'wp-core-ui' );
-		if ( wp_is_mobile() )
-			$classes[] = 'mobile';
-		if ( is_rtl() )
-			$classes[] = 'rtl';
-		if ( $interim_login ) {
-			$classes[] = 'interim-login';
-			?>
-			<style type="text/css">html{background-color: transparent;}</style>
-			<?php
-
-			if ( 'success' ===  $interim_login )
-				$classes[] = 'interim-login-success';
-		}
-		$classes[] =' locale-' . sanitize_html_class( strtolower( str_replace( '_', '-', get_locale() ) ) );
-
-		/**
-		 * Filter the login page body classes.
-		 *
-		 * @since 3.5.0
-		 *
-		 * @param array  $classes An array of body classes.
-		 * @param string $action  The action that brought the visitor to the login page.
-		 */
-		$classes = apply_filters( 'login_body_class', $classes, $action );
-
-		?>
+	?>
 	</head>
 	<body class="login <?php echo esc_attr( implode( ' ', $classes ) ); ?>">
+	<?php
+	/**
+	 * Fires in the login page header after the body tag is opened.
+	 *
+	 * @since 4.6.0
+	 */
+	do_action( 'login_header' );
+	?>
 	<div id="login">
 		<h1><a href="<?php echo esc_url( $login_header_url ); ?>" title="<?php echo esc_attr( $login_header_title ); ?>" tabindex="-1"><?php bloginfo( 'name' ); ?></a></h1>
 	<?php
@@ -132,7 +141,7 @@ function login_header( $title = 'Log In', $message = '', $wp_error = '' ) {
 	unset( $login_header_url, $login_header_title );
 
 	/**
-	 * Filter the message to display above the login form.
+	 * Filters the message to display above the login form.
 	 *
 	 * @since 2.1.0
 	 *
@@ -162,7 +171,7 @@ function login_header( $title = 'Log In', $message = '', $wp_error = '' ) {
 		}
 		if ( ! empty( $errors ) ) {
 			/**
-			 * Filter the error messages displayed above the login form.
+			 * Filters the error messages displayed above the login form.
 			 *
 			 * @since 2.1.0
 			 *
@@ -172,7 +181,7 @@ function login_header( $title = 'Log In', $message = '', $wp_error = '' ) {
 		}
 		if ( ! empty( $messages ) ) {
 			/**
-			 * Filter instructional messages displayed above the login form.
+			 * Filters instructional messages displayed above the login form.
 			 *
 			 * @since 2.5.0
 			 *
