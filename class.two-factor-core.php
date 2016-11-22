@@ -406,7 +406,7 @@ class Two_Factor_Core {
 	 */
 	public static function create_login_nonce( $user_id ) {
 		$login_nonce               = array();
-		$login_nonce['key']        = wp_hash( $user_id . mt_rand() . microtime(), 'nonce' );
+		$login_nonce['key']        = bin2hex(random_bytes(16));
 		$login_nonce['expiration'] = time() + HOUR_IN_SECONDS;
 
 		if ( ! update_user_meta( $user_id, self::USER_META_NONCE_KEY, $login_nonce ) ) {
