@@ -2,7 +2,7 @@
 Contributors: georgestephanis, valendesigns, stevenkword, extendwings, sgrant, aaroncampbell, johnbillion, stevegrunwell, netweb
 Tags: two factor, two step, authentication, login, totp, fido u2f, email, backup codes, 2fa
 Requires at least: 4.3
-Tested up to: 4.4
+Tested up to: 4.6.1
 Stable tag: trunk
 
 A feature plugin for core to provide Two-Factor Authentication.
