@@ -6,7 +6,7 @@ A feature plugin for core to provide Two-Factor Authentication.
 **Contributors:** [georgestephanis](https://profiles.wordpress.org/georgestephanis), [valendesigns](https://profiles.wordpress.org/valendesigns), [stevenkword](https://profiles.wordpress.org/stevenkword), [extendwings](https://profiles.wordpress.org/extendwings), [sgrant](https://profiles.wordpress.org/sgrant), [aaroncampbell](https://profiles.wordpress.org/aaroncampbell), [johnbillion](https://profiles.wordpress.org/johnbillion), [stevegrunwell](https://profiles.wordpress.org/stevegrunwell), [netweb](https://profiles.wordpress.org/netweb)  
 **Tags:** [two factor](https://wordpress.org/plugins/tags/two factor), [two step](https://wordpress.org/plugins/tags/two step), [authentication](https://wordpress.org/plugins/tags/authentication), [login](https://wordpress.org/plugins/tags/login), [totp](https://wordpress.org/plugins/tags/totp), [fido u2f](https://wordpress.org/plugins/tags/fido u2f), [email](https://wordpress.org/plugins/tags/email), [backup codes](https://wordpress.org/plugins/tags/backup codes), [2fa](https://wordpress.org/plugins/tags/2fa)  
 **Requires at least:** 4.3  
-**Tested up to:** 4.4  
+**Tested up to:** 4.6.1  
 **Stable tag:** trunk (master)  
 
 [![Build Status](https://travis-ci.org/georgestephanis/two-factor.svg?branch=master)](https://travis-ci.org/georgestephanis/two-factor) [![Build Status](https://coveralls.io/repos/georgestephanis/two-factor/badge.svg?branch=master)](https://coveralls.io/github/georgestephanis/two-factor) 
