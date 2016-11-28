@@ -405,11 +405,11 @@ class Two_Factor_Core {
 	 * @param int $user_id User ID.
 	 */
 	public static function create_login_nonce( $user_id ) {
-		$login_nonce               = array();
+		$login_nonce               = array();();
 		try {
-			$login_nonce['key']        = bin2hex( random_bytes( 32 ) );
+			$login_nonce['key'] = bin2hex( random_bytes( 32 ) );
 		} catch (Exception $ex) {
-			wp_hash( $user_id . mt_rand() . microtime(), 'nonce' );
+			$login_nonce['key'] = wp_hash( $user_id . mt_rand() . microtime(), 'nonce' );
 		}
 		$login_nonce['expiration'] = time() + HOUR_IN_SECONDS;
 
