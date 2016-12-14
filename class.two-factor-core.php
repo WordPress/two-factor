@@ -405,7 +405,7 @@ class Two_Factor_Core {
 	 * @param int $user_id User ID.
 	 */
 	public static function create_login_nonce( $user_id ) {
-		$login_nonce               = array();();
+		$login_nonce               = array();
 		try {
 			$login_nonce['key'] = bin2hex( random_bytes( 32 ) );
 		} catch (Exception $ex) {
