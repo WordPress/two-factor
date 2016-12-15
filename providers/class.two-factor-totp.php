@@ -74,7 +74,7 @@ class Two_Factor_Totp extends Two_Factor_Provider {
 		$this->admin_notices();
 		?>
 		<br />
-		<a href="javascript:;" onclick="jQuery('#two-factor-totp-options').toggle();"><?php esc_html_e( 'View Options &rarr;' ); ?></a>
+		<a href="javascript:;" onclick="jQuery('#two-factor-totp-options').toggle();" class="hide-if-no-js"><?php esc_html_e( 'View Options &rarr;' ); ?></a>
 		<div id="two-factor-totp-options" style="display:none;">
 			<?php if ( empty( $key ) ) {
 				$key = $this->generate_key();
@@ -87,6 +87,7 @@ class Two_Factor_Totp extends Two_Factor_Provider {
 					<label for="two-factor-totp-authcode"><?php esc_html_e( 'Authentication Code:' ); ?></label>
 					<input type="hidden" name="two-factor-totp-key" value="<?php echo esc_attr( $key ) ?>" />
 					<input type="tel" name="two-factor-totp-authcode" id="two-factor-totp-authcode" class="input" value="" size="20" pattern="[0-9]*" />
+					<?php submit_button( __( 'Verify' ), 'secondary', 'do_totp_authcode', false ); ?>
 				</p>
 			<?php } else { ?>
 				<p class="success"><?php esc_html_e( 'Enabled' ); ?></p>
@@ -101,32 +102,34 @@ class Two_Factor_Totp extends Two_Factor_Provider {
 	 * @param integer $user_id The user ID whose options are being updated.
 	 */
 	public function user_two_factor_options_update( $user_id ) {
-		if ( isset( $_POST['_nonce_user_two_factor_totp_options'] ) ) {
-			check_admin_referer( 'user_two_factor_totp_options', '_nonce_user_two_factor_totp_options' );
+		if ( empty( $_POST['do_totp_authcode'] ) || ! isset( $_POST['_nonce_user_two_factor_totp_options'] ) ) {
+			return false;
+		}
 
-			$current_key = get_user_meta( $user_id, self::SECRET_META_KEY, true );
-			// If the key hasn't changed or is invalid, do nothing.
-			if ( ! isset( $_POST['two-factor-totp-key'] ) || $current_key === $_POST['two-factor-totp-key'] || ! preg_match( '/^[' . self::$_base_32_chars . ']+$/', $_POST['two-factor-totp-key'] ) ) {
-				return false;
-			}
+		check_admin_referer( 'user_two_factor_totp_options', '_nonce_user_two_factor_totp_options' );
 
-			$notices = array();
+		$current_key = get_user_meta( $user_id, self::SECRET_META_KEY, true );
+		// If the key hasn't changed or is invalid, do nothing.
+		if ( ! isset( $_POST['two-factor-totp-key'] ) || $current_key === $_POST['two-factor-totp-key'] || ! preg_match( '/^[' . self::$_base_32_chars . ']+$/', $_POST['two-factor-totp-key'] ) ) {
+			return false;
+		}
 
-			if ( empty( $_POST['two-factor-totp-authcode'] ) ) {
-				$notices['error'][] = __( 'Two Factor Authentication not activated, you must specify authcode to ensure it is properly set up. Please re-scan the QR code and enter the code provided by your application.' );
-			} else {
-				if ( $this->is_valid_authcode( $_POST['two-factor-totp-key'], $_POST['two-factor-totp-authcode'] ) ) {
-					if ( ! update_user_meta( $user_id, self::SECRET_META_KEY, $_POST['two-factor-totp-key'] ) ) {
-						$notices['error'][] = __( 'Unable to save Two Factor Authentication code. Please re-scan the QR code and enter the code provided by your application.' );
-					}
-				} else {
-					$notices['error'][] = __( 'Two Factor Authentication not activated, the authentication code you entered was not valid. Please re-scan the QR code and enter the code provided by your application.' );
+		$notices = array();
+
+		if ( empty( $_POST['two-factor-totp-authcode'] ) ) {
+			$notices['error'][] = __( 'Two Factor Authentication not activated, you must specify authcode to ensure it is properly set up. Please re-scan the QR code and enter the code provided by your application.' );
+		} else {
+			if ( $this->is_valid_authcode( $_POST['two-factor-totp-key'], $_POST['two-factor-totp-authcode'] ) ) {
+				if ( ! update_user_meta( $user_id, self::SECRET_META_KEY, $_POST['two-factor-totp-key'] ) ) {
+					$notices['error'][] = __( 'Unable to save Two Factor Authentication code. Please re-scan the QR code and enter the code provided by your application.' );
 				}
+			} else {
+				$notices['error'][] = __( 'Two Factor Authentication not activated, the authentication code you entered was not valid. Please re-scan the QR code and enter the code provided by your application.' );
 			}
+		}
 
-			if ( ! empty( $notices ) ) {
-				update_user_meta( $user_id, self::NOTICES_META_KEY, $notices );
-			}
+		if ( ! empty( $notices ) ) {
+			update_user_meta( $user_id, self::NOTICES_META_KEY, $notices );
 		}
 	}
 

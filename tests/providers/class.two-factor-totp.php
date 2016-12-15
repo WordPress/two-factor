@@ -70,9 +70,13 @@ class Tests_Two_Factor_Totp extends WP_UnitTestCase {
 		$_POST[$request_key] = wp_create_nonce( 'user_two_factor_totp_options' );
 		$_REQUEST[$request_key] = $_POST[$request_key];
 
+		$_POST['do_totp_authcode'] = 'Verify';
+
 		ob_start();
 		$this->assertFalse( $this->provider->user_two_factor_options_update( $user->ID ) );
 		$content = ob_get_clean();
+
+		unset( $_POST['do_totp_authcode'] );
 
 		unset( $_REQUEST[$request_key] );
 		unset( $_POST[$request_key] );
@@ -91,6 +95,7 @@ class Tests_Two_Factor_Totp extends WP_UnitTestCase {
 		$_POST[$request_key] = wp_create_nonce( 'user_two_factor_totp_options' );
 		$_REQUEST[$request_key] = $_POST[$request_key];
 
+		$_POST['do_totp_authcode'] = 'Verify';
 		$_POST['two-factor-totp-key'] = $this->provider->generate_key();
 
 		ob_start();
@@ -98,6 +103,7 @@ class Tests_Two_Factor_Totp extends WP_UnitTestCase {
 		$content = ob_get_clean();
 
 		unset( $_POST['two-factor-totp-key'] );
+		unset( $_POST['do_totp_authcode'] );
 
 		unset( $_REQUEST[$request_key] );
 		unset( $_POST[$request_key] );
@@ -116,6 +122,7 @@ class Tests_Two_Factor_Totp extends WP_UnitTestCase {
 		$_POST[$request_key] = wp_create_nonce( 'user_two_factor_totp_options' );
 		$_REQUEST[$request_key] = $_POST[$request_key];
 
+		$_POST['do_totp_authcode'] = 'Verify';
 		$_POST['two-factor-totp-key'] = $this->provider->generate_key();
 		$_POST['two-factor-totp-authcode'] = 'bad_test_authcode';
 
@@ -125,6 +132,7 @@ class Tests_Two_Factor_Totp extends WP_UnitTestCase {
 
 		unset( $_POST['two-factor-totp-authcode'] );
 		unset( $_POST['two-factor-totp-key'] );
+		unset( $_POST['do_totp_authcode'] );
 
 		unset( $_REQUEST[$request_key] );
 		unset( $_POST[$request_key] );
@@ -144,6 +152,7 @@ class Tests_Two_Factor_Totp extends WP_UnitTestCase {
 		$_REQUEST[$request_key] = $_POST[$request_key];
 
 		$key = $this->provider->generate_key();
+		$_POST['do_totp_authcode'] = 'Verify';
 		$_POST['two-factor-totp-key'] = $key;
 		$_POST['two-factor-totp-authcode'] = $this->provider->calc_totp( $key );
 
@@ -153,6 +162,7 @@ class Tests_Two_Factor_Totp extends WP_UnitTestCase {
 
 		unset( $_POST['two-factor-totp-authcode'] );
 		unset( $_POST['two-factor-totp-key'] );
+		unset( $_POST['do_totp_authcode'] );
 
 		unset( $_REQUEST[$request_key] );
 		unset( $_POST[$request_key] );
