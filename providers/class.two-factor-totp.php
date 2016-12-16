@@ -56,7 +56,7 @@ class Two_Factor_Totp extends Two_Factor_Provider {
 	 * Returns the name of the provider.
 	 */
 	public function get_label() {
-		return _x( 'Time Based One-Time Password (Google Authenticator)', 'Provider Label' );
+		return _x( 'Time Based One-Time Password (Google Authenticator)', 'Provider Label', 'two-factor' );
 	}
 
 	/**
@@ -74,7 +74,7 @@ class Two_Factor_Totp extends Two_Factor_Provider {
 		$this->admin_notices();
 		?>
 		<br />
-		<a href="javascript:;" onclick="jQuery('#two-factor-totp-options').toggle();"><?php esc_html_e( 'View Options &rarr;' ); ?></a>
+		<a href="javascript:;" onclick="jQuery('#two-factor-totp-options').toggle();"><?php esc_html_e( 'View Options &rarr;', 'two-factor' ); ?></a>
 		<div id="two-factor-totp-options" style="display:none;">
 			<?php if ( empty( $key ) ) {
 				$key = $this->generate_key();
@@ -82,14 +82,14 @@ class Two_Factor_Totp extends Two_Factor_Provider {
 				?>
 				<img src="<?php echo esc_url( $this->get_google_qr_code( $site_name . ':' . $user->user_login, $key, $site_name ) ); ?>" id="two-factor-totp-qrcode" />
 				<p><strong><?php echo esc_html( $key ); ?></strong></p>
-				<p><?php esc_html_e( 'Please scan the QR code or manually enter the key, then enter an authentication code from your app in order to complete setup' ); ?></p>
+				<p><?php esc_html_e( 'Please scan the QR code or manually enter the key, then enter an authentication code from your app in order to complete setup', 'two-factor' ); ?></p>
 				<p>
-					<label for="two-factor-totp-authcode"><?php esc_html_e( 'Authentication Code:' ); ?></label>
+					<label for="two-factor-totp-authcode"><?php esc_html_e( 'Authentication Code:', 'two-factor' ); ?></label>
 					<input type="hidden" name="two-factor-totp-key" value="<?php echo esc_attr( $key ) ?>" />
 					<input type="tel" name="two-factor-totp-authcode" id="two-factor-totp-authcode" class="input" value="" size="20" pattern="[0-9]*" />
 				</p>
 			<?php } else { ?>
-				<p class="success"><?php esc_html_e( 'Enabled' ); ?></p>
+				<p class="success"><?php esc_html_e( 'Enabled', 'two-factor' ); ?></p>
 			<?php } ?>
 		</div>
 		<?php
@@ -113,14 +113,14 @@ class Two_Factor_Totp extends Two_Factor_Provider {
 			$notices = array();
 
 			if ( empty( $_POST['two-factor-totp-authcode'] ) ) {
-				$notices['error'][] = __( 'Two Factor Authentication not activated, you must specify authcode to ensure it is properly set up. Please re-scan the QR code and enter the code provided by your application.' );
+				$notices['error'][] = __( 'Two Factor Authentication not activated, you must specify authcode to ensure it is properly set up. Please re-scan the QR code and enter the code provided by your application.', 'two-factor' );
 			} else {
 				if ( $this->is_valid_authcode( $_POST['two-factor-totp-key'], $_POST['two-factor-totp-authcode'] ) ) {
 					if ( ! update_user_meta( $user_id, self::SECRET_META_KEY, $_POST['two-factor-totp-key'] ) ) {
-						$notices['error'][] = __( 'Unable to save Two Factor Authentication code. Please re-scan the QR code and enter the code provided by your application.' );
+						$notices['error'][] = __( 'Unable to save Two Factor Authentication code. Please re-scan the QR code and enter the code provided by your application.', 'two-factor' );
 					}
 				} else {
-					$notices['error'][] = __( 'Two Factor Authentication not activated, the authentication code you entered was not valid. Please re-scan the QR code and enter the code provided by your application.' );
+					$notices['error'][] = __( 'Two Factor Authentication not activated, the authentication code you entered was not valid. Please re-scan the QR code and enter the code provided by your application.', 'two-factor' );
 				}
 			}
 
@@ -322,7 +322,7 @@ class Two_Factor_Totp extends Two_Factor_Provider {
 		require_once( ABSPATH .  '/wp-admin/includes/template.php' );
 		?>
 		<p>
-			<label for="authcode"><?php esc_html_e( 'Authentication Code:' ); ?></label>
+			<label for="authcode"><?php esc_html_e( 'Authentication Code:', 'two-factor' ); ?></label>
 			<input type="tel" name="authcode" id="authcode" class="input" value="" size="20" pattern="[0-9]*" />
 		</p>
 		<script type="text/javascript">
@@ -336,7 +336,7 @@ class Two_Factor_Totp extends Two_Factor_Provider {
 			}, 200);
 		</script>
 		<?php
-		submit_button( __( 'Authenticate' ) );
+		submit_button( __( 'Authenticate', 'two-factor' ) );
 	}
 
 	/**
