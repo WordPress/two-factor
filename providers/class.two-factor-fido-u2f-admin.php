@@ -156,7 +156,7 @@ class Two_Factor_FIDO_U2F_Admin {
 				<input type="hidden" name="u2f_response" id="u2f_response" />
 				<button type="button" class="button button-secondary" id="register_security_key"><?php echo esc_html( _x( 'Add New', 'security key', 'two-factor' ) ); ?></button>
 				<?php else : ?>
-				<p><?php esc_html_e( 'Your browser doesn not support FIDO U2F.', 'two-factor' ); ?></p>
+				<p><?php esc_html_e( 'Your browser does not support FIDO U2F.', 'two-factor' ); ?></p>
 				<?php endif; ?>
 			</div>
 
