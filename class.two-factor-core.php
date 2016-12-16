@@ -35,6 +35,7 @@ class Two_Factor_Core {
 	 * @since 0.1-dev
 	 */
 	public static function add_hooks() {
+		add_action( 'init',                     array( __CLASS__, 'load_textdomain' ) );
 		add_action( 'init',                     array( __CLASS__, 'get_providers' ) );
 		add_action( 'wp_login',                 array( __CLASS__, 'wp_login' ), 10, 2 );
 		add_action( 'login_form_validate_2fa',  array( __CLASS__, 'login_form_validate_2fa' ) );
@@ -45,6 +46,15 @@ class Two_Factor_Core {
 		add_action( 'edit_user_profile_update', array( __CLASS__, 'user_two_factor_options_update' ) );
 		add_filter( 'manage_users_columns',       array( __CLASS__, 'filter_manage_users_columns' ) );
 		add_filter( 'manage_users_custom_column', array( __CLASS__, 'manage_users_custom_column' ), 10, 3 );
+	}
+
+	/**
+	 * Loads the plugin's text domain.
+	 *
+	 * Sites on WordPress 4.6+ benefit from just-in-time loading of translations.
+	 */
+	public static function load_textdomain() {
+		load_plugin_textdomain( 'two-factor', false, plugin_dir_path( __FILE__ ) . '/languages' );
 	}
 
 	/**

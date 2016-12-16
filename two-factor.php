@@ -7,6 +7,7 @@
  * Version: 0.1-dev
  * Author URI: http://stephanis.info
  * Network: True
+ * Text Domain: two-factor
  */
 
 /**

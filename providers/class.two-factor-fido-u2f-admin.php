@@ -83,8 +83,8 @@ class Two_Factor_FIDO_U2F_Admin {
 				'sigs' => $sigs,
 			),
 			'text' => array(
-				'insert' => esc_html__( 'Now insert (and tap) your Security Key.' ),
-				'error' => esc_html__( 'Failed...' ),
+				'insert' => esc_html__( 'Now insert (and tap) your Security Key.', 'two-factor' ),
+				'error' => esc_html__( 'Failed...', 'two-factor' ),
 			),
 		);
 
@@ -147,21 +147,21 @@ class Two_Factor_FIDO_U2F_Admin {
 
 		?>
 		<div class="security-keys" id="security-keys-section">
-			<h3><?php esc_html_e( 'Security Keys' ); ?></h3>
-			<p><?php esc_html_e( 'FIDO U2F is only supported in Chrome 41+.' ); ?></p>
-			<p><a href="https://support.google.com/accounts/answer/6103523"><?php esc_html_e( 'You can find FIDO U2F Security Key devices for sale from here.' ); ?></a></p>
+			<h3><?php esc_html_e( 'Security Keys', 'two-factor' ); ?></h3>
+			<p><?php esc_html_e( 'FIDO U2F is only supported in Chrome 41+.', 'two-factor' ); ?></p>
+			<p><a href="https://support.google.com/accounts/answer/6103523"><?php esc_html_e( 'You can find FIDO U2F Security Key devices for sale from here.', 'two-factor' ); ?></a></p>
 			<div class="register-security-key">
 				<?php if ( Two_Factor_FIDO_U2F::is_browser_support() ) : ?>
 				<input type="hidden" name="do_new_security_key" id="do_new_security_key" />
 				<input type="hidden" name="u2f_response" id="u2f_response" />
-				<button type="button" class="button button-secondary" id="register_security_key"><?php esc_html_e( 'Add New' ); ?></button>
+				<button type="button" class="button button-secondary" id="register_security_key"><?php echo esc_html( _x( 'Add New', 'security key', 'two-factor' ) ); ?></button>
 				<?php else : ?>
-				<p><?php esc_html_e( 'Your browser doesn\'t support FIDO U2F.' ); ?></p>
+				<p><?php esc_html_e( 'Your browser doesn not support FIDO U2F.', 'two-factor' ); ?></p>
 				<?php endif; ?>
 			</div>
 
 			<?php if ( $new_key ) : ?>
-			<p class="new-security-key"><?php esc_html_e( 'Your new security key registered.' ); ?></p>
+			<p class="new-security-key"><?php esc_html_e( 'Your new security key registered.', 'two-factor' ); ?></p>
 			<?php endif; ?>
 
 			<?php
@@ -245,7 +245,7 @@ class Two_Factor_FIDO_U2F_Admin {
 	 * @return string
 	 */
 	public static function rename_link( $item ) {
-		return sprintf( '<a href="#" class="editinline">%s</a>', esc_html__( 'Rename' ) );
+		return sprintf( '<a href="#" class="editinline">%s</a>', esc_html__( 'Rename', 'two-factor' ) );
 	}
 
 	/**
@@ -262,7 +262,7 @@ class Two_Factor_FIDO_U2F_Admin {
 	public static function delete_link( $item ) {
 		$delete_link = add_query_arg( 'delete_security_key', $item->keyHandle );
 		$delete_link = wp_nonce_url( $delete_link, "delete_security_key-{$item->keyHandle}", '_nonce_delete_security_key' );
-		return sprintf( '<a href="%1$s">%2$s</a>', esc_url( $delete_link ), esc_html__( 'Delete' ) );
+		return sprintf( '<a href="%1$s">%2$s</a>', esc_url( $delete_link ), esc_html__( 'Delete', 'two-factor' ) );
 	}
 
 	/**
@@ -300,7 +300,7 @@ class Two_Factor_FIDO_U2F_Admin {
 
 		$updated = Two_Factor_FIDO_U2F::update_security_key( $user_id, $key );
 		if ( ! $updated ) {
-			wp_die( esc_html__( 'Item not updated.' ) );
+			wp_die( esc_html__( 'Item not updated.', 'two-factor' ) );
 		}
 		$wp_list_table->single_row( $key );
 		wp_die();

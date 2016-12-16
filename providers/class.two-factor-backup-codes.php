@@ -72,7 +72,7 @@ class Two_Factor_Backup_Codes extends Two_Factor_Provider {
 				<span>
 					<?php
 					printf( // WPCS: XSS OK.
-						__( 'Two-Factor: You are out of backup codes and need to <a href="%s">regenerate!</a>' ),
+						__( 'Two-Factor: You are out of backup codes and need to <a href="%s">regenerate!</a>', 'two-factor' ),
 						esc_url( get_edit_user_link( $user->ID ) . '#two-factor-backup-codes' )
 					);
 					?>
@@ -88,7 +88,7 @@ class Two_Factor_Backup_Codes extends Two_Factor_Provider {
 	 * @since 0.1-dev
 	 */
 	public function get_label() {
-		return _x( 'Backup Verification Codes (Single Use)', 'Provider Label' );
+		return _x( 'Backup Verification Codes (Single Use)', 'Provider Label', 'two-factor' );
 	}
 
 	/**
@@ -120,15 +120,21 @@ class Two_Factor_Backup_Codes extends Two_Factor_Provider {
 		?>
 		<p id="two-factor-backup-codes">
 			<button type="button" class="button button-two-factor-backup-codes-generate button-secondary hide-if-no-js">
-				<?php esc_html_e( 'Generate Verification Codes' ); ?>
+				<?php esc_html_e( 'Generate Verification Codes', 'two-factor' ); ?>
 			</button>
-			<span class="two-factor-backup-codes-count"><?php echo esc_html( sprintf( _n( '%s unused code remaining.', '%s unused codes remaining.', $count ), $count ) ); ?></span>
+			<span class="two-factor-backup-codes-count"><?php
+				echo esc_html( sprintf(
+					/* translators: %s: count */
+					_n( '%s unused code remaining.', '%s unused codes remaining.', $count, 'two-factor' ),
+					$count
+				) );
+				?></span>
 		</p>
 		<div class="two-factor-backup-codes-wrapper" style="display:none;">
 			<ol class="two-factor-backup-codes-unused-codes"></ol>
-			<p class="description"><?php esc_html_e( 'Write these down!  Once you navigate away from this page, you will not be able to view these codes again.' ); ?></p>
+			<p class="description"><?php esc_html_e( 'Write these down!  Once you navigate away from this page, you will not be able to view these codes again.', 'two-factor' ); ?></p>
 			<p>
-				<a class="button button-two-factor-backup-codes-download button-secondary hide-if-no-js"	 href="javascript:void(0);" id="two-factor-backup-codes-download-link" download="two-factor-backup-codes.txt"><?php esc_html_e( 'Download Codes' ); ?></a>
+				<a class="button button-two-factor-backup-codes-download button-secondary hide-if-no-js" href="javascript:void(0);" id="two-factor-backup-codes-download-link" download="two-factor-backup-codes.txt"><?php esc_html_e( 'Download Codes', 'two-factor' ); ?></a>
 			<p>
 		</div>
 		<script type="text/javascript">
@@ -224,8 +230,10 @@ class Two_Factor_Backup_Codes extends Two_Factor_Provider {
 		$codes = $this->generate_codes( $user );
 		$count = self::codes_remaining_for_user( $user );
 		$i18n = array(
-			'count' => esc_html( sprintf( _n( '%s unused code remaining.', '%s unused codes remaining.', $count ), $count ) ),
-			'title' => esc_html__( 'Two-Factor Backup Codes for %s' ),
+			/* translators: %s: count */
+			'count' => esc_html( sprintf( _n( '%s unused code remaining.', '%s unused codes remaining.', $count, 'two-factor' ), $count ) ),
+			/* translators: %s: the site's domain */
+			'title' => esc_html__( 'Two-Factor Backup Codes for %s', 'two-factor' ),
 		);
 
 		// Send the response.
@@ -256,13 +264,13 @@ class Two_Factor_Backup_Codes extends Two_Factor_Provider {
 	public function authentication_page( $user ) {
 		require_once( ABSPATH .  '/wp-admin/includes/template.php' );
 		?>
-		<p><?php esc_html_e( 'Enter a backup verification code.' ); ?></p><br/>
+		<p><?php esc_html_e( 'Enter a backup verification code.', 'two-factor' ); ?></p><br/>
 		<p>
-			<label for="authcode"><?php esc_html_e( 'Verification Code:' ); ?></label>
+			<label for="authcode"><?php esc_html_e( 'Verification Code:', 'two-factor' ); ?></label>
 			<input type="tel" name="two-factor-backup-code" id="authcode" class="input" value="" size="20" pattern="[0-9]*" />
 		</p>
 		<?php
-		submit_button( __( 'Submit' ) );
+		submit_button( __( 'Submit', 'two-factor' ) );
 	}
 
 	/**
