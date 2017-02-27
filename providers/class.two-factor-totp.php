@@ -105,8 +105,11 @@ class Two_Factor_Totp extends Two_Factor_Provider {
 			check_admin_referer( 'user_two_factor_totp_options', '_nonce_user_two_factor_totp_options' );
 
 			$current_key = get_user_meta( $user_id, self::SECRET_META_KEY, true );
-			// If the key hasn't changed or is invalid, do nothing.
-			if ( ! isset( $_POST['two-factor-totp-key'] ) || $current_key === $_POST['two-factor-totp-key'] || ! preg_match( '/^[' . self::$_base_32_chars . ']+$/', $_POST['two-factor-totp-key'] ) ) {
+			if ( $current_key && ! in_array( 'Two_Factor_Totp', Two_Factor_Core::get_enabled_providers_for_user( $user_id ) ) ) {
+				delete_user_meta( $user_id, self::SECRET_META_KEY );
+				return;
+			} elseif ( ! isset( $_POST['two-factor-totp-key'] ) || $current_key === $_POST['two-factor-totp-key'] || ! preg_match( '/^[' . self::$_base_32_chars . ']+$/', $_POST['two-factor-totp-key'] ) ) {
+				// If the key hasn't changed or is invalid, do nothing.
 				return false;
 			}
 
