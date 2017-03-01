@@ -35,6 +35,7 @@ class Two_Factor_Core {
 	 * @since 0.1-dev
 	 */
 	public static function add_hooks() {
+		add_action( 'init',                     array( __CLASS__, 'load_textdomain' ) );
 		add_action( 'init',                     array( __CLASS__, 'get_providers' ) );
 		add_action( 'wp_login',                 array( __CLASS__, 'wp_login' ), 10, 2 );
 		add_action( 'login_form_validate_2fa',  array( __CLASS__, 'login_form_validate_2fa' ) );
@@ -45,6 +46,15 @@ class Two_Factor_Core {
 		add_action( 'edit_user_profile_update', array( __CLASS__, 'user_two_factor_options_update' ) );
 		add_filter( 'manage_users_columns',       array( __CLASS__, 'filter_manage_users_columns' ) );
 		add_filter( 'manage_users_custom_column', array( __CLASS__, 'manage_users_custom_column' ), 10, 3 );
+	}
+
+	/**
+	 * Loads the plugin's text domain.
+	 *
+	 * Sites on WordPress 4.6+ benefit from just-in-time loading of translations.
+	 */
+	public static function load_textdomain() {
+		load_plugin_textdomain( 'two-factor', false, plugin_dir_path( __FILE__ ) . 'languages' );
 	}
 
 	/**
@@ -406,7 +416,11 @@ class Two_Factor_Core {
 	 */
 	public static function create_login_nonce( $user_id ) {
 		$login_nonce               = array();
-		$login_nonce['key']        = wp_hash( $user_id . mt_rand() . microtime(), 'nonce' );
+		try {
+			$login_nonce['key'] = bin2hex( random_bytes( 32 ) );
+		} catch (Exception $ex) {
+			$login_nonce['key'] = wp_hash( $user_id . mt_rand() . microtime(), 'nonce' );
+		}
 		$login_nonce['expiration'] = time() + HOUR_IN_SECONDS;
 
 		if ( ! update_user_meta( $user_id, self::USER_META_NONCE_KEY, $login_nonce ) ) {
@@ -576,11 +590,7 @@ class Two_Factor_Core {
 	 */
 	public static function user_two_factor_options( $user ) {
 		wp_enqueue_style( 'user-edit-2fa', plugins_url( 'user-edit.css', __FILE__ ) );
-		$enabled_providers = get_user_meta( $user->ID, self::ENABLED_PROVIDERS_USER_META_KEY, true );
-		if ( empty( $enabled_providers ) ) {
-			// Because get_user_meta() has no way of providing a default value.
-			$enabled_providers = array();
-		}
+		$enabled_providers = array_keys( self::get_available_providers_for_user( $user->ID ) );
 		$primary_provider = get_user_meta( $user->ID, self::PROVIDER_USER_META_KEY, true );
 		wp_nonce_field( 'user_two_factor_options', '_nonce_user_two_factor_options', false );
 		?>

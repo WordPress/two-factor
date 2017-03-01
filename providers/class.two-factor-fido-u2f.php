@@ -91,7 +91,7 @@ class Two_Factor_FIDO_U2F extends Two_Factor_Provider {
 	 * @since 0.1-dev
 	 */
 	public function get_label() {
-		return _x( 'FIDO U2F', 'Provider Label' );
+		return _x( 'FIDO U2F', 'Provider Label', 'two-factor' );
 	}
 
 	/**
@@ -120,7 +120,7 @@ class Two_Factor_FIDO_U2F extends Two_Factor_Provider {
 		// U2F doesn't work without HTTPS
 		if ( ! is_ssl() ) {
 			?>
-			<p><?php esc_html_e( 'U2F requires an HTTPS connection.' ); ?></p>
+			<p><?php esc_html_e( 'U2F requires an HTTPS connection.', 'two-factor' ); ?></p>
 			<?php
 
 			return;
@@ -132,12 +132,12 @@ class Two_Factor_FIDO_U2F extends Two_Factor_Provider {
 			update_user_meta( $user->ID, self::AUTH_DATA_USER_META_KEY, $data );
 		} catch ( Exception $e ) {
 			?>
-			<p><?php esc_html_e( 'An error occurred while creating authentication data.' ); ?></p>
+			<p><?php esc_html_e( 'An error occurred while creating authentication data.', 'two-factor' ); ?></p>
 			<?php
 			return null;
 		}
 		?>
-		<p><?php esc_html_e( 'Now insert (and tap) your Security Key.' ); ?></p>
+		<p><?php esc_html_e( 'Now insert (and tap) your Security Key.', 'two-factor' ); ?></p>
 		<input type="hidden" name="u2f_response" id="u2f_response" />
 		<script>
 			var u2fL10n = <?php echo wp_json_encode( array(
@@ -197,7 +197,7 @@ class Two_Factor_FIDO_U2F extends Two_Factor_Provider {
 	public function user_options( $user ) {
 		?>
 		<div>
-			<?php echo esc_html( __( 'You need to register security keys such as Yubikey.' ) ); ?>
+			<?php echo esc_html( __( 'You need to register security keys such as Yubikey.', 'two-factor' ) ); ?>
 		</div>
 		<?php
 	}
@@ -233,7 +233,7 @@ class Two_Factor_FIDO_U2F extends Two_Factor_Provider {
 			'counter'     => $register->counter,
 		);
 
-		$register['name']      = __( 'New Security Key' );
+		$register['name']      = __( 'New Security Key', 'two-factor' );
 		$register['added']     = current_time( 'timestamp' );
 		$register['last_used'] = $register['added'];
 
