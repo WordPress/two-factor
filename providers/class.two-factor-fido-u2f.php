@@ -82,13 +82,19 @@ class Two_Factor_FIDO_U2F extends Two_Factor_Provider {
 	}
 
 	/**
-	 * Return the U2F AppId.
+	 * Return the U2F AppId. U2F requires the AppID to use HTTPS
+	 * and a top-level domain.
 	 *
 	 * @return string AppID URI
 	 */
 	public static function get_u2f_app_id() {
-		// U2F requires the AppID to use HTTPS and a top-level domain.
-		return set_url_scheme( home_url(), 'https' );
+		$url_parts = wp_parse_url( home_url() );
+
+		if ( ! empty( $url_parts['port'] ) ) {
+			return sprintf( 'https://%s:%d', $url_parts['host'], $url_parts['port'] );
+		} else {
+			return sprintf( 'https://%s', $url_parts['host'] );
+		}
 	}
 
 	/**
