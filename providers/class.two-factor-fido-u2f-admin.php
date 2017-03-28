@@ -85,7 +85,17 @@ class Two_Factor_FIDO_U2F_Admin {
 			),
 			'text' => array(
 				'insert' => esc_html__( 'Now insert (and tap) your Security Key.', 'two-factor' ),
-				'error' => esc_html__( 'Failed...', 'two-factor' ),
+				'error' => esc_html__( 'U2F request failed.', 'two-factor' ),
+				'error_codes' => array(
+					// Map u2f.ErrorCodes to error messages.
+					0 => esc_html__( 'Request OK.', 'two-factor' ),
+					1 => esc_html__( 'Other U2F error.', 'two-factor' ),
+					2 => esc_html__( 'Bad U2F request.', 'two-factor' ),
+					3 => esc_html__( 'Unsupported U2F configuration.', 'two-factor' ),
+					4 => esc_html__( 'U2F device ineligible.', 'two-factor' ),
+					5 => esc_html__( 'U2F request timeout reached.', 'two-factor' ),
+				),
+				'u2f_not_supported' => esc_html__( 'FIDO U2F is not supported in your web browser. Try using Google Chrome.', 'two-factor' ),
 			),
 		);
 
