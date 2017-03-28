@@ -82,20 +82,7 @@ class Two_Factor_FIDO_U2F_Admin_List_Table extends WP_List_Table {
 	 * @param string $which The location of the bulk actions: 'top' or 'bottom'.
 	 */
 	protected function display_tablenav( $which ) {
-		?>
-		<div class="tablenav <?php echo esc_attr( $which ); ?>">
-
-			<div class="alignleft actions bulkactions">
-				<?php $this->bulk_actions( $which ); ?>
-			</div>
-			<?php
-			$this->extra_tablenav( $which );
-			$this->pagination( $which );
-			?>
-
-			<br class="clear" />
-		</div>
-		<?php
+		// Not used for the Security key list.
 	}
 
 	/**
