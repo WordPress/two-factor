@@ -193,7 +193,7 @@ class Two_Factor_FIDO_U2F extends Two_Factor_Provider {
 	public function user_options( $user ) {
 		?>
 		<p>
-			<?php echo esc_html__( 'Configure your security keys in the "Security Keys" section below.', 'two-factor' ); ?>
+			<?php esc_html_e( 'Requires an HTTPS connection. Configure your security keys in the "Security Keys" section below.', 'two-factor' ); ?>
 		</p>
 		<?php
 	}
