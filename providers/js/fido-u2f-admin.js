@@ -1,15 +1,15 @@
 /* global u2f, u2fL10n */
 ( function( $ ) {
 	var $button = $( '#register_security_key' );
-	var $status_notice = $( '#security-keys-section .security-key-status' );
+	var $statusNotice = $( '#security-keys-section .security-key-status' );
 	var u2f_supported = false;
 
-	$status_notice.text( u2fL10n.text.u2f_not_supported );
+	$statusNotice.text( u2fL10n.text.u2f_not_supported );
 
 	u2f.getApiVersion( function() {
 		u2f_supported = true;
 
-		$status_notice.text( '' );
+		$statusNotice.text( '' );
 	} );
 
 	$button.click( function() {
@@ -23,7 +23,7 @@
 
 		$( this ).prop( 'disabled', true );
 		$( '.register-security-key .spinner' ).addClass( 'is-active' );
-		$status_notice.text( '' );
+		$statusNotice.text( '' );
 
 		registerRequest = {
 			version: u2fL10n.register.request.version,
@@ -38,9 +38,9 @@
 				window.console.log( 'Registration Failed', data.errorCode );
 
 				if ( u2fL10n.text.error_codes[ data.errorCode ] ) {
-					$status_notice.text( u2fL10n.text.error_codes[ data.errorCode ] );
+					$statusNotice.text( u2fL10n.text.error_codes[ data.errorCode ] );
 				} else {
-					$status_notice.text( u2fL10n.text.error_codes[ u2fL10n.text.error ] );
+					$statusNotice.text( u2fL10n.text.error_codes[ u2fL10n.text.error ] );
 				}
 
 				return false;
