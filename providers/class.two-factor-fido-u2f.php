@@ -100,10 +100,6 @@ class Two_Factor_FIDO_U2F extends Two_Factor_Provider {
 	 * @since 0.1-dev
 	 */
 	public function login_enqueue_assets() {
-		if ( ! self::is_browser_support() ) {
-			return;
-		}
-
 		wp_enqueue_script( 'fido-u2f-login' );
 	}
 
@@ -347,19 +343,5 @@ class Two_Factor_FIDO_U2F extends Two_Factor_Provider {
 		}
 
 		return true;
-	}
-
-	/**
-	 * Detect browser support for FIDO U2F.
-	 *
-	 * @since 0.1-dev
-	 */
-	public static function is_browser_support() {
-		global $is_chrome;
-
-		require_once( ABSPATH . '/wp-admin/includes/dashboard.php' );
-		$response = wp_check_browser_version();
-
-		return $is_chrome && version_compare( $response['version'], '41' ) >= 0 && ! wp_is_mobile();
 	}
 }

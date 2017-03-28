@@ -48,10 +48,6 @@ class Two_Factor_FIDO_U2F_Admin {
 			return;
 		}
 
-		if ( ! Two_Factor_FIDO_U2F::is_browser_support() ) {
-			return;
-		}
-
 		$user_id = get_current_user_id();
 		$security_keys = Two_Factor_FIDO_U2F::get_security_keys( $user_id );
 
@@ -151,13 +147,9 @@ class Two_Factor_FIDO_U2F_Admin {
 			<p><?php esc_html_e( 'FIDO U2F is only supported in Chrome 41+.', 'two-factor' ); ?></p>
 			<p><a href="https://support.google.com/accounts/answer/6103523"><?php esc_html_e( 'You can find FIDO U2F Security Key devices for sale from here.', 'two-factor' ); ?></a></p>
 			<div class="register-security-key">
-				<?php if ( Two_Factor_FIDO_U2F::is_browser_support() ) : ?>
 				<input type="hidden" name="do_new_security_key" id="do_new_security_key" />
 				<input type="hidden" name="u2f_response" id="u2f_response" />
 				<button type="button" class="button button-secondary" id="register_security_key"><?php echo esc_html( _x( 'Add New', 'security key', 'two-factor' ) ); ?></button>
-				<?php else : ?>
-				<p><?php esc_html_e( 'Your browser does not support FIDO U2F.', 'two-factor' ); ?></p>
-				<?php endif; ?>
 			</div>
 
 			<?php if ( $new_key ) : ?>
