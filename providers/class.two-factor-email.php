@@ -73,8 +73,9 @@ class Two_Factor_Email extends Two_Factor_Provider {
 	 */
 	public function validate_token( $user_id, $token ) {
 		$hashed_token = get_user_meta( $user_id, self::TOKEN_META_KEY, true );
-		if ( wp_hash( $token ) !== $hashed_token ) {
-			$this->delete_token( $user_id );
+
+		// Bail if token is empty or it doesn't match.
+		if ( empty( $hashed_token ) || ( wp_hash( $token ) !== $hashed_token ) ) {
 			return false;
 		}
 
