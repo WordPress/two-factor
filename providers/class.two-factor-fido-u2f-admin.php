@@ -161,7 +161,9 @@ class Two_Factor_FIDO_U2F_Admin {
 			<h3><?php esc_html_e( 'Security Keys', 'two-factor' ); ?></h3>
 
 			<?php if ( ! is_ssl() ) : ?>
-			<p><?php esc_html_e( 'U2F requires an HTTPS connection. You won\'t be able to add new security keys over HTTP.', 'two-factor' ); ?></p>
+			<p class="u2f-error-https">
+				<em><?php esc_html_e( 'U2F requires an HTTPS connection. You won\'t be able to add new security keys over HTTP.', 'two-factor' ); ?></em>
+			</p>
 			<?php endif; ?>
 
 			<div class="register-security-key">
