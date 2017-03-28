@@ -1,21 +1,28 @@
 /* global u2f, u2fL10n */
 ( function( $ ) {
 	var $button = $( '#register_security_key' );
+	var $status_notice = $( '#security-keys-section .security-key-status' )
+	var u2f_supported = false;
+
+	$status_notice.text( u2fL10n.text.u2f_not_supported );
+
+	u2f.getApiVersion( function() {
+		u2f_supported = true;
+
+		$status_notice.text( '' );
+	} );
 
 	$button.click( function() {
 		var registerRequest;
 
-		if ( $button.hasClass( 'clicked' ) ) {
+		if ( $( this ).prop( 'disabled' ) ) {
 			return false;
-		} else {
-			$button.addClass( 'clicked' );
 		}
 
 		window.console.log( 'sign', u2fL10n.register.request );
 
-		$button.text( u2fL10n.text.insert ).append( '<span class="spinner is-active" />' );
-
-		$( '.spinner.is-active', $button ).css( 'margin', '2.5px 0px 0px 5px' );
+		$( this ).prop( 'disabled', true );
+		$( '.register-security-key .spinner' ).addClass( 'is-active' );
 
 		registerRequest = {
 			version: u2fL10n.register.request.version,
@@ -23,10 +30,18 @@
 		};
 
 		u2f.register( u2fL10n.register.request.appId, [ registerRequest ], u2fL10n.register.sigs, function( data ) {
+			$( '.register-security-key .spinner' ).removeClass( 'is-active' );
+			$button.prop( 'disabled', false );
+
 			if ( data.errorCode ) {
 				window.console.log( 'Registration Failed', data.errorCode );
 
-				$button.text( u2fL10n.text.error );
+				if ( u2fL10n.text.error_codes[ data.errorCode ] ) {
+					$status_notice.text( u2fL10n.text.error_codes[ data.errorCode ] );
+				} else {
+					$status_notice.text( u2fL10n.text.error_codes[ u2fL10n.text.error ] );
+				}
+
 				return false;
 			}
 

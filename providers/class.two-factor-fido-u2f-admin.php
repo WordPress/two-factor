@@ -70,7 +70,7 @@ class Two_Factor_FIDO_U2F_Admin {
 			'fido-u2f-admin',
 			plugins_url( 'js/fido-u2f-admin.js', __FILE__ ),
 			array( 'jquery', 'fido-u2f-api' ),
-			'0.1.0-dev.1',
+			'0.1.0-dev.2',
 			true
 		);
 
@@ -159,17 +159,22 @@ class Two_Factor_FIDO_U2F_Admin {
 		?>
 		<div class="security-keys" id="security-keys-section">
 			<h3><?php esc_html_e( 'Security Keys', 'two-factor' ); ?></h3>
-			<p><?php esc_html_e( 'FIDO U2F is only supported in Chrome 41+.', 'two-factor' ); ?></p>
-			<p><a href="https://support.google.com/accounts/answer/6103523"><?php esc_html_e( 'You can find FIDO U2F Security Key devices for sale from here.', 'two-factor' ); ?></a></p>
+
 			<div class="register-security-key">
 				<input type="hidden" name="do_new_security_key" id="do_new_security_key" />
 				<input type="hidden" name="u2f_response" id="u2f_response" />
-				<button type="button" class="button button-secondary" id="register_security_key"><?php echo esc_html( _x( 'Add New', 'security key', 'two-factor' ) ); ?></button>
+				<button type="button" class="button button-secondary" id="register_security_key"><?php echo esc_html( _x( 'Register New Key', 'security key', 'two-factor' ) ); ?></button>
+				<span class="spinner"></span>
+				<span class="security-key-status"></span>
 			</div>
 
 			<?php if ( $new_key ) : ?>
-			<p class="new-security-key"><?php esc_html_e( 'Your new security key registered.', 'two-factor' ); ?></p>
+			<div class="notice notice-success is-dismissible">
+				<p class="new-security-key"><?php esc_html_e( 'Your new security key registered.', 'two-factor' ); ?></p>
+			</div>
 			<?php endif; ?>
+
+			<p><a href="https://support.google.com/accounts/answer/6103523"><?php esc_html_e( 'You can find FIDO U2F Security Key devices for sale from here.', 'two-factor' ); ?></a></p>
 
 			<?php
 				require( TWO_FACTOR_DIR . 'providers/class.two-factor-fido-u2f-admin-list-table.php' );
