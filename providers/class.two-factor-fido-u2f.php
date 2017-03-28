@@ -53,12 +53,8 @@ class Two_Factor_FIDO_U2F extends Two_Factor_Provider {
 			return;
 		}
 
-		// U2F requires the AppID to use HTTPS and a top-level domain
-		$home_url_parts = wp_parse_url( home_url() );
-		$app_id = sprintf( 'https://%s', $home_url_parts['host'] );
-
 		require_once( TWO_FACTOR_DIR . 'includes/Yubico/U2F.php' );
-		self::$u2f = new u2flib_server\U2F( $app_id );
+		self::$u2f = new u2flib_server\U2F( self::get_u2f_app_id() );
 
 		require_once( TWO_FACTOR_DIR . 'providers/class.two-factor-fido-u2f-admin.php' );
 		Two_Factor_FIDO_U2F_Admin::add_hooks();
@@ -83,6 +79,22 @@ class Two_Factor_FIDO_U2F extends Two_Factor_Provider {
 		add_action( 'two-factor-user-options-' . __CLASS__, array( $this, 'user_options' ) );
 
 		return parent::__construct();
+	}
+
+	/**
+	 * Return the U2F AppId. U2F requires the AppID to use HTTPS
+	 * and a top-level domain.
+	 *
+	 * @return string AppID URI
+	 */
+	public static function get_u2f_app_id() {
+		$url_parts = wp_parse_url( home_url() );
+
+		if ( ! empty( $url_parts['port'] ) ) {
+			return sprintf( 'https://%s:%d', $url_parts['host'], $url_parts['port'] );
+		} else {
+			return sprintf( 'https://%s', $url_parts['host'] );
+		}
 	}
 
 	/**
