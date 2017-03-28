@@ -63,7 +63,9 @@ class Two_Factor_FIDO_U2F_Admin {
 
 		wp_enqueue_style(
 			'fido-u2f-admin',
-			plugins_url( 'css/fido-u2f-admin.css', __FILE__ )
+			plugins_url( 'css/fido-u2f-admin.css', __FILE__ ),
+			null,
+			'0.1.0-dev.1'
 		);
 
 		wp_enqueue_script(
