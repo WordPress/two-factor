@@ -1,7 +1,7 @@
 /* global u2f, u2fL10n */
 ( function( $ ) {
 	var $button = $( '#register_security_key' );
-	var $status_notice = $( '#security-keys-section .security-key-status' )
+	var $status_notice = $( '#security-keys-section .security-key-status' );
 	var u2f_supported = false;
 
 	$status_notice.text( u2fL10n.text.u2f_not_supported );
