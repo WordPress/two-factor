@@ -23,6 +23,7 @@
 
 		$( this ).prop( 'disabled', true );
 		$( '.register-security-key .spinner' ).addClass( 'is-active' );
+		$status_notice.text( '' );
 
 		registerRequest = {
 			version: u2fL10n.register.request.version,
