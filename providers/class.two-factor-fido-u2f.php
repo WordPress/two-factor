@@ -191,11 +191,13 @@ class Two_Factor_FIDO_U2F extends Two_Factor_Provider {
 	 * @param WP_User $user WP_User object of the logged-in user.
 	 */
 	public function user_options( $user ) {
-		?>
-		<div>
-			<?php echo esc_html( __( 'You need to register security keys such as Yubikey.', 'two-factor' ) ); ?>
-		</div>
-		<?php
+		if ( ! $this->is_available_for_user( $user ) ) {
+			?>
+			<p>
+				<?php echo esc_html__( 'Configure your security keys in the "Security Keys" section below.', 'two-factor' ); ?>
+			</p>
+			<?php
+		}
 	}
 
 	/**
