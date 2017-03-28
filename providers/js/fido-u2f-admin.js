@@ -2,12 +2,12 @@
 ( function( $ ) {
 	var $button = $( '#register_security_key' );
 	var $statusNotice = $( '#security-keys-section .security-key-status' );
-	var u2f_supported = false;
+	var u2fSupported = false;
 
 	$statusNotice.text( u2fL10n.text.u2f_not_supported );
 
 	u2f.getApiVersion( function() {
-		u2f_supported = true;
+		u2fSupported = true;
 
 		$statusNotice.text( '' );
 	} );
