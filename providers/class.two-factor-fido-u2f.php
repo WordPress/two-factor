@@ -116,7 +116,7 @@ class Two_Factor_FIDO_U2F extends Two_Factor_Provider {
 		// U2F doesn't work without HTTPS
 		if ( ! is_ssl() ) {
 			?>
-			<p><?php esc_html_e( 'U2F requires an HTTPS connection.', 'two-factor' ); ?></p>
+			<p><?php esc_html_e( 'U2F requires an HTTPS connection. Please use an alternative 2nd factor method.', 'two-factor' ); ?></p>
 			<?php
 
 			return;
