@@ -2,15 +2,11 @@
 ( function( $ ) {
 	var $button = $( '#register_security_key' );
 	var $statusNotice = $( '#security-keys-section .security-key-status' );
-	var u2fSupported = false;
+	var u2fSupported = ( u2f && u2f.HasNativeApiSupport );
 
-	$statusNotice.text( u2fL10n.text.u2f_not_supported );
-
-	u2f.getApiVersion( function() {
-		u2fSupported = true;
-
-		$statusNotice.text( '' );
-	} );
+	if ( ! u2fSupported ) {
+		$statusNotice.text( u2fL10n.text.u2f_not_supported );
+	}
 
 	$button.click( function() {
 		var registerRequest;

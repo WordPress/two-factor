@@ -17,6 +17,12 @@
 var u2f = u2f || {};
 
 /**
+ * Check if browser supports U2F API before this wrapper was added.
+ * @type {int}
+ */
+var u2f.HasNativeApiSupport = ( u2f && u2f.register );
+
+/**
  * FIDO U2F Javascript API Version
  * @number
  */
