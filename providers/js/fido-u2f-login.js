@@ -1,5 +1,10 @@
 /* global u2f, u2fL10n */
 ( function( $ ) {
+	if ( ! window.u2fL10n ) {
+		window.console.log( 'u2fL10n is not defined' );
+		return;
+	}
+
 	window.console.log( 'sign', u2fL10n.request );
 
 	u2f.sign( u2fL10n.request[0].appId, u2fL10n.request[0].challenge, u2fL10n.request, function( data ) {

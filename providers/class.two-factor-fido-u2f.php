@@ -71,11 +71,10 @@ class Two_Factor_FIDO_U2F extends Two_Factor_Provider {
 			'fido-u2f-login',
 			plugins_url( 'js/fido-u2f-login.js', __FILE__ ),
 			array( 'jquery', 'fido-u2f-api' ),
-			'0.1.0-dev.1',
+			'0.1.0-dev.2',
 			true
 		);
 
-		add_action( 'login_enqueue_scripts',                array( $this, 'login_enqueue_assets' ) );
 		add_action( 'two-factor-user-options-' . __CLASS__, array( $this, 'user_options' ) );
 
 		return parent::__construct();
@@ -144,14 +143,20 @@ class Two_Factor_FIDO_U2F extends Two_Factor_Provider {
 			<?php
 			return null;
 		}
+
+		wp_localize_script(
+			'fido-u2f-login',
+			'u2fL10n',
+			array(
+				'request' => $data,
+			)
+		);
+
+		wp_enqueue_script( 'fido-u2f-login' );
+
 		?>
 		<p><?php esc_html_e( 'Now insert (and tap) your Security Key.', 'two-factor' ); ?></p>
 		<input type="hidden" name="u2f_response" id="u2f_response" />
-		<script>
-			var u2fL10n = <?php echo wp_json_encode( array(
-				'request' => $data,
-			) ); ?>;
-		</script>
 		<?php
 	}
 
