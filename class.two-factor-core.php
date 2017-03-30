@@ -591,7 +591,7 @@ class Two_Factor_Core {
 	public static function user_two_factor_options( $user ) {
 		wp_enqueue_style( 'user-edit-2fa', plugins_url( 'user-edit.css', __FILE__ ) );
 		$enabled_providers = array_keys( self::get_available_providers_for_user( $user->ID ) );
-		$primary_provider = get_user_meta( $user->ID, self::PROVIDER_USER_META_KEY, true );
+		$primary_provider = get_class( self::get_primary_provider_for_user( $user->ID ) );
 		wp_nonce_field( 'user_two_factor_options', '_nonce_user_two_factor_options', false );
 		?>
 		<input type="hidden" name="<?php echo esc_attr( self::ENABLED_PROVIDERS_USER_META_KEY ); ?>[]" value="<?php /* Dummy input so $_POST value is passed when no providers are enabled. */ ?>" />
