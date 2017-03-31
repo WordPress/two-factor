@@ -16,3 +16,7 @@ For more history, see: http://stephanis.info/2013/08/14/two-cents-on-two-factor/
 Active development is taking place on GitHub, at https://github.com/georgestephanis/two-factor/
 
 Join the #core-passwords channel on http://wordpress.slack.com/ -- if you don't have a Slack account, sign up at http://chat.wordpress.org/
+
+== Changelog ==
+
+See: [https://github.com/georgestephanis/two-factor/commits/master](https://github.com/georgestephanis/two-factor/commits/master)
