@@ -74,7 +74,7 @@ class Two_Factor_Totp extends Two_Factor_Provider {
 		$this->admin_notices();
 		?>
 		<br />
-		<?php if ( false && empty( $key ) ):
+		<?php if ( empty( $key ) ):
 			$key = $this->generate_key();
 			$site_name = get_bloginfo( 'name', 'display' );
 			?>
