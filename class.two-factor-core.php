@@ -590,9 +590,18 @@ class Two_Factor_Core {
 	 */
 	public static function user_two_factor_options( $user ) {
 		wp_enqueue_style( 'user-edit-2fa', plugins_url( 'user-edit.css', __FILE__ ) );
+
 		$enabled_providers = array_keys( self::get_available_providers_for_user( $user->ID ) );
-		$primary_provider = get_class( self::get_primary_provider_for_user( $user->ID ) );
+		$primary_provider = self::get_primary_provider_for_user( $user->ID );
+
+		if ( ! empty( $primary_provider ) && is_object( $primary_provider ) ) {
+			$primary_provider_key = get_class( $primary_provider );
+		} else {
+			$primary_provider_key = null;
+		}
+
 		wp_nonce_field( 'user_two_factor_options', '_nonce_user_two_factor_options', false );
+
 		?>
 		<input type="hidden" name="<?php echo esc_attr( self::ENABLED_PROVIDERS_USER_META_KEY ); ?>[]" value="<?php /* Dummy input so $_POST value is passed when no providers are enabled. */ ?>" />
 		<table class="form-table">
