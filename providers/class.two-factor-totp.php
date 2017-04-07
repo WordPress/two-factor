@@ -89,7 +89,7 @@ class Two_Factor_Totp extends Two_Factor_Provider {
 						<input type="tel" name="two-factor-totp-authcode" id="two-factor-totp-authcode" class="input" value="" size="20" pattern="[0-9]*" />
 					</p>
 			</div>
-		<?php else: ?>
+		<?php else : ?>
 			<p class="success"><?php esc_html_e( 'Enabled', 'two-factor' ); ?></p>
 		<?php endif; ?>
 		</div>
