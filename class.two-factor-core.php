@@ -657,20 +657,23 @@ class Two_Factor_Core {
 	public static function user_two_factor_options_update( $user_id ) {
 		if ( isset( $_POST['_nonce_user_two_factor_options'] ) ) {
 			check_admin_referer( 'user_two_factor_options', '_nonce_user_two_factor_options' );
-			$providers         = self::get_providers();
 
 			if ( ! isset( $_POST[ self::ENABLED_PROVIDERS_USER_META_KEY ] ) ||
 					! is_array( $_POST[ self::ENABLED_PROVIDERS_USER_META_KEY ] ) ) {
 				return;
 			}
 
+			$providers = self::get_providers();
+
 			$enabled_providers = $_POST[ self::ENABLED_PROVIDERS_USER_META_KEY ];
+
+			// Enable only the available providers.
 			$enabled_providers = array_intersect( $enabled_providers, array_keys( $providers ) );
 			update_user_meta( $user_id, self::ENABLED_PROVIDERS_USER_META_KEY, $enabled_providers );
 
-			// Whitelist the new values to only the available classes and empty.
+			// Primary provider must be enabled.
 			$new_provider = isset( $_POST[ self::PROVIDER_USER_META_KEY ] ) ? $_POST[ self::PROVIDER_USER_META_KEY ] : '';
-			if ( empty( $new_provider ) || array_key_exists( $new_provider, $providers ) ) {
+			if ( ! empty( $new_provider ) && in_array( $new_provider, $enabled_providers, true ) ) {
 				update_user_meta( $user_id, self::PROVIDER_USER_META_KEY, $new_provider );
 			}
 		}
