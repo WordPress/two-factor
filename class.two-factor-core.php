@@ -593,6 +593,8 @@ class Two_Factor_Core {
 		$enabled_providers = array_keys( self::get_available_providers_for_user( $user->ID ) );
 		$primary_provider = get_user_meta( $user->ID, self::PROVIDER_USER_META_KEY, true );
 		wp_nonce_field( 'user_two_factor_options', '_nonce_user_two_factor_options', false );
+		// Dummy hidden input in case no providers are enabled.
+		echo '<input type="hidden" name="' . esc_attr( self::ENABLED_PROVIDERS_USER_META_KEY ) . '[]" value="" />';
 		?>
 		<input type="hidden" name="<?php echo esc_attr( self::ENABLED_PROVIDERS_USER_META_KEY ); ?>[]" value="<?php /* Dummy input so $_POST value is passed when no providers are enabled. */ ?>" />
 		<table class="form-table">
