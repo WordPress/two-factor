@@ -53,12 +53,8 @@ class Two_Factor_FIDO_U2F extends Two_Factor_Provider {
 			return;
 		}
 
-		// U2F requires the AppID to use HTTPS and a top-level domain
-		$home_url_parts = wp_parse_url( home_url() );
-		$app_id = sprintf( 'https://%s', $home_url_parts['host'] );
-
 		require_once( TWO_FACTOR_DIR . 'includes/Yubico/U2F.php' );
-		self::$u2f = new u2flib_server\U2F( $app_id );
+		self::$u2f = new u2flib_server\U2F( self::get_u2f_app_id() );
 
 		require_once( TWO_FACTOR_DIR . 'providers/class.two-factor-fido-u2f-admin.php' );
 		Two_Factor_FIDO_U2F_Admin::add_hooks();
@@ -75,14 +71,29 @@ class Two_Factor_FIDO_U2F extends Two_Factor_Provider {
 			'fido-u2f-login',
 			plugins_url( 'js/fido-u2f-login.js', __FILE__ ),
 			array( 'jquery', 'fido-u2f-api' ),
-			'0.1.0-dev.1',
+			'0.1.0-dev.2',
 			true
 		);
 
-		add_action( 'login_enqueue_scripts',                array( $this, 'login_enqueue_assets' ) );
 		add_action( 'two-factor-user-options-' . __CLASS__, array( $this, 'user_options' ) );
 
 		return parent::__construct();
+	}
+
+	/**
+	 * Return the U2F AppId. U2F requires the AppID to use HTTPS
+	 * and a top-level domain.
+	 *
+	 * @return string AppID URI
+	 */
+	public static function get_u2f_app_id() {
+		$url_parts = wp_parse_url( home_url() );
+
+		if ( ! empty( $url_parts['port'] ) ) {
+			return sprintf( 'https://%s:%d', $url_parts['host'], $url_parts['port'] );
+		} else {
+			return sprintf( 'https://%s', $url_parts['host'] );
+		}
 	}
 
 	/**
@@ -91,7 +102,7 @@ class Two_Factor_FIDO_U2F extends Two_Factor_Provider {
 	 * @since 0.1-dev
 	 */
 	public function get_label() {
-		return _x( 'FIDO U2F', 'Provider Label', 'two-factor' );
+		return _x( 'FIDO Universal 2nd Factor (U2F)', 'Provider Label', 'two-factor' );
 	}
 
 	/**
@@ -100,10 +111,6 @@ class Two_Factor_FIDO_U2F extends Two_Factor_Provider {
 	 * @since 0.1-dev
 	 */
 	public function login_enqueue_assets() {
-		if ( ! self::is_browser_support() ) {
-			return;
-		}
-
 		wp_enqueue_script( 'fido-u2f-login' );
 	}
 
@@ -120,7 +127,7 @@ class Two_Factor_FIDO_U2F extends Two_Factor_Provider {
 		// U2F doesn't work without HTTPS
 		if ( ! is_ssl() ) {
 			?>
-			<p><?php esc_html_e( 'U2F requires an HTTPS connection.', 'two-factor' ); ?></p>
+			<p><?php esc_html_e( 'U2F requires an HTTPS connection. Please use an alternative 2nd factor method.', 'two-factor' ); ?></p>
 			<?php
 
 			return;
@@ -136,14 +143,20 @@ class Two_Factor_FIDO_U2F extends Two_Factor_Provider {
 			<?php
 			return null;
 		}
+
+		wp_localize_script(
+			'fido-u2f-login',
+			'u2fL10n',
+			array(
+				'request' => $data,
+			)
+		);
+
+		wp_enqueue_script( 'fido-u2f-login' );
+
 		?>
 		<p><?php esc_html_e( 'Now insert (and tap) your Security Key.', 'two-factor' ); ?></p>
 		<input type="hidden" name="u2f_response" id="u2f_response" />
-		<script>
-			var u2fL10n = <?php echo wp_json_encode( array(
-				'request' => $data,
-			) ); ?>;
-		</script>
 		<?php
 	}
 
@@ -184,7 +197,7 @@ class Two_Factor_FIDO_U2F extends Two_Factor_Provider {
 	 * @return boolean
 	 */
 	public function is_available_for_user( $user ) {
-		return self::is_browser_support() && (bool) self::get_security_keys( $user->ID );
+		return (bool) self::get_security_keys( $user->ID );
 	}
 
 	/**
@@ -196,9 +209,9 @@ class Two_Factor_FIDO_U2F extends Two_Factor_Provider {
 	 */
 	public function user_options( $user ) {
 		?>
-		<div>
-			<?php echo esc_html( __( 'You need to register security keys such as Yubikey.', 'two-factor' ) ); ?>
-		</div>
+		<p>
+			<?php esc_html_e( 'Requires an HTTPS connection. Configure your security keys in the "Security Keys" section below.', 'two-factor' ); ?>
+		</p>
 		<?php
 	}
 
@@ -347,19 +360,5 @@ class Two_Factor_FIDO_U2F extends Two_Factor_Provider {
 		}
 
 		return true;
-	}
-
-	/**
-	 * Detect browser support for FIDO U2F.
-	 *
-	 * @since 0.1-dev
-	 */
-	public static function is_browser_support() {
-		global $is_chrome;
-
-		require_once( ABSPATH . '/wp-admin/includes/dashboard.php' );
-		$response = wp_check_browser_version();
-
-		return $is_chrome && version_compare( $response['version'], '41' ) >= 0 && ! wp_is_mobile();
 	}
 }
