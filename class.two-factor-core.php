@@ -590,9 +590,18 @@ class Two_Factor_Core {
 	 */
 	public static function user_two_factor_options( $user ) {
 		wp_enqueue_style( 'user-edit-2fa', plugins_url( 'user-edit.css', __FILE__ ) );
+
 		$enabled_providers = array_keys( self::get_available_providers_for_user( $user->ID ) );
-		$primary_provider = get_user_meta( $user->ID, self::PROVIDER_USER_META_KEY, true );
+		$primary_provider = self::get_primary_provider_for_user( $user->ID );
+
+		if ( ! empty( $primary_provider ) && is_object( $primary_provider ) ) {
+			$primary_provider_key = get_class( $primary_provider );
+		} else {
+			$primary_provider_key = null;
+		}
+
 		wp_nonce_field( 'user_two_factor_options', '_nonce_user_two_factor_options', false );
+
 		?>
 		<input type="hidden" name="<?php echo esc_attr( self::ENABLED_PROVIDERS_USER_META_KEY ); ?>[]" value="<?php /* Dummy input so $_POST value is passed when no providers are enabled. */ ?>" />
 		<table class="form-table">
@@ -613,7 +622,7 @@ class Two_Factor_Core {
 						<?php foreach ( self::get_providers() as $class => $object ) : ?>
 							<tr>
 								<th scope="row"><input type="checkbox" name="<?php echo esc_attr( self::ENABLED_PROVIDERS_USER_META_KEY ); ?>[]" value="<?php echo esc_attr( $class ); ?>" <?php checked( in_array( $class, $enabled_providers ) ); ?> /></th>
-								<th scope="row"><input type="radio" name="<?php echo esc_attr( self::PROVIDER_USER_META_KEY ); ?>" value="<?php echo esc_attr( $class ); ?>" <?php checked( $class, $primary_provider ); ?> /></th>
+								<th scope="row"><input type="radio" name="<?php echo esc_attr( self::PROVIDER_USER_META_KEY ); ?>" value="<?php echo esc_attr( $class ); ?>" <?php checked( $class, $primary_provider_key ); ?> /></th>
 								<td>
 									<?php $object->print_label(); ?>
 									<?php do_action( 'two-factor-user-options-' . $class, $user ); ?>
@@ -648,20 +657,23 @@ class Two_Factor_Core {
 	public static function user_two_factor_options_update( $user_id ) {
 		if ( isset( $_POST['_nonce_user_two_factor_options'] ) ) {
 			check_admin_referer( 'user_two_factor_options', '_nonce_user_two_factor_options' );
-			$providers         = self::get_providers();
 
 			if ( ! isset( $_POST[ self::ENABLED_PROVIDERS_USER_META_KEY ] ) ||
 					! is_array( $_POST[ self::ENABLED_PROVIDERS_USER_META_KEY ] ) ) {
 				return;
 			}
 
+			$providers = self::get_providers();
+
 			$enabled_providers = $_POST[ self::ENABLED_PROVIDERS_USER_META_KEY ];
+
+			// Enable only the available providers.
 			$enabled_providers = array_intersect( $enabled_providers, array_keys( $providers ) );
 			update_user_meta( $user_id, self::ENABLED_PROVIDERS_USER_META_KEY, $enabled_providers );
 
-			// Whitelist the new values to only the available classes and empty.
+			// Primary provider must be enabled.
 			$new_provider = isset( $_POST[ self::PROVIDER_USER_META_KEY ] ) ? $_POST[ self::PROVIDER_USER_META_KEY ] : '';
-			if ( empty( $new_provider ) || array_key_exists( $new_provider, $providers ) ) {
+			if ( ! empty( $new_provider ) && in_array( $new_provider, $enabled_providers, true ) ) {
 				update_user_meta( $user_id, self::PROVIDER_USER_META_KEY, $new_provider );
 			}
 		}
