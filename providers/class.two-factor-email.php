@@ -74,9 +74,9 @@ class Two_Factor_Email extends Two_Factor_Provider {
 	public function validate_token( $user_id, $token ) {
 		$hashed_token = get_user_meta( $user_id, self::TOKEN_META_KEY, true );
 		if ( wp_hash( $token ) !== $hashed_token ) {
-			$this->delete_token( $user_id );
 			return false;
 		}
+		$this->delete_token( $user_id );
 		return true;
 	}
 
@@ -120,7 +120,10 @@ class Two_Factor_Email extends Two_Factor_Provider {
 			return;
 		}
 
-		$this->generate_and_email_token( $user );
+		if ( ! isset( $_GET['action'] ) || 'validate_2fa' !== $_GET['action'] ) {
+			$this->generate_and_email_token( $user );
+		}
+		
 		require_once( ABSPATH .  '/wp-admin/includes/template.php' );
 		?>
 		<p><?php esc_html_e( 'A verification code has been sent to the email address associated with your account.', 'two-factor' ); ?></p>
