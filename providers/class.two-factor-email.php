@@ -63,6 +63,22 @@ class Two_Factor_Email extends Two_Factor_Provider {
 	}
 
 	/**
+	 * Check if user has a valid token already.
+	 *
+	 * @param  int $user_id User ID.
+	 * @return boolean      If user has a valid email token.
+	 */
+	public function user_has_token( $user_id ) {
+		$hashed_token = get_user_meta( $user_id, self::TOKEN_META_KEY, true );
+
+		if ( ! empty( $hashed_token ) ) {
+			return true;
+		} else {
+			return false;
+		}
+	}
+
+	/**
 	 * Validate the user token.
 	 *
 	 * @since 0.1-dev
@@ -125,7 +141,10 @@ class Two_Factor_Email extends Two_Factor_Provider {
 			return;
 		}
 
-		$this->generate_and_email_token( $user );
+		if ( ! $this->user_has_token( $user->ID ) ) {
+			$this->generate_and_email_token( $user );
+		}
+
 		require_once( ABSPATH .  '/wp-admin/includes/template.php' );
 		?>
 		<p><?php esc_html_e( 'A verification code has been sent to the email address associated with your account.', 'two-factor' ); ?></p>
