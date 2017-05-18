@@ -25,6 +25,11 @@ before_script:
     - if [ ! -e "$DEV_LIB_PATH" ] && [ -L .travis.yml ]; then export DEV_LIB_PATH=$( dirname $( readlink .travis.yml ) ); fi
     - if [ ! -e "$DEV_LIB_PATH" ]; then git clone https://github.com/xwp/wp-dev-lib.git $DEV_LIB_PATH; fi
     - source $DEV_LIB_PATH/travis.install.sh
+    - export PATH="$HOME/.composer/vendor/bin:$PATH"
+    - |
+      if [[ ${TRAVIS_PHP_VERSION:0:2} == "7." ]]; then
+        composer global require "phpunit/phpunit=5.7.*"
+      fi
 
 script:
     - source $DEV_LIB_PATH/travis.script.sh
