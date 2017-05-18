@@ -72,7 +72,7 @@ class Two_Factor_FIDO_U2F_Admin {
 			'fido-u2f-admin',
 			plugins_url( 'js/fido-u2f-admin.js', __FILE__ ),
 			array( 'jquery', 'fido-u2f-api' ),
-			'0.1.0-dev.2',
+			'0.1.0-dev.3',
 			true
 		);
 
