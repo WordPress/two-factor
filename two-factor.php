@@ -4,24 +4,29 @@
  * Plugin URI: http://github.com/georgestephanis/two-factor/
  * Description: A prototype extensible core to enable Two-Factor Authentication.
  * Author: George Stephanis
- * Version: 0.1-dev
+ * Version: 0.1-dev-20161216
  * Author URI: http://stephanis.info
  * Network: True
  * Text Domain: two-factor
  */
 
-/**
- * Shortcut constant to the path of this file.
- */
-define( 'TWO_FACTOR_DIR', plugin_dir_path( __FILE__ ) );
+// Disable if in dev mode.
+if ( JETPACK_DEV !== true ) {
 
-/**
- * Include the base class here, so that other plugins can also extend it.
- */
-require_once( TWO_FACTOR_DIR . 'providers/class.two-factor-provider.php' );
-
-/**
- * Include the core that handles the common bits.
- */
-require_once( TWO_FACTOR_DIR . 'class.two-factor-core.php' );
-Two_Factor_Core::add_hooks();
+	/**
+	 * Shortcut constant to the path of this file.
+	 */
+	define( 'TWO_FACTOR_DIR', plugin_dir_path( __FILE__ ) );
+	
+	/**
+	 * Include the base class here, so that other plugins can also extend it.
+	 */
+	require_once( TWO_FACTOR_DIR . 'providers/class.two-factor-provider.php' );
+	
+	/**
+	 * Include the core that handles the common bits.
+	 */
+	require_once( TWO_FACTOR_DIR . 'class.two-factor-core.php' );
+	Two_Factor_Core::add_hooks();
+	
+}
