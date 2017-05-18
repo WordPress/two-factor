@@ -30,7 +30,6 @@ class Tests_Two_factor extends WP_UnitTestCase {
 
 		$this->assertTrue( class_exists( 'Two_Factor_Provider' ) );
 		$this->assertTrue( class_exists( 'Two_Factor_Core' ) );
-		$this->assertTrue( class_exists( 'Application_Passwords' ) );
 
 	}
 }

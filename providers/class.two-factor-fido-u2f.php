@@ -10,18 +10,21 @@ class Two_Factor_FIDO_U2F extends Two_Factor_Provider {
 
 	/**
 	 * U2F Library
+	 *
 	 * @var u2flib_server\U2F
 	 */
 	public static $u2f;
 
 	/**
 	 * The user meta registered key.
+	 *
 	 * @type string
 	 */
 	const REGISTERED_KEY_USER_META_KEY = '_two_factor_fido_u2f_registered_key';
 
 	/**
 	 * The user meta authenticate data.
+	 *
 	 * @type string
 	 */
 	const AUTH_DATA_USER_META_KEY = '_two_factor_fido_u2f_login_request';
@@ -51,14 +54,46 @@ class Two_Factor_FIDO_U2F extends Two_Factor_Provider {
 		}
 
 		require_once( TWO_FACTOR_DIR . 'includes/Yubico/U2F.php' );
-		self::$u2f = new u2flib_server\U2F( set_url_scheme( '//' . $_SERVER['HTTP_HOST'] ) );
+		self::$u2f = new u2flib_server\U2F( self::get_u2f_app_id() );
 
 		require_once( TWO_FACTOR_DIR . 'providers/class.two-factor-fido-u2f-admin.php' );
 		Two_Factor_FIDO_U2F_Admin::add_hooks();
 
-		add_action( 'login_enqueue_scripts',                array( $this, 'login_enqueue_assets' ) );
+		wp_register_script(
+			'fido-u2f-api',
+			plugins_url( 'includes/Google/u2f-api.js', dirname( __FILE__ ) ),
+			null,
+			'0.1.0-dev.1',
+			true
+		);
+
+		wp_register_script(
+			'fido-u2f-login',
+			plugins_url( 'js/fido-u2f-login.js', __FILE__ ),
+			array( 'jquery', 'fido-u2f-api' ),
+			'0.1.0-dev.2',
+			true
+		);
+
 		add_action( 'two-factor-user-options-' . __CLASS__, array( $this, 'user_options' ) );
+
 		return parent::__construct();
+	}
+
+	/**
+	 * Return the U2F AppId. U2F requires the AppID to use HTTPS
+	 * and a top-level domain.
+	 *
+	 * @return string AppID URI
+	 */
+	public static function get_u2f_app_id() {
+		$url_parts = wp_parse_url( home_url() );
+
+		if ( ! empty( $url_parts['port'] ) ) {
+			return sprintf( 'https://%s:%d', $url_parts['host'], $url_parts['port'] );
+		} else {
+			return sprintf( 'https://%s', $url_parts['host'] );
+		}
 	}
 
 	/**
@@ -67,7 +102,7 @@ class Two_Factor_FIDO_U2F extends Two_Factor_Provider {
 	 * @since 0.1-dev
 	 */
 	public function get_label() {
-		return _x( 'FIDO U2F', 'Provider Label' );
+		return _x( 'FIDO Universal 2nd Factor (U2F)', 'Provider Label', 'two-factor' );
 	}
 
 	/**
@@ -76,12 +111,7 @@ class Two_Factor_FIDO_U2F extends Two_Factor_Provider {
 	 * @since 0.1-dev
 	 */
 	public function login_enqueue_assets() {
-		if ( ! self::is_browser_support() ) {
-			return;
-		}
-
-		wp_enqueue_script( 'u2f-api',        plugins_url( 'includes/Google/u2f-api.js', dirname( __FILE__ ) ), null, null, true );
-		wp_enqueue_script( 'fido-u2f-login', plugins_url( 'js/fido-u2f-login.js', __FILE__ ), array( 'jquery', 'u2f-api' ), null, true );
+		wp_enqueue_script( 'fido-u2f-login' );
 	}
 
 	/**
@@ -94,24 +124,39 @@ class Two_Factor_FIDO_U2F extends Two_Factor_Provider {
 	public function authentication_page( $user ) {
 		require_once( ABSPATH . '/wp-admin/includes/template.php' );
 
+		// U2F doesn't work without HTTPS
+		if ( ! is_ssl() ) {
+			?>
+			<p><?php esc_html_e( 'U2F requires an HTTPS connection. Please use an alternative 2nd factor method.', 'two-factor' ); ?></p>
+			<?php
+
+			return;
+		}
+
 		try {
 			$keys = self::get_security_keys( $user->ID );
 			$data = self::$u2f->getAuthenticateData( $keys );
 			update_user_meta( $user->ID, self::AUTH_DATA_USER_META_KEY, $data );
 		} catch ( Exception $e ) {
 			?>
-			<p><?php esc_html_e( 'An error occurred while creating authentication data.' ); ?></p>
+			<p><?php esc_html_e( 'An error occurred while creating authentication data.', 'two-factor' ); ?></p>
 			<?php
 			return null;
 		}
-		?>
-		<p><?php esc_html_e( 'Now insert (and tap) your Security Key.' ); ?></p>
-		<input type="hidden" name="u2f_response" id="u2f_response" />
-		<script>
-			var u2fL10n = <?php echo wp_json_encode( array(
+
+		wp_localize_script(
+			'fido-u2f-login',
+			'u2fL10n',
+			array(
 				'request' => $data,
-			) ); ?>;
-		</script>
+			)
+		);
+
+		wp_enqueue_script( 'fido-u2f-login' );
+
+		?>
+		<p><?php esc_html_e( 'Now insert (and tap) your Security Key.', 'two-factor' ); ?></p>
+		<input type="hidden" name="u2f_response" id="u2f_response" />
 		<?php
 	}
 
@@ -152,7 +197,7 @@ class Two_Factor_FIDO_U2F extends Two_Factor_Provider {
 	 * @return boolean
 	 */
 	public function is_available_for_user( $user ) {
-		return self::is_browser_support() && (bool) self::get_security_keys( $user->ID );
+		return (bool) self::get_security_keys( $user->ID );
 	}
 
 	/**
@@ -164,9 +209,9 @@ class Two_Factor_FIDO_U2F extends Two_Factor_Provider {
 	 */
 	public function user_options( $user ) {
 		?>
-		<div>
-			<?php echo esc_html( __( 'You need to register security keys such as Yubikey.' ) ); ?>
-		</div>
+		<p>
+			<?php esc_html_e( 'Requires an HTTPS connection. Configure your security keys in the "Security Keys" section below.', 'two-factor' ); ?>
+		</p>
 		<?php
 	}
 
@@ -201,7 +246,7 @@ class Two_Factor_FIDO_U2F extends Two_Factor_Provider {
 			'counter'     => $register->counter,
 		);
 
-		$register['name']      = __( 'New Security Key' );
+		$register['name']      = __( 'New Security Key', 'two-factor' );
 		$register['added']     = current_time( 'timestamp' );
 		$register['last_used'] = $register['added'];
 
@@ -282,7 +327,7 @@ class Two_Factor_FIDO_U2F extends Two_Factor_Provider {
 	 * @param string $keyHandle Optional. Key handle.
 	 * @return bool True on success, false on failure.
 	 */
-	public function delete_security_key( $user_id, $keyHandle = null ) {
+	public static function delete_security_key( $user_id, $keyHandle = null ) {
 		global $wpdb;
 
 		if ( ! is_numeric( $user_id ) ) {
@@ -315,19 +360,5 @@ class Two_Factor_FIDO_U2F extends Two_Factor_Provider {
 		}
 
 		return true;
-	}
-
-	/**
-	 * Detect browser support for FIDO U2F.
-	 *
-	 * @since 0.1-dev
-	 */
-	public static function is_browser_support() {
-		global $is_chrome;
-
-		require_once( ABSPATH . '/wp-admin/includes/dashboard.php' );
-		$response = wp_check_browser_version();
-
-		return $is_chrome && version_compare( $response['version'], '41' ) >= 0 && ! wp_is_mobile();
 	}
 }

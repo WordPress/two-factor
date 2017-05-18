@@ -10,6 +10,7 @@ class Two_Factor_Email extends Two_Factor_Provider {
 
 	/**
 	 * The user meta token key.
+	 *
 	 * @type string
 	 */
 	const TOKEN_META_KEY = '_two_factor_email_token';
@@ -44,7 +45,7 @@ class Two_Factor_Email extends Two_Factor_Provider {
 	 * @since 0.1-dev
 	 */
 	public function get_label() {
-		return _x( 'Email', 'Provider Label' );
+		return _x( 'Email', 'Provider Label', 'two-factor' );
 	}
 
 	/**
@@ -62,6 +63,22 @@ class Two_Factor_Email extends Two_Factor_Provider {
 	}
 
 	/**
+	 * Check if user has a valid token already.
+	 *
+	 * @param  int $user_id User ID.
+	 * @return boolean      If user has a valid email token.
+	 */
+	public function user_has_token( $user_id ) {
+		$hashed_token = get_user_meta( $user_id, self::TOKEN_META_KEY, true );
+
+		if ( ! empty( $hashed_token ) ) {
+			return true;
+		} else {
+			return false;
+		}
+	}
+
+	/**
 	 * Validate the user token.
 	 *
 	 * @since 0.1-dev
@@ -72,10 +89,15 @@ class Two_Factor_Email extends Two_Factor_Provider {
 	 */
 	public function validate_token( $user_id, $token ) {
 		$hashed_token = get_user_meta( $user_id, self::TOKEN_META_KEY, true );
-		if ( wp_hash( $token ) !== $hashed_token ) {
-			$this->delete_token( $user_id );
+
+		// Bail if token is empty or it doesn't match.
+		if ( empty( $hashed_token ) || ( wp_hash( $token ) !== $hashed_token ) ) {
 			return false;
 		}
+
+		// Ensure that the token can't be re-used.
+		$this->delete_token( $user_id );
+
 		return true;
 	}
 
@@ -100,8 +122,10 @@ class Two_Factor_Email extends Two_Factor_Provider {
 	public function generate_and_email_token( $user ) {
 		$token = $this->generate_token( $user->ID );
 
-		$subject = wp_strip_all_tags( sprintf( __( 'Your login confirmation code for %s' ), get_bloginfo( 'name' ) ) );
-		$message = wp_strip_all_tags( sprintf( __( 'Enter %s to log in.' ), $token ) );
+		/* translators: %s: site name */
+		$subject = wp_strip_all_tags( sprintf( __( 'Your login confirmation code for %s', 'two-factor' ), get_bloginfo( 'name' ) ) );
+		/* translators: %s: token */
+		$message = wp_strip_all_tags( sprintf( __( 'Enter %s to log in.', 'two-factor' ), $token ) );
 		wp_mail( $user->user_email, $subject, $message );
 	}
 
@@ -117,12 +141,15 @@ class Two_Factor_Email extends Two_Factor_Provider {
 			return;
 		}
 
-		$this->generate_and_email_token( $user );
+		if ( ! $this->user_has_token( $user->ID ) ) {
+			$this->generate_and_email_token( $user );
+		}
+
 		require_once( ABSPATH .  '/wp-admin/includes/template.php' );
 		?>
-		<p><?php esc_html_e( 'A verification code has been sent to the email address associated with your account.' ); ?></p>
+		<p><?php esc_html_e( 'A verification code has been sent to the email address associated with your account.', 'two-factor' ); ?></p>
 		<p>
-			<label for="authcode"><?php esc_html_e( 'Verification Code:' ); ?></label>
+			<label for="authcode"><?php esc_html_e( 'Verification Code:', 'two-factor' ); ?></label>
 			<input type="tel" name="two-factor-email-code" id="authcode" class="input" value="" size="20" pattern="[0-9]*" />
 		</p>
 		<script type="text/javascript">
@@ -136,7 +163,7 @@ class Two_Factor_Email extends Two_Factor_Provider {
 			}, 200);
 		</script>
 		<?php
-		submit_button( __( 'Log In' ) );
+		submit_button( __( 'Log In', 'two-factor' ) );
 	}
 
 	/**
@@ -178,7 +205,13 @@ class Two_Factor_Email extends Two_Factor_Provider {
 		$email = $user->user_email;
 		?>
 		<div>
-			<?php echo esc_html( sprintf( __( 'Authentication codes will be sent to %1$s.' ), $email ) ); ?>
+			<?php
+			echo esc_html( sprintf(
+				/* translators: %s: email address */
+				__( 'Authentication codes will be sent to %s.', 'two-factor' ),
+				$email
+			) );
+			?>
 		</div>
 		<?php
 	}
