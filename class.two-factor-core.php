@@ -249,7 +249,7 @@ class Two_Factor_Core {
 
 		$login_nonce = self::create_login_nonce( $user->ID );
 		if ( ! $login_nonce ) {
-			wp_die( esc_html__( 'Could not save login nonce.' ) );
+			wp_die( esc_html__( 'Failed to create a login nonce.', 'two-factor' ) );
 		}
 
 		$redirect_to = isset( $_REQUEST['redirect_to'] ) ? $_REQUEST['redirect_to'] : $_SERVER['REQUEST_URI'];
