@@ -500,7 +500,7 @@ class Two_Factor_Core {
 
 			$login_nonce = self::create_login_nonce( $user->ID );
 			if ( ! $login_nonce ) {
-				return;
+				wp_die( esc_html__( 'Failed to create a login nonce.', 'two-factor' ) );
 			}
 
 			self::login_html( $user, $login_nonce['key'], $_REQUEST['redirect_to'], esc_html__( 'ERROR: Invalid verification code.' ), $provider );
