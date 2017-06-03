@@ -154,11 +154,11 @@ class Tests_Two_Factor_Email extends WP_UnitTestCase {
 		$user = new WP_User( $this->factory->user->create() );
 
 		$token = $this->provider->generate_token( $user->ID );
-		$_REQUEST['two-factor-email-code'] = $token;
+		$_POST['two-factor-email-code'] = $token;
 
 		$this->assertTrue( $this->provider->validate_authentication( $user ) );
 
-		unset( $_REQUEST['two-factor-email-code'] );
+		unset( $_POST['two-factor-email-code'] );
 	}
 
 	/**
