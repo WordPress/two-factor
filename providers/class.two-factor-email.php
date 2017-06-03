@@ -159,6 +159,10 @@ class Two_Factor_Email extends Two_Factor_Provider {
 			return;
 		}
 
+		if ( isset( $user->ID ) && ! $this->user_has_token( $user->ID ) ) {
+			$this->generate_and_email_token( $user );
+		}
+
 		require_once( ABSPATH .  '/wp-admin/includes/template.php' );
 		?>
 		<p><?php esc_html_e( 'A verification code has been sent to the email address associated with your account.', 'two-factor' ); ?></p>
@@ -181,6 +185,22 @@ class Two_Factor_Email extends Two_Factor_Provider {
 		</script>
 		<?php
 		submit_button( __( 'Log In', 'two-factor' ) );
+	}
+
+	/**
+	 * Send the email code, if missing or requested.
+	 *
+	 * @param  WP_USer $user WP_User object of the logged-in user.
+	 *
+	 * @return boolean       If the two factor should be authenticated.
+	 */
+	public function process_request( $user ) {
+		if ( isset( $user->ID ) && isset( $_POST['two-factor-email-code-resend'] ) ) {
+			$this->generate_and_email_token( $user );
+			return true;
+		}
+
+		return false;
 	}
 
 	/**

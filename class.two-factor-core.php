@@ -495,6 +495,18 @@ class Two_Factor_Core {
 			$provider = self::get_primary_provider_for_user( $user->ID );
 		}
 
+		// Allow providers to re-send codes, etc.
+		if ( $provider->process_request( $user ) ) {
+			$login_nonce = self::create_login_nonce( $user->ID );
+			if ( ! $login_nonce ) {
+				wp_die( esc_html__( 'Failed to create a login nonce.', 'two-factor' ) );
+			}
+
+			self::login_html( $user, $login_nonce['key'], $_POST['redirect_to'], '', $provider );
+			exit;
+		}
+
+		// Ask the provider to verify the second factor.
 		if ( true !== $provider->validate_authentication( $user ) ) {
 			do_action( 'wp_login_failed', $user->user_login );
 
