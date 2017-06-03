@@ -45,6 +45,18 @@ abstract class Two_Factor_Provider {
 	abstract function authentication_page( $user );
 
 	/**
+	 * Allow providers to process the two factor authentication request for
+	 * additional tasks such as re-sending tokens, etc.
+	 *
+	 * @param WP_User $user WP_User object of the logged-in user.
+	 *
+	 * @return boolean Return `true` to prevent further processing.
+	 */
+	public function process_request( $user ) {
+		return false;
+	}
+
+	/**
 	 * Validates the users input token.
 	 *
 	 * @since 0.1-dev
