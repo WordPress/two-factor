@@ -192,11 +192,11 @@ class Two_Factor_Email extends Two_Factor_Provider {
 	 * @return boolean
 	 */
 	public function validate_authentication( $user ) {
-		if ( ! isset( $user->ID ) || ! isset( $_REQUEST['two-factor-email-code'] ) ) {
+		if ( ! isset( $user->ID ) || ! isset( $_POST['two-factor-email-code'] ) ) {
 			return false;
 		}
 
-		return $this->validate_token( $user->ID, $_REQUEST['two-factor-email-code'] );
+		return $this->validate_token( $user->ID, $_POST['two-factor-email-code'] );
 	}
 
 	/**
