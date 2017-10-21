@@ -396,6 +396,11 @@ class Two_Factor_Core {
 			display: none;
 			padding-left: 1.5em;
 		}
+		/* Prevent Jetpack from hiding our controls, see https://github.com/Automattic/jetpack/issues/3747 */
+		.jetpack-sso-form-display #loginform > p,
+		.jetpack-sso-form-display #loginform > div {
+			display: block;
+		}
 		</style>
 
 		<?php
