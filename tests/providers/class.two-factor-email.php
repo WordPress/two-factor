@@ -177,7 +177,7 @@ class Tests_Two_Factor_Email extends WP_UnitTestCase {
 		$user_with_token = $this->factory->user->create_and_get();
 		$user_without_token = $this->factory->user->create_and_get();
 
-		$token = $this->provider->generate_token( $user_with_token->ID );
+		$token = wp_hash( $this->provider->generate_token( $user_with_token->ID ) );
 
 		$this->assertEquals( $token, $this->provider->get_user_token( $user_with_token->ID ), 'Failed to retrieve a valid user token.' );
 		$this->assertFalse( $this->provider->get_user_token( $user_without_token->ID ), 'Failed to recognize a missing token.' );
@@ -189,7 +189,7 @@ class Tests_Two_Factor_Email extends WP_UnitTestCase {
 	 */
 	function test_pre_process_authentication() {
 		$user = $this->factory->user->create_and_get();
-		$token_original = $this->provider->generate_token( $user->ID );
+		$token_original = wp_hash( $this->provider->generate_token( $user->ID ) );
 
 		// Check pre_process_authentication() will prevent any further authentication.
 		$_REQUEST['two-factor-email-code-resend'] = 1;
