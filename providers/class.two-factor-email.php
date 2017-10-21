@@ -16,6 +16,13 @@ class Two_Factor_Email extends Two_Factor_Provider {
 	const TOKEN_META_KEY = '_two_factor_email_token';
 
 	/**
+	 * Name of the input field used for code resend.
+	 *
+	 * @var string
+	 */
+	const INPUT_NAME_RESEND_CODE = 'two-factor-email-code-resend';
+
+	/**
 	 * Ensures only one instance of this class exists in memory at any one time.
 	 *
 	 * @since 0.1-dev
@@ -171,7 +178,7 @@ class Two_Factor_Email extends Two_Factor_Provider {
 			<input type="tel" name="two-factor-email-code" id="authcode" class="input" value="" size="20" pattern="[0-9]*" />
 		</p>
 		<p class="two-factor-email-resend">
-			<input type="submit" class="button" name="two-factor-email-code-resend" value="<?php esc_attr_e( 'Resend Code', 'two-factor' ); ?>" />
+			<input type="submit" class="button" name="<?php echo esc_attr( self::INPUT_NAME_RESEND_CODE ); ?>" value="<?php esc_attr_e( 'Resend Code', 'two-factor' ); ?>" />
 		</p>
 		<script type="text/javascript">
 			setTimeout( function(){
@@ -195,7 +202,7 @@ class Two_Factor_Email extends Two_Factor_Provider {
 	 * @return boolean
 	 */
 	public function pre_process_authentication( $user ) {
-		if ( isset( $user->ID ) && isset( $_REQUEST['two-factor-email-code-resend'] ) ) {
+		if ( isset( $user->ID ) && isset( $_REQUEST[ self::INPUT_NAME_RESEND_CODE ] ) ) {
 			$this->generate_and_email_token( $user );
 			return true;
 		}
