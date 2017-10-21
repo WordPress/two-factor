@@ -500,7 +500,7 @@ class Two_Factor_Core {
 			$provider = self::get_primary_provider_for_user( $user->ID );
 		}
 
-		// Allow providers to re-send codes, etc.
+		// Allow the provider to re-send codes, etc.
 		if ( true === $provider->pre_process_authentication( $user ) ) {
 			$login_nonce = self::create_login_nonce( $user->ID );
 			if ( ! $login_nonce ) {
