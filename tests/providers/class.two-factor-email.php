@@ -192,9 +192,9 @@ class Tests_Two_Factor_Email extends WP_UnitTestCase {
 		$token_original = wp_hash( $this->provider->generate_token( $user->ID ) );
 
 		// Check pre_process_authentication() will prevent any further authentication.
-		$_REQUEST[ $this->provider::INPUT_NAME_RESEND_CODE ] = 1;
+		$_REQUEST[ Two_Factor_Email::INPUT_NAME_RESEND_CODE ] = 1;
 		$this->assertTrue( $this->provider->pre_process_authentication( $user ), 'Failed to recognize a code resend request.' );
-		unset( $_REQUEST[ $this->provider::INPUT_NAME_RESEND_CODE ] );
+		unset( $_REQUEST[ Two_Factor_Email::INPUT_NAME_RESEND_CODE ] );
 
 		// Verify that a new token has been generated.
 		$token_new = $this->provider->get_user_token( $user->ID );
