@@ -169,4 +169,18 @@ class Tests_Two_Factor_Email extends WP_UnitTestCase {
 		$this->assertTrue( $this->provider->is_available_for_user( false ) );
 	}
 
+	/**
+	 * Verify that user tokens are checked correctly.
+	 * @covers Two_Factor_Email::get_user_token
+	 */
+	function test_get_user_token() {
+		$user_with_token = new WP_User( $this->factory->user->create() );
+		$token = $this->provider->generate_token( $user_with_token->ID );
+
+		$user_without_token = new WP_User( $this->factory->user->create() );
+
+		$this->assertEquals( $token, $this->provider->get_user_token( $user_with_token->ID ), 'Failed to retrieve a valid user token.' );
+		$this->assertFalse( $this->provider->get_user_token( $user_without_token->ID ), 'Failed to recognize a missing token.' );
+	}
+
 }
