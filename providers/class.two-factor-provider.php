@@ -45,14 +45,14 @@ abstract class Two_Factor_Provider {
 	abstract function authentication_page( $user );
 
 	/**
-	 * Allow providers to process the two factor authentication request for
-	 * additional tasks such as re-sending tokens, etc.
+	 * Allow providers to do extra processing before the authentication.
+	 * Return `true` to prevent the authentication and render the
+	 * authentication page.
 	 *
-	 * @param WP_User $user WP_User object of the logged-in user.
-	 *
-	 * @return boolean Return `true` to prevent further processing.
+	 * @param  WP_User $user WP_User object of the logged-in user.
+	 * @return boolean
 	 */
-	public function process_request( $user ) {
+	public function pre_process_authentication( $user ) {
 		return false;
 	}
 

@@ -188,13 +188,13 @@ class Two_Factor_Email extends Two_Factor_Provider {
 	}
 
 	/**
-	 * Send the email code, if missing or requested.
+	 * Send the email code if missing or requested. Stop the authentication
+	 * validation if a new token has been generated and sent.
 	 *
 	 * @param  WP_USer $user WP_User object of the logged-in user.
-	 *
-	 * @return boolean       If the two factor should be authenticated.
+	 * @return boolean
 	 */
-	public function process_request( $user ) {
+	public function pre_process_authentication( $user ) {
 		if ( isset( $user->ID ) && isset( $_REQUEST['two-factor-email-code-resend'] ) ) {
 			$this->generate_and_email_token( $user );
 			return true;

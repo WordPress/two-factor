@@ -501,7 +501,7 @@ class Two_Factor_Core {
 		}
 
 		// Allow providers to re-send codes, etc.
-		if ( $provider->process_request( $user ) ) {
+		if ( true === $provider->pre_process_authentication( $user ) ) {
 			$login_nonce = self::create_login_nonce( $user->ID );
 			if ( ! $login_nonce ) {
 				wp_die( esc_html__( 'Failed to create a login nonce.', 'two-factor' ) );
