@@ -159,7 +159,7 @@ class Two_Factor_Email extends Two_Factor_Provider {
 			return;
 		}
 
-		if ( isset( $user->ID ) && ! $this->user_has_token( $user->ID ) ) {
+		if ( ! $this->user_has_token( $user->ID ) ) {
 			$this->generate_and_email_token( $user );
 		}
 
