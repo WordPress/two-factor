@@ -90,9 +90,9 @@ class Two_Factor_Email extends Two_Factor_Provider {
 
 		if ( ! empty( $hashed_token ) && is_string( $hashed_token ) ) {
 			return $hashed_token;
-		} else {
-			return false;
 		}
+
+		return false;
 	}
 
 	/**
