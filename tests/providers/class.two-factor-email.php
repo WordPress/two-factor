@@ -169,4 +169,36 @@ class Tests_Two_Factor_Email extends WP_UnitTestCase {
 		$this->assertTrue( $this->provider->is_available_for_user( false ) );
 	}
 
+	/**
+	 * Verify that user tokens are checked correctly.
+	 * @covers Two_Factor_Email::get_user_token
+	 */
+	function test_get_user_token() {
+		$user_with_token = $this->factory->user->create_and_get();
+		$user_without_token = $this->factory->user->create_and_get();
+
+		$token = wp_hash( $this->provider->generate_token( $user_with_token->ID ) );
+
+		$this->assertEquals( $token, $this->provider->get_user_token( $user_with_token->ID ), 'Failed to retrieve a valid user token.' );
+		$this->assertFalse( $this->provider->get_user_token( $user_without_token->ID ), 'Failed to recognize a missing token.' );
+	}
+
+	/**
+	 * Check if an email code is re-sent.
+	 * @covers Two_Factor_Email::pre_process_authentication
+	 */
+	function test_pre_process_authentication() {
+		$user = $this->factory->user->create_and_get();
+		$token_original = wp_hash( $this->provider->generate_token( $user->ID ) );
+
+		// Check pre_process_authentication() will prevent any further authentication.
+		$_REQUEST[ Two_Factor_Email::INPUT_NAME_RESEND_CODE ] = 1;
+		$this->assertTrue( $this->provider->pre_process_authentication( $user ), 'Failed to recognize a code resend request.' );
+		unset( $_REQUEST[ Two_Factor_Email::INPUT_NAME_RESEND_CODE ] );
+
+		// Verify that a new token has been generated.
+		$token_new = $this->provider->get_user_token( $user->ID );
+		$this->assertNotEquals( $token_original, $token_new, 'Failed to generate a new code as requested.' );
+	}
+
 }

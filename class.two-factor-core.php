@@ -249,7 +249,7 @@ class Two_Factor_Core {
 
 		$login_nonce = self::create_login_nonce( $user->ID );
 		if ( ! $login_nonce ) {
-			wp_die( esc_html__( 'Could not save login nonce.' ) );
+			wp_die( esc_html__( 'Failed to create a login nonce.', 'two-factor' ) );
 		}
 
 		$redirect_to = isset( $_REQUEST['redirect_to'] ) ? $_REQUEST['redirect_to'] : $_SERVER['REQUEST_URI'];
@@ -500,15 +500,27 @@ class Two_Factor_Core {
 			$provider = self::get_primary_provider_for_user( $user->ID );
 		}
 
+		// Allow the provider to re-send codes, etc.
+		if ( true === $provider->pre_process_authentication( $user ) ) {
+			$login_nonce = self::create_login_nonce( $user->ID );
+			if ( ! $login_nonce ) {
+				wp_die( esc_html__( 'Failed to create a login nonce.', 'two-factor' ) );
+			}
+
+			self::login_html( $user, $login_nonce['key'], $_REQUEST['redirect_to'], '', $provider );
+			exit;
+		}
+
+		// Ask the provider to verify the second factor.
 		if ( true !== $provider->validate_authentication( $user ) ) {
 			do_action( 'wp_login_failed', $user->user_login );
 
 			$login_nonce = self::create_login_nonce( $user->ID );
 			if ( ! $login_nonce ) {
-				return;
+				wp_die( esc_html__( 'Failed to create a login nonce.', 'two-factor' ) );
 			}
 
-			self::login_html( $user, $login_nonce['key'], $_REQUEST['redirect_to'], esc_html__( 'ERROR: Invalid verification code.' ), $provider );
+			self::login_html( $user, $login_nonce['key'], $_REQUEST['redirect_to'], esc_html__( 'ERROR: Invalid verification code.', 'two-factor' ), $provider );
 			exit;
 		}
 

@@ -16,6 +16,13 @@ class Two_Factor_Email extends Two_Factor_Provider {
 	const TOKEN_META_KEY = '_two_factor_email_token';
 
 	/**
+	 * Name of the input field used for code resend.
+	 *
+	 * @var string
+	 */
+	const INPUT_NAME_RESEND_CODE = 'two-factor-email-code-resend';
+
+	/**
 	 * Ensures only one instance of this class exists in memory at any one time.
 	 *
 	 * @since 0.1-dev
@@ -69,13 +76,30 @@ class Two_Factor_Email extends Two_Factor_Provider {
 	 * @return boolean      If user has a valid email token.
 	 */
 	public function user_has_token( $user_id ) {
-		$hashed_token = get_user_meta( $user_id, self::TOKEN_META_KEY, true );
+		$hashed_token = $this->get_user_token( $user_id );
 
 		if ( ! empty( $hashed_token ) ) {
 			return true;
 		} else {
 			return false;
 		}
+	}
+
+	/**
+	 * Get the authentication token for the user.
+	 *
+	 * @param  int $user_id    User ID.
+	 *
+	 * @return string|boolean  User token or `false` if no token found.
+	 */
+	public function get_user_token( $user_id ) {
+		$hashed_token = get_user_meta( $user_id, self::TOKEN_META_KEY, true );
+
+		if ( ! empty( $hashed_token ) && is_string( $hashed_token ) ) {
+			return $hashed_token;
+		}
+
+		return false;
 	}
 
 	/**
@@ -88,7 +112,7 @@ class Two_Factor_Email extends Two_Factor_Provider {
 	 * @return boolean
 	 */
 	public function validate_token( $user_id, $token ) {
-		$hashed_token = get_user_meta( $user_id, self::TOKEN_META_KEY, true );
+		$hashed_token = $this->get_user_token( $user_id );
 
 		// Bail if token is empty or it doesn't match.
 		if ( empty( $hashed_token ) || ( wp_hash( $token ) !== $hashed_token ) ) {
@@ -126,7 +150,8 @@ class Two_Factor_Email extends Two_Factor_Provider {
 		$subject = wp_strip_all_tags( sprintf( __( 'Your login confirmation code for %s', 'two-factor' ), get_bloginfo( 'name' ) ) );
 		/* translators: %s: token */
 		$message = wp_strip_all_tags( sprintf( __( 'Enter %s to log in.', 'two-factor' ), $token ) );
-		wp_mail( $user->user_email, $subject, $message );
+
+		return wp_mail( $user->user_email, $subject, $message );
 	}
 
 	/**
@@ -152,6 +177,9 @@ class Two_Factor_Email extends Two_Factor_Provider {
 			<label for="authcode"><?php esc_html_e( 'Verification Code:', 'two-factor' ); ?></label>
 			<input type="tel" name="two-factor-email-code" id="authcode" class="input" value="" size="20" pattern="[0-9]*" />
 		</p>
+		<p class="two-factor-email-resend">
+			<input type="submit" class="button" name="<?php echo esc_attr( self::INPUT_NAME_RESEND_CODE ); ?>" value="<?php esc_attr_e( 'Resend Code', 'two-factor' ); ?>" />
+		</p>
 		<script type="text/javascript">
 			setTimeout( function(){
 				var d;
@@ -164,6 +192,22 @@ class Two_Factor_Email extends Two_Factor_Provider {
 		</script>
 		<?php
 		submit_button( __( 'Log In', 'two-factor' ) );
+	}
+
+	/**
+	 * Send the email code if missing or requested. Stop the authentication
+	 * validation if a new token has been generated and sent.
+	 *
+	 * @param  WP_USer $user WP_User object of the logged-in user.
+	 * @return boolean
+	 */
+	public function pre_process_authentication( $user ) {
+		if ( isset( $user->ID ) && isset( $_REQUEST[ self::INPUT_NAME_RESEND_CODE ] ) ) {
+			$this->generate_and_email_token( $user );
+			return true;
+		}
+
+		return false;
 	}
 
 	/**

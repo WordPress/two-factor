@@ -45,6 +45,18 @@ abstract class Two_Factor_Provider {
 	abstract function authentication_page( $user );
 
 	/**
+	 * Allow providers to do extra processing before the authentication.
+	 * Return `true` to prevent the authentication and render the
+	 * authentication page.
+	 *
+	 * @param  WP_User $user WP_User object of the logged-in user.
+	 * @return boolean
+	 */
+	public function pre_process_authentication( $user ) {
+		return false;
+	}
+
+	/**
 	 * Validates the users input token.
 	 *
 	 * @since 0.1-dev
