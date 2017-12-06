@@ -11,6 +11,9 @@ addons:
         packages:
             - libxml2-utils
 
+notifications:
+    email: false
+
 env:
     - WP_VERSION=trunk WP_MULTISITE=0
     - WP_VERSION=trunk WP_MULTISITE=1
