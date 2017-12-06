@@ -1,27 +1,35 @@
-sudo: false
-
-language:
-    - php
-    - node_js
+language: php
 
 php:
-    - 5.4
-    - 5.5
-    - 5.6
-    - 7.0
+  - 5.4
+  - 5.5
+  - 5.6
+  - 7.0
+
+addons:
+  apt:
+    packages:
+      - libxml2-utils
+
+cache:
+  directories:
+    - node_modules
+    - vendor
+
+notifications:
+  email: false
 
 env:
-    - WP_VERSION=trunk WP_MULTISITE=0
-    - WP_VERSION=trunk WP_MULTISITE=1
+  - WP_VERSION=trunk WP_MULTISITE=0
+  - WP_VERSION=trunk WP_MULTISITE=1
 
 before_script:
-    - export DEV_LIB_PATH=dev-lib
-    - if [ ! -e "$DEV_LIB_PATH" ] && [ -L .travis.yml ]; then export DEV_LIB_PATH=$( dirname $( readlink .travis.yml ) ); fi
-    - if [ ! -e "$DEV_LIB_PATH" ]; then git clone https://github.com/xwp/wp-dev-lib.git $DEV_LIB_PATH; fi
-    - source $DEV_LIB_PATH/travis.install.sh
+  - npm install
+  - export DEV_LIB_PATH=node_modules/wp-dev-lib
+  - source $DEV_LIB_PATH/travis.install.sh
 
 script:
-    - source $DEV_LIB_PATH/travis.script.sh
+  - source $DEV_LIB_PATH/travis.script.sh
 
 after_script:
-    - source $DEV_LIB_PATH/travis.after_script.sh
+  - source $DEV_LIB_PATH/travis.after_script.sh

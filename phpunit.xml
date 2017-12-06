@@ -1,5 +1,5 @@
 <phpunit
-	bootstrap="dev-lib/phpunit-plugin-bootstrap.php"
+	bootstrap="node_modules/wp-dev-lib/phpunit-plugin-bootstrap.php"
 	backupGlobals="false"
 	colors="true"
 	convertErrorsToExceptions="true"
@@ -12,8 +12,6 @@
 	<testsuites>
 		<testsuite>
 			<directory suffix=".php">tests</directory>
-			<exclude>tests/providers/class.two-factor-fido-u2f.php</exclude>
-			<file phpVersion="5.3.0" phpVersionOperator=">=">tests/providers/class.two-factor-fido-u2f.php</file>
 		</testsuite>
 	</testsuites>
 	<filter>
@@ -26,4 +24,7 @@
 			</exclude>
 		</whitelist>
 	</filter>
+	<logging>
+		<log type="coverage-clover" target="build/logs/clover.xml" />
+	</logging>
 </phpunit>
