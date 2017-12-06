@@ -1,5 +1,0 @@
-{
-	"require-dev": {
-		"satooshi/php-coveralls": "~1.0.0"
-	}
-}

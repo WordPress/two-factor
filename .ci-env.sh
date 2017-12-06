@@ -1,1 +1,0 @@
-PATH_INCLUDES='*.* providers tests'
