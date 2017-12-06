@@ -11,6 +11,11 @@ addons:
     packages:
       - libxml2-utils
 
+cache:
+  directories:
+    - node_modules
+    - vendor
+
 notifications:
   email: false
 
