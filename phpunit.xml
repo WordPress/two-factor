@@ -1,5 +1,5 @@
 <phpunit
-	bootstrap="nodes_modules/wp-dev-lib/phpunit-plugin-bootstrap.php"
+	bootstrap="node_modules/wp-dev-lib/phpunit-plugin-bootstrap.php"
 	backupGlobals="false"
 	colors="true"
 	convertErrorsToExceptions="true"
