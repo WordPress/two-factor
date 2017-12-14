@@ -229,6 +229,8 @@ class Two_Factor_Core {
 			return;
 		}
 
+		// Clear the regular username/password cookie because we need to
+		// validate the second factor now.
 		wp_clear_auth_cookie();
 
 		self::show_two_factor_login( $user );
