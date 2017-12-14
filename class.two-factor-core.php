@@ -276,7 +276,7 @@ class Two_Factor_Core {
 
 		$nonce = $_GET['wp-auth-nonce'];
 		if ( true !== self::verify_login_nonce( $user->ID, $nonce ) ) {
-			wp_safe_redirect( get_bloginfo( 'url' ) );
+			wp_safe_redirect( site_url() );
 			exit;
 		}
 
