@@ -23,6 +23,13 @@ class Two_Factor_Email extends Two_Factor_Provider {
 	const INPUT_NAME_RESEND_CODE = 'two-factor-email-code-resend';
 
 	/**
+	 * Name of the email code input field on the login page.
+	 *
+	 * @var string
+	 */
+	const INPUT_NAME_CODE = 'two-factor-email-code';
+
+	/**
 	 * Ensures only one instance of this class exists in memory at any one time.
 	 *
 	 * @since 0.1-dev
@@ -175,7 +182,7 @@ class Two_Factor_Email extends Two_Factor_Provider {
 		<p><?php esc_html_e( 'A verification code has been sent to the email address associated with your account.', 'two-factor' ); ?></p>
 		<p>
 			<label for="authcode"><?php esc_html_e( 'Verification Code:', 'two-factor' ); ?></label>
-			<input type="tel" name="two-factor-email-code" id="authcode" class="input" value="" size="20" pattern="[0-9]*" />
+			<input type="tel" name="<?php echo esc_attr( self::INPUT_NAME_CODE ); ?>" id="authcode" class="input" value="" size="20" pattern="[0-9]*" />
 		</p>
 		<p class="two-factor-email-resend">
 			<input type="submit" class="button" name="<?php echo esc_attr( self::INPUT_NAME_RESEND_CODE ); ?>" value="<?php esc_attr_e( 'Resend Code', 'two-factor' ); ?>" />
