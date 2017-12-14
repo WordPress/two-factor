@@ -258,7 +258,7 @@ class Two_Factor_Core {
 	}
 
 	/**
-	 * Add short description. @todo
+	 * Render the two-factor login form for another backup provider.
 	 *
 	 * @since 0.1-dev
 	 */
