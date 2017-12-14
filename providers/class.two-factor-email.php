@@ -151,14 +151,27 @@ class Two_Factor_Email extends Two_Factor_Provider {
 	 * @param WP_User $user WP_User object of the logged-in user.
 	 */
 	public function generate_and_email_token( $user ) {
+		$message = array();
 		$token = $this->generate_token( $user->ID );
+
+		// Build a link that replicates the form produced by login_html().
+		$login_link = add_query_arg( array(
+			'provider' => __CLASS__,
+			'action' => 'validate_2fa',
+			self::INPUT_NAME_CODE => $token,
+			'wp-auth-id' => $user->ID,
+			'wp-auth-nonce' => Two_Factor_Core::get_login_nonce( $user->ID ),
+		), wp_login_url() );
 
 		/* translators: %s: site name */
 		$subject = wp_strip_all_tags( sprintf( __( 'Your login confirmation code for %s', 'two-factor' ), get_bloginfo( 'name' ) ) );
-		/* translators: %s: token */
-		$message = wp_strip_all_tags( sprintf( __( 'Enter %s to log in.', 'two-factor' ), $token ) );
 
-		return wp_mail( $user->user_email, $subject, $message );
+		/* translators: %s: token */
+		$message[] = wp_strip_all_tags( sprintf( __( 'Enter %s to log in or use this link:', 'two-factor' ), $token ) );
+
+		$message[] = $login_link;
+
+		return wp_mail( $user->user_email, $subject, implode( "\n", $message ) );
 	}
 
 	/**
