@@ -436,6 +436,27 @@ class Two_Factor_Core {
 	}
 
 	/**
+	 * Get the current login nonce for the user or create a new one.
+	 *
+	 * @param  int $user_id User ID.
+	 *
+	 * @return string
+	 */
+	public static function get_login_nonce_key( $user_id ) {
+		$login_nonce = get_user_meta( $user_id, self::USER_META_NONCE_KEY, true );
+
+		if ( ! empty( $login_nonce['key'] ) ) {
+			return $login_nonce['key'];
+		} else {
+			// Create a new nounce for the user.
+			$login_nonce = self::create_login_nonce( $user_id );
+			return $login_nonce['key'];
+		}
+
+		return '';
+	}
+
+	/**
 	 * Delete the login nonce.
 	 *
 	 * @since 0.1-dev
