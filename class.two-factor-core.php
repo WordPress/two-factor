@@ -88,6 +88,7 @@ class Two_Factor_Core {
 		if ( isset( $providers['Two_Factor_FIDO_U2F'] ) && version_compare( PHP_VERSION, '5.3.0', '<' ) ) {
 			unset( $providers['Two_Factor_FIDO_U2F'] );
 			trigger_error( sprintf( // WPCS: XSS OK.
+				/* translators: %s: version number */
 				__( 'FIDO U2F is not available because you are using PHP %s. (Requires 5.3 or greater)', 'two-factor' ),
 				PHP_VERSION
 			) );
@@ -379,7 +380,7 @@ class Two_Factor_Core {
 		<?php endif; ?>
 
 		<p id="backtoblog">
-			<a href="<?php echo esc_url( home_url( '/' ) ); ?>" title="<?php esc_attr_e( 'Are you lost?', 'two-factor' ); ?>"><?php echo esc_html( sprintf( __( '&larr; Back to %s', 'two-factor' ), get_bloginfo( 'title', 'display' ) ) ); ?></a>
+			<a href="<?php echo esc_url( home_url( '/' ) ); ?>" title="<?php esc_attr_e( 'Are you lost?', 'two-factor' ); ?>"><?php /* translators: %s: site name */ echo esc_html( sprintf( __( '&larr; Back to %s', 'two-factor' ), get_bloginfo( 'title', 'display' ) ) ); ?></a>
 		</p>
 
 		<style>
@@ -542,7 +543,7 @@ class Two_Factor_Core {
 			if ( $customize_login ) {
 				wp_enqueue_script( 'customize-base' );
 			}
-			$message = '<p class="message">' . __( 'You have logged in successfully.', 'two-factor' ) . '</p>';
+			$message       = '<p class="message">' . __( 'You have logged in successfully.', 'two-factor' ) . '</p>';
 			$interim_login = 'success'; // WPCS: override ok.
 			login_header( '', $message ); ?>
 			</div>
