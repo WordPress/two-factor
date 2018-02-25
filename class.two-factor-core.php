@@ -73,15 +73,6 @@ class Two_Factor_Core {
 			'Two_Factor_Dummy'        => TWO_FACTOR_DIR . 'providers/class.two-factor-dummy.php',
 		);
 
-		// FIDO U2F is PHP 5.3+ only.
-		if ( version_compare( PHP_VERSION, '5.3.0', '<' ) ) {
-			unset( $providers['Two_Factor_FIDO_U2F'] );
-			trigger_error( sprintf( // WPCS: XSS OK.
-				__( 'FIDO U2F is not available because you are using PHP %s. (Requires 5.3 or greater)' ),
-				PHP_VERSION
-			) );
-		}
-
 		/**
 		 * Filter the supplied providers.
 		 *
@@ -92,6 +83,15 @@ class Two_Factor_Core {
 		 *                         the value is the path to the file containing the class.
 		 */
 		$providers = apply_filters( 'two_factor_providers', $providers );
+
+		// FIDO U2F is PHP 5.3+ only.
+		if ( isset( $providers['Two_Factor_FIDO_U2F'] ) && version_compare( PHP_VERSION, '5.3.0', '<' ) ) {
+			unset( $providers['Two_Factor_FIDO_U2F'] );
+			trigger_error( sprintf( // WPCS: XSS OK.
+				__( 'FIDO U2F is not available because you are using PHP %s. (Requires 5.3 or greater)' ),
+				PHP_VERSION
+			) );
+		}
 
 		/**
 		 * For each filtered provider,
