@@ -8,6 +8,7 @@
  * Author URI: https://stephanis.info
  * Network: True
  * Text Domain: two-factor
+ * Domain Path: /languages
  */
 
 /**
