@@ -52,6 +52,8 @@ class Two_Factor_Core {
 	 * Loads the plugin's text domain.
 	 *
 	 * Sites on WordPress 4.6+ benefit from just-in-time loading of translations.
+	 *
+	 * Added path to language directory.
 	 */
 	public static function load_textdomain() {
 		load_plugin_textdomain( 'two-factor', false, dirname( plugin_basename( __FILE__ ) ) . '/' . 'languages' );
