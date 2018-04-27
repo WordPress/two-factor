@@ -30,6 +30,20 @@ class Two_Factor_Core {
 	const USER_META_NONCE_KEY    = '_two_factor_nonce';
 
 	/**
+	 * Language text domain.
+	 *
+	 * @type string
+	 */
+	const TEXT_DOMAIN = 'two-factor';
+
+	/**
+	 * Language directory.
+	 *
+	 * @type string
+	 */
+	const PLUGIN_LANGUAGE_DIR = '/languages';
+
+	/**
 	 * Set up filters and actions.
 	 *
 	 * @since 0.1-dev
@@ -54,7 +68,7 @@ class Two_Factor_Core {
 	 * Sites on WordPress 4.6+ benefit from just-in-time loading of translations.
 	 */
 	public static function load_textdomain() {
-		load_plugin_textdomain( 'two-factor' );
+		load_plugin_textdomain( self::TEXT_DOMAIN , false, dirname( plugin_basename( __FILE__ ) ) . self::PLUGIN_LANGUAGE_DIR );
 	}
 
 	/**
