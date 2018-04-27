@@ -1,0 +1,373 @@
+msgid ""
+msgstr ""
+"Project-Id-Version: Two Factor\n"
+"Report-Msgid-Bugs-To: https://wordpress.org/plugins/two-factor\n"
+"POT-Creation-Date: 2018-04-26 19:47+0900\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"PO-Revision-Date: 2018-04-27 13:04+0900\n"
+"Language-Team: \n"
+"X-Generator: Poedit 2.0.7\n"
+"Last-Translator: \n"
+"Plural-Forms: nplurals=1; plural=0;\n"
+"Language: zh_HK\n"
+"X-Poedit-SourceCharset: UTF-8\n"
+
+#: class.two-factor-core.php:105
+#, php-format
+msgid ""
+"FIDO U2F is not available because you are using PHP %s. (Requires 5.3 or "
+"greater)"
+msgstr ""
+
+#: class.two-factor-core.php:266 class.two-factor-core.php:521
+#: class.two-factor-core.php:534
+msgid "Failed to create a login nonce."
+msgstr ""
+
+#: class.two-factor-core.php:299 class.two-factor-core.php:511
+msgid "Cheatin&#8217; uh?"
+msgstr ""
+
+#: class.two-factor-core.php:375
+#, php-format
+msgid "Or, use your backup method: %s &rarr;"
+msgstr ""
+
+#: class.two-factor-core.php:379
+msgid "Or, use a backup method…"
+msgstr ""
+
+#: class.two-factor-core.php:396
+msgid "Are you lost?"
+msgstr ""
+
+#: class.two-factor-core.php:396
+#, php-format
+msgid "&larr; Back to %s"
+msgstr ""
+
+#: class.two-factor-core.php:537
+msgid "ERROR: Invalid verification code."
+msgstr ""
+
+#: class.two-factor-core.php:559
+msgid "You have logged in successfully."
+msgstr ""
+
+#: class.two-factor-core.php:586
+msgid "Two-Factor"
+msgstr ""
+
+#: class.two-factor-core.php:605
+msgid "Disabled"
+msgstr ""
+
+#: class.two-factor-core.php:641
+msgid "Two-Factor Options"
+msgstr ""
+
+#: class.two-factor-core.php:647 providers/class.two-factor-totp.php:93
+msgid "Enabled"
+msgstr ""
+
+#: class.two-factor-core.php:648
+msgid "Primary"
+msgstr ""
+
+#: class.two-factor-core.php:649
+#: providers/class.two-factor-fido-u2f-admin-list-table.php:26
+#: providers/class.two-factor-fido-u2f-admin-list-table.php:120
+msgid "Name"
+msgstr ""
+
+#: includes/function.login-header.php:80
+msgid "https://wordpress.org/"
+msgstr ""
+
+#: includes/function.login-header.php:81
+msgid "Powered by WordPress"
+msgstr ""
+
+#: providers/class.two-factor-backup-codes.php:75
+#, php-format
+msgid ""
+"Two-Factor: You are out of backup codes and need to <a href=\"%s"
+"\">regenerate!</a>"
+msgstr ""
+
+#: providers/class.two-factor-backup-codes.php:91
+msgctxt "Provider Label"
+msgid "Backup Verification Codes (Single Use)"
+msgstr ""
+
+#: providers/class.two-factor-backup-codes.php:123
+msgid "Generate Verification Codes"
+msgstr ""
+
+#. translators: %s: count
+#: providers/class.two-factor-backup-codes.php:128
+#: providers/class.two-factor-backup-codes.php:234
+#, php-format
+msgid "%s unused code remaining."
+msgid_plural "%s unused codes remaining."
+msgstr[0] ""
+
+#: providers/class.two-factor-backup-codes.php:135
+msgid ""
+"Write these down!  Once you navigate away from this page, you will not be "
+"able to view these codes again."
+msgstr ""
+
+#: providers/class.two-factor-backup-codes.php:137
+msgid "Download Codes"
+msgstr ""
+
+#. translators: %s: the site's domain
+#: providers/class.two-factor-backup-codes.php:236
+#, php-format
+msgid "Two-Factor Backup Codes for %s"
+msgstr ""
+
+#: providers/class.two-factor-backup-codes.php:267
+msgid "Enter a backup verification code."
+msgstr ""
+
+#: providers/class.two-factor-backup-codes.php:269
+#: providers/class.two-factor-email.php:177
+msgid "Verification Code:"
+msgstr ""
+
+#: providers/class.two-factor-backup-codes.php:273
+msgid "Submit"
+msgstr ""
+
+#: providers/class.two-factor-dummy.php:41
+msgctxt "Provider Label"
+msgid "Dummy Method"
+msgstr ""
+
+#: providers/class.two-factor-dummy.php:54
+msgid "Are you really you?"
+msgstr ""
+
+#: providers/class.two-factor-dummy.php:56
+msgid "Yup."
+msgstr ""
+
+#: providers/class.two-factor-email.php:55
+msgctxt "Provider Label"
+msgid "Email"
+msgstr ""
+
+#. translators: %s: site name
+#: providers/class.two-factor-email.php:150
+#, php-format
+msgid "Your login confirmation code for %s"
+msgstr ""
+
+#. translators: %s: token
+#: providers/class.two-factor-email.php:152
+#, php-format
+msgid "Enter %s to log in."
+msgstr ""
+
+#: providers/class.two-factor-email.php:175
+msgid ""
+"A verification code has been sent to the email address associated with your "
+"account."
+msgstr ""
+
+#: providers/class.two-factor-email.php:179
+msgid "Log In"
+msgstr ""
+
+#: providers/class.two-factor-email.php:182
+msgid "Resend Code"
+msgstr ""
+
+#. translators: %s: email address
+#: providers/class.two-factor-email.php:255
+#, php-format
+msgid "Authentication codes will be sent to %s."
+msgstr ""
+
+#: providers/class.two-factor-fido-u2f-admin-list-table.php:27
+msgid "Added"
+msgstr ""
+
+#: providers/class.two-factor-fido-u2f-admin-list-table.php:28
+msgid "Last Used"
+msgstr ""
+
+#: providers/class.two-factor-fido-u2f-admin-list-table.php:117
+msgid "Quick Edit"
+msgstr ""
+
+#: providers/class.two-factor-fido-u2f-admin-list-table.php:138
+msgid "Cancel"
+msgstr ""
+
+#: providers/class.two-factor-fido-u2f-admin-list-table.php:139
+msgid "Update"
+msgstr ""
+
+#: providers/class.two-factor-fido-u2f-admin.php:89
+#: providers/class.two-factor-fido-u2f.php:158
+msgid "Now insert (and tap) your Security Key."
+msgstr ""
+
+#: providers/class.two-factor-fido-u2f-admin.php:90
+msgid "U2F request failed."
+msgstr ""
+
+#: providers/class.two-factor-fido-u2f-admin.php:93
+msgid "Request OK."
+msgstr ""
+
+#: providers/class.two-factor-fido-u2f-admin.php:94
+msgid "Other U2F error."
+msgstr ""
+
+#: providers/class.two-factor-fido-u2f-admin.php:95
+msgid "Bad U2F request."
+msgstr ""
+
+#: providers/class.two-factor-fido-u2f-admin.php:96
+msgid "Unsupported U2F configuration."
+msgstr ""
+
+#: providers/class.two-factor-fido-u2f-admin.php:97
+msgid "U2F device ineligible."
+msgstr ""
+
+#: providers/class.two-factor-fido-u2f-admin.php:98
+msgid "U2F request timeout reached."
+msgstr ""
+
+#: providers/class.two-factor-fido-u2f-admin.php:100
+msgid "FIDO U2F is not supported in your web browser. Try using Google Chrome."
+msgstr ""
+
+#: providers/class.two-factor-fido-u2f-admin.php:126
+msgid "Error while saving the changes."
+msgstr ""
+
+#: providers/class.two-factor-fido-u2f-admin.php:163
+msgid "Security Keys"
+msgstr ""
+
+#: providers/class.two-factor-fido-u2f-admin.php:167
+msgid ""
+"U2F requires an HTTPS connection. You won't be able to add new security keys "
+"over HTTP."
+msgstr ""
+
+#: providers/class.two-factor-fido-u2f-admin.php:174
+msgctxt "security key"
+msgid "Register New Key"
+msgstr ""
+
+#: providers/class.two-factor-fido-u2f-admin.php:181
+msgid "Your new security key registered."
+msgstr ""
+
+#: providers/class.two-factor-fido-u2f-admin.php:185
+msgid "You can find FIDO U2F Security Key devices for sale from here."
+msgstr ""
+
+#: providers/class.two-factor-fido-u2f-admin.php:268
+msgid "Rename"
+msgstr ""
+
+#: providers/class.two-factor-fido-u2f-admin.php:285
+msgid "Delete"
+msgstr ""
+
+#: providers/class.two-factor-fido-u2f-admin.php:323
+msgid "Item not updated."
+msgstr ""
+
+#: providers/class.two-factor-fido-u2f.php:105
+msgctxt "Provider Label"
+msgid "FIDO Universal 2nd Factor (U2F)"
+msgstr ""
+
+#: providers/class.two-factor-fido-u2f.php:130
+msgid ""
+"U2F requires an HTTPS connection. Please use an alternative 2nd factor "
+"method."
+msgstr ""
+
+#: providers/class.two-factor-fido-u2f.php:142
+msgid "An error occurred while creating authentication data."
+msgstr ""
+
+#: providers/class.two-factor-fido-u2f.php:213
+msgid ""
+"Requires an HTTPS connection. Configure your security keys in the \"Security "
+"Keys\" section below."
+msgstr ""
+
+#: providers/class.two-factor-fido-u2f.php:249
+msgid "New Security Key"
+msgstr ""
+
+#: providers/class.two-factor-totp.php:59
+msgctxt "Provider Label"
+msgid "Time Based One-Time Password (Google Authenticator)"
+msgstr ""
+
+#: providers/class.two-factor-totp.php:81
+msgid "View Options &rarr;"
+msgstr ""
+
+#: providers/class.two-factor-totp.php:85
+msgid ""
+"Please scan the QR code or manually enter the key, then enter an "
+"authentication code from your app in order to complete setup"
+msgstr ""
+
+#: providers/class.two-factor-totp.php:87
+#: providers/class.two-factor-totp.php:327
+#: tests/providers/class.two-factor-totp.php:59
+msgid "Authentication Code:"
+msgstr ""
+
+#: providers/class.two-factor-totp.php:122
+msgid ""
+"Unable to save Two Factor Authentication code. Please re-scan the QR code "
+"and enter the code provided by your application."
+msgstr ""
+
+#: providers/class.two-factor-totp.php:125
+msgid ""
+"Two Factor Authentication not activated, the authentication code you entered "
+"was not valid. Please re-scan the QR code and enter the code provided by "
+"your application."
+msgstr ""
+
+#: providers/class.two-factor-totp.php:341
+msgid "Authenticate"
+msgstr ""
+
+#. Plugin Name of the plugin/theme
+msgid "Two Factor"
+msgstr ""
+
+#. Plugin URI of the plugin/theme
+msgid "https://github.com/georgestephanis/two-factor/"
+msgstr ""
+
+#. Description of the plugin/theme
+msgid "A prototype extensible core to enable Two-Factor Authentication."
+msgstr ""
+
+#. Author of the plugin/theme
+msgid "George Stephanis"
+msgstr ""
+
+#. Author URI of the plugin/theme
+msgid "https://stephanis.info"
+msgstr ""
