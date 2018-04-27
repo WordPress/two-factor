@@ -68,7 +68,7 @@ class Two_Factor_Core {
 	 * Sites on WordPress 4.6+ benefit from just-in-time loading of translations.
 	 */
 	public static function load_textdomain() {
-		load_plugin_textdomain( self::TEXT_DOMAIN , false, dirname( plugin_basename( __FILE__ ) ) . self::PLUGIN_LANGUAGE_DIR );
+		load_plugin_textdomain( self::TEXT_DOMAIN, false, dirname( plugin_basename( __FILE__ ) ) . self::PLUGIN_LANGUAGE_DIR );
 	}
 
 	/**
