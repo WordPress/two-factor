@@ -45,6 +45,7 @@ class Two_Factor_Core {
 		add_action( 'personal_options_update', array( __CLASS__, 'user_two_factor_options_update' ) );
 		add_action( 'edit_user_profile_update', array( __CLASS__, 'user_two_factor_options_update' ) );
 		add_filter( 'manage_users_columns', array( __CLASS__, 'filter_manage_users_columns' ) );
+		add_filter( 'wpmu_users_columns', array( __CLASS__, 'filter_manage_users_columns' ) );
 		add_filter( 'manage_users_custom_column', array( __CLASS__, 'manage_users_custom_column' ), 10, 3 );
 	}
 
