@@ -83,13 +83,21 @@ abstract class Two_Factor_Provider {
 	 * @param string|array $chars Valid auth code characters.
 	 * @return string
 	 */
-	public function get_code( $length = 8, $chars = '1234567890' ) {
+	public function get_code( $length = 8, $chars = null ) {
+		// If no characters are passed in, just make it numeric.
+		if ( empty( $chars ) ) {
+			// A length of 3, will be between 0 and ( 10^3 - 1 ) or 999
+			$code = random_int( 0, ( pow( 10, $length ) - 1 ) );
+			return str_pad( $code, $length, '0', STR_PAD_LEFT );
+		}
 		$code = '';
 		if ( ! is_array( $chars ) ) {
 			$chars = str_split( $chars );
 		}
+		// Make sure it isn't an associative array which could mess up the key lookup.
+		$chars = array_values( $chars );
 		for ( $i = 0; $i < $length; $i++ ) {
-			$key = array_rand( $chars );
+			$key = random_int( 0, sizeof( $chars ) - 1 );
 			$code .= $chars[ $key ];
 		}
 		return $code;
