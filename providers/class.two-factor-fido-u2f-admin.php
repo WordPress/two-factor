@@ -123,7 +123,7 @@ class Two_Factor_FIDO_U2F_Admin {
 			'inline-edit-key',
 			'inlineEditL10n',
 			array(
-				'error' => esc_html__( 'Error while saving the changes.' ),
+				'error' => esc_html__( 'Error while saving the changes.', 'two-factor' ),
 			)
 		);
 	}

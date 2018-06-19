@@ -88,7 +88,8 @@ class Two_Factor_Core {
 		if ( isset( $providers['Two_Factor_FIDO_U2F'] ) && version_compare( PHP_VERSION, '5.3.0', '<' ) ) {
 			unset( $providers['Two_Factor_FIDO_U2F'] );
 			trigger_error( sprintf( // WPCS: XSS OK.
-				__( 'FIDO U2F is not available because you are using PHP %s. (Requires 5.3 or greater)' ),
+				/* translators: %s: version number */
+				__( 'FIDO U2F is not available because you are using PHP %s. (Requires 5.3 or greater)', 'two-factor' ),
 				PHP_VERSION
 			) );
 		}
@@ -379,7 +380,7 @@ class Two_Factor_Core {
 		<?php endif; ?>
 
 		<p id="backtoblog">
-			<a href="<?php echo esc_url( home_url( '/' ) ); ?>" title="<?php esc_attr_e( 'Are you lost?' ); ?>"><?php echo esc_html( sprintf( __( '&larr; Back to %s' ), get_bloginfo( 'title', 'display' ) ) ); ?></a>
+			<a href="<?php echo esc_url( home_url( '/' ) ); ?>" title="<?php esc_attr_e( 'Are you lost?', 'two-factor' ); ?>"><?php /* translators: %s: site name */ echo esc_html( sprintf( __( '&larr; Back to %s', 'two-factor' ), get_bloginfo( 'title', 'display' ) ) ); ?></a>
 		</p>
 
 		<style>
@@ -542,7 +543,7 @@ class Two_Factor_Core {
 			if ( $customize_login ) {
 				wp_enqueue_script( 'customize-base' );
 			}
-			$message = '<p class="message">' . __( 'You have logged in successfully.' ) . '</p>';
+			$message       = '<p class="message">' . __( 'You have logged in successfully.', 'two-factor' ) . '</p>';
 			$interim_login = 'success'; // WPCS: override ok.
 			login_header( '', $message ); ?>
 			</div>
@@ -588,7 +589,7 @@ class Two_Factor_Core {
 		}
 
 		if ( ! self::is_user_using_two_factor( $user_id ) ) {
-			return sprintf( '<span class="dashicons-before dashicons-no-alt">%s</span>', esc_html__( 'Disabled' ) );
+			return sprintf( '<span class="dashicons-before dashicons-no-alt">%s</span>', esc_html__( 'Disabled', 'two-factor' ) );
 		} else {
 			$provider = self::get_primary_provider_for_user( $user_id );
 			return esc_html( $provider->get_label() );
@@ -630,9 +631,9 @@ class Two_Factor_Core {
 					<table class="two-factor-methods-table">
 						<thead>
 							<tr>
-								<th class="col-enabled" scope="col"><?php esc_html_e( 'Enabled' ); ?></th>
-								<th class="col-primary" scope="col"><?php esc_html_e( 'Primary' ); ?></th>
-								<th class="col-name" scope="col"><?php esc_html_e( 'Name' ); ?></th>
+								<th class="col-enabled" scope="col"><?php esc_html_e( 'Enabled', 'two-factor' ); ?></th>
+								<th class="col-primary" scope="col"><?php esc_html_e( 'Primary', 'two-factor' ); ?></th>
+								<th class="col-name" scope="col"><?php esc_html_e( 'Name', 'two-factor' ); ?></th>
 							</tr>
 						</thead>
 						<tbody>
