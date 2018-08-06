@@ -1,6 +1,6 @@
 {
     "type": "wordpress-plugin",
-    "name": "two-factor",
+    "name": "georgestephanis/two-factor",
     "require-dev": {
         "php-coveralls/php-coveralls": "^1.0"
     }
