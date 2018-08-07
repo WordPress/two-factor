@@ -1,6 +1,7 @@
 {
     "type": "wordpress-plugin",
     "name": "georgestephanis/two-factor",
+    "description": "Two-Factor Authentication for WordPress.",
     "require-dev": {
         "php-coveralls/php-coveralls": "^1.0"
     }
