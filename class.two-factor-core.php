@@ -67,9 +67,8 @@ class Two_Factor_Core {
 		// @todo:: Add action to save said setting if site is not network.
 		add_action( 'wpmu_options', array( __CLASS__, 'force_two_factor_setting_options' ) );
 		add_action( 'update_wpmu_options', array( __CLASS__, 'save_network_force_two_factor_update' ) );
-
-		// @todo:: Add re-direct to 2fa settings page if criteria is met.
 		add_filter( 'init', array( __CLASS__, 'maybe_force_2fa_settings' ) );
+		add_action( 'wp_ajax_two_factor_force_form_submit', array( __CLASS__, 'handle_force_2fa_submission' ) );
 	}
 
 	/**
@@ -479,6 +478,15 @@ class Two_Factor_Core {
 
 	 */
 	public static function force_2fa_login_html() {
+		wp_enqueue_script( 'jquery' );
+		wp_enqueue_script(
+			'two_factor_form_script',
+			plugins_url( 'assets/js/force-2fa.js', __FILE__ ),
+			[],
+			'0.1',
+			false
+		);
+
 		if ( ! function_exists( 'login_header' ) ) {
 			// We really should migrate login_header() out of `wp-login.php` so it can be called from an includes file.
 			include_once( TWO_FACTOR_DIR . 'includes/function.login-header.php' );
@@ -488,10 +496,10 @@ class Two_Factor_Core {
 
 		$user = wp_get_current_user();
 
-		// Display the form for updating a user's two-factor options.xw
-		// @todo:: fill in the action here.
+		// Display the form for updating a user's two-factor options.
 		?>
-		<form name="force_2fa_form" id="loginform" action="<?php  ?>" method="post" autocomplete="off">
+		<h2><?php esc_html_e( 'You must have 2-factor authentication enabled to continue using this site. Please select and save at least one method of authentication.', 'two-factor' ); ?></h2>
+		<form name="force_2fa_form" id="force_2fa_form" method="post" autocomplete="off">
 			<?php self::user_two_factor_options( $user ); ?>
 			<button class="button button-primary"><?php esc_html_e( 'Submit' ); ?></button>
 		</form>
@@ -507,7 +515,14 @@ class Two_Factor_Core {
 				width: 100%;
 				max-width: 1000px;
 			}
+			.login .button-primary {
+				float: left;
+			}
 		</style>
+
+		<script type="text/javascript">
+			var ajaxurl = '<?php echo admin_url( 'admin-ajax.php', 'relative' ); ?>';
+		</script>
 
 		<?php
 		/** This action is documented in wp-login.php */
@@ -516,6 +531,16 @@ class Two_Factor_Core {
 		</body>
 		</html>
 		<?php
+	}
+
+	public static function handle_force_2fa_submission() {
+		// Verify that a user is allowed here.
+		check_ajax_referer( 'user_two_factor_options', '_nonce_user_two_factor_options' );
+
+		// Save data.
+		self::user_two_factor_options_update( get_current_user_id() );
+
+		wp_send_json_success();
 	}
 
 	/**
