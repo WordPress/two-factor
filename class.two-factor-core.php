@@ -23,6 +23,20 @@ class Two_Factor_Core {
 	const ENABLED_PROVIDERS_USER_META_KEY = '_two_factor_enabled_providers';
 
 	/**
+	 * The network forced 2fa user roles key.
+	 *
+	 * @type string
+	 */
+	const FORCED_ROLES_META_KEY = '_two_factor_forced_roles';
+
+	/**
+	 * The network forced 2fa user roles key.
+	 *
+	 * @type string
+	 */
+	const FORCED_SITE_META_KEY = '_two_factor_forced_universally';
+
+	/**
 	 * The user meta nonce key.
 	 *
 	 * @type string
@@ -47,6 +61,17 @@ class Two_Factor_Core {
 		add_filter( 'manage_users_columns', array( __CLASS__, 'filter_manage_users_columns' ) );
 		add_filter( 'wpmu_users_columns', array( __CLASS__, 'filter_manage_users_columns' ) );
 		add_filter( 'manage_users_custom_column', array( __CLASS__, 'manage_users_custom_column' ), 10, 3 );
+
+		// Forced 2fa login functionality.
+		// @todo:: display settings to force 2fa on specific site, if site is not network.
+		// @todo:: Add action to save said setting if site is not network.
+		add_action( 'wpmu_options', array( __CLASS__, 'force_two_factor_setting_options' ) );
+		add_action( 'update_wpmu_options', array( __CLASS__, 'save_network_force_two_factor_update' ) );
+
+		// @todo:: Add re-direct to user profile page if criteria is met.
+		// @todo:: Add notice explaining re-direct.
+
+		// @todo:: maybe, instead, use a login-style page with 2fa settings.
 	}
 
 	/**
@@ -696,5 +721,118 @@ class Two_Factor_Core {
 				update_user_meta( $user_id, self::PROVIDER_USER_META_KEY, $new_provider );
 			}
 		}
+	}
+
+	/**
+	 * Get whether site has two-factor universally forced or not.
+	 *
+	 * @since 0.1-dev
+	 *
+	 * @return bool
+	 *
+	 * @todo:: make work on single sites also.
+	 */
+	public static function get_universally_forced_option() {
+		/**
+		 * Whether or not site has two-factor universally forced.
+		 *
+		 * @param bool $roles Whether all users on a site are forced to use 2fa.
+		 */
+		return (bool) apply_filters( 'two_factor_universally_forced', get_site_option( self::FORCED_SITE_META_KEY, false ) );
+	}
+
+	/**
+	 * Get which user roles have two-factor forced.
+	 *
+	 * @since 0.1-dev
+	 *
+	 * @return array
+	 *
+	 * @todo:: make work on single sites also.
+	 */
+	public static function get_forced_user_roles() {
+		/**
+		 * User roles which have two-factor forced.
+		 *
+		 * @param array $roles Roles which are required to use 2fa.
+		 */
+		return (array) apply_filters( 'two_factor_forced_user_roles', get_site_option( self::FORCED_ROLES_META_KEY, [] ) );
+	}
+
+	/**
+	 * Add network and site-level fields for forcing 2-factor on users of a role(s).
+	 *
+	 * @since 0.1-dev
+	 */
+	public static function force_two_factor_setting_options() {
+		$forced_roles          = self::get_forced_user_roles();
+		$is_universally_forced = self::get_universally_forced_option();
+		?>
+
+		<h2><?php esc_html_e( 'Two-Factor Options', 'two-factor' ); ?></h2>
+		<table class="form-table">
+			<?php wp_nonce_field( 'force_two_factor_options', '_nonce_force_two_factor_options', false ); ?>
+			<tbody>
+				<tr>
+					<th scope="row">
+						<?php esc_html_e( 'Universally force two-factor', 'two-factor' ); ?>
+					</th>
+					<td>
+						<label>
+							<input type='checkbox' name="<?php echo esc_attr( self::FORCED_SITE_META_KEY ); ?>" value="1" <?php checked( $is_universally_forced ); ?> />
+							<?php esc_html_e( 'Force two-factor for all users', 'two-factor' ); ?>
+						</label>
+					</td>
+				</tr>
+
+				<tr>
+					<th scope="row">
+						<label><?php esc_html_e( 'Force two-factor on specific roles', 'two-factor' ); ?></label>
+					</th>
+					<td>
+						<?php foreach ( get_editable_roles() as $slug => $role ) : ?>
+							<label>
+								<input type='checkbox' name="<?php echo esc_attr( sprintf( '%s[%s]', self::FORCED_ROLES_META_KEY, $slug ) ); ?>" value="1" <?php checked( in_array( $slug, $forced_roles, true ) ); ?> <?php if ( $is_universally_forced ) { echo 'readonly'; } ?> /> <?php echo esc_html( $role['name'] ); ?>
+							</label>
+							<br/>
+						<?php endforeach; ?>
+					</td>
+				</tr>
+			</tbody>
+		</table>
+		<?php
+	}
+
+	/**
+	 * Save the force two_factor options against a network.
+	 *
+	 * @since 0.1-dev
+	 */
+	public static function save_network_force_two_factor_update() {
+		if ( ! isset( $_POST['_nonce_force_two_factor_options'] ) ) {
+			return;
+		}
+
+		check_admin_referer( 'force_two_factor_options', '_nonce_force_two_factor_options' );
+
+		// Validate and save universally forced key.
+		if ( isset( $_POST[ self::FORCED_SITE_META_KEY ] ) && $_POST[ self::FORCED_SITE_META_KEY ] ) {
+			update_site_option( self::FORCED_SITE_META_KEY, 1 );
+		} else {
+			update_site_option( self::FORCED_SITE_META_KEY, 0 );
+		}
+
+		// Validate and save per-role settings.
+		if ( ! isset( $_POST[ self::FORCED_ROLES_META_KEY ] ) ||
+			! is_array( $_POST[ self::FORCED_ROLES_META_KEY ] ) ) {
+			return;
+		}
+
+		// Whitelist roles against valid WordPress role slugs.
+		$saved_roles = array_filter( $_POST[ self::FORCED_ROLES_META_KEY ], function( $is_role_saved, $role_slug ) {
+			return $is_role_saved && in_array( $role_slug, array_keys( get_editable_roles() ), true );
+		}, ARRAY_FILTER_USE_BOTH );
+
+		update_site_option( self::FORCED_ROLES_META_KEY, array_keys( $saved_roles ) );
 	}
 }
