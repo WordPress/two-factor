@@ -68,10 +68,8 @@ class Two_Factor_Core {
 		add_action( 'wpmu_options', array( __CLASS__, 'force_two_factor_setting_options' ) );
 		add_action( 'update_wpmu_options', array( __CLASS__, 'save_network_force_two_factor_update' ) );
 
-		// @todo:: Add re-direct to user profile page if criteria is met.
-		// @todo:: Add notice explaining re-direct.
-
-		// @todo:: maybe, instead, use a login-style page with 2fa settings.
+		// @todo:: Add re-direct to 2fa settings page if criteria is met.
+		add_filter( 'init', array( __CLASS__, 'maybe_force_2fa_settings' ) );
 	}
 
 	/**
@@ -428,6 +426,87 @@ class Two_Factor_Core {
 		.jetpack-sso-form-display #loginform > div {
 			display: block;
 		}
+		</style>
+
+		<?php
+		/** This action is documented in wp-login.php */
+		do_action( 'login_footer' ); ?>
+		<div class="clear"></div>
+		</body>
+		</html>
+		<?php
+	}
+
+	/**
+	 * Maybe force the 2fa login page on a user.
+	 *
+	 * If 2fa is required for a user (based on universal or role settings),
+	 * we display the 2-factor options page so that a user must validly enable
+	 * a 2-factor authentication of some kind to perform any action on their site.
+	 */
+	public static function maybe_force_2fa_settings() {
+		// This should not affect AJAX requests, carry on.
+		if ( wp_doing_ajax() ) {
+			return;
+		}
+
+		// If user is not logged in, they can't 2fa anyway.
+		if ( ! is_user_logged_in() ) {
+			return;
+		}
+
+		// 2fa is not forced for current user, nothing to show.
+		if ( ! self::is_two_factor_forced_for_current_user() ) {
+			return;
+		}
+
+		// The current user is already using two-factor, good for them!
+		if ( self::is_user_using_two_factor() ) {
+			return;
+		}
+
+		// We are now forced to display the two-factor settings page.
+		self::force_2fa_login_html();
+		exit;
+	}
+
+	/**
+	 * Generates the html for adding 2-factor authentication to their account, if forced.
+	 *
+	 * If a user hits this screen, they must setup 2fa and do not get to skip.
+	 *
+	 * @since 0.1-dev
+
+	 */
+	public static function force_2fa_login_html() {
+		if ( ! function_exists( 'login_header' ) ) {
+			// We really should migrate login_header() out of `wp-login.php` so it can be called from an includes file.
+			include_once( TWO_FACTOR_DIR . 'includes/function.login-header.php' );
+		}
+
+		login_header();
+
+		$user = wp_get_current_user();
+
+		// Display the form for updating a user's two-factor options.xw
+		// @todo:: fill in the action here.
+		?>
+		<form name="force_2fa_form" id="loginform" action="<?php  ?>" method="post" autocomplete="off">
+			<?php self::user_two_factor_options( $user ); ?>
+			<button class="button button-primary"><?php esc_html_e( 'Submit' ); ?></button>
+		</form>
+
+
+		<p id="backtoblog">
+			<a href="<?php echo esc_url( home_url( '/' ) ); ?>" title="<?php esc_attr_e( 'Are you lost?', 'two-factor' ); ?>"><?php /* translators: %s: site name */ echo esc_html( sprintf( __( '&larr; Back to %s', 'two-factor' ), get_bloginfo( 'title', 'display' ) ) ); ?></a>
+		</p>
+
+		<style>
+			/* Hackity hack hack hack */
+			#login {
+				width: 100%;
+				max-width: 1000px;
+			}
 		</style>
 
 		<?php
