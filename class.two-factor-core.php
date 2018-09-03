@@ -724,6 +724,45 @@ class Two_Factor_Core {
 	}
 
 	/**
+	 * Check whether the current user requires two_factor or not.
+	 *
+	 * @return bool Whether user should be required to use 2fa.
+	 */
+	public static function is_two_factor_forced_for_current_user() {
+		$id = get_current_user_id();
+		return self::is_two_factor_forced( $id );
+	}
+
+	/**
+	 * Check whether a user should have 2fa forced on or not.
+	 *
+	 * @param int $user_id User ID to check against.
+	 * @return bool Whether user should be required to use 2fa.
+	 */
+	public static function is_two_factor_forced( int $user_id ) : bool {
+		// If 2fa is forced for all users, always return true.
+		if ( self::get_universally_forced_option() ) {
+			return true;
+		}
+
+		$user = get_user_by( 'id', $user_id );
+
+		// If we can't pull up user, escape.
+		if ( ! ( $user instanceof WP_User ) ) {
+			return false;
+		}
+
+		// Check whether a user is in a user role that requires two-factor authentication.
+		$two_factor_forced_roles = self::get_forced_user_roles();
+		$required_roles = array_filter( $user->roles, function( $role ) use ( $two_factor_forced_roles ) {
+			return in_array( $role, $two_factor_forced_roles, true );
+		} , ARRAY_FILTER_USE_BOTH);
+
+		// If the required_roles is not empty, then the user is in a role that requires two_factor authentication.
+		return ! empty( $required_roles );
+	}
+
+	/**
 	 * Get whether site has two-factor universally forced or not.
 	 *
 	 * @since 0.1-dev
