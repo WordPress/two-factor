@@ -63,17 +63,20 @@ class Two_Factor_Core {
 		add_filter( 'manage_users_custom_column', array( __CLASS__, 'manage_users_custom_column' ), 10, 3 );
 
 		// Forced 2fa login functionality.
-		// @todo:: display settings to force 2fa on specific site, if site is not network.
-		// @todo:: Add action to save said setting if site is not network.
 		add_action( 'init', array( __CLASS__, 'register_scripts' ) );
-		add_action( 'wpmu_options', array( __CLASS__, 'force_two_factor_setting_options' ) );
-		add_action( 'update_wpmu_options', array( __CLASS__, 'save_network_force_two_factor_update' ) );
 		add_action( 'wp_ajax_two_factor_force_form_submit', array( __CLASS__, 'handle_force_2fa_submission' ) );
 		add_action( 'two_factor_ajax_options_update', array( __CLASS__, 'user_two_factor_options_update' ) );
 
 		// Handling intercession in 2 separate hooks to allow us to properly parse for REST requests.
 		add_action( 'parse_request', array( __CLASS__, 'maybe_force_2fa_settings' ) );
 		add_action( 'admin_init', array( __CLASS__, 'maybe_force_2fa_settings' ) );
+
+		if ( is_multisite() ) {
+			add_action( 'wpmu_options', array( __CLASS__, 'force_two_factor_setting_options' ) );
+			add_action( 'update_wpmu_options', array( __CLASS__, 'save_network_force_two_factor_update' ) );
+		} else {
+			add_action( 'admin_init', array( __CLASS__, 'register_single_site_force_2fa_options' ) );
+		}
 	}
 
 	/**
@@ -931,10 +934,7 @@ class Two_Factor_Core {
 	 * @since 0.1-dev
 	 */
 	public static function force_two_factor_setting_options() {
-		$forced_roles          = self::get_forced_user_roles();
-		$is_universally_forced = self::get_universally_forced_option();
 		?>
-
 		<h2><?php esc_html_e( 'Two-Factor Options', 'two-factor' ); ?></h2>
 		<table class="form-table">
 			<?php wp_nonce_field( 'force_two_factor_options', '_nonce_force_two_factor_options', false ); ?>
@@ -944,10 +944,7 @@ class Two_Factor_Core {
 						<?php esc_html_e( 'Universally force two-factor', 'two-factor' ); ?>
 					</th>
 					<td>
-						<label>
-							<input type='checkbox' name="<?php echo esc_attr( self::FORCED_SITE_META_KEY ); ?>" value="1" <?php checked( $is_universally_forced ); ?> />
-							<?php esc_html_e( 'Force two-factor for all users', 'two-factor' ); ?>
-						</label>
+						<?php self::global_force_2fa_field(); ?>
 					</td>
 				</tr>
 
@@ -956,18 +953,44 @@ class Two_Factor_Core {
 						<label><?php esc_html_e( 'Force two-factor on specific roles', 'two-factor' ); ?></label>
 					</th>
 					<td>
-						<?php foreach ( get_editable_roles() as $slug => $role ) : ?>
-							<label>
-								<input type='checkbox' name="<?php echo esc_attr( sprintf( '%s[%s]', self::FORCED_ROLES_META_KEY, $slug ) ); ?>" value="1" <?php checked( in_array( $slug, $forced_roles, true ) ); ?> <?php if ( $is_universally_forced ) { echo 'readonly'; } ?> />
-								<?php echo esc_html( $role['name'] ); ?>
-							</label>
-							<br/>
-						<?php endforeach; ?>
+						<?php self::global_force_2fa_by_role_field(); ?>
 					</td>
 				</tr>
 			</tbody>
 		</table>
 		<?php
+	}
+
+	/**
+	 * HTML output for global force 2fa field.
+	 */
+	public static function global_force_2fa_field() {
+		$is_universally_forced = self::get_universally_forced_option();
+
+		?>
+		<label>
+			<input type='checkbox' name="<?php echo esc_attr( self::FORCED_SITE_META_KEY ); ?>" value="1" <?php checked( $is_universally_forced ); ?> />
+			<?php esc_html_e( 'Force two-factor for all users', 'two-factor' ); ?>
+		</label>
+		<?php
+	}
+
+	/**
+	 * HTML output for per-role force 2fa fields.
+	 */
+	public static function global_force_2fa_by_role_field() {
+		$forced_roles          = self::get_forced_user_roles();
+		$is_universally_forced = self::get_universally_forced_option();
+
+		foreach ( get_editable_roles() as $slug => $role ) :
+			?>
+			<label>
+				<input type='checkbox' name="<?php echo esc_attr( sprintf( '%s[%s]', self::FORCED_ROLES_META_KEY, $slug ) ); ?>" value="1" <?php checked( in_array( $slug, $forced_roles, true ) ); ?> <?php echo ( $is_universally_forced ) ? 'readonly' : ''; ?> />
+				<?php echo esc_html( $role['name'] ); ?>
+			</label>
+			<br/>
+			<?php
+		endforeach;
 	}
 
 	/**
@@ -998,11 +1021,68 @@ class Two_Factor_Core {
 		}
 
 		// Whitelist roles against valid WordPress role slugs.
-		$saved_roles = array_filter( wp_unslash( $_POST[ self::FORCED_ROLES_META_KEY ] ), function( $is_role_saved, $role_slug ) {
+		$roles = self::validate_forced_roles( $_POST[ self::FORCED_ROLES_META_KEY ] );
+
+		update_site_option( self::FORCED_ROLES_META_KEY, $roles );
+	}
+
+	/**
+	 * Validate and whitelist role values against valid editable_roles.
+	 *
+	 * @param array $unsafe_roles Values to validate and save.
+	 * @return array Whitelisted and safe values.
+	 */
+	public static function validate_forced_roles( $unsafe_roles ) {
+		$safe_roles = array_filter( wp_unslash( $unsafe_roles ), function( $is_role_saved, $role_slug ) {
 			return $is_role_saved && in_array( $role_slug, array_keys( get_editable_roles() ), true );
 		}, ARRAY_FILTER_USE_BOTH );
 
-		update_site_option( self::FORCED_ROLES_META_KEY, array_keys( $saved_roles ) );
+		return array_keys( $safe_roles );
+	}
+
+	/**
+	 * Register settings for a single site.
+	 */
+	public static function register_single_site_force_2fa_options() {
+		// Add a new setting group for forcing 2fa in General Options.
+		add_settings_section(
+			'two-factor-force-2fa',
+			esc_html__( 'Two-Factor Options', 'two-factor' ),
+			'__return_null',
+			'general'
+		);
+
+		// Add global force 2fa field.
+		add_settings_field(
+			self::FORCED_SITE_META_KEY,
+			esc_html__( 'Universally force two-factor', 'two-factor' ),
+			array( __CLASS__, 'global_force_2fa_field' ),
+			'general',
+			'two-factor-force-2fa'
+		);
+
+		register_setting(
+			'general',
+			self::FORCED_SITE_META_KEY,
+			[
+				'type' => 'boolean',
+			]
+		);
+
+		// Add per-role force 2fa field.
+		add_settings_field(
+			self::FORCED_ROLES_META_KEY,
+			esc_html__( 'Force two-factor on specific roles', 'two-factor' ),
+			array( __CLASS__, 'global_force_2fa_by_role_field' ),
+			'general',
+			'two-factor-force-2fa'
+		);
+
+		register_setting(
+			'general',
+			self::FORCED_ROLES_META_KEY,
+			array( __CLASS__, 'validate_forced_roles' )
+		);
 	}
 
 	/**
