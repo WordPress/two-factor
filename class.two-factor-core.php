@@ -97,6 +97,11 @@ class Two_Factor_Core {
 			'0.1',
 			false
 		);
+
+		wp_register_style(
+			'user-edit-2fa',
+			plugins_url( 'user-edit.css', __FILE__ )
+		);
 	}
 
 	/**
@@ -528,22 +533,6 @@ class Two_Factor_Core {
 			</a>
 		</p>
 
-		<style>
-			/* Hackity hack hack hack */
-			#login {
-				width: 100%;
-				max-width: 1000px;
-			}
-			.login .button-primary {
-				float: left;
-			}
-			.force-2fa-title {
-				line-height: 1.3;
-				text-align: center;
-				padding: 0 10%;
-			}
-		</style>
-
 		<script type="text/javascript">
 			var ajaxurl = '<?php echo esc_url( admin_url( 'admin-ajax.php', 'relative' ) ); ?>';
 		</script>
@@ -770,7 +759,7 @@ class Two_Factor_Core {
 	 * @param WP_User $user WP_User object of the logged-in user.
 	 */
 	public static function user_two_factor_options( $user ) {
-		wp_enqueue_style( 'user-edit-2fa', plugins_url( 'user-edit.css', __FILE__ ) );
+		wp_enqueue_style( 'user-edit-2fa' );
 
 		$enabled_providers = array_keys( self::get_available_providers_for_user( $user->ID ) );
 		$primary_provider = self::get_primary_provider_for_user( $user->ID );
