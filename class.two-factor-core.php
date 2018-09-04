@@ -68,8 +68,11 @@ class Two_Factor_Core {
 		add_action( 'init', array( __CLASS__, 'register_scripts' ) );
 		add_action( 'wpmu_options', array( __CLASS__, 'force_two_factor_setting_options' ) );
 		add_action( 'update_wpmu_options', array( __CLASS__, 'save_network_force_two_factor_update' ) );
-		add_filter( 'init', array( __CLASS__, 'maybe_force_2fa_settings' ) );
 		add_action( 'wp_ajax_two_factor_force_form_submit', array( __CLASS__, 'handle_force_2fa_submission' ) );
+
+		// Handling intercession in 2 separate hooks to allow us to properly parse for REST requests.
+		add_action( 'parse_request', array( __CLASS__, 'maybe_force_2fa_settings' ) );
+		add_action( 'admin_init', array( __CLASS__, 'maybe_force_2fa_settings' ) );
 	}
 
 	/**
@@ -461,7 +464,7 @@ class Two_Factor_Core {
 	 */
 	public static function maybe_force_2fa_settings() {
 		// This should not affect AJAX or REST requests, carry on.
-		if ( wp_doing_ajax() || ( defined( 'DOING_REST' ) && REST_REQUEST ) ) {
+		if ( wp_doing_ajax() || ( defined( 'REST_REQUEST' ) && REST_REQUEST ) ) {
 			return;
 		}
 
