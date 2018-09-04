@@ -69,6 +69,7 @@ class Two_Factor_Core {
 		add_action( 'wpmu_options', array( __CLASS__, 'force_two_factor_setting_options' ) );
 		add_action( 'update_wpmu_options', array( __CLASS__, 'save_network_force_two_factor_update' ) );
 		add_action( 'wp_ajax_two_factor_force_form_submit', array( __CLASS__, 'handle_force_2fa_submission' ) );
+		add_action( 'two_factor_ajax_options_update', array( __CLASS__, 'user_two_factor_options_update' ) );
 
 		// Handling intercession in 2 separate hooks to allow us to properly parse for REST requests.
 		add_action( 'parse_request', array( __CLASS__, 'maybe_force_2fa_settings' ) );
@@ -563,8 +564,14 @@ class Two_Factor_Core {
 		// Verify that a user is allowed here.
 		check_ajax_referer( 'user_two_factor_options', '_nonce_user_two_factor_options' );
 
-		// Save data.
-		self::user_two_factor_options_update( get_current_user_id() );
+		/**
+		 * Save 2fa options against a user from AJAX submission.
+		 *
+		 * Providers can use this hook to save their own data.
+		 *
+		 * @param int $user_id User ID that we're saving against.
+		 */
+		do_action( 'two_factor_ajax_options_update', get_current_user_id() );
 
 		wp_send_json_success();
 	}
