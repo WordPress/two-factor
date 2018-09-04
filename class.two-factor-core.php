@@ -528,7 +528,7 @@ class Two_Factor_Core {
 		</form>
 
 		<p id="backtoblog">
-			<a href="<?php echo esc_url( wp_logout_url() ); ?>" title="<?php esc_attr_e( 'Are you lost?', 'two-factor' ); ?>">
+			<a href="<?php echo esc_url( wp_logout_url() ); ?>" title="<?php esc_attr_e( 'Logout of your account', 'two-factor' ); ?>">
 				<?php esc_html_e( '&larr; Logout', 'two-factor' ); ?>
 			</a>
 		</p>
@@ -866,7 +866,7 @@ class Two_Factor_Core {
 	 * @param int $user_id User ID to check against.
 	 * @return bool Whether user should be required to use 2fa.
 	 */
-	public static function is_two_factor_forced( int $user_id ) : bool {
+	public static function is_two_factor_forced( $user_id ) {
 		// If 2fa is forced for all users, always return true.
 		if ( self::get_universally_forced_option() ) {
 			return true;
@@ -990,8 +990,10 @@ class Two_Factor_Core {
 		}
 
 		// Validate and save per-role settings.
-		if ( ! isset( $_POST[ self::FORCED_ROLES_META_KEY ] ) ||
-			! is_array( $_POST[ self::FORCED_ROLES_META_KEY ] ) ) {
+		if (
+			! isset( $_POST[ self::FORCED_ROLES_META_KEY ] ) ||
+			! is_array( $_POST[ self::FORCED_ROLES_META_KEY ] )
+		) {
 			return;
 		}
 
@@ -1005,6 +1007,8 @@ class Two_Factor_Core {
 
 	/**
 	 * Check whether we're on main login page or not.
+	 *
+	 * Why is this not in core yet?
 	 *
 	 * @return bool
 	 */

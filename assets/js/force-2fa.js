@@ -44,9 +44,9 @@ var formToJSON = function ( elements ) {
 		}
 
 		/*
-         * Some fields allow for more than one value, so we need to check if this
-         * is one of those fields and, if so, store the values as an array.
-         */
+		 * Some fields allow for more than one value, so we need to check if this
+		 * is one of those fields and, if so, store the values as an array.
+		 */
 		if ( isCheckbox( element ) ) {
 			data[ element.name ] = ( data[ element.name ] || [] ).concat( element.value );
 		} else {
