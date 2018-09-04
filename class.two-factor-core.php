@@ -30,7 +30,7 @@ class Two_Factor_Core {
 	const FORCED_ROLES_META_KEY = '_two_factor_forced_roles';
 
 	/**
-	 * The network forced 2fa user roles key.
+	 * The network forced 2fa global key.
 	 *
 	 * @type string
 	 */
@@ -475,7 +475,6 @@ class Two_Factor_Core {
 	 * If a user hits this screen, they must setup 2fa and do not get to skip.
 	 *
 	 * @since 0.1-dev
-
 	 */
 	public static function force_2fa_login_html() {
 		wp_enqueue_script( 'jquery' );
@@ -504,7 +503,6 @@ class Two_Factor_Core {
 			<button class="button button-primary"><?php esc_html_e( 'Submit' ); ?></button>
 		</form>
 
-
 		<p id="backtoblog">
 			<a href="<?php echo esc_url( home_url( '/' ) ); ?>" title="<?php esc_attr_e( 'Are you lost?', 'two-factor' ); ?>"><?php /* translators: %s: site name */ echo esc_html( sprintf( __( '&larr; Back to %s', 'two-factor' ), get_bloginfo( 'title', 'display' ) ) ); ?></a>
 		</p>
@@ -521,7 +519,7 @@ class Two_Factor_Core {
 		</style>
 
 		<script type="text/javascript">
-			var ajaxurl = '<?php echo admin_url( 'admin-ajax.php', 'relative' ); ?>';
+			var ajaxurl = '<?php echo esc_url( admin_url( 'admin-ajax.php', 'relative' ) ); ?>';
 		</script>
 
 		<?php
@@ -935,7 +933,8 @@ class Two_Factor_Core {
 					<td>
 						<?php foreach ( get_editable_roles() as $slug => $role ) : ?>
 							<label>
-								<input type='checkbox' name="<?php echo esc_attr( sprintf( '%s[%s]', self::FORCED_ROLES_META_KEY, $slug ) ); ?>" value="1" <?php checked( in_array( $slug, $forced_roles, true ) ); ?> <?php if ( $is_universally_forced ) { echo 'readonly'; } ?> /> <?php echo esc_html( $role['name'] ); ?>
+								<input type='checkbox' name="<?php echo esc_attr( sprintf( '%s[%s]', self::FORCED_ROLES_META_KEY, $slug ) ); ?>" value="1" <?php checked( in_array( $slug, $forced_roles, true ) ); ?> <?php if ( $is_universally_forced ) { echo 'readonly'; } ?> />
+								<?php echo esc_html( $role['name'] ); ?>
 							</label>
 							<br/>
 						<?php endforeach; ?>
