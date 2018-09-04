@@ -1,4 +1,4 @@
-/* global ajaxurl */
+/* global ajaxurl, jQuery */
 
 /**
  * Checks that an element has a non-empty `name` and `value` property.
@@ -6,7 +6,7 @@
  * @param  {Element} element The element to check
  * @return {Boolean} true if the element is an input, false if not
  */
-var isValidElement = function( element ) {
+var isValidElement = function ( element ) {
 	return element.name && element.value;
 };
 
@@ -16,7 +16,7 @@ var isValidElement = function( element ) {
  * @param  {Element} element The element to check
  * @return {Boolean} true if the value should be added, false if not
  */
-var isValidValue = function( element ) {
+var isValidValue = function ( element ) {
 	return ( ! [ 'checkbox', 'radio' ].includes( element.type ) || element.checked );
 };
 
@@ -26,8 +26,8 @@ var isValidValue = function( element ) {
  * @param  {Element} element The element to check
  * @return {Boolean} true if the element is a checkbox, false if not
  */
-var isCheckbox = function( element ) {
-	return element.type === 'checkbox'
+var isCheckbox = function ( element ) {
+	return element.type === 'checkbox';
 };
 
 /**
@@ -36,10 +36,10 @@ var isCheckbox = function( element ) {
  * @param  {HTMLFormControlsCollection} elements the form elements
  * @return {Object} form data as an object literal
  */
-var formToJSON = function( elements ) {
-	return [].reduce.call( elements, ( data, element ) => {
+var formToJSON = function ( elements ) {
+	return [].reduce.call( elements, function ( data, element ) {
 		// Make sure the element has the required properties and should be added.
-		if ( !isValidElement( element ) || !isValidValue( element ) ) {
+		if ( ! isValidElement( element ) || ! isValidValue( element ) ) {
 			return data;
 		}
 
@@ -54,7 +54,7 @@ var formToJSON = function( elements ) {
 		}
 
 		return data;
-	}, {} )
+	}, {} );
 };
 
 /**
@@ -62,7 +62,7 @@ var formToJSON = function( elements ) {
  *
  * @param  {Event} event  the submit event triggered by the user
  */
-var handleFormSubmit = function( event ) {
+var handleFormSubmit = function ( event ) {
 	event.preventDefault();
 
 	// Get form data.
@@ -74,13 +74,13 @@ var handleFormSubmit = function( event ) {
 	jQuery.post(
 		ajaxurl,
 		formData,
-		function() {
+		function () {
 			window.location.reload();
 		}
 	);
 };
 
-window.addEventListener( 'load', function() {
+window.addEventListener( 'load', function () {
 	var form = document.querySelector( '#force_2fa_form' );
 	form.addEventListener( 'submit', handleFormSubmit );
 } );

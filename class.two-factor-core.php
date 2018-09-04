@@ -539,7 +539,8 @@ class Two_Factor_Core {
 
 		<?php
 		/** This action is documented in wp-login.php */
-		do_action( 'login_footer' ); ?>
+		do_action( 'login_footer' );
+		?>
 		<div class="clear"></div>
 		</body>
 		</html>
@@ -880,9 +881,9 @@ class Two_Factor_Core {
 
 		// Check whether a user is in a user role that requires two-factor authentication.
 		$two_factor_forced_roles = self::get_forced_user_roles();
-		$required_roles = array_filter( $user->roles, function( $role ) use ( $two_factor_forced_roles ) {
+		$required_roles          = array_filter( $user->roles, function( $role ) use ( $two_factor_forced_roles ) {
 			return in_array( $role, $two_factor_forced_roles, true );
-		} , ARRAY_FILTER_USE_BOTH);
+		}, ARRAY_FILTER_USE_BOTH);
 
 		// If the required_roles is not empty, then the user is in a role that requires two_factor authentication.
 		return ! empty( $required_roles );
@@ -995,7 +996,7 @@ class Two_Factor_Core {
 		}
 
 		// Whitelist roles against valid WordPress role slugs.
-		$saved_roles = array_filter( $_POST[ self::FORCED_ROLES_META_KEY ], function( $is_role_saved, $role_slug ) {
+		$saved_roles = array_filter( wp_unslash( $_POST[ self::FORCED_ROLES_META_KEY ] ), function( $is_role_saved, $role_slug ) {
 			return $is_role_saved && in_array( $role_slug, array_keys( get_editable_roles() ), true );
 		}, ARRAY_FILTER_USE_BOTH );
 
