@@ -457,10 +457,11 @@ class Two_Factor_Core {
 	 * If 2fa is required for a user (based on universal or role settings),
 	 * we display the 2-factor options page so that a user must validly enable
 	 * a 2-factor authentication of some kind to perform any action on their site.
+	 * This occurs both on the front and backend.
 	 */
 	public static function maybe_force_2fa_settings() {
-		// This should not affect AJAX requests, carry on.
-		if ( wp_doing_ajax() ) {
+		// This should not affect AJAX or REST requests, carry on.
+		if ( wp_doing_ajax() || ( defined( 'DOING_REST' ) && REST_REQUEST ) ) {
 			return;
 		}
 
