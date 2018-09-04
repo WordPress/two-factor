@@ -512,7 +512,7 @@ class Two_Factor_Core {
 
 		// Display the form for updating a user's two-factor options.
 		?>
-		<h2><?php esc_html_e( 'You must have 2-factor authentication enabled to continue using this site. Please select and save at least one method of authentication.', 'two-factor' ); ?></h2>
+		<h2 class="force-2fa-title"><?php esc_html_e( 'You must have 2-factor authentication enabled to continue using this site. Please select and save at least one method of authentication.', 'two-factor' ); ?></h2>
 		<form name="force_2fa_form" id="force_2fa_form" method="post" autocomplete="off">
 			<?php self::user_two_factor_options( $user ); ?>
 			<button class="button button-primary"><?php esc_html_e( 'Submit' ); ?></button>
@@ -532,6 +532,11 @@ class Two_Factor_Core {
 			}
 			.login .button-primary {
 				float: left;
+			}
+			.force-2fa-title {
+				line-height: 1.3;
+				text-align: center;
+				padding: 0 10%;
 			}
 		</style>
 
