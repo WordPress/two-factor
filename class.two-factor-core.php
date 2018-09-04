@@ -464,6 +464,11 @@ class Two_Factor_Core {
 			return;
 		}
 
+		// Should not interrupt logging in or out.
+		if ( self::is_login_page() ) {
+			return;
+		}
+
 		// If user is not logged in, they can't 2fa anyway.
 		if ( ! is_user_logged_in() ) {
 			return;
@@ -513,7 +518,9 @@ class Two_Factor_Core {
 		</form>
 
 		<p id="backtoblog">
-			<a href="<?php echo esc_url( home_url( '/' ) ); ?>" title="<?php esc_attr_e( 'Are you lost?', 'two-factor' ); ?>"><?php /* translators: %s: site name */ echo esc_html( sprintf( __( '&larr; Back to %s', 'two-factor' ), get_bloginfo( 'title', 'display' ) ) ); ?></a>
+			<a href="<?php echo esc_url( wp_logout_url() ); ?>" title="<?php esc_attr_e( 'Are you lost?', 'two-factor' ); ?>">
+				<?php esc_html_e( '&larr; Logout', 'two-factor' ); ?>
+			</a>
 		</p>
 
 		<style>
@@ -988,5 +995,14 @@ class Two_Factor_Core {
 		}, ARRAY_FILTER_USE_BOTH );
 
 		update_site_option( self::FORCED_ROLES_META_KEY, array_keys( $saved_roles ) );
+	}
+
+	/**
+	 * Check whether we're on main login page or not.
+	 *
+	 * @return bool
+	 */
+	public static function is_login_page() {
+		return isset( $_SERVER['REQUEST_URI'] ) && strpos( esc_url_raw( wp_unslash( $_SERVER['REQUEST_URI'] ) ), 'wp-login.php' ) !== false;
 	}
 }
