@@ -471,27 +471,27 @@ class Two_Factor_Core {
 	public static function maybe_force_2fa_settings() {
 		// This should not affect AJAX or REST requests, carry on.
 		if ( wp_doing_ajax() || ( defined( 'REST_REQUEST' ) && REST_REQUEST ) ) {
-			return;
+			return false;
 		}
 
 		// Should not interrupt logging in or out.
 		if ( self::is_login_page() ) {
-			return;
+			return false;
 		}
 
 		// If user is not logged in, they can't 2fa anyway.
 		if ( ! is_user_logged_in() ) {
-			return;
+			return false;
 		}
 
 		// 2fa is not forced for current user, nothing to show.
 		if ( ! self::is_two_factor_forced_for_current_user() ) {
-			return;
+			return false;
 		}
 
 		// The current user is already using two-factor, good for them!
 		if ( self::is_user_using_two_factor() ) {
-			return;
+			return false;
 		}
 
 		// We are now forced to display the two-factor settings page.
