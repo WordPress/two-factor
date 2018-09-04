@@ -776,7 +776,7 @@ class Two_Factor_Core {
 		<input type="hidden" name="<?php echo esc_attr( self::ENABLED_PROVIDERS_USER_META_KEY ); ?>[]" value="<?php /* Dummy input so $_POST value is passed when no providers are enabled. */ ?>" />
 		<table class="form-table">
 			<tr>
-				<th>
+				<th class="two-factor-main-label">
 					<?php esc_html_e( 'Two-Factor Options' ); ?>
 				</th>
 				<td>
