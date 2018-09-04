@@ -65,6 +65,7 @@ class Two_Factor_Core {
 		// Forced 2fa login functionality.
 		// @todo:: display settings to force 2fa on specific site, if site is not network.
 		// @todo:: Add action to save said setting if site is not network.
+		add_action( 'init', array( __CLASS__, 'register_scripts' ) );
 		add_action( 'wpmu_options', array( __CLASS__, 'force_two_factor_setting_options' ) );
 		add_action( 'update_wpmu_options', array( __CLASS__, 'save_network_force_two_factor_update' ) );
 		add_filter( 'init', array( __CLASS__, 'maybe_force_2fa_settings' ) );
@@ -78,6 +79,20 @@ class Two_Factor_Core {
 	 */
 	public static function load_textdomain() {
 		load_plugin_textdomain( 'two-factor' );
+	}
+
+	/**
+	 * Register scripts.
+	 */
+	public static function register_scripts() {
+		// Script for handling AJAX submission in force 2fa takeover screen.
+		wp_register_script(
+			'two-factor-form-script',
+			plugins_url( 'assets/js/force-2fa.js', __FILE__ ),
+			[],
+			'0.1',
+			false
+		);
 	}
 
 	/**
@@ -478,13 +493,7 @@ class Two_Factor_Core {
 	 */
 	public static function force_2fa_login_html() {
 		wp_enqueue_script( 'jquery' );
-		wp_enqueue_script(
-			'two_factor_form_script',
-			plugins_url( 'assets/js/force-2fa.js', __FILE__ ),
-			[],
-			'0.1',
-			false
-		);
+		wp_enqueue_script( 'two-factor-form-script' );
 
 		if ( ! function_exists( 'login_header' ) ) {
 			// We really should migrate login_header() out of `wp-login.php` so it can be called from an includes file.
@@ -531,6 +540,9 @@ class Two_Factor_Core {
 		<?php
 	}
 
+	/**
+	 * AJAX handler for 2fa settings from forced 2fa takeover screen.
+	 */
 	public static function handle_force_2fa_submission() {
 		// Verify that a user is allowed here.
 		check_ajax_referer( 'user_two_factor_options', '_nonce_user_two_factor_options' );
