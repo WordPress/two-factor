@@ -3,6 +3,12 @@
  * Test Two Factor.
  */
 
+/**
+ * Class Tests_Two_factor
+ *
+ * @package Two_Factor
+ * @group core
+ */
 class Tests_Two_factor extends WP_UnitTestCase {
 
 	/**

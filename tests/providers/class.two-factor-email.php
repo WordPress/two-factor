@@ -3,8 +3,19 @@
  * Test Two Factor Email.
  */
 
+/**
+ * Class Tests_Two_Factor_Email
+ *
+ * @package Two_Factor
+ * @group providers
+ */
 class Tests_Two_Factor_Email extends WP_UnitTestCase {
 
+	/**
+	 * Instance of our provider class.
+	 *
+	 * @var Two_Factor_Email
+	 */
 	protected $provider;
 
 	static protected $phpmailer = null, $mockmailer;
@@ -20,6 +31,11 @@ class Tests_Two_Factor_Email extends WP_UnitTestCase {
 		$this->provider = Two_Factor_Email::get_instance();
 	}
 
+	/**
+	 * Clean up after tests.
+	 *
+	 * @see WP_UnitTestCase::tearDown()
+	 */
 	public function tearDown() {
 		unset( $this->provider );
 
