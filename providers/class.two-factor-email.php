@@ -142,6 +142,7 @@ class Two_Factor_Email extends Two_Factor_Provider {
 	 * @since 0.1-dev
 	 *
 	 * @param WP_User $user WP_User object of the logged-in user.
+	 * @return bool Whether the email contents were sent successfully.
 	 */
 	public function generate_and_email_token( $user ) {
 		$token = $this->generate_token( $user->ID );

@@ -212,6 +212,7 @@ class Two_Factor_Core {
 	 * @since 0.1-dev
 	 *
 	 * @param int $user_id Optional. User ID. Default is 'null'.
+	 * @return bool
 	 */
 	public static function is_user_using_two_factor( $user_id = null ) {
 		$provider = self::get_primary_provider_for_user( $user_id );
@@ -260,7 +261,7 @@ class Two_Factor_Core {
 	}
 
 	/**
-	 * Add short description. @todo
+	 * Display the Backup code 2fa screen.
 	 *
 	 * @since 0.1-dev
 	 */
@@ -420,6 +421,7 @@ class Two_Factor_Core {
 	 * @since 0.1-dev
 	 *
 	 * @param int $user_id User ID.
+	 * @return array
 	 */
 	public static function create_login_nonce( $user_id ) {
 		$login_nonce               = array();
@@ -443,6 +445,7 @@ class Two_Factor_Core {
 	 * @since 0.1-dev
 	 *
 	 * @param int $user_id User ID.
+	 * @return bool
 	 */
 	public static function delete_login_nonce( $user_id ) {
 		return delete_user_meta( $user_id, self::USER_META_NONCE_KEY );
@@ -455,6 +458,7 @@ class Two_Factor_Core {
 	 *
 	 * @param int    $user_id User ID.
 	 * @param string $nonce Login nonce.
+	 * @return bool
 	 */
 	public static function verify_login_nonce( $user_id, $nonce ) {
 		$login_nonce = get_user_meta( $user_id, self::USER_META_NONCE_KEY, true );

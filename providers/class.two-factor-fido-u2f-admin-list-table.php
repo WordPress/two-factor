@@ -50,6 +50,7 @@ class Two_Factor_FIDO_U2F_Admin_List_Table extends WP_List_Table {
 	 *
 	 * @param object $item The current item.
 	 * @param string $column_name The current column name.
+	 * @return string
 	 */
 	protected function column_default( $item, $column_name ) {
 		switch ( $column_name ) {

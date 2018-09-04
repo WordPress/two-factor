@@ -207,6 +207,7 @@ class Two_Factor_FIDO_U2F_Admin {
 	 * @static
 	 *
 	 * @param int $user_id User ID.
+	 * @return false
 	 */
 	public static function catch_submission( $user_id ) {
 		if ( ! empty( $_REQUEST['do_new_security_key'] ) ) {
