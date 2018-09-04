@@ -895,16 +895,16 @@ class Two_Factor_Core {
 	 * @since 0.1-dev
 	 *
 	 * @return bool
-	 *
-	 * @todo:: make work on single sites also.
 	 */
 	public static function get_universally_forced_option() {
+		$is_forced = is_multisite() ? get_site_option( self::FORCED_SITE_META_KEY, false ) : get_option( self::FORCED_SITE_META_KEY, false );
+
 		/**
 		 * Whether or not site has two-factor universally forced.
 		 *
-		 * @param bool $roles Whether all users on a site are forced to use 2fa.
+		 * @param bool $is_forced Whether all users on a site are forced to use 2fa.
 		 */
-		return (bool) apply_filters( 'two_factor_universally_forced', get_site_option( self::FORCED_SITE_META_KEY, false ) );
+		return (bool) apply_filters( 'two_factor_universally_forced', $is_forced );
 	}
 
 	/**
@@ -913,16 +913,16 @@ class Two_Factor_Core {
 	 * @since 0.1-dev
 	 *
 	 * @return array
-	 *
-	 * @todo:: make work on single sites also.
 	 */
 	public static function get_forced_user_roles() {
+		$roles = is_multisite() ? get_site_option( self::FORCED_ROLES_META_KEY, false ) : get_option( self::FORCED_ROLES_META_KEY, false );
+
 		/**
 		 * User roles which have two-factor forced.
 		 *
 		 * @param array $roles Roles which are required to use 2fa.
 		 */
-		return (array) apply_filters( 'two_factor_forced_user_roles', get_site_option( self::FORCED_ROLES_META_KEY, [] ) );
+		return (array) apply_filters( 'two_factor_forced_user_roles', $roles );
 	}
 
 	/**
