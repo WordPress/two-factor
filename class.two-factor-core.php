@@ -513,6 +513,14 @@ class Two_Factor_Core {
 		wp_enqueue_script( 'jquery' );
 		wp_enqueue_script( 'two-factor-form-script' );
 
+		// If Fido is an enabled 2f Provider, enqueue its assets.
+		$providers = self::get_providers();
+		if ( in_array( 'Two_Factor_FIDO_U2F', array_keys( $providers ), true ) ) {
+			Two_Factor_FIDO_U2F_Admin::enqueue_assets( 'profile.php' );
+			wp_enqueue_style( 'common' );
+			wp_enqueue_style( 'list-tables' );
+		}
+
 		if ( ! function_exists( 'login_header' ) ) {
 			// We really should migrate login_header() out of `wp-login.php` so it can be called from an includes file.
 			include_once( TWO_FACTOR_DIR . 'includes/function.login-header.php' );
