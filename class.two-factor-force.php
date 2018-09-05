@@ -30,7 +30,6 @@ class Two_Factor_Force {
 		// Forced 2fa login functionality.
 		add_action( 'init', array( __CLASS__, 'register_scripts' ) );
 		add_action( 'wp_ajax_two_factor_force_form_submit', array( __CLASS__, 'handle_force_2fa_submission' ) );
-		add_action( 'two_factor_ajax_options_update', array( 'Two_Factor_Core', 'user_two_factor_options_update' ) );
 
 		// Handling intercession in 2 separate hooks to allow us to properly parse for REST requests.
 		add_filter( 'login_redirect', array( __CLASS__, 'maybe_redirect_login' ), 15, 3 );
@@ -61,7 +60,7 @@ class Two_Factor_Force {
 	}
 
 	/**
-	 * Redirect a suer to the 2fa login screen with redirect parameters.
+	 * Redirect a user to the 2fa login screen with redirect parameters.
 	 *
 	 * If a user must have 2fa enabled, we need to send them to the 2fa settings
 	 * takeover. However, we also need to pass in the redirect_to information to
@@ -150,7 +149,7 @@ class Two_Factor_Force {
 			return false;
 		}
 
-		// Should not interrupt logging in or out or our own screen.
+		// Should not interrupt logging in or out.
 		if ( self::is_login_page() ) {
 			return false;
 		}
@@ -184,7 +183,7 @@ class Two_Factor_Force {
 		wp_enqueue_script( 'jquery' );
 		wp_enqueue_script( 'two-factor-form-script' );
 
-		// If Fido is an enabled 2f Provider, enqueue its assets.
+		// If Fido is a valid 2fa Provider, enqueue its assets.
 		$providers = Two_Factor_Core::get_providers();
 		if ( in_array( 'Two_Factor_FIDO_U2F', array_keys( $providers ), true ) ) {
 			Two_Factor_FIDO_U2F_Admin::enqueue_assets( 'profile.php' );

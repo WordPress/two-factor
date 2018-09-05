@@ -44,13 +44,6 @@ class Test_ClassTwoFactorForce extends WP_UnitTestCase {
 		$this->assertGreaterThan(
 			0,
 			has_action(
-				'two_factor_ajax_options_update',
-				array( 'Two_Factor_Core', 'user_two_factor_options_update' )
-			)
-		);
-		$this->assertGreaterThan(
-			0,
-			has_action(
 				'parse_request',
 				array( 'Two_Factor_Force', 'maybe_redirect_to_2fa_settings' )
 			)

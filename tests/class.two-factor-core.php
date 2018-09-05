@@ -84,6 +84,13 @@ class Test_ClassTwoFactorCore extends WP_UnitTestCase {
 				array( 'Two_Factor_Core', 'register_scripts' )
 			)
 		);
+		$this->assertGreaterThan(
+			0,
+			has_action(
+				'two_factor_ajax_options_update',
+				array( 'Two_Factor_Core', 'user_two_factor_options_update' )
+			)
+		);
 	}
 
 	/**
