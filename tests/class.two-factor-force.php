@@ -52,14 +52,21 @@ class Test_ClassTwoFactorForce extends WP_UnitTestCase {
 			0,
 			has_action(
 				'parse_request',
-				array( 'Two_Factor_Force', 'maybe_force_2fa_settings' )
+				array( 'Two_Factor_Force', 'maybe_redirect_to_2fa_settings' )
 			)
 		);
 		$this->assertGreaterThan(
 			0,
 			has_action(
 				'admin_init',
-				array( 'Two_Factor_Force', 'maybe_force_2fa_settings' )
+				array( 'Two_Factor_Force', 'maybe_redirect_to_2fa_settings' )
+			)
+		);
+		$this->assertGreaterThan(
+			0,
+			has_action(
+				'admin_init',
+				array( 'Two_Factor_Force', 'maybe_display_2fa_settings' )
 			)
 		);
 	}
@@ -74,58 +81,56 @@ class Test_ClassTwoFactorForce extends WP_UnitTestCase {
 	}
 
 	/**
-	 * @covers Two_Factor_Force::maybe_force_2fa_settings
+	 * @covers Two_Factor_Force::should_user_redirect
 	 */
-	public function test_maybe_force_2fa_settings_logged_in_wrong_role() {
+	public function test_should_user_redirect_logged_in_wrong_role() {
 		// Set universal value to false.
 		update_site_option( Two_Factor_Force::FORCED_SITE_META_KEY, 0 );
 		// Set role-based value to editors and adminstrators.
 		update_site_option( Two_Factor_Force::FORCED_ROLES_META_KEY, [ 'editor', 'administrator' ] );
 
 		$user = new WP_User( $this->factory->user->create( [ 'role' => 'author' ] ) );
-		wp_set_current_user( $user->ID );
 
-		$this->assertFalse( Two_Factor_Force::maybe_force_2fa_settings() );
+		$this->assertFalse( Two_Factor_Force::should_user_redirect( $user->ID ) );
 	}
 
 	/**
-	 * @covers Two_Factor_Force::maybe_force_2fa_settings
+	 * @covers Two_Factor_Force::should_user_redirect
 	 */
-	public function test_maybe_force_2fa_settings_logged_in_no_requirement() {
+	public function test_should_user_redirect_logged_in_no_requirement() {
 		// Set universal value to false.
 		update_site_option( Two_Factor_Force::FORCED_SITE_META_KEY, 0 );
 
 		$user = new WP_User( $this->factory->user->create() );
-		wp_set_current_user( $user->ID );
 
-		$this->assertFalse( Two_Factor_Force::maybe_force_2fa_settings() );
+		$this->assertFalse( Two_Factor_Force::should_user_redirect( $user->ID ) );
 	}
 
 	/**
-	 * @covers Two_Factor_Force::maybe_force_2fa_settings
+	 * @covers Two_Factor_Force::should_user_redirect
 	 */
-	public function test_maybe_force_2fa_settings_logged_out() {
+	public function test_should_user_redirect_logged_out() {
 		wp_logout();
 
-		$this->assertFalse( Two_Factor_Force::maybe_force_2fa_settings() );
+		$this->assertFalse( Two_Factor_Force::should_user_redirect( 123456 ) );
 	}
 
 	/**
-	 * @covers Two_Factor_Force::maybe_force_2fa_settings
+	 * @covers Two_Factor_Force::should_user_redirect
 	 */
-	public function test_maybe_force_2fa_settings_is_rest() {
+	public function test_should_user_redirect_is_rest() {
 		define( 'REST_REQUEST', true );
 
-		$this->assertFalse( Two_Factor_Force::maybe_force_2fa_settings() );
+		$this->assertFalse( Two_Factor_Force::should_user_redirect( 123456 ) );
 	}
 
 	/**
-	 * @covers Two_Factor_Force::maybe_force_2fa_settings
+	 * @covers Two_Factor_Force::should_user_redirect
 	 */
-	public function test_maybe_force_2fa_settings_is_ajax() {
+	public function test_should_user_redirect_is_ajax() {
 		define( 'DOING_AJAX', true );
 
-		$this->assertFalse( Two_Factor_Force::maybe_force_2fa_settings() );
+		$this->assertFalse( Two_Factor_Force::should_user_redirect( 123456 ) );
 	}
 
 	/**

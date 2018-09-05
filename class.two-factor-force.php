@@ -33,8 +33,10 @@ class Two_Factor_Force {
 		add_action( 'two_factor_ajax_options_update', array( 'Two_Factor_Core', 'user_two_factor_options_update' ) );
 
 		// Handling intercession in 2 separate hooks to allow us to properly parse for REST requests.
-		add_action( 'parse_request', array( __CLASS__, 'maybe_force_2fa_settings' ) );
-		add_action( 'admin_init', array( __CLASS__, 'maybe_force_2fa_settings' ) );
+		add_filter( 'login_redirect', array( __CLASS__, 'maybe_redirect_login' ), 15, 3 );
+		add_action( 'parse_request', array( __CLASS__, 'maybe_redirect_to_2fa_settings' ) );
+		add_action( 'admin_init', array( __CLASS__, 'maybe_redirect_to_2fa_settings' ) );
+		add_action( 'admin_init', array( __CLASS__, 'maybe_display_2fa_settings' ) );
 
 		if ( is_multisite() ) {
 			add_action( 'wpmu_options', array( __CLASS__, 'force_two_factor_setting_options' ) );
@@ -59,6 +61,39 @@ class Two_Factor_Force {
 	}
 
 	/**
+	 * Redirect a suer to the 2fa login screen with redirect parameters.
+	 *
+	 * If a user must have 2fa enabled, we need to send them to the 2fa settings
+	 * takeover. However, we also need to pass in the redirect_to information to
+	 * ensure that the user lands in the right place.
+	 *
+	 * @param string           $redirect_to           The redirect destination URL.
+	 * @param string           $requested_redirect_to The requested redirect destination URL passed as a parameter.
+	 * @param WP_User|WP_Error $user                  WP_User object if login was successful, WP_Error object otherwise.
+	 * @return string
+	 */
+	public static function maybe_redirect_login( $redirect_to, $requested_redirect_to, $user ) {
+		// If login has failed, do nothing.
+		if ( $user instanceof WP_Error ) {
+			return $redirect_to;
+		}
+
+		// Check if redirect is necessary for user.
+		if ( ! self::should_user_redirect( $user->ID ) ) {
+			return $redirect_to;
+		};
+
+		// Append redirect_to URL.
+		return add_query_arg(
+			[
+				'force_2fa_screen' => 1,
+				'redirect_to'      => rawurlencode( $requested_redirect_to ),
+			],
+			admin_url()
+		);
+	}
+
+	/**
 	 * Maybe force the 2fa login page on a user.
 	 *
 	 * If 2fa is required for a user (based on universal or role settings),
@@ -66,13 +101,56 @@ class Two_Factor_Force {
 	 * a 2-factor authentication of some kind to perform any action on their site.
 	 * This occurs both on the front and backend.
 	 */
-	public static function maybe_force_2fa_settings() {
+	public static function maybe_redirect_to_2fa_settings() {
+		if ( ! self::should_user_redirect( get_current_user_id() ) || isset( $_GET['force_2fa_screen'] ) ) {
+			return;
+		}
+
+		// We are now forced to display the two-factor settings page.
+		wp_safe_redirect( add_query_arg(
+			'force_2fa_screen',
+			1,
+			admin_url()
+		) );
+		exit;
+	}
+
+	/**
+	 * On front and backend requests, display
+	 */
+	public static function maybe_display_2fa_settings() {
+		if ( ! isset( $_GET['force_2fa_screen'] ) || ! $_GET['force_2fa_screen'] ) {
+			return;
+		}
+
+		if ( ! self::should_user_redirect( get_current_user_id() ) ) {
+			$url = admin_url();
+
+			if ( isset( $_GET['redirect_to'] ) ) {
+				$url = esc_url_raw( urldecode( $_GET['redirect_to'] ) );
+			}
+
+			wp_safe_redirect( $url );
+			exit;
+		}
+
+		self::force_2fa_login_html();
+		exit;
+	}
+
+	/**
+	 * Check whether or not a user should be redirected to the force 2fa screen.
+	 *
+	 * @param int $user_id ID of the user to check against.
+	 * @return bool Whether or not user should be forced to 2fa screen.
+	 */
+	public static function should_user_redirect( $user_id ) {
 		// This should not affect AJAX or REST requests, carry on.
 		if ( wp_doing_ajax() || ( defined( 'REST_REQUEST' ) && REST_REQUEST ) ) {
 			return false;
 		}
 
-		// Should not interrupt logging in or out.
+		// Should not interrupt logging in or out or our own screen.
 		if ( self::is_login_page() ) {
 			return false;
 		}
@@ -83,7 +161,7 @@ class Two_Factor_Force {
 		}
 
 		// 2fa is not forced for current user, nothing to show.
-		if ( ! self::is_two_factor_forced_for_current_user() ) {
+		if ( ! self::is_two_factor_forced( $user_id ) ) {
 			return false;
 		}
 
@@ -92,9 +170,7 @@ class Two_Factor_Force {
 			return false;
 		}
 
-		// We are now forced to display the two-factor settings page.
-		self::force_2fa_login_html();
-		exit;
+		return true;
 	}
 
 	/**
