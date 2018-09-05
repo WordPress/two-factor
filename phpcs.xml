@@ -2,6 +2,8 @@
 <ruleset name="WordPress Coding Standards for Plugins">
 	<description>Generally-applicable sniffs for WordPress plugins</description>
 
+	<config name="installed_paths" value="vendor/wp-coding-standards/wpcs" />
+
 	<rule ref="WordPress-Core"/>
 	<rule ref="WordPress-Docs">
 		<exclude name="Squiz.Commenting.FileComment.MissingPackageTag"/>

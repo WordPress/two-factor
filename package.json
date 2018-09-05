@@ -4,10 +4,12 @@
 	"homepage": "https://github.com/georgestephanis/two-factor",
 	"scripts": {
 		"grunt": "grunt",
-		"test": "DIFF_BASE=master ./node_modules/wp-dev-lib/pre-commit",
-		"readme": "./node_modules/wp-dev-lib/generate-markdown-readme",
-		"phpunit": "DEV_LIB_ONLY=phpunit ./node_modules/wp-dev-lib/pre-commit",
-		"precommit": "DEV_LIB_SKIP=phpunit ./node_modules/wp-dev-lib/pre-commit"
+		"test": "DIFF_BASE=master ./vendor/xwp/wp-dev-lib/pre-commit",
+		"readme": "./vendor/xwp/wp-dev-lib/generate-markdown-readme",
+		"phpunit": "DEV_LIB_ONLY=phpunit ./vendor/xwp/wp-dev-lib/pre-commit",
+		"preinstall": "composer install",
+		"precommit": "DEV_LIB_SKIP=phpunit ./vendor/xwp/wp-dev-lib/pre-commit",
+		"prepush": "npm test"
 	},
 	"repository": {
 		"type": "git",
@@ -18,7 +20,6 @@
 	"devDependencies": {
 		"grunt": "~0.4.5",
 		"grunt-contrib-jshint": "~0.11.3",
-		"husky": "^0.14.3",
-		"wp-dev-lib": "github:xwp/wp-dev-lib"
+		"husky": "^0.14.3"
 	}
 }

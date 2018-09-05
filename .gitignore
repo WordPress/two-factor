@@ -1,4 +1,6 @@
 .DS_Store
-node_modules
-npm-debug.log
-vendor
+/node_modules
+/npm-debug.log
+/vendor
+/composer.lock
+/package-lock.json
