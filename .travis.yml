@@ -25,7 +25,7 @@ env:
 
 before_script:
   - npm install
-  - export DEV_LIB_PATH=node_modules/wp-dev-lib
+  - export DEV_LIB_PATH=vendor/xwp/wp-dev-lib
   - source $DEV_LIB_PATH/travis.install.sh
 
 script:
