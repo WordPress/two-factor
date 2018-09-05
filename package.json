@@ -3,6 +3,7 @@
 	"title": "Two Factor",
 	"homepage": "https://github.com/georgestephanis/two-factor",
 	"scripts": {
+		"preinstall": "composer install",
 		"grunt": "grunt",
 		"test": "DIFF_BASE=master ./node_modules/wp-dev-lib/pre-commit",
 		"readme": "./node_modules/wp-dev-lib/generate-markdown-readme",
