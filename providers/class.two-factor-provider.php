@@ -85,12 +85,11 @@ abstract class Two_Factor_Provider {
 	 */
 	public function get_code( $length = 8, $chars = '1234567890' ) {
 		$code = '';
-		if ( ! is_array( $chars ) ) {
-			$chars = str_split( $chars );
+		if ( is_array( $chars ) ) {
+			$chars = implode( '', $chars );
 		}
 		for ( $i = 0; $i < $length; $i++ ) {
-			$key = array_rand( $chars );
-			$code .= $chars[ $key ];
+			$code .= substr( $chars, wp_rand( 0, strlen( $chars ) - 1 ), 1 );
 		}
 		return $code;
 	}
