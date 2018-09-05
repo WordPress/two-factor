@@ -894,7 +894,7 @@ class Two_Factor_Core {
 		$two_factor_forced_roles = self::get_forced_user_roles();
 		$required_roles          = array_filter( $user->roles, function( $role ) use ( $two_factor_forced_roles ) {
 			return in_array( $role, $two_factor_forced_roles, true );
-		}, ARRAY_FILTER_USE_BOTH);
+		}, ARRAY_FILTER_USE_BOTH );
 
 		// If the required_roles is not empty, then the user is in a role that requires two_factor authentication.
 		return ! empty( $required_roles );
