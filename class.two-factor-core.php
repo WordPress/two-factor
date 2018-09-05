@@ -945,7 +945,7 @@ class Two_Factor_Core {
 			<tbody>
 				<tr>
 					<th scope="row">
-						<?php esc_html_e( 'Universally force two-factor', 'two-factor' ); ?>
+						<?php esc_html_e( 'Force all users to enable two-factor', 'two-factor' ); ?>
 					</th>
 					<td>
 						<?php self::global_force_2fa_field(); ?>
@@ -1059,7 +1059,7 @@ class Two_Factor_Core {
 		// Add global force 2fa field.
 		add_settings_field(
 			self::FORCED_SITE_META_KEY,
-			esc_html__( 'Universally force two-factor', 'two-factor' ),
+			esc_html__( 'Force all users to enable two-factor', 'two-factor' ),
 			array( __CLASS__, 'global_force_2fa_field' ),
 			'general',
 			'two-factor-force-2fa'
