@@ -3,9 +3,26 @@
  * Test Two Factor FIDO U2F.
  */
 
+/**
+ * Class Tests_Two_Factor_FIDO_U2F
+ *
+ * @package Two_Factor
+ * @group providers
+ */
 class Tests_Two_Factor_FIDO_U2F extends WP_UnitTestCase {
 
+	/**
+	 * Instance of our provider class.
+	 *
+	 * @var Two_Factor_FIDO_U2F
+	 */
 	protected $provider;
+
+	/**
+	 * Instance of the vendor U2F class.
+	 *
+	 * @var u2flib_server\U2F
+	 */
 	protected $u2f;
 
 	/**

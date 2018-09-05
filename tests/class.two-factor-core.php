@@ -1,15 +1,36 @@
 <?php
 
+/**
+ * Class Test_ClassTwoFactorCore
+ *
+ * @package Two_Factor
+ * @group core
+ */
 class Test_ClassTwoFactorCore extends WP_UnitTestCase {
 
+	/**
+	 * Original User ID set in setup.
+	 *
+	 * @var int
+	 */
 	private $old_user_id;
 
+	/**
+	 * Set up error handling before test suite.
+	 *
+	 * @see WP_UnitTestCase::setUpBeforeClass()
+	 */
 	public static function setUpBeforeClass() {
 		parent::setUpBeforeClass();
 
 		set_error_handler( array( 'Test_ClassTwoFactorCore', 'error_handler' ) );
 	}
 
+	/**
+	 * Clean up error settings after test suite.
+	 *
+	 * @see WP_UnitTestCase::setUpBeforeClass()
+	 */
 	public static function tearDownAfterClass() {
 		restore_error_handler();
 

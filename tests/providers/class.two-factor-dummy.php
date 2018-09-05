@@ -3,8 +3,19 @@
  * Test Two Factor Dummy.
  */
 
+/**
+ * Class Tests_Two_Factor_Dummy
+ *
+ * @package Two_Factor
+ * @group providers
+ */
 class Tests_Two_Factor_Dummy extends WP_UnitTestCase {
 
+	/**
+	 * Instance of our provider class.
+	 *
+	 * @var Two_Factor_Dummy
+	 */
 	protected $provider;
 
 	/**
