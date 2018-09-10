@@ -219,3 +219,9 @@ function login_header( $title = 'Log In', $message = '', $wp_error = null ) {
 		}
 	}
 } // End of login_header()
+
+function wp_login_viewport_meta() {
+	?>
+	<meta name="viewport" content="width=device-width" />
+	<?php
+}
