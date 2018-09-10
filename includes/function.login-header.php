@@ -3,6 +3,11 @@
  * Extracted from wp-login.php since that file also loads WP core which we already have.
  */
 
+// Ensure we don't trigger PHP errors.
+if ( function_exists( 'login_header' ) || function_exists( 'wp_login_viewport_meta' ) ) {
+	return;
+}
+
 /**
  * Output the login page header.
  *
