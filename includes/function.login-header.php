@@ -1,13 +1,17 @@
 <?php
 /**
+ * Extracted from wp-login.php since that file also loads WP core which we already have.
+ */
+
+/**
  * Output the login page header.
  *
  * @param string   $title    Optional. WordPress login Page title to display in the `<title>` element.
  *                           Default 'Log In'.
  * @param string   $message  Optional. Message to display in header. Default empty.
- * @param WP_Error $wp_error Optional. The error to pass. Default empty.
+ * @param WP_Error $wp_error Optional. The error to pass. Default is a WP_Error instance.
  */
-function login_header( $title = 'Log In', $message = '', $wp_error = '' ) {
+function login_header( $title = 'Log In', $message = '', $wp_error = null ) {
 	global $error, $interim_login, $action;
 
 	// Don't index any of these forms
@@ -15,8 +19,9 @@ function login_header( $title = 'Log In', $message = '', $wp_error = '' ) {
 
 	add_action( 'login_head', 'wp_login_viewport_meta' );
 
-	if ( empty($wp_error) )
+	if ( ! is_wp_error( $wp_error ) ) {
 		$wp_error = new WP_Error();
+	}
 
 	// Shake it!
 	$shake_error_codes = array( 'empty_password', 'empty_email', 'invalid_email', 'invalidcombo', 'empty_username', 'invalid_username', 'incorrect_password' );
@@ -32,7 +37,20 @@ function login_header( $title = 'Log In', $message = '', $wp_error = '' ) {
 	if ( $shake_error_codes && $wp_error->get_error_code() && in_array( $wp_error->get_error_code(), $shake_error_codes ) )
 		add_action( 'login_head', 'wp_shake_js', 12 );
 
-	$separator = is_rtl() ? ' &rsaquo; ' : ' &lsaquo; ';
+	$login_title = get_bloginfo( 'name', 'display' );
+
+	/* translators: Login screen title. 1: Login screen name, 2: Network or site name */
+	$login_title = sprintf( __( '%1$s &lsaquo; %2$s &#8212; WordPress' ), $title, $login_title );
+
+	/**
+	 * Filters the title tag content for login page.
+	 *
+	 * @since 4.9.0
+	 *
+	 * @param string $login_title The page title, with extra context added.
+	 * @param string $title       The original page title.
+	 */
+	$login_title = apply_filters( 'login_title', $login_title, $title );
 
 	?><!DOCTYPE html>
 	<!--[if IE 8]>
@@ -43,7 +61,7 @@ function login_header( $title = 'Log In', $message = '', $wp_error = '' ) {
 	<!--<![endif]-->
 	<head>
 	<meta http-equiv="Content-Type" content="<?php bloginfo('html_type'); ?>; charset=<?php bloginfo('charset'); ?>" />
-	<title><?php echo get_bloginfo( 'name', 'display' ) . $separator . $title; ?></title>
+	<title><?php echo $login_title; ?></title>
 	<?php
 
 	wp_enqueue_style( 'login' );
@@ -77,8 +95,8 @@ function login_header( $title = 'Log In', $message = '', $wp_error = '' ) {
 		$login_header_url   = network_home_url();
 		$login_header_title = get_network()->site_name;
 	} else {
-		$login_header_url   = __( 'https://wordpress.org/', 'two-factor' );
-		$login_header_title = __( 'Powered by WordPress', 'two-factor' );
+		$login_header_url   = __( 'https://wordpress.org/' );
+		$login_header_title = __( 'Powered by WordPress' );
 	}
 
 	/**
@@ -98,6 +116,16 @@ function login_header( $title = 'Log In', $message = '', $wp_error = '' ) {
 	 * @param string $login_header_title Login header logo title attribute.
 	 */
 	$login_header_title = apply_filters( 'login_headertitle', $login_header_title );
+
+	/*
+	 * To match the URL/title set above, Multisite sites have the blog name,
+	 * while single sites get the header title.
+	 */
+	if ( is_multisite() ) {
+		$login_header_text = get_bloginfo( 'name', 'display' );
+	} else {
+		$login_header_text = $login_header_title;
+	}
 
 	$classes = array( 'login-action-' . $action, 'wp-core-ui' );
 	if ( is_rtl() )
@@ -135,7 +163,7 @@ function login_header( $title = 'Log In', $message = '', $wp_error = '' ) {
 	do_action( 'login_header' );
 	?>
 	<div id="login">
-		<h1><a href="<?php echo esc_url( $login_header_url ); ?>" title="<?php echo esc_attr( $login_header_title ); ?>" tabindex="-1"><?php bloginfo( 'name' ); ?></a></h1>
+		<h1><a href="<?php echo esc_url( $login_header_url ); ?>" title="<?php echo esc_attr( $login_header_title ); ?>" tabindex="-1"><?php echo $login_header_text; ?></a></h1>
 	<?php
 
 	unset( $login_header_url, $login_header_title );
@@ -191,3 +219,9 @@ function login_header( $title = 'Log In', $message = '', $wp_error = '' ) {
 		}
 	}
 } // End of login_header()
+
+function wp_login_viewport_meta() {
+	?>
+	<meta name="viewport" content="width=device-width" />
+	<?php
+}
