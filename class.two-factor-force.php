@@ -118,6 +118,7 @@ class Two_Factor_Force {
 	 * On front and backend requests, display
 	 */
 	public static function maybe_display_2fa_settings() {
+		// phpcs:ignore We are validating that the value exists and are not processing it.
 		if ( ! isset( $_GET['force_2fa_screen'] ) || ! $_GET['force_2fa_screen'] ) {
 			return;
 		}
@@ -126,6 +127,7 @@ class Two_Factor_Force {
 			$url = admin_url();
 
 			if ( isset( $_GET['redirect_to'] ) ) {
+				//phpcs:ignore This IS the proper sanitization for URLs.
 				$url = esc_url_raw( urldecode( $_GET['redirect_to'] ) );
 			}
 
@@ -396,6 +398,7 @@ class Two_Factor_Force {
 		check_admin_referer( 'force_two_factor_options', '_nonce_force_two_factor_options' );
 
 		// Validate and save universally forced key.
+		//phpcs:ignore The value from $_POST is not saved, only 1 or 0 can be.
 		if ( isset( $_POST[ self::FORCED_SITE_META_KEY ] ) && $_POST[ self::FORCED_SITE_META_KEY ] ) {
 			update_site_option( self::FORCED_SITE_META_KEY, 1 );
 		} else {
@@ -411,6 +414,7 @@ class Two_Factor_Force {
 		}
 
 		// Whitelist roles against valid WordPress role slugs.
+		//phpcs:ignore Our validation method below only accepts whitelisted strings from `editable_roles`.
 		$roles = self::validate_forced_roles( $_POST[ self::FORCED_ROLES_META_KEY ] );
 
 		update_site_option( self::FORCED_ROLES_META_KEY, $roles );
