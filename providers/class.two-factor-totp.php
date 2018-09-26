@@ -88,12 +88,14 @@ class Two_Factor_Totp extends Two_Factor_Provider {
 				<strong><?php echo esc_html( $key ); ?></strong>
 			</p>
 			<p>
-				<?php esc_html_e( 'Please scan the QR code or manually enter the key, then enter an authentication code from your app in order to complete setup', 'two-factor' ); ?>
+				<?php esc_html_e( 'Please scan the QR code or manually enter the key, then enter an authentication code from your app in order to complete setup.', 'two-factor' ); ?>
 			</p>
 			<p>
-				<label for="two-factor-totp-authcode"><?php esc_html_e( 'Authentication Code:', 'two-factor' ); ?></label>
 				<input type="hidden" name="two-factor-totp-key" value="<?php echo esc_attr( $key ) ?>" />
-				<input type="tel" name="two-factor-totp-authcode" id="two-factor-totp-authcode" class="input" value="" size="20" pattern="[0-9]*" />
+				<label for="two-factor-totp-authcode">
+					<?php esc_html_e( 'Authentication Code:', 'two-factor' ); ?>
+					<input type="tel" name="two-factor-totp-authcode" id="two-factor-totp-authcode" class="input" value="" size="20" pattern="[0-9]*" />
+				</label>
 				<input type="submit" class="button" name="two-factor-totp-submit" value="<?php esc_attr_e( 'Submit', 'two-factor' ); ?>" />
 			</p>
 		<?php else : ?>
