@@ -388,11 +388,14 @@ class Two_Factor_Totp extends Two_Factor_Provider {
 	 * Whether this Two Factor provider is configured and available for the user specified.
 	 *
 	 * @param WP_User $user WP_User object of the logged-in user.
+	 *
 	 * @return boolean
 	 */
 	public function is_available_for_user( $user ) {
 		// Only available if the secret key has been saved for the user.
-		return ! empty( $this->get_user_totp_key( $user->ID ) );
+		$key = $this->get_user_totp_key( $user->ID );
+
+		return ! empty( $key );
 	}
 
 	/**
