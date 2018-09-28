@@ -241,4 +241,14 @@ class Tests_Two_Factor_Totp extends WP_UnitTestCase {
 		);
 	}
 
+	/**
+	 * @covers Two_Factor_Totp::is_valid_key
+	 */
+	public function test_is_valid_key() {
+		$this->assertTrue( $this->provider->is_valid_key( 'ABC123' ) );
+		$this->assertFalse( $this->provider->is_valid_key( '' ) );
+		$this->assertFalse( $this->provider->is_valid_key( 'abc123' ) );
+		$this->assertFalse( $this->provider->is_valid_key( 'has a space' ) );
+	}
+
 }
