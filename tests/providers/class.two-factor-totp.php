@@ -79,27 +79,6 @@ class Tests_Two_Factor_Totp extends WP_UnitTestCase {
 	 * @covers Two_Factor_Totp::user_two_factor_options_update
 	 * @covers Two_Factor_Totp::is_available_for_user
 	 */
-	public function test_user_two_factor_options_update_no_key() {
-		$user = new WP_User( $this->factory->user->create() );
-
-		$request_key = '_nonce_user_two_factor_totp_options';
-		$_POST[$request_key] = wp_create_nonce( 'user_two_factor_totp_options' );
-		$_REQUEST[$request_key] = $_POST[$request_key];
-
-		ob_start();
-		$this->assertFalse( $this->provider->user_two_factor_options_update( $user->ID ) );
-		$content = ob_get_clean();
-
-		unset( $_REQUEST[$request_key] );
-		unset( $_POST[$request_key] );
-
-		$this->assertFalse( $this->provider->is_available_for_user( $user ) );
-	}
-
-	/**
-	 * @covers Two_Factor_Totp::user_two_factor_options_update
-	 * @covers Two_Factor_Totp::is_available_for_user
-	 */
 	public function test_user_two_factor_options_update_set_key_no_authcode() {
 		$user = new WP_User( $this->factory->user->create() );
 
@@ -206,6 +185,83 @@ class Tests_Two_Factor_Totp extends WP_UnitTestCase {
 		$authcode = $this->provider->calc_totp( $key );
 
 		$this->assertTrue( $this->provider->is_valid_authcode( $key, $authcode ) );
+	}
+
+	/**
+	 * Check secret key CRUD operations.
+	 *
+	 * @covers Two_Factor_Totp::get_user_totp_key
+	 * @covers Two_Factor_Totp::set_user_totp_key
+	 * @covers Two_Factor_Totp::delete_user_totp_key
+	 */
+	public function test_user_totp_key() {
+		$user = new WP_User( $this->factory->user->create() );
+
+		$this->assertEquals(
+			'',
+			$this->provider->get_user_totp_key( $user->ID ),
+			'User does not have TOTP secret configured by default'
+		);
+
+		$this->provider->set_user_totp_key( $user->ID, '1234' );
+
+		$this->assertEquals(
+			'1234',
+			$this->provider->get_user_totp_key( $user->ID ),
+			'User has a secret key'
+		);
+
+		$this->provider->delete_user_totp_key( $user->ID );
+
+		$this->assertEquals(
+			'',
+			$this->provider->get_user_totp_key( $user->ID ),
+			'User no longer has a secret key stored'
+		);
+	}
+
+	/**
+	 * @covers Two_Factor_Totp::is_valid_key
+	 */
+	public function test_is_valid_key() {
+		$this->assertTrue( $this->provider->is_valid_key( 'ABC234' ), 'Base32 chars are valid' );
+		$this->assertFalse( $this->provider->is_valid_key( '' ), 'Empty string is invalid' );
+		$this->assertFalse( $this->provider->is_valid_key( 'abc233' ), 'Lowercase chars are invalid' );
+		$this->assertFalse( $this->provider->is_valid_key( 'has a space' ), 'Spaces not allowed' );
+	}
+
+	/**
+	 * @covers Two_Factor_Totp::user_two_factor_options_update
+	 */
+	public function test_user_can_delete_secret() {
+		$user = new WP_User( $this->factory->user->create() );
+		$key = $this->provider->generate_key();
+
+		// Configure secret for the user.
+		$this->provider->set_user_totp_key( $user->ID, $key );
+
+		$this->assertEquals(
+			$key,
+			$this->provider->get_user_totp_key( $user->ID ),
+			'Secret was stored and can be fetched'
+		);
+
+		// Configure the request and the nonce.
+		$nonce = wp_create_nonce( 'user_two_factor_totp_options' );
+		$_POST['_nonce_user_two_factor_totp_options'] = $nonce;
+		$_REQUEST['_nonce_user_two_factor_totp_options'] = $nonce; // Required for check_admin_referer().
+
+		// Set the request to delete things.
+		$_POST['two-factor-totp-delete'] = 1;
+
+		// Process the request.
+		$this->provider->user_two_factor_options_update( $user->ID );
+
+		$this->assertEquals(
+			'',
+			$this->provider->get_user_totp_key( $user->ID ),
+			'Secret has been deleted'
+		);
 	}
 
 }

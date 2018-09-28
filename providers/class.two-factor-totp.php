@@ -71,27 +71,43 @@ class Two_Factor_Totp extends Two_Factor_Provider {
 		}
 
 		wp_nonce_field( 'user_two_factor_totp_options', '_nonce_user_two_factor_totp_options', false );
-		$key = get_user_meta( $user->ID, self::SECRET_META_KEY, true );
+
+		$key = $this->get_user_totp_key( $user->ID );
 		$this->admin_notices();
+
 		?>
-		<br />
+		<div id="two-factor-totp-options">
 		<?php if ( empty( $key ) ) :
 			$key = $this->generate_key();
 			$site_name = get_bloginfo( 'name', 'display' );
 			?>
-			<a href="javascript:;" onclick="jQuery('#two-factor-totp-options').toggle();"><?php esc_html_e( 'View Options &rarr;', 'two-factor' ); ?></a>
-			<div id="two-factor-totp-options" style="display:none;">
-					<img src="<?php echo esc_url( $this->get_google_qr_code( $site_name . ':' . $user->user_login, $key, $site_name ) ); ?>" id="two-factor-totp-qrcode" />
-					<p><strong><?php echo esc_html( $key ); ?></strong></p>
-					<p><?php esc_html_e( 'Please scan the QR code or manually enter the key, then enter an authentication code from your app in order to complete setup', 'two-factor' ); ?></p>
-					<p>
-						<label for="two-factor-totp-authcode"><?php esc_html_e( 'Authentication Code:', 'two-factor' ); ?></label>
-						<input type="hidden" name="two-factor-totp-key" value="<?php echo esc_attr( $key ) ?>" />
-						<input type="tel" name="two-factor-totp-authcode" id="two-factor-totp-authcode" class="input" value="" size="20" pattern="[0-9]*" />
-					</p>
-			</div>
+			<p>
+				<?php esc_html_e( 'Please scan the QR code or manually enter the key, then enter an authentication code from your app in order to complete setup.', 'two-factor' ); ?>
+			</p>
+			<p>
+				<img src="<?php echo esc_url( $this->get_google_qr_code( $site_name . ':' . $user->user_login, $key, $site_name ) ); ?>" id="two-factor-totp-qrcode" />
+			</p>
+			<p>
+				<code><?php echo esc_html( $key ); ?></code>
+			</p>
+			<p>
+				<input type="hidden" name="two-factor-totp-key" value="<?php echo esc_attr( $key ); ?>" />
+				<label for="two-factor-totp-authcode">
+					<?php esc_html_e( 'Authentication Code:', 'two-factor' ); ?>
+					<input type="tel" name="two-factor-totp-authcode" id="two-factor-totp-authcode" class="input" value="" size="20" pattern="[0-9]*" />
+				</label>
+				<input type="submit" class="button" name="two-factor-totp-submit" value="<?php esc_attr_e( 'Submit', 'two-factor' ); ?>" />
+			</p>
 		<?php else : ?>
-			<p class="success"><?php esc_html_e( 'Enabled', 'two-factor' ); ?></p>
+			<p class="success">
+				<?php esc_html_e( 'Secret key configured and registered.', 'two-factor' ); ?>
+			</p>
+			<p>
+				<input type="submit" class="button" name="two-factor-totp-delete" value="<?php esc_attr_e( 'Reset Key', 'two-factor' ); ?>" />
+				<em class="description">
+					<?php esc_html_e( 'You will have to re-scan the QR code on all devices as the previous codes will stop working.', 'two-factor' ); ?>
+				</em>
+			</p>
 		<?php endif; ?>
 		</div>
 		<?php
@@ -104,34 +120,93 @@ class Two_Factor_Totp extends Two_Factor_Provider {
 	 * @return false
 	 */
 	public function user_two_factor_options_update( $user_id ) {
+		$notices = array();
+		$errors = array();
+
+		$current_key = $this->get_user_totp_key( $user_id );
+
 		if ( isset( $_POST['_nonce_user_two_factor_totp_options'] ) ) {
 			check_admin_referer( 'user_two_factor_totp_options', '_nonce_user_two_factor_totp_options' );
 
-			$current_key = get_user_meta( $user_id, self::SECRET_META_KEY, true );
-			if ( $current_key && ! in_array( 'Two_Factor_Totp', Two_Factor_Core::get_enabled_providers_for_user( $user_id ), true ) ) {
-				delete_user_meta( $user_id, self::SECRET_META_KEY );
-				return;
-			} elseif ( ! isset( $_POST['two-factor-totp-key'] ) || $current_key === $_POST['two-factor-totp-key'] || ! preg_match( '/^[' . self::$_base_32_chars . ']+$/', $_POST['two-factor-totp-key'] ) ) {
-				// If the key hasn't changed or is invalid, do nothing.
-				return false;
+			// Delete the secret key.
+			if ( ! empty( $current_key ) && isset( $_POST['two-factor-totp-delete'] ) ) {
+				$this->delete_user_totp_key( $user_id );
 			}
 
-			$notices = array();
-
-			if ( ! empty( $_POST['two-factor-totp-authcode'] ) ) {
-				if ( $this->is_valid_authcode( $_POST['two-factor-totp-key'], $_POST['two-factor-totp-authcode'] ) ) {
-					if ( ! update_user_meta( $user_id, self::SECRET_META_KEY, $_POST['two-factor-totp-key'] ) ) {
-						$notices['error'][] = __( 'Unable to save Two Factor Authentication code. Please re-scan the QR code and enter the code provided by your application.', 'two-factor' );
+			// Validate and store a new secret key.
+			if ( ! empty( $_POST['two-factor-totp-authcode'] ) && ! empty( $_POST['two-factor-totp-key'] ) ) {
+				if ( $this->is_valid_key( $_POST['two-factor-totp-key'] ) ) {
+					if ( $this->is_valid_authcode( $_POST['two-factor-totp-key'], $_POST['two-factor-totp-authcode'] ) ) {
+						if ( ! $this->set_user_totp_key( $user_id, $_POST['two-factor-totp-key'] ) ) {
+							$errors[] = __( 'Unable to save Two Factor Authentication code. Please re-scan the QR code and enter the code provided by your application.', 'two-factor' );
+						}
+					} else {
+						$errors[] = __( 'Invalid Two Factor Authentication code.', 'two-factor' );
 					}
 				} else {
-					$notices['error'][] = __( 'Two Factor Authentication not activated, the authentication code you entered was not valid. Please re-scan the QR code and enter the code provided by your application.', 'two-factor' );
+					$errors[] = __( 'Invalid Two Factor Authentication secret key.', 'two-factor' );
 				}
+			}
+
+			if ( ! empty( $errors ) ) {
+				$notices['error'] = $errors;
 			}
 
 			if ( ! empty( $notices ) ) {
 				update_user_meta( $user_id, self::NOTICES_META_KEY, $notices );
 			}
 		}
+	}
+
+	/**
+	 * Get the TOTP secret key for a user.
+	 *
+	 * @param  int $user_id User ID.
+	 *
+	 * @return string
+	 */
+	public function get_user_totp_key( $user_id ) {
+		return (string) get_user_meta( $user_id, self::SECRET_META_KEY, true );
+	}
+
+	/**
+	 * Set the TOTP secret key for a user.
+	 *
+	 * @param int    $user_id User ID.
+	 * @param string $key TOTP secret key.
+	 *
+	 * @return boolean If the key was stored successfully.
+	 */
+	public function set_user_totp_key( $user_id, $key ) {
+		return update_user_meta( $user_id, self::SECRET_META_KEY, $key );
+	}
+
+	/**
+	 * Delete the TOTP secret key for a user.
+	 *
+	 * @param  int $user_id User ID.
+	 *
+	 * @return boolean If the key was deleted successfully.
+	 */
+	public function delete_user_totp_key( $user_id ) {
+		return delete_user_meta( $user_id, self::SECRET_META_KEY );
+	}
+
+	/**
+	 * Check if the TOTP secret key has a proper format.
+	 *
+	 * @param  string $key TOTP secret key.
+	 *
+	 * @return boolean
+	 */
+	public function is_valid_key( $key ) {
+		$check = sprintf( '/^[%s]+$/', self::$_base_32_chars );
+
+		if ( 1 === preg_match( $check, $key ) ) {
+			return true;
+		}
+
+		return false;
 	}
 
 	/**
@@ -168,9 +243,14 @@ class Two_Factor_Totp extends Two_Factor_Provider {
 	 * @return bool Whether the user gave a valid code
 	 */
 	public function validate_authentication( $user ) {
-		$key = get_user_meta( $user->ID, self::SECRET_META_KEY, true );
+		if ( ! empty( $_REQUEST['authcode'] ) ) { // WPCS: CSRF ok, nonce verified by login_form_validate_2fa().
+			return $this->is_valid_authcode(
+				$this->get_user_totp_key( $user->ID ),
+				sanitize_text_field( $_REQUEST['authcode'] ) // WPCS: CSRF ok, nonce verified by login_form_validate_2fa().
+			);
+		}
 
-		return $this->is_valid_authcode( $key, $_REQUEST['authcode'] );
+		return false;
 	}
 
 	/**
@@ -308,11 +388,12 @@ class Two_Factor_Totp extends Two_Factor_Provider {
 	 * Whether this Two Factor provider is configured and available for the user specified.
 	 *
 	 * @param WP_User $user WP_User object of the logged-in user.
+	 *
 	 * @return boolean
 	 */
 	public function is_available_for_user( $user ) {
 		// Only available if the secret key has been saved for the user.
-		$key = get_user_meta( $user->ID, self::SECRET_META_KEY, true );
+		$key = $this->get_user_totp_key( $user->ID );
 
 		return ! empty( $key );
 	}
