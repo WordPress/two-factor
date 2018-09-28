@@ -79,27 +79,6 @@ class Tests_Two_Factor_Totp extends WP_UnitTestCase {
 	 * @covers Two_Factor_Totp::user_two_factor_options_update
 	 * @covers Two_Factor_Totp::is_available_for_user
 	 */
-	public function test_user_two_factor_options_update_no_key() {
-		$user = new WP_User( $this->factory->user->create() );
-
-		$request_key = '_nonce_user_two_factor_totp_options';
-		$_POST[$request_key] = wp_create_nonce( 'user_two_factor_totp_options' );
-		$_REQUEST[$request_key] = $_POST[$request_key];
-
-		ob_start();
-		$this->assertFalse( $this->provider->user_two_factor_options_update( $user->ID ) );
-		$content = ob_get_clean();
-
-		unset( $_REQUEST[$request_key] );
-		unset( $_POST[$request_key] );
-
-		$this->assertFalse( $this->provider->is_available_for_user( $user ) );
-	}
-
-	/**
-	 * @covers Two_Factor_Totp::user_two_factor_options_update
-	 * @covers Two_Factor_Totp::is_available_for_user
-	 */
 	public function test_user_two_factor_options_update_set_key_no_authcode() {
 		$user = new WP_User( $this->factory->user->create() );
 
