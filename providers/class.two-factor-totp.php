@@ -392,9 +392,7 @@ class Two_Factor_Totp extends Two_Factor_Provider {
 	 */
 	public function is_available_for_user( $user ) {
 		// Only available if the secret key has been saved for the user.
-		$key = get_user_meta( $user->ID, self::SECRET_META_KEY, true );
-
-		return ! empty( $key );
+		return ! empty( $this->get_user_totp_key( $user->ID ) );
 	}
 
 	/**
