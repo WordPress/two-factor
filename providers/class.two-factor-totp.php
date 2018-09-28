@@ -91,7 +91,7 @@ class Two_Factor_Totp extends Two_Factor_Provider {
 				<code><?php echo esc_html( $key ); ?></code>
 			</p>
 			<p>
-				<input type="hidden" name="two-factor-totp-key" value="<?php echo esc_attr( $key ) ?>" />
+				<input type="hidden" name="two-factor-totp-key" value="<?php echo esc_attr( $key ); ?>" />
 				<label for="two-factor-totp-authcode">
 					<?php esc_html_e( 'Authentication Code:', 'two-factor' ); ?>
 					<input type="tel" name="two-factor-totp-authcode" id="two-factor-totp-authcode" class="input" value="" size="20" pattern="[0-9]*" />
@@ -195,7 +195,7 @@ class Two_Factor_Totp extends Two_Factor_Provider {
 	/**
 	 * Check if the TOTP secret key has a proper format.
 	 *
-	 * @param  string  $key TOTP secret key.
+	 * @param  string $key TOTP secret key.
 	 *
 	 * @return boolean
 	 */
@@ -243,7 +243,14 @@ class Two_Factor_Totp extends Two_Factor_Provider {
 	 * @return bool Whether the user gave a valid code
 	 */
 	public function validate_authentication( $user ) {
-		return $this->is_valid_authcode( $this->get_user_totp_key( $user->ID ), $_REQUEST['authcode'] );
+		if ( ! empty( $_REQUEST['authcode'] ) ) {
+			return $this->is_valid_authcode(
+				$this->get_user_totp_key( $user->ID ),
+			 	sanitize_text_field( $_REQUEST['authcode'] )
+			);
+		}
+
+		return false;
 	}
 
 	/**
