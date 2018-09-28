@@ -246,7 +246,7 @@ class Two_Factor_Totp extends Two_Factor_Provider {
 		if ( ! empty( $_REQUEST['authcode'] ) ) { // WPCS: input var ok, nonce verified by login_form_validate_2fa().
 			return $this->is_valid_authcode(
 				$this->get_user_totp_key( $user->ID ),
-			 	sanitize_text_field( $_REQUEST['authcode'] )
+				sanitize_text_field( $_REQUEST['authcode'] ) // WPCS: input var ok, nonce verified by login_form_validate_2fa().
 			);
 		}
 
