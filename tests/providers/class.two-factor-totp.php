@@ -251,4 +251,34 @@ class Tests_Two_Factor_Totp extends WP_UnitTestCase {
 		$this->assertFalse( $this->provider->is_valid_key( 'has a space' ) );
 	}
 
+	/**
+	 * @covers Two_Factor_Totp::user_two_factor_options_update
+	 */
+	public function test_user_can_delete_secret() {
+		$user = new WP_User( $this->factory->user->create() );
+		$key = $this->provider->generate_key();
+
+		// Configure secret for the user.
+		$this->provider->set_user_totp_key( $user->ID, $key );
+
+		$this->assertEquals(
+			$key,
+			$this->provider->get_user_totp_key( $user->ID ),
+			'Secret was stored and can be fetched'
+		);
+
+		// Configure the request and the nonce.
+		$_POST['_nonce_user_two_factor_totp_options'] = wp_create_nonce( 'user_two_factor_totp_options' );
+		$_POST['two-factor-totp-delete'] = 1;
+
+		// Process the request.
+		$this->provider->user_two_factor_options_update( $user->ID );
+
+		$this->assertEquals(
+			'',
+			$this->provider->get_user_totp_key( $user->ID ),
+			'Secret has been deleted'
+		);
+	}
+
 }
