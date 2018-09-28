@@ -247,7 +247,11 @@ class Tests_Two_Factor_Totp extends WP_UnitTestCase {
 		);
 
 		// Configure the request and the nonce.
-		$_POST['_nonce_user_two_factor_totp_options'] = wp_create_nonce( 'user_two_factor_totp_options' );
+		$nonce = wp_create_nonce( 'user_two_factor_totp_options' );
+		$_POST['_nonce_user_two_factor_totp_options'] = $nonce;
+		$_REQUEST['_nonce_user_two_factor_totp_options'] = $nonce; // Required for check_admin_referer().
+
+		// Set the request to delete things.
 		$_POST['two-factor-totp-delete'] = 1;
 
 		// Process the request.
