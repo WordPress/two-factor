@@ -208,4 +208,37 @@ class Tests_Two_Factor_Totp extends WP_UnitTestCase {
 		$this->assertTrue( $this->provider->is_valid_authcode( $key, $authcode ) );
 	}
 
+	/**
+	 * Check secret key CRUD operations.
+	 *
+	 * @covers Two_Factor_Totp::get_user_totp_key
+	 * @covers Two_Factor_Totp::set_user_totp_key
+	 * @covers Two_Factor_Totp::delete_user_totp_key
+	 */
+	public function test_user_totp_key() {
+		$user = new WP_User( $this->factory->user->create() );
+
+		$this->assertEquals(
+			'',
+			$this->provider->get_user_totp_key( $user->ID ),
+			'User does not have TOTP secret configured by default'
+		);
+
+		$this->provider->set_user_totp_key( $user->ID, '1234' );
+
+		$this->assertEquals(
+			'1234',
+			$this->provider->get_user_totp_key( $user->ID ),
+			'User has a secret key'
+		);
+
+		$this->provider->delete_user_totp_key( $user->ID );
+
+		$this->assertEquals(
+			'',
+			$this->provider->get_user_totp_key( $user->ID ),
+			'User no longer has a secret key stored'
+		);
+	}
+
 }
