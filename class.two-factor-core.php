@@ -614,7 +614,7 @@ class Two_Factor_Core {
 	public static function user_two_factor_options( $user ) {
 		wp_enqueue_style( 'user-edit-2fa', plugins_url( 'user-edit.css', __FILE__ ) );
 
-		$enabled_providers = array_keys( self::get_available_providers_for_user( $user->ID ) );
+		$enabled_providers = array_keys( self::get_available_providers_for_user( $user ) );
 		$primary_provider = self::get_primary_provider_for_user( $user->ID );
 
 		if ( ! empty( $primary_provider ) && is_object( $primary_provider ) ) {
