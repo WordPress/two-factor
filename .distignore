@@ -1,9 +1,9 @@
 .*
 /Gruntfile.js
-/composer.lock
-/package-lock.json
-/phpcs.xml
-/phpunit.xml
-/tests
-/node_modules
-/vendor
+composer.lock
+package-lock.json
+phpcs.xml
+phpunit.xml
+tests
+node_modules
+vendor
