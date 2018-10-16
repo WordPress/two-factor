@@ -1,6 +1,5 @@
-/* jshint es3:false, node:true */
+/* jshint es3:false, node:true, esversion: 6 */
 
-const fs = require( 'fs' );
 const ignoreParse = require( 'parse-gitignore' );
 
 module.exports = function( grunt ) {
