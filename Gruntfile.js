@@ -33,10 +33,10 @@ module.exports = function( grunt ) {
 				plugin_slug: 'two-factor',
 				build_dir: '<%= dist_dir %>',
 				assets_dir: 'assets',
+				deploy_tag: false,
 			},
 			trunk: {
 				deploy_trunk: true,
-				deploy_tag: false,
 			},
 		},
 	} );
