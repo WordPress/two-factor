@@ -6,12 +6,10 @@ const ignoreParse = require( 'parse-gitignore' );
 module.exports = function( grunt ) {
 	'use strict';
 
-	let distignore = [];
-
 	require( 'load-grunt-tasks' )( grunt );
 
-	ignoreParse( fs.readFileSync( '.distignore' ) ).map( path => {
-		distignore.push( `!${path}`, `!${path}/**` );
+	const distignore = ignoreParse( '.distignore', [], {
+		invert: true,
 	} );
 
 	grunt.initConfig( {
