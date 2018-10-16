@@ -1,0 +1,12 @@
+.*
+/Gruntfile.js
+/composer.json
+/composer.lock
+/package.json
+/package-lock.json
+/npm-debug.log
+/phpcs.xml
+/phpunit.xml
+/tests
+/vendor
+/node_modules

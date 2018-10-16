@@ -9,7 +9,7 @@ Enable Two-Factor Authentication using time-based one-time passwords (OTP, Googl
 
 == Description ==
 
-For more history, see: http://stephanis.info/2013/08/14/two-cents-on-two-factor/
+For more history, see [this post](https://stephanis.info/2013/08/14/two-cents-on-two-factor/).
 
 == Get Involved ==
 

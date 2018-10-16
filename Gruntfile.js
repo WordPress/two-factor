@@ -1,32 +1,58 @@
-/* jshint es3:false, node:true */
+/* jshint es3:false, node:true, esversion: 6 */
+
+const ignoreParse = require( 'parse-gitignore' );
 
 module.exports = function( grunt ) {
 	'use strict';
 
-	grunt.initConfig( {
+	require( 'load-grunt-tasks' )( grunt );
 
-		pkg: grunt.file.readJSON( 'package.json' ),
-
-		// JavaScript linting with JSHint.
-		jshint: {
-			options: {
-				jshintrc: '.jshintrc'
-			},
-			all: [
-				'Gruntfile.js',
-				'js/*.js',
-				'!js/*.min.js'
-			]
-		},
-
+	const distignore = ignoreParse( '.distignore', [], {
+		invert: true,
 	} );
 
-	// Load tasks
-	grunt.loadNpmTasks( 'grunt-contrib-jshint' );
+	grunt.initConfig( {
+		pkg: grunt.file.readJSON( 'package.json' ),
 
-	// Register tasks
-	grunt.registerTask( 'default', [
-		'jshint'
-	] );
+		dist_dir: 'dist',
+
+		clean: {
+			build: [ '<%= dist_dir %>' ],
+		},
+
+		copy: {
+			dist: {
+				src: [ '**' ].concat( distignore ),
+				dest: '<%= dist_dir %>',
+				expand: true,
+			},
+		},
+
+		wp_deploy: {
+			options: {
+				plugin_slug: 'two-factor',
+				build_dir: '<%= dist_dir %>',
+				assets_dir: 'assets',
+				deploy_tag: false,
+			},
+			trunk: {
+				deploy_trunk: true,
+			},
+		},
+	} );
+
+	grunt.registerTask(
+		'build', [
+			'clean',
+			'copy',
+		]
+	);
+
+	grunt.registerTask(
+		'deploy', [
+			'build',
+			'wp_deploy:trunk',
+		]
+	);
 
 };
