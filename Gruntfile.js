@@ -26,7 +26,7 @@ module.exports = function( grunt ) {
 				src: [ '**' ].concat( distignore ),
 				dest: '<%= dist_dir %>',
 				expand: true,
-			}
+			},
 		},
 
 		wp_deploy: {
@@ -34,6 +34,9 @@ module.exports = function( grunt ) {
 				plugin_slug: 'two-factor',
 				build_dir: '<%= dist_dir %>',
 				assets_dir: 'assets',
+			},
+			trunk: {
+				deploy_trunk: true,
 				deploy_tag: false,
 			},
 		},
@@ -49,7 +52,7 @@ module.exports = function( grunt ) {
 	grunt.registerTask(
 		'deploy', [
 			'build',
-			'wp_deploy',
+			'wp_deploy:trunk',
 		]
 	);
 
