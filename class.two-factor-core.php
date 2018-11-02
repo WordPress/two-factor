@@ -318,6 +318,12 @@ class Two_Factor_Core {
 		$interim_login = isset( $_REQUEST['interim-login'] ); // WPCS: override ok.
 		$wp_login_url = wp_login_url();
 
+		// If we're running in a WP-Engine environment then we need to apply the
+		// site_url filter with the login_post scheme for the form action.
+		if ( function_exists( 'is_wpe' ) && is_wpe() ) {
+			$wp_login_url = apply_filters( 'site_url', $wp_login_url, null, 'login_post', null );
+		}
+
 		$rememberme = 0;
 		if ( isset( $_REQUEST['rememberme'] ) && $_REQUEST['rememberme'] ) {
 			$rememberme = 1;
