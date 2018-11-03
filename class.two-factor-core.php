@@ -458,7 +458,8 @@ class Two_Factor_Core {
 	/**
 	 * Generate the two-factor login form URL.
 	 *
-	 * @param  array $params List of query argument pairs to add to the URL.
+	 * @param  array  $params List of query argument pairs to add to the URL.
+	 * @param  string $scheme URL scheme context.
 	 *
 	 * @return string
 	 */
