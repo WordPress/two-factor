@@ -315,7 +315,7 @@ class Two_Factor_Core {
 
 		$available_providers = self::get_available_providers_for_user( $user );
 		$backup_providers = array_diff_key( $available_providers, array( $provider_class => null ) );
-		$interim_login = isset( $_REQUEST['interim-login'] ); // WPCS: override ok.
+		$interim_login = isset( $_REQUEST['interim-login'] ); // WPCS: XSS ok.
 
 		$rememberme = 0;
 		if ( isset( $_REQUEST['rememberme'] ) && $_REQUEST['rememberme'] ) {
@@ -348,40 +348,73 @@ class Two_Factor_Core {
 				<?php $provider->authentication_page( $user ); ?>
 		</form>
 
-		<?php if ( 1 === count( $backup_providers ) ) :
+		<?php
+		if ( 1 === count( $backup_providers ) ) :
 			$backup_classname = key( $backup_providers );
 			$backup_provider  = $backup_providers[ $backup_classname ];
+			$login_url = self::login_url( array(
+				'action'        => 'backup_2fa',
+				'provider'      => $backup_classname,
+				'wp-auth-id'    => $user->ID,
+				'wp-auth-nonce' => $login_nonce,
+				'redirect_to'   => $redirect_to,
+				'rememberme'    => $rememberme,
+			) );
 			?>
 			<div class="backup-methods-wrap">
-				<p class="backup-methods"><a href="<?php echo esc_url( self::login_url( array(
-					'action'        => 'backup_2fa',
-					'provider'      => $backup_classname,
-					'wp-auth-id'    => $user->ID,
-					'wp-auth-nonce' => $login_nonce,
-					'redirect_to'   => $redirect_to,
-					'rememberme'    => $rememberme,
-				) ) ); ?>"><?php echo esc_html( sprintf( __( 'Or, use your backup method: %s &rarr;', 'two-factor' ), $backup_provider->get_label() ) ); ?></a></p>
+				<p class="backup-methods">
+					<a href="<?php echo esc_url( $login_url ); ?>">
+						<?php
+						echo esc_html( sprintf(
+							// translators: %s: Two-factor method name.
+							__( 'Or, use your backup method: %s &rarr;', 'two-factor' ),
+							$backup_provider->get_label()
+						) );
+						?>
+					</a>
+				</p>
 			</div>
-		<?php elseif ( 1 < count( $backup_providers ) ) : ?>
+		<?php
+		elseif ( 1 < count( $backup_providers ) ) :
+		?>
 			<div class="backup-methods-wrap">
-				<p class="backup-methods"><a href="javascript:;" onclick="document.querySelector('ul.backup-methods').style.display = 'block';"><?php esc_html_e( 'Or, use a backup method…', 'two-factor' ); ?></a></p>
+				<p class="backup-methods">
+					<a href="javascript:;" onclick="document.querySelector('ul.backup-methods').style.display = 'block';">
+						<?php esc_html_e( 'Or, use a backup method…', 'two-factor' ); ?>
+					</a>
+				</p>
 				<ul class="backup-methods">
-					<?php foreach ( $backup_providers as $backup_classname => $backup_provider ) : ?>
-						<li><a href="<?php echo esc_url( self::login_url( array(
+					<?php
+					foreach ( $backup_providers as $backup_classname => $backup_provider ) :
+						$login_url = self::login_url( array(
 							'action'        => 'backup_2fa',
 							'provider'      => $backup_classname,
 							'wp-auth-id'    => $user->ID,
 							'wp-auth-nonce' => $login_nonce,
 							'redirect_to'   => $redirect_to,
 							'rememberme'    => $rememberme,
-						) ) ); ?>"><?php $backup_provider->print_label(); ?></a></li>
+						) );
+						?>
+						<li>
+							<a href="<?php echo esc_url( $login_url ); ?>">
+								<?php $backup_provider->print_label(); ?>
+							</a>
+						</li>
 					<?php endforeach; ?>
 				</ul>
 			</div>
 		<?php endif; ?>
 
 		<p id="backtoblog">
-			<a href="<?php echo esc_url( home_url( '/' ) ); ?>" title="<?php esc_attr_e( 'Are you lost?', 'two-factor' ); ?>"><?php /* translators: %s: site name */ echo esc_html( sprintf( __( '&larr; Back to %s', 'two-factor' ), get_bloginfo( 'title', 'display' ) ) ); ?></a>
+			<a href="<?php echo esc_url( home_url( '/' ) ); ?>" title="<?php esc_attr_e( 'Are you lost?', 'two-factor' ); ?>">
+				<?php
+				echo esc_html( sprintf(
+					// translators: %s: site name.
+					__( '&larr; Back to %s', 'two-factor' ),
+					get_bloginfo( 'title', 'display' )
+				) );
+				?>
+			</a>
 		</p>
 
 		<style>
