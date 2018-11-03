@@ -378,9 +378,7 @@ class Two_Factor_Core {
 					</a>
 				</p>
 			</div>
-			<?php
-			elseif ( 1 < count( $backup_providers ) ) :
-			?>
+			<?php elseif ( 1 < count( $backup_providers ) ) : ?>
 			<div class="backup-methods-wrap">
 				<p class="backup-methods">
 					<a href="javascript:;" onclick="document.querySelector('ul.backup-methods').style.display = 'block';">
