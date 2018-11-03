@@ -367,11 +367,13 @@ class Two_Factor_Core {
 				<p class="backup-methods">
 					<a href="<?php echo esc_url( $login_url ); ?>">
 						<?php
-						echo esc_html( sprintf(
-							// translators: %s: Two-factor method name.
-							__( 'Or, use your backup method: %s &rarr;', 'two-factor' ),
-							$backup_provider->get_label()
-						) );
+						echo esc_html(
+							sprintf(
+								// translators: %s: Two-factor method name.
+								__( 'Or, use your backup method: %s &rarr;', 'two-factor' ),
+								$backup_provider->get_label()
+							)
+						);
 						?>
 					</a>
 				</p>
@@ -412,11 +414,13 @@ class Two_Factor_Core {
 		<p id="backtoblog">
 			<a href="<?php echo esc_url( home_url( '/' ) ); ?>" title="<?php esc_attr_e( 'Are you lost?', 'two-factor' ); ?>">
 				<?php
-				echo esc_html( sprintf(
-					// translators: %s: site name.
-					__( '&larr; Back to %s', 'two-factor' ),
-					get_bloginfo( 'title', 'display' )
-				) );
+				echo esc_html(
+					sprintf(
+						// translators: %s: site name.
+						__( '&larr; Back to %s', 'two-factor' ),
+						get_bloginfo( 'title', 'display' )
+					)
+				);
 				?>
 			</a>
 		</p>
