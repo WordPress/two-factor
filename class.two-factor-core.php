@@ -315,7 +315,7 @@ class Two_Factor_Core {
 
 		$available_providers = self::get_available_providers_for_user( $user );
 		$backup_providers = array_diff_key( $available_providers, array( $provider_class => null ) );
-		$interim_login = isset( $_REQUEST['interim-login'] ); // WPCS: XSS ok.
+		$interim_login = isset( $_REQUEST['interim-login'] ); // WPCS: CSRF ok.
 
 		$rememberme = 0;
 		if ( isset( $_REQUEST['rememberme'] ) && $_REQUEST['rememberme'] ) {
@@ -351,15 +351,17 @@ class Two_Factor_Core {
 		<?php
 		if ( 1 === count( $backup_providers ) ) :
 			$backup_classname = key( $backup_providers );
-			$backup_provider  = $backup_providers[ $backup_classname ];
-			$login_url = self::login_url( array(
-				'action'        => 'backup_2fa',
-				'provider'      => $backup_classname,
-				'wp-auth-id'    => $user->ID,
-				'wp-auth-nonce' => $login_nonce,
-				'redirect_to'   => $redirect_to,
-				'rememberme'    => $rememberme,
-			) );
+			$backup_provider = $backup_providers[ $backup_classname ];
+			$login_url = self::login_url(
+				array(
+					'action'        => 'backup_2fa',
+					'provider'      => $backup_classname,
+					'wp-auth-id'    => $user->ID,
+					'wp-auth-nonce' => $login_nonce,
+					'redirect_to'   => $redirect_to,
+					'rememberme'    => $rememberme,
+				)
+			);
 			?>
 			<div class="backup-methods-wrap">
 				<p class="backup-methods">
@@ -386,14 +388,16 @@ class Two_Factor_Core {
 				<ul class="backup-methods">
 					<?php
 					foreach ( $backup_providers as $backup_classname => $backup_provider ) :
-						$login_url = self::login_url( array(
-							'action'        => 'backup_2fa',
-							'provider'      => $backup_classname,
-							'wp-auth-id'    => $user->ID,
-							'wp-auth-nonce' => $login_nonce,
-							'redirect_to'   => $redirect_to,
-							'rememberme'    => $rememberme,
-						) );
+						$login_url = self::login_url(
+							array(
+								'action'        => 'backup_2fa',
+								'provider'      => $backup_classname,
+								'wp-auth-id'    => $user->ID,
+								'wp-auth-nonce' => $login_nonce,
+								'redirect_to'   => $redirect_to,
+								'rememberme'    => $rememberme,
+							)
+						);
 						?>
 						<li>
 							<a href="<?php echo esc_url( $login_url ); ?>">
@@ -450,7 +454,7 @@ class Two_Factor_Core {
 	/**
 	 * Generate the form action login URL.
 	 *
-	 * @param  array  $params List of query argument pairs to add to the URL.
+	 * @param  array $params List of query argument pairs to add to the URL.
 	 *
 	 * @return string
 	 */
