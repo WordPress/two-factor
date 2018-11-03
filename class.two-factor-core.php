@@ -334,7 +334,7 @@ class Two_Factor_Core {
 		}
 		?>
 
-		<form name="validate_2fa_form" id="loginform" action="<?php echo esc_url( self::login_url( array( 'action' => 'validate_2fa' ) ) ); ?>" method="post" autocomplete="off">
+		<form name="validate_2fa_form" id="loginform" action="<?php echo esc_url( self::login_url( array( 'action' => 'validate_2fa' ), 'login_post' ) ); ?>" method="post" autocomplete="off">
 				<input type="hidden" name="provider"      id="provider"      value="<?php echo esc_attr( $provider_class ); ?>" />
 				<input type="hidden" name="wp-auth-id"    id="wp-auth-id"    value="<?php echo esc_attr( $user->ID ); ?>" />
 				<input type="hidden" name="wp-auth-nonce" id="wp-auth-nonce" value="<?php echo esc_attr( $login_nonce ); ?>" />
@@ -452,20 +452,20 @@ class Two_Factor_Core {
 	}
 
 	/**
-	 * Generate the form action login URL.
+	 * Generate the two-factor login form URL.
 	 *
 	 * @param  array $params List of query argument pairs to add to the URL.
 	 *
 	 * @return string
 	 */
-	public static function login_url( $params = array() ) {
+	public static function login_url( $params = array(), $scheme = 'login' ) {
 		if ( ! is_array( $params ) ) {
 			$params = array();
 		}
 
 		$params = urlencode_deep( $params );
 
-		return add_query_arg( $params, site_url( 'wp-login.php', 'login_post' ) );
+		return add_query_arg( $params, site_url( 'wp-login.php', $scheme ) );
 	}
 
 	/**
