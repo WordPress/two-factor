@@ -416,6 +416,23 @@ class Two_Factor_Core {
 	}
 
 	/**
+	 * Generate the form action login URL.
+	 *
+	 * @param  array  $params List of query argument pairs to add to the URL.
+	 *
+	 * @return string
+	 */
+	public static function login_url( $params = array() ) {
+		if ( ! is_array( $params ) ) {
+			$params = array();
+		}
+
+		$params = urlencode_deep( $params );
+
+		return add_query_arg( $params, site_url( 'wp-login.php', 'login_post' ) );
+	}
+
+	/**
 	 * Create the login nonce.
 	 *
 	 * @since 0.1-dev
