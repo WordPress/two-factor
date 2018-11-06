@@ -201,4 +201,18 @@ class Test_ClassTwoFactorCore extends WP_UnitTestCase {
 	public function test_is_user_using_two_factor_not_logged_in() {
 		$this->assertFalse( Two_Factor_Core::is_user_using_two_factor() );
 	}
+
+	/**
+	 * @covers Two_Factor_Core::login_url
+	 */
+	public function test_login_url() {
+		$this->assertContains( 'wp-login.php', Two_Factor_Core::login_url() );
+
+		$this->assertContains(
+			'paramencoded=%2F%3D1',
+			Two_Factor_Core::login_url( array(
+				'paramencoded' => '/=1'
+			) )
+		);
+	}
 }

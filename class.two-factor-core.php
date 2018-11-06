@@ -315,8 +315,7 @@ class Two_Factor_Core {
 
 		$available_providers = self::get_available_providers_for_user( $user );
 		$backup_providers = array_diff_key( $available_providers, array( $provider_class => null ) );
-		$interim_login = isset( $_REQUEST['interim-login'] ); // WPCS: override ok.
-		$wp_login_url = wp_login_url();
+		$interim_login = isset( $_REQUEST['interim-login'] ); // WPCS: CSRF ok.
 
 		$rememberme = 0;
 		if ( isset( $_REQUEST['rememberme'] ) && $_REQUEST['rememberme'] ) {
@@ -335,7 +334,7 @@ class Two_Factor_Core {
 		}
 		?>
 
-		<form name="validate_2fa_form" id="loginform" action="<?php echo esc_url( set_url_scheme( add_query_arg( 'action', 'validate_2fa', $wp_login_url ), 'login_post' ) ); ?>" method="post" autocomplete="off">
+		<form name="validate_2fa_form" id="loginform" action="<?php echo esc_url( self::login_url( array( 'action' => 'validate_2fa' ), 'login_post' ) ); ?>" method="post" autocomplete="off">
 				<input type="hidden" name="provider"      id="provider"      value="<?php echo esc_attr( $provider_class ); ?>" />
 				<input type="hidden" name="wp-auth-id"    id="wp-auth-id"    value="<?php echo esc_attr( $user->ID ); ?>" />
 				<input type="hidden" name="wp-auth-nonce" id="wp-auth-nonce" value="<?php echo esc_attr( $login_nonce ); ?>" />
@@ -349,40 +348,79 @@ class Two_Factor_Core {
 				<?php $provider->authentication_page( $user ); ?>
 		</form>
 
-		<?php if ( 1 === count( $backup_providers ) ) :
+		<?php
+		if ( 1 === count( $backup_providers ) ) :
 			$backup_classname = key( $backup_providers );
-			$backup_provider  = $backup_providers[ $backup_classname ];
-			?>
-			<div class="backup-methods-wrap">
-				<p class="backup-methods"><a href="<?php echo esc_url( add_query_arg( urlencode_deep( array(
+			$backup_provider = $backup_providers[ $backup_classname ];
+			$login_url = self::login_url(
+				array(
 					'action'        => 'backup_2fa',
 					'provider'      => $backup_classname,
 					'wp-auth-id'    => $user->ID,
 					'wp-auth-nonce' => $login_nonce,
 					'redirect_to'   => $redirect_to,
 					'rememberme'    => $rememberme,
-				) ), $wp_login_url ) ); ?>"><?php echo esc_html( sprintf( __( 'Or, use your backup method: %s &rarr;', 'two-factor' ), $backup_provider->get_label() ) ); ?></a></p>
-			</div>
-		<?php elseif ( 1 < count( $backup_providers ) ) : ?>
+				)
+			);
+			?>
 			<div class="backup-methods-wrap">
-				<p class="backup-methods"><a href="javascript:;" onclick="document.querySelector('ul.backup-methods').style.display = 'block';"><?php esc_html_e( 'Or, use a backup method…', 'two-factor' ); ?></a></p>
+				<p class="backup-methods">
+					<a href="<?php echo esc_url( $login_url ); ?>">
+						<?php
+						echo esc_html(
+							sprintf(
+								// translators: %s: Two-factor method name.
+								__( 'Or, use your backup method: %s &rarr;', 'two-factor' ),
+								$backup_provider->get_label()
+							)
+						);
+						?>
+					</a>
+				</p>
+			</div>
+			<?php elseif ( 1 < count( $backup_providers ) ) : ?>
+			<div class="backup-methods-wrap">
+				<p class="backup-methods">
+					<a href="javascript:;" onclick="document.querySelector('ul.backup-methods').style.display = 'block';">
+						<?php esc_html_e( 'Or, use a backup method…', 'two-factor' ); ?>
+					</a>
+				</p>
 				<ul class="backup-methods">
-					<?php foreach ( $backup_providers as $backup_classname => $backup_provider ) : ?>
-						<li><a href="<?php echo esc_url( add_query_arg( urlencode_deep( array(
-							'action'        => 'backup_2fa',
-							'provider'      => $backup_classname,
-							'wp-auth-id'    => $user->ID,
-							'wp-auth-nonce' => $login_nonce,
-							'redirect_to'   => $redirect_to,
-							'rememberme'    => $rememberme,
-						) ), $wp_login_url ) ); ?>"><?php $backup_provider->print_label(); ?></a></li>
+					<?php
+					foreach ( $backup_providers as $backup_classname => $backup_provider ) :
+						$login_url = self::login_url(
+							array(
+								'action'        => 'backup_2fa',
+								'provider'      => $backup_classname,
+								'wp-auth-id'    => $user->ID,
+								'wp-auth-nonce' => $login_nonce,
+								'redirect_to'   => $redirect_to,
+								'rememberme'    => $rememberme,
+							)
+						);
+						?>
+						<li>
+							<a href="<?php echo esc_url( $login_url ); ?>">
+								<?php $backup_provider->print_label(); ?>
+							</a>
+						</li>
 					<?php endforeach; ?>
 				</ul>
 			</div>
 		<?php endif; ?>
 
 		<p id="backtoblog">
-			<a href="<?php echo esc_url( home_url( '/' ) ); ?>" title="<?php esc_attr_e( 'Are you lost?', 'two-factor' ); ?>"><?php /* translators: %s: site name */ echo esc_html( sprintf( __( '&larr; Back to %s', 'two-factor' ), get_bloginfo( 'title', 'display' ) ) ); ?></a>
+			<a href="<?php echo esc_url( home_url( '/' ) ); ?>" title="<?php esc_attr_e( 'Are you lost?', 'two-factor' ); ?>">
+				<?php
+				echo esc_html(
+					sprintf(
+						// translators: %s: site name.
+						__( '&larr; Back to %s', 'two-factor' ),
+						get_bloginfo( 'title', 'display' )
+					)
+				);
+				?>
+			</a>
 		</p>
 
 		<style>
@@ -413,6 +451,24 @@ class Two_Factor_Core {
 		</body>
 		</html>
 		<?php
+	}
+
+	/**
+	 * Generate the two-factor login form URL.
+	 *
+	 * @param  array  $params List of query argument pairs to add to the URL.
+	 * @param  string $scheme URL scheme context.
+	 *
+	 * @return string
+	 */
+	public static function login_url( $params = array(), $scheme = 'login' ) {
+		if ( ! is_array( $params ) ) {
+			$params = array();
+		}
+
+		$params = urlencode_deep( $params );
+
+		return add_query_arg( $params, site_url( 'wp-login.php', $scheme ) );
 	}
 
 	/**
