@@ -30,8 +30,11 @@ class Two_Factor_FIDO_U2F extends Two_Factor_Provider {
 	const AUTH_DATA_USER_META_KEY = '_two_factor_fido_u2f_login_request';
 
 	/**
+	 * Instance of our admin interface.
 	 *
+	 * @var Two_Factor_FIDO_U2F_Admin
 	 */
+	protected static $admin;
 
 	/**
 	 * Class constructor.
@@ -44,10 +47,13 @@ class Two_Factor_FIDO_U2F extends Two_Factor_Provider {
 		}
 
 		require_once( TWO_FACTOR_DIR . 'includes/Yubico/U2F.php' );
+		require_once( TWO_FACTOR_DIR . 'providers/class.two-factor-fido-u2f-admin-list-table.php' );
+		require_once( TWO_FACTOR_DIR . 'providers/class.two-factor-fido-u2f-admin.php' );
+
 		self::$u2f = new u2flib_server\U2F( self::get_u2f_app_id() );
 
-		require_once( TWO_FACTOR_DIR . 'providers/class.two-factor-fido-u2f-admin.php' );
-		Two_Factor_FIDO_U2F_Admin::add_hooks();
+		self::$admin = new Two_Factor_FIDO_U2F_Admin( $this );
+		self::$admin->add_hooks();
 
 		wp_register_script(
 			'fido-u2f-api',
@@ -65,9 +71,19 @@ class Two_Factor_FIDO_U2F extends Two_Factor_Provider {
 			true
 		);
 
-		add_action( 'two-factor-user-options-' . __CLASS__, array( $this, 'user_options' ) );
-
 		return parent::__construct();
+	}
+
+	public function render_user_settings( $user ) {
+		return self::$admin->show_user_profile( $user );
+	}
+
+	public function save_user_settings( $user ) {
+		// Process adding a key.
+		self::$admin->catch_submission( $user );
+
+		// Process deleting a key.
+		self::$admin->catch_delete_security_key( $user );
 	}
 
 	/**
