@@ -39,7 +39,7 @@ class Two_Factor_FIDO_U2F_Admin {
 	 *
 	 * @return void
 	 */
-	public static function enqueue_assets( $user_id ) {
+	protected static function enqueue_assets( $user_id ) {
 		$security_keys = Two_Factor_FIDO_U2F::get_security_keys( $user_id );
 
 		// @todo Ensure that scripts don't fail because of missing u2fL10n
