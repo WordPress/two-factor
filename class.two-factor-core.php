@@ -47,6 +47,9 @@ class Two_Factor_Core {
 		add_filter( 'manage_users_columns', array( __CLASS__, 'filter_manage_users_columns' ) );
 		add_filter( 'wpmu_users_columns', array( __CLASS__, 'filter_manage_users_columns' ) );
 		add_filter( 'manage_users_custom_column', array( __CLASS__, 'manage_users_custom_column' ), 10, 3 );
+
+		add_shortcode( 'two-factor-user-profile', array( __CLASS__, 'user_profile_shortcode' ) );
+		add_action( 'init', array( __CLASS__, 'user_profile_shortcode_save' ) );
 	}
 
 	/**
@@ -217,6 +220,39 @@ class Two_Factor_Core {
 	public static function is_user_using_two_factor( $user_id = null ) {
 		$provider = self::get_primary_provider_for_user( $user_id );
 		return ! empty( $provider );
+	}
+
+	/**
+	 * Render the user settings via shortcode.
+	 *
+	 * @param  array $args Shortcode arguments.
+	 *
+	 * @return void
+	 */
+	public static function user_profile_shortcode( $args ) {
+		// Only logged-in users can edit things.
+		if ( ! is_user_logged_in() ) {
+			return null;
+		}
+
+		$user = wp_get_current_user();
+
+		?>
+		<form method="post" class="two-factor-user-settings two-factor-user-settings-shortcode">
+			<?php self::user_two_factor_options( $user ); ?>
+		</form>
+		<?php
+	}
+
+	/**
+	 * Capture the front-end shortcode profile update.
+	 *
+	 * @return void
+	 */
+	public static function user_profile_shortcode_save() {
+		if ( is_user_logged_in() ) {
+			self::user_two_factor_options_update( get_current_user_id() );
+		}
 	}
 
 	/**
