@@ -24,4 +24,4 @@ Then open [a pull request](https://help.github.com/articles/creating-a-pull-requ
 
 == Changelog ==
 
-See: [https://github.com/georgestephanis/two-factor/commits/master](https://github.com/georgestephanis/two-factor/commits/master)
+See the [release history](https://github.com/georgestephanis/two-factor/releases).
