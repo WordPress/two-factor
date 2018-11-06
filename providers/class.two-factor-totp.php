@@ -102,16 +102,11 @@ class Two_Factor_Totp extends Two_Factor_Provider {
 		<?php
 	}
 
-	/**
-	 * Save the options specified in `::user_two_factor_options()`
-	 *
-	 * @param integer $user_id The user ID whose options are being updated.
-	 * @return false
-	 */
-	public function user_two_factor_options_update( $user_id ) {
+	public function save_user_settings( $user ) {
 		$notices = array();
 		$errors = array();
 
+		$user_id = $user->ID;
 		$current_key = $this->get_user_totp_key( $user_id );
 
 		if ( isset( $_POST['_nonce_user_two_factor_totp_options'] ) ) {
