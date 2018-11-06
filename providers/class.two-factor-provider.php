@@ -89,6 +89,10 @@ abstract class Two_Factor_Provider {
 	 */
 	abstract function is_available_for_user( $user );
 
+	public function render_user_settings( $user ) {}
+
+	public function save_user_settings( $user ) {}
+
 	/**
 	 * Generate a random eight-digit string to send out as an auth code.
 	 *
