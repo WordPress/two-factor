@@ -192,21 +192,6 @@ class Two_Factor_FIDO_U2F extends Two_Factor_Provider {
 	}
 
 	/**
-	 * Inserts markup at the end of the user profile field for this provider.
-	 *
-	 * @since 0.1-dev
-	 *
-	 * @param WP_User $user WP_User object of the logged-in user.
-	 */
-	public function user_options( $user ) {
-		?>
-		<p>
-			<?php esc_html_e( 'Requires an HTTPS connection. Configure your security keys in the "Security Keys" section below.', 'two-factor' ); ?>
-		</p>
-		<?php
-	}
-
-	/**
 	 * Add registered security key to a user.
 	 *
 	 * @since 0.1-dev
