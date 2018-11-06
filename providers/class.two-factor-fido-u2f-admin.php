@@ -24,7 +24,6 @@ class Two_Factor_FIDO_U2F_Admin {
 	 * @static
 	 */
 	public static function add_hooks() {
-		add_action( 'admin_enqueue_scripts',       array( __CLASS__, 'enqueue_assets' ) );
 		add_action( 'show_user_security_settings', array( __CLASS__, 'show_user_profile' ) );
 		add_action( 'personal_options_update',     array( __CLASS__, 'catch_submission' ), 0 );
 		add_action( 'edit_user_profile_update',    array( __CLASS__, 'catch_submission' ), 0 );
@@ -34,21 +33,13 @@ class Two_Factor_FIDO_U2F_Admin {
 	}
 
 	/**
-	 * Enqueue assets.
+	 * Enqueue scripts and styles required for the key management.
 	 *
-	 * @since 0.1-dev
+	 * @param  integer $user_id Current user ID.
 	 *
-	 * @access public
-	 * @static
-	 *
-	 * @param string $hook Current page.
+	 * @return void
 	 */
-	public static function enqueue_assets( $hook ) {
-		if ( ! in_array( $hook, array( 'user-edit.php', 'profile.php' ) ) ) {
-			return;
-		}
-
-		$user_id = get_current_user_id();
+	public static function enqueue_assets( $user_id ) {
 		$security_keys = Two_Factor_FIDO_U2F::get_security_keys( $user_id );
 
 		// @todo Ensure that scripts don't fail because of missing u2fL10n
@@ -141,6 +132,8 @@ class Two_Factor_FIDO_U2F_Admin {
 	 * @param WP_User $user WP_User object of the logged-in user.
 	 */
 	public static function show_user_profile( $user ) {
+		self::enqueue_assets( $user->ID );
+
 		wp_nonce_field( "user_security_keys-{$user->ID}", '_nonce_user_security_keys' );
 		$new_key = false;
 
