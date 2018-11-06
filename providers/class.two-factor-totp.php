@@ -42,17 +42,6 @@ class Two_Factor_Totp extends Two_Factor_Provider {
 	}
 
 	/**
-	 * Ensures only one instance of this class exists in memory at any one time.
-	 */
-	public static function get_instance() {
-		static $instance;
-		if ( ! isset( $instance ) ) {
-			$instance = new self();
-		}
-		return $instance;
-	}
-
-	/**
 	 * Returns the name of the provider.
 	 */
 	public function get_label() {

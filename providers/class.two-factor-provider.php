@@ -18,6 +18,21 @@ abstract class Two_Factor_Provider {
 	}
 
 	/**
+	 * Return a singleton instance of the provider.
+	 *
+	 * @return Two_Factor_Provider
+	 */
+	public static function get_instance() {
+		static $instance;
+
+		if ( ! isset( $instance ) ) {
+			$instance = new static();
+		}
+
+		return $instance;
+	}
+
+	/**
 	 * Returns the name of the provider.
 	 *
 	 * @since 0.1-dev

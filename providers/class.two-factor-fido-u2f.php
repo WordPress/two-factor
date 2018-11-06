@@ -30,19 +30,8 @@ class Two_Factor_FIDO_U2F extends Two_Factor_Provider {
 	const AUTH_DATA_USER_META_KEY = '_two_factor_fido_u2f_login_request';
 
 	/**
-	 * Ensures only one instance of this class exists in memory at any one time.
 	 *
-	 * @return \Two_Factor_FIDO_U2F
 	 */
-	static function get_instance() {
-		static $instance;
-
-		if ( ! isset( $instance ) ) {
-			$instance = new self();
-		}
-
-		return $instance;
-	}
 
 	/**
 	 * Class constructor.
