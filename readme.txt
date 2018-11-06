@@ -2,7 +2,7 @@
 Contributors: georgestephanis, valendesigns, stevenkword, extendwings, sgrant, aaroncampbell, johnbillion, stevegrunwell, netweb, kasparsd
 Tags: two factor, two step, authentication, login, totp, fido u2f, u2f, email, backup codes, 2fa, yubikey
 Requires at least: 4.3
-Tested up to: 4.9.8
+Tested up to: 5.0
 Stable tag: trunk
 
 Enable Two-Factor Authentication using time-based one-time passwords (OTP, Google Authenticator), Universal 2nd Factor (FIDO U2F, YubiKey), email and backup verification codes.
@@ -24,4 +24,4 @@ Then open [a pull request](https://help.github.com/articles/creating-a-pull-requ
 
 == Changelog ==
 
-See: [https://github.com/georgestephanis/two-factor/commits/master](https://github.com/georgestephanis/two-factor/commits/master)
+See the [release history](https://github.com/georgestephanis/two-factor/releases).
