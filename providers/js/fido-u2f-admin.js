@@ -15,8 +15,6 @@
 			return false;
 		}
 
-		window.console.log( 'sign', u2fL10n.register.request );
-
 		$( this ).prop( 'disabled', true );
 		$( '.register-security-key .spinner' ).addClass( 'is-active' );
 		$statusNotice.text( '' );
@@ -31,8 +29,6 @@
 			$button.prop( 'disabled', false );
 
 			if ( data.errorCode ) {
-				window.console.log( 'Registration Failed', data.errorCode );
-
 				if ( u2fL10n.text.error_codes[ data.errorCode ] ) {
 					$statusNotice.text( u2fL10n.text.error_codes[ data.errorCode ] );
 				} else {
