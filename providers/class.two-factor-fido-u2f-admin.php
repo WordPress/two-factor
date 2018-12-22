@@ -16,21 +16,34 @@ class Two_Factor_FIDO_U2F_Admin {
 	const REGISTER_DATA_USER_META_KEY = '_two_factor_fido_u2f_register_request';
 
 	/**
+	 * Instance of the FIDO U2F provider.
+	 *
+	 * @var Two_Factor_FIDO_U2F
+	 */
+	protected $provider;
+
+	/**
+	 * Setup the admin class.
+	 *
+	 * @param Two_Factor_FIDO_U2F $provider
+	 */
+	public function __construct( $provider ) {
+		$this->provider = $provider;
+	}
+
+	/**
 	 * Add various hooks.
 	 *
 	 * @since 0.1-dev
-	 *
-	 * @access public
-	 * @static
 	 */
-	public static function add_hooks() {
-		add_action( 'admin_enqueue_scripts',       array( __CLASS__, 'enqueue_assets' ) );
-		add_action( 'show_user_security_settings', array( __CLASS__, 'show_user_profile' ) );
-		add_action( 'personal_options_update',     array( __CLASS__, 'catch_submission' ), 0 );
-		add_action( 'edit_user_profile_update',    array( __CLASS__, 'catch_submission' ), 0 );
-		add_action( 'load-profile.php',            array( __CLASS__, 'catch_delete_security_key' ) );
-		add_action( 'load-user-edit.php',          array( __CLASS__, 'catch_delete_security_key' ) );
-		add_action( 'wp_ajax_inline-save-key',     array( __CLASS__, 'wp_ajax_inline_save' ) );
+	public function add_hooks() {
+		add_action( 'admin_enqueue_scripts',       array( $this, 'enqueue_assets' ) );
+		add_action( 'show_user_security_settings', array( $this, 'show_user_profile' ) );
+		add_action( 'personal_options_update',     array( $this, 'catch_submission' ), 0 );
+		add_action( 'edit_user_profile_update',    array( $this, 'catch_submission' ), 0 );
+		add_action( 'load-profile.php',            array( $this, 'catch_delete_security_key' ) );
+		add_action( 'load-user-edit.php',          array( $this, 'catch_delete_security_key' ) );
+		add_action( 'wp_ajax_inline-save-key',     array( $this, 'wp_ajax_inline_save' ) );
 	}
 
 	/**
@@ -38,23 +51,21 @@ class Two_Factor_FIDO_U2F_Admin {
 	 *
 	 * @since 0.1-dev
 	 *
-	 * @access public
-	 * @static
-	 *
 	 * @param string $hook Current page.
 	 */
-	public static function enqueue_assets( $hook ) {
+	public function enqueue_assets( $hook ) {
 		if ( ! in_array( $hook, array( 'user-edit.php', 'profile.php' ) ) ) {
 			return;
 		}
 
 		$user_id = get_current_user_id();
-		$security_keys = Two_Factor_FIDO_U2F::get_security_keys( $user_id );
+		$security_keys = $this->provider->get_security_keys( $user_id );
+		$u2f = $this->provider->get_u2f_server( $user_id );
 
 		// @todo Ensure that scripts don't fail because of missing u2fL10n
 		try {
-			$data = Two_Factor_FIDO_U2F::$u2f->getRegisterData( $security_keys );
-			list( $req,$sigs ) = $data;
+			$data = $u2f->getRegisterData( $security_keys );
+			list( $req, $sigs ) = $data;
 
 			update_user_meta( $user_id, self::REGISTER_DATA_USER_META_KEY, $req );
 		} catch ( Exception $e ) {
@@ -135,16 +146,13 @@ class Two_Factor_FIDO_U2F_Admin {
 	 *
 	 * @since 0.1-dev
 	 *
-	 * @access public
-	 * @static
-	 *
 	 * @param WP_User $user WP_User object of the logged-in user.
 	 */
-	public static function show_user_profile( $user ) {
+	public function show_user_profile( $user ) {
 		wp_nonce_field( "user_security_keys-{$user->ID}", '_nonce_user_security_keys' );
 		$new_key = false;
 
-		$security_keys = Two_Factor_FIDO_U2F::get_security_keys( $user->ID );
+		$security_keys = $this->provider->get_security_keys( $user->ID );
 		if ( $security_keys ) {
 			foreach ( $security_keys as &$security_key ) {
 				if ( property_exists( $security_key, 'new' ) ) {
@@ -152,7 +160,7 @@ class Two_Factor_FIDO_U2F_Admin {
 					unset( $security_key->new );
 
 					// If we've got a new one, update the db record to not save it there any longer.
-					Two_Factor_FIDO_U2F::update_security_key( $user->ID, $security_key );
+					$this->provider->update_security_key( $user->ID, $security_key );
 				}
 			}
 			unset( $security_key );
@@ -203,22 +211,20 @@ class Two_Factor_FIDO_U2F_Admin {
 	 *
 	 * @since 0.1-dev
 	 *
-	 * @access public
-	 * @static
-	 *
 	 * @param int $user_id User ID.
 	 * @return false
 	 */
-	public static function catch_submission( $user_id ) {
+	public function catch_submission( $user_id ) {
 		if ( ! empty( $_REQUEST['do_new_security_key'] ) ) {
 			check_admin_referer( "user_security_keys-{$user_id}", '_nonce_user_security_keys' );
 
 			try {
 				$response = json_decode( stripslashes( $_POST['u2f_response'] ) );
-				$reg = Two_Factor_FIDO_U2F::$u2f->doRegister( get_user_meta( $user_id, self::REGISTER_DATA_USER_META_KEY, true ), $response );
+				$u2f = $this->provider->get_u2f_server( $user_id );
+				$reg = $u2f->doRegister( get_user_meta( $user_id, self::REGISTER_DATA_USER_META_KEY, true ), $response );
 				$reg->new = true;
 
-				Two_Factor_FIDO_U2F::add_security_key( $user_id, $reg );
+				$this->provider->add_security_key( $user_id, $reg );
 			} catch ( Exception $e ) {
 				return false;
 			}
@@ -238,17 +244,15 @@ class Two_Factor_FIDO_U2F_Admin {
 	 * This executes during the `load-profile.php` & `load-user-edit.php` actions.
 	 *
 	 * @since 0.1-dev
-	 *
-	 * @access public
-	 * @static
 	 */
-	public static function catch_delete_security_key() {
+	public function catch_delete_security_key() {
 		$user_id = get_current_user_id();
+
 		if ( ! empty( $_REQUEST['delete_security_key'] ) ) {
 			$slug = $_REQUEST['delete_security_key'];
 			check_admin_referer( "delete_security_key-{$slug}", '_nonce_delete_security_key' );
 
-			Two_Factor_FIDO_U2F::delete_security_key( $user_id, $slug );
+			$this->provider->delete_security_key( $user_id, $slug );
 
 			wp_safe_redirect( remove_query_arg( 'new_app_pass', wp_get_referer() ) . '#security-keys-section' );
 		}
@@ -259,13 +263,10 @@ class Two_Factor_FIDO_U2F_Admin {
 	 *
 	 * @since 0.1-dev
 	 *
-	 * @access public
-	 * @static
-	 *
 	 * @param array $item The current item.
 	 * @return string
 	 */
-	public static function rename_link( $item ) {
+	public function rename_link( $item ) {
 		return sprintf( '<a href="#" class="editinline">%s</a>', esc_html__( 'Rename', 'two-factor' ) );
 	}
 
@@ -274,13 +275,10 @@ class Two_Factor_FIDO_U2F_Admin {
 	 *
 	 * @since 0.1-dev
 	 *
-	 * @access public
-	 * @static
-	 *
 	 * @param array $item The current item.
 	 * @return string
 	 */
-	public static function delete_link( $item ) {
+	public function delete_link( $item ) {
 		$delete_link = add_query_arg( 'delete_security_key', $item->keyHandle );
 		$delete_link = wp_nonce_url( $delete_link, "delete_security_key-{$item->keyHandle}", '_nonce_delete_security_key' );
 		return sprintf( '<a href="%1$s">%2$s</a>', esc_url( $delete_link ), esc_html__( 'Delete', 'two-factor' ) );
@@ -290,11 +288,8 @@ class Two_Factor_FIDO_U2F_Admin {
 	 * Ajax handler for quick edit saving for a security key.
 	 *
 	 * @since 0.1-dev
-	 *
-	 * @access public
-	 * @static
 	 */
-	public static function wp_ajax_inline_save() {
+	public function wp_ajax_inline_save() {
 		check_ajax_referer( 'keyinlineeditnonce', '_inline_edit' );
 
 		require( TWO_FACTOR_DIR . 'providers/class.two-factor-fido-u2f-admin-list-table.php' );
@@ -306,7 +301,7 @@ class Two_Factor_FIDO_U2F_Admin {
 
 		$user_id = get_current_user_id();
 
-		$security_keys = Two_Factor_FIDO_U2F::get_security_keys( $user_id );
+		$security_keys = $this->provider->get_security_keys( $user_id );
 		if ( ! $security_keys ) {
 			wp_die();
 		}
@@ -319,7 +314,7 @@ class Two_Factor_FIDO_U2F_Admin {
 
 		$key->name = $_POST['name'];
 
-		$updated = Two_Factor_FIDO_U2F::update_security_key( $user_id, $key );
+		$updated = $this->provider->update_security_key( $user_id, $key );
 		if ( ! $updated ) {
 			wp_die( esc_html__( 'Item not updated.', 'two-factor' ) );
 		}

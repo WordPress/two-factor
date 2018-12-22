@@ -62,7 +62,8 @@ class Two_Factor_FIDO_U2F extends Two_Factor_Provider {
 		$this->rest_api = new Two_Factor_FIDO_U2F_Rest( $this );
 		$this->rest_api->add_hooks();
 
-		Two_Factor_FIDO_U2F_Admin::add_hooks();
+		$admin = new Two_Factor_FIDO_U2F_Admin( $this );
+		$admin->add_hooks();
 
 		add_action( 'two-factor-user-options-' . __CLASS__, array( $this, 'user_options' ) );
 		add_action( 'wp_enqueue_scripts', array( $this, 'register_scripts' ) );
