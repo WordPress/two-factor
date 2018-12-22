@@ -30,6 +30,13 @@ class Two_Factor_FIDO_U2F extends Two_Factor_Provider {
 	const AUTH_DATA_USER_META_KEY = '_two_factor_fido_u2f_login_request';
 
 	/**
+	 * Instance of the REST endpoint.
+	 *
+	 * @var Two_Factor_FIDO_U2F_Rest
+	 */
+	protected $rest_api;
+
+	/**
 	 * Ensures only one instance of this class exists in memory at any one time.
 	 *
 	 * @return \Two_Factor_FIDO_U2F
@@ -61,8 +68,8 @@ class Two_Factor_FIDO_U2F extends Two_Factor_Provider {
 		Two_Factor_FIDO_U2F_Admin::add_hooks();
 
 		require_once( TWO_FACTOR_DIR . 'providers/class.two-factor-fido-u2f-rest-api.php' );
-		$rest_api = new Two_Factor_FIDO_U2F_Rest( $this );
-		$rest_api->add_hooks();
+		$this->rest_api = new Two_Factor_FIDO_U2F_Rest( $this );
+		$this->rest_api->add_hooks();
 
 		wp_register_script(
 			'fido-u2f-api',
