@@ -59,10 +59,10 @@ class Two_Factor_FIDO_U2F_Rest {
 	 * @return void
 	 */
 	public function register_endpoints() {
+		// TODO Limit access to this endpoint to authenticated users only.
 		register_rest_route( 'two-factor/v1', '/app_id/(?P<user_id>\d+)', array(
 			'methods' => 'GET',
 			'callback' => array( $this, 'endpoint_get_app_id' ),
-			'permission_callback' => 'is_user_logged_in',
 			'args' => array(
 				'user_id' => array(
 					'validate_callback' => function( $param, $request, $key ) {
