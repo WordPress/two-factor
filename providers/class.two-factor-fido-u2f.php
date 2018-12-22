@@ -9,13 +9,6 @@
 class Two_Factor_FIDO_U2F extends Two_Factor_Provider {
 
 	/**
-	 * U2F Library
-	 *
-	 * @var u2flib_server\U2F
-	 */
-	public static $u2f;
-
-	/**
 	 * The user meta registered key.
 	 *
 	 * @type string
@@ -65,8 +58,6 @@ class Two_Factor_FIDO_U2F extends Two_Factor_Provider {
 		require_once( TWO_FACTOR_DIR . 'includes/Yubico/U2F.php' );
 		require_once( TWO_FACTOR_DIR . 'providers/class.two-factor-fido-u2f-admin.php' );
 		require_once( TWO_FACTOR_DIR . 'providers/class.two-factor-fido-u2f-rest-api.php' );
-
-		self::$u2f = new u2flib_server\U2F( $this->get_u2f_app_id() );
 
 		$this->rest_api = new Two_Factor_FIDO_U2F_Rest( $this );
 		$this->rest_api->add_hooks();
@@ -142,9 +133,11 @@ class Two_Factor_FIDO_U2F extends Two_Factor_Provider {
 			return;
 		}
 
+		$u2f = new u2flib_server\U2F( $this->get_u2f_app_id( $user->ID ) );
+
 		try {
 			$keys = self::get_security_keys( $user->ID );
-			$data = self::$u2f->getAuthenticateData( $keys );
+			$data = $u2f->getAuthenticateData( $keys );
 			update_user_meta( $user->ID, self::AUTH_DATA_USER_META_KEY, $data );
 		} catch ( Exception $e ) {
 			?>
@@ -184,8 +177,10 @@ class Two_Factor_FIDO_U2F extends Two_Factor_Provider {
 
 		$keys = self::get_security_keys( $user->ID );
 
+		$u2f = new u2flib_server\U2F( $this->get_u2f_app_id( $user->ID ) );
+
 		try {
-			$reg = self::$u2f->doAuthenticate( $requests, $keys, $response );
+			$reg = $u2f->doAuthenticate( $requests, $keys, $response );
 
 			$reg->last_used = current_time( 'timestamp' );
 
