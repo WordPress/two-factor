@@ -60,6 +60,10 @@ class Two_Factor_FIDO_U2F extends Two_Factor_Provider {
 		require_once( TWO_FACTOR_DIR . 'providers/class.two-factor-fido-u2f-admin.php' );
 		Two_Factor_FIDO_U2F_Admin::add_hooks();
 
+		require_once( TWO_FACTOR_DIR . 'providers/class.two-factor-fido-u2f-rest-api.php' );
+		$rest_api = new Two_Factor_FIDO_U2F_Rest( $this );
+		$rest_api->add_hooks();
+
 		wp_register_script(
 			'fido-u2f-api',
 			plugins_url( 'includes/Google/u2f-api.js', dirname( __FILE__ ) ),
