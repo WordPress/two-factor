@@ -29,6 +29,31 @@ class Two_Factor_FIDO_U2F_Rest {
 	}
 
 	/**
+	 * Get REST URL for the app ID request.
+	 *
+	 * @param  integer $user_id User ID.
+	 *
+	 * @return string
+	 */
+	public function get_route_app_id( $user_id ) {
+		return $this->get_rest_url( sprintf(
+			'two-factor/v1/app_id/%d',
+			absint( $user_id )
+		) );
+	}
+
+	/**
+	 * Get the REST request URL.
+	 *
+	 * @param  string $path Relative request path.
+	 *
+	 * @return string
+	 */
+	protected function get_rest_url( $path ) {
+		return get_rest_url( get_main_site_id(), $path, 'https' );
+	}
+
+	/**
 	 * Register the FIDO U2F API endpoints.
 	 *
 	 * @return void
