@@ -88,13 +88,7 @@ class Two_Factor_FIDO_U2F extends Two_Factor_Provider {
 	 * @return string AppID URI
 	 */
 	public static function get_u2f_app_id() {
-		$url_parts = wp_parse_url( home_url() );
-
-		if ( ! empty( $url_parts['port'] ) ) {
-			return sprintf( 'https://%s:%d', $url_parts['host'], $url_parts['port'] );
-		} else {
-			return sprintf( 'https://%s', $url_parts['host'] );
-		}
+		return $this->format_app_id( home_url() );
 	}
 
 	/**
@@ -200,6 +194,70 @@ class Two_Factor_FIDO_U2F extends Two_Factor_Provider {
 	 */
 	public function is_available_for_user( $user ) {
 		return (bool) self::get_security_keys( $user->ID );
+	}
+
+	/**
+	 * Get the trusted facet data for a user.
+	 *
+	 * @param  integer $user_id User ID.
+	 *
+	 * @return array
+	 */
+	public function get_trusted_facets( $user_id ) {
+		return array(
+			'trustedFacets' => array(
+				'version' => array(
+					'major' => 1,
+					'minor' => 0,
+				),
+				'ids' => $this->get_trusted_facet_ids( $user_id ),
+			),
+		);
+	}
+
+	/**
+	 * Get the trusted facet IDs or App IDs.
+	 *
+	 * @param  integer $user_id User ID.
+	 *
+	 * @return array
+	 */
+	public function get_trusted_facet_ids( $user_id ) {
+		$sites = get_blogs_of_user( $user_id );
+
+		$facet_ids = array();
+
+		foreach ( $sites as $site_id => $site_config ) {
+			if ( $this->is_valid_app_id( $site_config['siteurl'] ) ) {
+				$facet_ids[] = $this->format_app_id( $site_config['siteurl'] );
+			}
+		}
+
+		return $facet_ids;
+	}
+
+	/**
+	 * Ensure the correct App ID format.
+	 *
+	 * @param  string $app_id App ID.
+	 *
+	 * @return string
+	 */
+	public function format_app_id( $app_id ) {
+		$url_parts = wp_parse_url( $app_id );
+
+		return sprintf( 'https://%s', $url_parts['host'] );
+	}
+
+	/**
+	 * Check if resource is a valid App ID.
+	 *
+	 * @param  string  $appid App ID.
+	 *
+	 * @return boolean
+	 */
+	public function is_valid_app_id( $app_id ) {
+		return ( 0 === strpos( $app_id, 'https://' ) );
 	}
 
 	/**
