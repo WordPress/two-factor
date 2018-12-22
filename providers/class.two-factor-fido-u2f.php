@@ -117,6 +117,17 @@ class Two_Factor_FIDO_U2F extends Two_Factor_Provider {
 	}
 
 	/**
+	 * Create a new instance of the U2F server based on the user ID.
+	 *
+	 * @param  integer $user_id User ID.
+	 *
+	 * @return u2flib_server\U2F
+	 */
+	public function get_u2f_server( $user_id ) {
+		return new u2flib_server\U2F( $this->get_u2f_app_id( $user_id ) );
+	}
+
+	/**
 	 * Prints the form that prompts the user to authenticate.
 	 *
 	 * @since 0.1-dev
@@ -136,7 +147,7 @@ class Two_Factor_FIDO_U2F extends Two_Factor_Provider {
 			return;
 		}
 
-		$u2f = new u2flib_server\U2F( $this->get_u2f_app_id( $user->ID ) );
+		$u2f = $this->get_u2f_server( $user->ID );
 
 		try {
 			$keys = self::get_security_keys( $user->ID );
@@ -180,7 +191,7 @@ class Two_Factor_FIDO_U2F extends Two_Factor_Provider {
 
 		$keys = self::get_security_keys( $user->ID );
 
-		$u2f = new u2flib_server\U2F( $this->get_u2f_app_id( $user->ID ) );
+		$u2f = $this->get_u2f_server( $user->ID );
 
 		try {
 			$reg = $u2f->doAuthenticate( $requests, $keys, $response );
