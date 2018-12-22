@@ -94,7 +94,7 @@ class Two_Factor_FIDO_U2F extends Two_Factor_Provider {
 			'fido-u2f-api',
 			plugins_url( 'includes/Google/u2f-api.js', dirname( __FILE__ ) ),
 			null,
-			'0.1.0-dev.2',
+			'0.1.0-dev.3',
 			true
 		);
 
@@ -102,7 +102,7 @@ class Two_Factor_FIDO_U2F extends Two_Factor_Provider {
 			'fido-u2f-login',
 			plugins_url( 'js/fido-u2f-login.js', __FILE__ ),
 			array( 'jquery', 'fido-u2f-api' ),
-			'0.1.0-dev.2',
+			'0.1.0-dev.3',
 			true
 		);
 	}
