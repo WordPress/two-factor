@@ -55,7 +55,7 @@ class Two_Factor_FIDO_U2F extends Two_Factor_Provider {
 		}
 
 		require_once( TWO_FACTOR_DIR . 'includes/Yubico/U2F.php' );
-		self::$u2f = new u2flib_server\U2F( self::get_u2f_app_id() );
+		self::$u2f = new u2flib_server\U2F( $this->get_u2f_app_id() );
 
 		require_once( TWO_FACTOR_DIR . 'providers/class.two-factor-fido-u2f-admin.php' );
 		Two_Factor_FIDO_U2F_Admin::add_hooks();
@@ -87,7 +87,7 @@ class Two_Factor_FIDO_U2F extends Two_Factor_Provider {
 	 *
 	 * @return string AppID URI
 	 */
-	public static function get_u2f_app_id() {
+	public function get_u2f_app_id() {
 		return $this->format_app_id( home_url() );
 	}
 
