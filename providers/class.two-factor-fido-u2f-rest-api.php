@@ -81,6 +81,13 @@ class Two_Factor_FIDO_U2F_Rest {
 	 * @return array
 	 */
 	public function endpoint_get_app_id( $request ) {
-		return $this->provider->get_trusted_facets( $request['user_id'] );
+		$response_data = $this->provider->get_trusted_facets( $request['user_id'] );
+
+		$response = rest_ensure_response( $response_data );
+
+		// Per FIDO U2F spec, see https://fidoalliance.org/specs/fido-u2f-v1.0-ps-20141009/fido-appid-and-facets-ps-20141009.html#h4_determining-if-a-caller-s-facetid-is-authorized-for-an-appid
+		$response->header( 'content-type', 'application/fido.trusted-apps+json' );
+
+		return $response;
 	}
 }
