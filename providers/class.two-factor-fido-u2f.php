@@ -61,15 +61,17 @@ class Two_Factor_FIDO_U2F extends Two_Factor_Provider {
 			return;
 		}
 
+		// Until proper autoloading.
 		require_once( TWO_FACTOR_DIR . 'includes/Yubico/U2F.php' );
+		require_once( TWO_FACTOR_DIR . 'providers/class.two-factor-fido-u2f-admin.php' );
+		require_once( TWO_FACTOR_DIR . 'providers/class.two-factor-fido-u2f-rest-api.php' );
+
 		self::$u2f = new u2flib_server\U2F( $this->get_u2f_app_id() );
 
-		require_once( TWO_FACTOR_DIR . 'providers/class.two-factor-fido-u2f-admin.php' );
-		Two_Factor_FIDO_U2F_Admin::add_hooks();
-
-		require_once( TWO_FACTOR_DIR . 'providers/class.two-factor-fido-u2f-rest-api.php' );
 		$this->rest_api = new Two_Factor_FIDO_U2F_Rest( $this );
 		$this->rest_api->add_hooks();
+
+		Two_Factor_FIDO_U2F_Admin::add_hooks();
 
 		wp_register_script(
 			'fido-u2f-api',
