@@ -64,23 +64,8 @@ class Two_Factor_FIDO_U2F extends Two_Factor_Provider {
 
 		Two_Factor_FIDO_U2F_Admin::add_hooks();
 
-		wp_register_script(
-			'fido-u2f-api',
-			plugins_url( 'includes/Google/u2f-api.js', dirname( __FILE__ ) ),
-			null,
-			'0.1.0-dev.2',
-			true
-		);
-
-		wp_register_script(
-			'fido-u2f-login',
-			plugins_url( 'js/fido-u2f-login.js', __FILE__ ),
-			array( 'jquery', 'fido-u2f-api' ),
-			'0.1.0-dev.2',
-			true
-		);
-
 		add_action( 'two-factor-user-options-' . __CLASS__, array( $this, 'user_options' ) );
+		add_action( 'wp_enqueue_scripts', array( $this, 'register_scripts' ) );
 
 		return parent::__construct();
 	}
@@ -102,6 +87,24 @@ class Two_Factor_FIDO_U2F extends Two_Factor_Provider {
 	 */
 	public function get_label() {
 		return _x( 'FIDO Universal 2nd Factor (U2F)', 'Provider Label', 'two-factor' );
+	}
+
+	public function register_scripts() {
+		wp_register_script(
+			'fido-u2f-api',
+			plugins_url( 'includes/Google/u2f-api.js', dirname( __FILE__ ) ),
+			null,
+			'0.1.0-dev.2',
+			true
+		);
+
+		wp_register_script(
+			'fido-u2f-login',
+			plugins_url( 'js/fido-u2f-login.js', __FILE__ ),
+			array( 'jquery', 'fido-u2f-api' ),
+			'0.1.0-dev.2',
+			true
+		);
 	}
 
 	/**
