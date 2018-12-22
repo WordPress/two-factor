@@ -92,7 +92,7 @@ class Two_Factor_FIDO_U2F extends Two_Factor_Provider {
 	 * @return string AppID URI
 	 */
 	public function get_u2f_app_id() {
-		return $this->format_app_id( home_url() );
+		return $this->format_app_id( network_home_url() );
 	}
 
 	/**
