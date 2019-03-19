@@ -5,11 +5,11 @@
 	"scripts": {
 		"deploy": "grunt deploy",
 		"build": "npm run readme && grunt build",
-		"test": "DIFF_BASE=master ./vendor/xwp/wp-dev-lib/pre-commit",
+		"test": "DIFF_BASE=master ./vendor/xwp/wp-dev-lib/scripts/pre-commit",
 		"readme": "./vendor/xwp/wp-dev-lib/generate-markdown-readme",
-		"phpunit": "DEV_LIB_ONLY=phpunit ./vendor/xwp/wp-dev-lib/pre-commit",
+		"phpunit": "DEV_LIB_ONLY=phpunit ./vendor/xwp/wp-dev-lib/scripts/pre-commit",
 		"preinstall": "composer install",
-		"precommit": "DEV_LIB_SKIP=phpunit ./vendor/xwp/wp-dev-lib/pre-commit",
+		"precommit": "DEV_LIB_SKIP=phpunit ./vendor/xwp/wp-dev-lib/scripts/pre-commit",
 		"prepush": "npm test"
 	},
 	"repository": {

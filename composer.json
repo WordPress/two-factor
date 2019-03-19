@@ -4,7 +4,7 @@
     "description": "Two-Factor Authentication for WordPress.",
     "require-dev": {
         "php-coveralls/php-coveralls": "^1.0",
-        "wp-coding-standards/wpcs": "^1.0",
-        "xwp/wp-dev-lib": "dev-master"
+        "wp-coding-standards/wpcs": "^2.0",
+        "xwp/wp-dev-lib": "^1.0"
     }
 }
