@@ -264,6 +264,9 @@ class Test_ClassTwoFactorCore extends WP_UnitTestCase {
 		$user_default = new WP_User( $this->factory->user->create() );
 		$user_2fa_enabled = $this->get_dummy_user(); // User with a dummy two-factor method enabled.
 
+		// TODO: Get Two_Factor_Core away from static methods to allow mocking this.
+		define( 'XMLRPC_REQUEST', true );
+
 		$this->assertInstanceOf(
 			'WP_User',
 			Two_Factor_Core::filter_authenticate( $user_default )
