@@ -252,8 +252,6 @@ class Test_ClassTwoFactorCore extends WP_UnitTestCase {
 
 	/**
 	 * @covers Two_Factor_Core::is_api_request
-	 *
-	 * @return boolean
 	 */
 	public function test_is_api_request() {
 		$this->assertFalse( Two_Factor_Core::is_api_request() );
