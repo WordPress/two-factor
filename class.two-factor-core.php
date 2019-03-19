@@ -252,7 +252,7 @@ class Two_Factor_Core {
 	 * @return WP_User|WP_Error
 	 */
 	public static function filter_authenticate( $user ) {
-		if ( $user instanceof WP_User && self::is_api_request() && self::is_user_using_two_factor( $user->ID ) && ! $this->is_user_api_login_enabled( $user->ID ) ) {
+		if ( $user instanceof WP_User && self::is_api_request() && self::is_user_using_two_factor( $user->ID ) && ! self::is_user_api_login_enabled( $user->ID ) ) {
 			return new WP_Error(
 				'invalid_application_credentials',
 				__( 'Error: API login for user disabled.', 'two-factor' )
