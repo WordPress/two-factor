@@ -7,6 +7,7 @@
 	<rule ref="WordPress-Core">
 		<exclude name="Generic.Formatting.MultipleStatementAlignment" />
 	</rule>
+
 	<rule ref="WordPress-Docs">
 		<exclude name="Squiz.Commenting.FileComment.MissingPackageTag"/>
 		<exclude name="Squiz.Commenting.FileComment.Missing"/>
@@ -14,12 +15,7 @@
 		<exclude name="Squiz.Commenting.FileComment.SpacingAfterComment"/>
 		<exclude name="Squiz.Commenting.ClassComment.Missing"/>
 	</rule>
-	<rule ref="WordPress-Extra">
-		<exclude name="WordPress.CSRF.NonceVerification" />
-		<exclude name="WordPress.WP.PreparedSQL.NotPrepared" />
-	</rule>
 
-	<exclude-pattern>*/dev-lib/*</exclude-pattern>
 	<exclude-pattern>*/includes/*</exclude-pattern>
 	<exclude-pattern>*/node_modules/*</exclude-pattern>
 	<exclude-pattern>*/tests/*</exclude-pattern>
