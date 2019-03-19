@@ -16,6 +16,10 @@ cache:
     - node_modules
     - vendor
 
+branches:
+  only:
+  - master
+
 notifications:
   email: false
 
