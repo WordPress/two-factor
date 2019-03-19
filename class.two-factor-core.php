@@ -287,6 +287,11 @@ class Two_Factor_Core {
 			return true;
 		}
 
+		// Use this during unit tests since we can't mock constants.
+		if ( defined( '_TWO_FACTOR_TEST_API_REQUEST' ) ) {
+			return true;
+		}
+
 		return false;
 	}
 
