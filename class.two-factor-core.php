@@ -239,6 +239,23 @@ class Two_Factor_Core {
 	}
 
 	/**
+	 * Is the current request an XML-RPC or REST request.
+	 *
+	 * @return boolean
+	 */
+	public static function is_api_request() {
+		if ( defined( 'XMLRPC_REQUEST' ) && XMLRPC_REQUEST ) {
+			return true;
+		}
+
+		if ( defined( 'REST_REQUEST' ) && REST_REQUEST ) {
+			return true;
+		}
+
+		return false;
+	}
+
+	/**
 	 * Display the login form.
 	 *
 	 * @since 0.1-dev
