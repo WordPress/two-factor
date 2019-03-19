@@ -18,9 +18,10 @@
 		<whitelist processUncoveredFilesFromWhitelist="false">
 			<directory suffix=".php">.</directory>
 			<exclude>
-				<directory suffix=".php">bin</directory>
+				<directory suffix=".php">includes</directory>
 				<directory suffix=".php">tests</directory>
 				<directory suffix=".php">vendor</directory>
+				<directory suffix=".php">node_modules</directory>
 			</exclude>
 		</whitelist>
 	</filter>
