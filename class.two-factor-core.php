@@ -239,6 +239,17 @@ class Two_Factor_Core {
 	}
 
 	/**
+	 * If the current user can login via API requests such as XML-RPC and REST.
+	 *
+	 * @param  integer $user_id User ID.
+	 *
+	 * @return boolean
+	 */
+	public static function is_user_api_login_enabled( $user_id ) {
+		return (bool) apply_filters( 'two_factor_user_api_login_enable', false, $user_id );
+	}
+
+	/**
 	 * Is the current request an XML-RPC or REST request.
 	 *
 	 * @return boolean
