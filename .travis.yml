@@ -13,8 +13,8 @@ addons:
 
 cache:
   directories:
-    - node_modules
-    - vendor
+    - $HOME/.composer/cache
+    - $HOME/.npm
 
 branches:
   only:
