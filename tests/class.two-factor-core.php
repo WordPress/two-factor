@@ -257,4 +257,22 @@ class Test_ClassTwoFactorCore extends WP_UnitTestCase {
 		$this->assertFalse( Two_Factor_Core::is_api_request() );
 	}
 
+	/**
+	 * @covers Two_Factor_Core::filter_authenticate
+	 */
+	public function test_filter_authenticate() {
+		$user_default = new WP_User( $this->factory->user->create() );
+		$user_2fa_enabled = $this->get_dummy_user(); // User with a dummy two-factor method enabled.
+
+		$this->assertInstanceOf(
+			'WP_User',
+			Two_Factor_Core::filter_authenticate( $user_default )
+		);
+
+		$this->assertInstanceOf(
+			'WP_Error',
+			Two_Factor_Core::filter_authenticate( $user_2fa_enabled )
+		);
+	}
+
 }
