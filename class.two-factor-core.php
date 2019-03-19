@@ -47,6 +47,9 @@ class Two_Factor_Core {
 		add_filter( 'manage_users_columns', array( __CLASS__, 'filter_manage_users_columns' ) );
 		add_filter( 'wpmu_users_columns', array( __CLASS__, 'filter_manage_users_columns' ) );
 		add_filter( 'manage_users_custom_column', array( __CLASS__, 'manage_users_custom_column' ), 10, 3 );
+
+		// Run only after the core wp_authenticate_username_password() check.
+		add_filter( 'authenticate', array( __CLASS__, 'filter_authenticate' ), 50 );
 	}
 
 	/**
@@ -236,6 +239,55 @@ class Two_Factor_Core {
 
 		self::show_two_factor_login( $user );
 		exit;
+	}
+
+	/**
+	 * Prevent login through XML-RPC and REST API for users with at least one
+	 * two-factor method enabled.
+	 *
+	 * @param  WP_User|WP_Error $user Valid WP_User only if the previous filters
+	 *                                have verified and confirmed the
+	 *                                authentication credentials.
+	 *
+	 * @return WP_User|WP_Error
+	 */
+	public static function filter_authenticate( $user ) {
+		if ( $user instanceof WP_User && self::is_api_request() && self::is_user_using_two_factor( $user->ID ) && ! self::is_user_api_login_enabled( $user->ID ) ) {
+			return new WP_Error(
+				'invalid_application_credentials',
+				__( 'Error: API login for user disabled.', 'two-factor' )
+			);
+		}
+
+		return $user;
+	}
+
+	/**
+	 * If the current user can login via API requests such as XML-RPC and REST.
+	 *
+	 * @param  integer $user_id User ID.
+	 *
+	 * @return boolean
+	 */
+	public static function is_user_api_login_enabled( $user_id ) {
+		return (bool) apply_filters( 'two_factor_user_api_login_enable', false, $user_id );
+	}
+
+	/**
+	 * Is the current request an XML-RPC or REST request.
+	 *
+	 * @return boolean
+	 */
+	public static function is_api_request() {
+		if ( defined( 'XMLRPC_REQUEST' ) && XMLRPC_REQUEST ) {
+			return true;
+		}
+
+		if ( defined( 'REST_REQUEST' ) && REST_REQUEST ) {
+			return true;
+		}
+
+		return false;
 	}
 
 	/**

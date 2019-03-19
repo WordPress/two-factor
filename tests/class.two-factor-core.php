@@ -215,4 +215,67 @@ class Test_ClassTwoFactorCore extends WP_UnitTestCase {
 			) )
 		);
 	}
+
+	/**
+	 * @covers Two_Factor_Core::is_user_api_login_enabled
+	 */
+	public function test_user_api_login_is_disabled_by_default() {
+		$user_id = $this->factory->user->create();
+
+		$this->assertFalse( Two_Factor_Core::is_user_api_login_enabled( $user_id ) );
+	}
+
+	/**
+	 * @covers Two_Factor_Core::is_user_api_login_enabled
+	 */
+	public function test_user_api_login_can_be_enabled_via_filter() {
+		$user_id_default = $this->factory->user->create();
+		$user_id_enabled = $this->factory->user->create();
+
+		add_filter( 'two_factor_user_api_login_enable', function( $enabled, $user_id ) use ( $user_id_enabled ) {
+			return ( $user_id === $user_id_enabled );
+		}, 10, 2 );
+
+		$this->assertTrue(
+			Two_Factor_Core::is_user_api_login_enabled( $user_id_enabled ),
+			'Filters allows specific users to enable API login'
+		);
+
+		$this->assertFalse(
+			Two_Factor_Core::is_user_api_login_enabled( $user_id_default ),
+			'Filter doesnot impact other users'
+		);
+
+		// Undo all filters.
+		remove_all_filters( 'two_factor_user_api_login_enable', 10 );
+	}
+
+	/**
+	 * @covers Two_Factor_Core::is_api_request
+	 */
+	public function test_is_api_request() {
+		$this->assertFalse( Two_Factor_Core::is_api_request() );
+	}
+
+	/**
+	 * @covers Two_Factor_Core::filter_authenticate
+	 */
+	public function test_filter_authenticate() {
+		$user_default = new WP_User( $this->factory->user->create() );
+		$user_2fa_enabled = $this->get_dummy_user(); // User with a dummy two-factor method enabled.
+
+		// TODO: Get Two_Factor_Core away from static methods to allow mocking this.
+		define( 'XMLRPC_REQUEST', true );
+
+		$this->assertInstanceOf(
+			'WP_User',
+			Two_Factor_Core::filter_authenticate( $user_default )
+		);
+
+		$this->assertInstanceOf(
+			'WP_Error',
+			Two_Factor_Core::filter_authenticate( $user_2fa_enabled )
+		);
+	}
+
 }
