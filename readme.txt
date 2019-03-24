@@ -22,6 +22,11 @@ Here is how to get started:
 
 Then open [a pull request](https://help.github.com/articles/creating-a-pull-request-from-a-fork/) with the suggested changes.
 
+== How to use ==
+Install and activate the plugin.
+Go to Users > Your profile and choose the authentication method best to you.
+That's all.
+
 == Changelog ==
 
 See the [release history](https://github.com/georgestephanis/two-factor/releases).
