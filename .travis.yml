@@ -37,4 +37,4 @@ script:
   - source "$DEV_LIB_PATH/travis.script.sh"
 
 after_script:
-  - npm run test-report
+  - source "$DEV_LIB_PATH/travis.after_script.sh"
