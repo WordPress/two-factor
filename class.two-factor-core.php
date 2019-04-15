@@ -474,7 +474,7 @@ class Two_Factor_Core {
 				?>
 			</a>
 		</p>
-
+		</div>
 		<style>
 		/* @todo: migrate to an external stylesheet. */
 		.backup-methods-wrap {
