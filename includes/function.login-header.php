@@ -40,7 +40,7 @@ function login_header( $title = 'Log In', $message = '', $wp_error = null ) {
 	$login_title = get_bloginfo( 'name', 'display' );
 
 	/* translators: Login screen title. 1: Login screen name, 2: Network or site name */
-	$login_title = sprintf( __( '%1$s &lsaquo; %2$s &#8212; WordPress' ), $title, $login_title );
+	$login_title = sprintf( __( '%1$s &lsaquo; %2$s &#8212; WordPress', 'two-factor' ), $title, $login_title );
 
 	/**
 	 * Filters the title tag content for login page.
@@ -95,8 +95,8 @@ function login_header( $title = 'Log In', $message = '', $wp_error = null ) {
 		$login_header_url   = network_home_url();
 		$login_header_title = get_network()->site_name;
 	} else {
-		$login_header_url   = __( 'https://wordpress.org/' );
-		$login_header_title = __( 'Powered by WordPress' );
+		$login_header_url   = __( 'https://wordpress.org/', 'two-factor' );
+		$login_header_title = __( 'Powered by WordPress', 'two-factor' );
 	}
 
 	/**

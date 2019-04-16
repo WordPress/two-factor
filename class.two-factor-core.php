@@ -58,7 +58,11 @@ class Two_Factor_Core {
 	 * Sites on WordPress 4.6+ benefit from just-in-time loading of translations.
 	 */
 	public static function load_textdomain() {
-		load_plugin_textdomain( 'two-factor' );
+		load_plugin_textdomain(
+			'two-factor',
+			false,
+			dirname(plugin_basename(__FILE__)).'/languages/'
+		);
 	}
 
 	/**
@@ -337,7 +341,7 @@ class Two_Factor_Core {
 		if ( isset( $providers[ $_GET['provider'] ] ) ) {
 			$provider = $providers[ $_GET['provider'] ];
 		} else {
-			wp_die( esc_html__( 'Cheatin&#8217; uh?' ), 403 );
+			wp_die( esc_html__( 'Cheatin&#8217; uh?', 'two-factor' ), 403 );
 		}
 
 		self::login_html( $user, $_GET['wp-auth-nonce'], $_GET['redirect_to'], '', $provider );
@@ -608,7 +612,7 @@ class Two_Factor_Core {
 			if ( isset( $providers[ $_POST['provider'] ] ) ) {
 				$provider = $providers[ $_POST['provider'] ];
 			} else {
-				wp_die( esc_html__( 'Cheatin&#8217; uh?' ), 403 );
+				wp_die( esc_html__( 'Cheatin&#8217; uh?', 'two-factor' ), 403 );
 			}
 		} else {
 			$provider = self::get_primary_provider_for_user( $user->ID );
@@ -683,7 +687,7 @@ class Two_Factor_Core {
 	 * @return array          Updated array of columns.
 	 */
 	public static function filter_manage_users_columns( array $columns ) {
-		$columns['two-factor'] = __( 'Two-Factor' );
+		$columns['two-factor'] = __( 'Two-Factor', 'two-factor' );
 		return $columns;
 	}
 
@@ -738,7 +742,7 @@ class Two_Factor_Core {
 		<table class="form-table">
 			<tr>
 				<th>
-					<?php esc_html_e( 'Two-Factor Options' ); ?>
+					<?php esc_html_e( 'Two-Factor Options', 'two-factor' ); ?>
 				</th>
 				<td>
 					<table class="two-factor-methods-table">
