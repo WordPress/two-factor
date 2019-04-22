@@ -30,14 +30,11 @@ class Two_Factor_FIDO_U2F extends Two_Factor_Provider {
 	const AUTH_DATA_USER_META_KEY = '_two_factor_fido_u2f_login_request';
 
 	/**
-	 * Version number for the bundled JS scripts.
-	 *
-	 * Bump this whenever you update the javascript files to bust the static
-	 * file cache.
+	 * Version number for the bundled assets.
 	 *
 	 * @var string
 	 */
-	const JS_VERSION = '0.2.0';
+	const U2F_ASSET_VERSION = '0.2.0';
 
 	/**
 	 * Ensures only one instance of this class exists in memory at any one time.
@@ -74,7 +71,7 @@ class Two_Factor_FIDO_U2F extends Two_Factor_Provider {
 			'fido-u2f-api',
 			plugins_url( 'includes/Google/u2f-api.js', dirname( __FILE__ ) ),
 			null,
-			self::JS_VERSION,
+			self::asset_version(),
 			true
 		);
 
@@ -82,13 +79,24 @@ class Two_Factor_FIDO_U2F extends Two_Factor_Provider {
 			'fido-u2f-login',
 			plugins_url( 'js/fido-u2f-login.js', __FILE__ ),
 			array( 'jquery', 'fido-u2f-api' ),
-			self::JS_VERSION,
+			self::asset_version(),
 			true
 		);
 
 		add_action( 'two-factor-user-options-' . __CLASS__, array( $this, 'user_options' ) );
 
 		return parent::__construct();
+	}
+
+	/**
+	 * Get the asset version number.
+	 *
+	 * TODO: There should be a plugin-level helper for getting the current plugin version.
+	 *
+	 * @return string
+	 */
+	public static function asset_version() {
+		return self::U2F_ASSET_VERSION;
 	}
 
 	/**

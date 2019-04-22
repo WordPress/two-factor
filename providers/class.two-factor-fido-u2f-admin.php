@@ -65,14 +65,14 @@ class Two_Factor_FIDO_U2F_Admin {
 			'fido-u2f-admin',
 			plugins_url( 'css/fido-u2f-admin.css', __FILE__ ),
 			null,
-			'0.1.0-dev.1'
+			Two_Factor_FIDO_U2F::asset_version()
 		);
 
 		wp_enqueue_script(
 			'fido-u2f-admin',
 			plugins_url( 'js/fido-u2f-admin.js', __FILE__ ),
 			array( 'jquery', 'fido-u2f-api' ),
-			'0.1.0-dev.3',
+			Two_Factor_FIDO_U2F::asset_version(),
 			true
 		);
 
