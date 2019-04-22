@@ -15,6 +15,12 @@ class Two_Factor_FIDO_U2F_Admin {
 	 */
 	const REGISTER_DATA_USER_META_KEY = '_two_factor_fido_u2f_register_request';
 
+	protected $provider;
+
+	public function __construct( $provider ) {
+		$this->provider = $provider;
+	}
+
 	/**
 	 * Add various hooks.
 	 *
@@ -63,16 +69,16 @@ class Two_Factor_FIDO_U2F_Admin {
 
 		wp_enqueue_style(
 			'fido-u2f-admin',
-			plugins_url( 'css/fido-u2f-admin.css', __FILE__ ),
+			$this->provider->url_to( 'providers/css/fido-u2f-admin.css' ),
 			null,
-			'0.1.0-dev.1'
+			$this->provider->asset_version()
 		);
 
 		wp_enqueue_script(
 			'fido-u2f-admin',
-			plugins_url( 'js/fido-u2f-admin.js', __FILE__ ),
+			$this->provider->url_to( 'js/fido-u2f-admin.js' ),
 			array( 'jquery', 'fido-u2f-api' ),
-			'0.1.0-dev.3',
+			$this->provider->asset_version(),
 			true
 		);
 
@@ -113,9 +119,9 @@ class Two_Factor_FIDO_U2F_Admin {
 
 		wp_enqueue_script(
 			'inline-edit-key',
-			plugins_url( 'js/fido-u2f-admin-inline-edit.js', __FILE__ ),
+			$this->provider->url_to( 'providers/js/fido-u2f-admin-inline-edit.js' ),
 			array( 'jquery' ),
-			'0.1.0-dev.1',
+			$this->provider->asset_version(),
 			true
 		);
 
