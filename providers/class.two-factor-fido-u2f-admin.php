@@ -65,14 +65,14 @@ class Two_Factor_FIDO_U2F_Admin {
 			'fido-u2f-admin',
 			plugins_url( 'css/fido-u2f-admin.css', __FILE__ ),
 			null,
-			'0.1.0-dev.1'
+			self::asset_version()
 		);
 
 		wp_enqueue_script(
 			'fido-u2f-admin',
 			plugins_url( 'js/fido-u2f-admin.js', __FILE__ ),
 			array( 'jquery', 'fido-u2f-api' ),
-			'0.1.0-dev.3',
+			self::asset_version(),
 			true
 		);
 
@@ -97,7 +97,7 @@ class Two_Factor_FIDO_U2F_Admin {
 					4 => esc_html__( 'U2F device ineligible.', 'two-factor' ),
 					5 => esc_html__( 'U2F request timeout reached.', 'two-factor' ),
 				),
-				'u2f_not_supported' => esc_html__( 'FIDO U2F is not supported in your web browser. Try using Google Chrome.', 'two-factor' ),
+				'u2f_not_supported' => esc_html__( 'FIDO U2F appears to be not supported by your web browser. Try using Google Chrome or Firefox.', 'two-factor' ),
 			),
 		);
 
@@ -115,7 +115,7 @@ class Two_Factor_FIDO_U2F_Admin {
 			'inline-edit-key',
 			plugins_url( 'js/fido-u2f-admin-inline-edit.js', __FILE__ ),
 			array( 'jquery' ),
-			'0.1.0-dev.1',
+			self::asset_version(),
 			true
 		);
 
@@ -126,6 +126,18 @@ class Two_Factor_FIDO_U2F_Admin {
 				'error' => esc_html__( 'Error while saving the changes.', 'two-factor' ),
 			)
 		);
+	}
+
+	/**
+	 * Return the current asset version number.
+	 *
+	 * Added as own helper to allow swapping the implementation once we inject
+	 * it as a dependency.
+	 *
+	 * @return string
+	 */
+	protected static function asset_version() {
+		return Two_Factor_FIDO_U2F::asset_version();
 	}
 
 	/**

@@ -2,7 +2,7 @@
 ( function( $ ) {
 	var $button = $( '#register_security_key' );
 	var $statusNotice = $( '#security-keys-section .security-key-status' );
-	var u2fSupported = ( u2f && u2f.HasNativeApiSupport );
+	var u2fSupported = ( window.u2f && 'register' in window.u2f );
 
 	if ( ! u2fSupported ) {
 		$statusNotice.text( u2fL10n.text.u2f_not_supported );
@@ -24,7 +24,7 @@
 			challenge: u2fL10n.register.request.challenge
 		};
 
-		u2f.register( u2fL10n.register.request.appId, [ registerRequest ], u2fL10n.register.sigs, function( data ) {
+		window.u2f.register( u2fL10n.register.request.appId, [ registerRequest ], u2fL10n.register.sigs, function( data ) {
 			$( '.register-security-key .spinner' ).removeClass( 'is-active' );
 			$button.prop( 'disabled', false );
 
