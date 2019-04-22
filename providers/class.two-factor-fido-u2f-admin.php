@@ -65,14 +65,14 @@ class Two_Factor_FIDO_U2F_Admin {
 			'fido-u2f-admin',
 			plugins_url( 'css/fido-u2f-admin.css', __FILE__ ),
 			null,
-			Two_Factor_FIDO_U2F::asset_version()
+			self::asset_version()
 		);
 
 		wp_enqueue_script(
 			'fido-u2f-admin',
 			plugins_url( 'js/fido-u2f-admin.js', __FILE__ ),
 			array( 'jquery', 'fido-u2f-api' ),
-			Two_Factor_FIDO_U2F::asset_version(),
+			self::asset_version(),
 			true
 		);
 
@@ -115,7 +115,7 @@ class Two_Factor_FIDO_U2F_Admin {
 			'inline-edit-key',
 			plugins_url( 'js/fido-u2f-admin-inline-edit.js', __FILE__ ),
 			array( 'jquery' ),
-			'0.1.0-dev.1',
+			self::asset_version(),
 			true
 		);
 
@@ -126,6 +126,18 @@ class Two_Factor_FIDO_U2F_Admin {
 				'error' => esc_html__( 'Error while saving the changes.', 'two-factor' ),
 			)
 		);
+	}
+
+	/**
+	 * Return the current asset version number.
+	 *
+	 * Added as own helper to allow swapping the implementation once we inject
+	 * it as a dependency.
+	 *
+	 * @return string
+	 */
+	protected static function asset_version() {
+		return Two_Factor_FIDO_U2F::asset_version();
 	}
 
 	/**
