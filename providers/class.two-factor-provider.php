@@ -9,27 +9,39 @@
 abstract class Two_Factor_Provider {
 
 	/**
-	 * Class constructor.
+	 * Instance of the current plugin.
 	 *
-	 * @since 0.1-dev
+	 * @var \Two_Factor_Plugin
 	 */
-	protected function __construct() {
-		return $this;
+	protected $plugin;
+
+	/**
+	 * Setup the provider.
+	 *
+	 * @param \Two_Factor_Plugin $plugin Instance of the current plugin.
+	 */
+	protected function __construct( $plugin ) {
+		$this->plugin = $plugin;
 	}
 
 	/**
-	 * Ensures only one instance of this class exists in memory at any one time.
+	 * Return the current asset version that matches the plugin version.
 	 *
-	 * @return \Two_Factor_Provider
+	 * @return string
 	 */
-	public function get_instance() {
-		static $instance;
+	public function asset_version() {
+		return $this->plugin->version();
+	}
 
-		if ( ! isset( $instance ) ) {
-			$instance = new self();
-		}
-
-		return $instance;
+	/**
+	 * Return URL to a file path relative to the plugin root directory.
+	 *
+	 * @param  string $path File path relative to the plugin root directory.
+	 *
+	 * @return string
+	 */
+	public function url_to( $path ) {
+		return $this->plugin->url_to( $path );
 	}
 
 	/**
