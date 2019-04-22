@@ -30,6 +30,31 @@ class Two_Factor_Core {
 	const USER_META_NONCE_KEY    = '_two_factor_nonce';
 
 	/**
+	 * Instance of the current plugin.
+	 *
+	 * @var \Two_Factor_Plugin
+	 */
+	protected $plugin;
+
+	/**
+	 * Set the Two Factor plugin core.
+	 *
+	 * @param \Two_Factor_Plugin $plugin Instance of the plugin.
+	 */
+	public function __construct( $plugin ) {
+		$this->plugin = $plugin;
+	}
+
+	/**
+	 * Get the instance of the current plugin.
+	 *
+	 * @return \Two_Factor_Plugin
+	 */
+	public function plugin() {
+		return $this->plugin;
+	}
+
+	/**
 	 * Set up filters and actions.
 	 *
 	 * @since 0.1-dev
