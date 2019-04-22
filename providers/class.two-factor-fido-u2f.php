@@ -30,6 +30,16 @@ class Two_Factor_FIDO_U2F extends Two_Factor_Provider {
 	const AUTH_DATA_USER_META_KEY = '_two_factor_fido_u2f_login_request';
 
 	/**
+	 * Version number for the bundled JS scripts.
+	 *
+	 * Bump this whenever you update the javascript files to bust the static
+	 * file cache.
+	 *
+	 * @var string
+	 */
+	const JS_VERSION = '0.2.0';
+
+	/**
 	 * Ensures only one instance of this class exists in memory at any one time.
 	 *
 	 * @return \Two_Factor_FIDO_U2F
@@ -64,7 +74,7 @@ class Two_Factor_FIDO_U2F extends Two_Factor_Provider {
 			'fido-u2f-api',
 			plugins_url( 'includes/Google/u2f-api.js', dirname( __FILE__ ) ),
 			null,
-			'0.1.0-dev.2',
+			self::JS_VERSION,
 			true
 		);
 
@@ -72,7 +82,7 @@ class Two_Factor_FIDO_U2F extends Two_Factor_Provider {
 			'fido-u2f-login',
 			plugins_url( 'js/fido-u2f-login.js', __FILE__ ),
 			array( 'jquery', 'fido-u2f-api' ),
-			'0.1.0-dev.2',
+			self::JS_VERSION,
 			true
 		);
 
