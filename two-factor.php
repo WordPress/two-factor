@@ -3,9 +3,9 @@
  * Plugin Name: Two Factor
  * Plugin URI: https://wordpress.org/plugins/two-factor/
  * Description: A prototype extensible core to enable Two-Factor Authentication.
- * Author: George Stephanis
+ * Author: Plugin Contributors
  * Version: 0.4.5
- * Author URI: https://stephanis.info
+ * Author URI: https://github.com/georgestephanis/two-factor/graphs/contributors
  * Network: True
  * Text Domain: two-factor
  */
