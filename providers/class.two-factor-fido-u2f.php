@@ -47,17 +47,17 @@ class Two_Factor_FIDO_U2F extends Two_Factor_Provider {
 
 		wp_register_script(
 			'fido-u2f-api',
-			plugins_url( 'includes/Google/u2f-api.js', dirname( __FILE__ ) ),
+			$this->url_to( 'includes/Google/u2f-api.js' ),
 			null,
-			self::JS_VERSION,
+			$this->plugin_version(),
 			true
 		);
 
 		wp_register_script(
 			'fido-u2f-login',
-			plugins_url( 'js/fido-u2f-login.js', __FILE__ ),
+			$this->url_to( 'providers/js/fido-u2f-login.js' ),
 			array( 'jquery', 'fido-u2f-api' ),
-			self::JS_VERSION,
+			$this->plugin_version(),
 			true
 		);
 
