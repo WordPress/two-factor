@@ -97,7 +97,7 @@ class Two_Factor_FIDO_U2F_Admin {
 					4 => esc_html__( 'U2F device ineligible.', 'two-factor' ),
 					5 => esc_html__( 'U2F request timeout reached.', 'two-factor' ),
 				),
-				'u2f_not_supported' => esc_html__( 'FIDO U2F is not supported in your web browser. Try using Google Chrome.', 'two-factor' ),
+				'u2f_not_supported' => esc_html__( 'FIDO U2F appears to be not supported by your web browser. Try using Google Chrome or Firefox.', 'two-factor' ),
 			),
 		);
 
