@@ -34,11 +34,10 @@ class Two_Factor_Totp extends Two_Factor_Provider {
 	/**
 	 * Class constructor. Sets up hooks, etc.
 	 */
-	protected function __construct() {
+	public function init() {
 		add_action( 'two-factor-user-options-' . __CLASS__, array( $this, 'user_two_factor_options' ) );
 		add_action( 'personal_options_update',              array( $this, 'user_two_factor_options_update' ) );
 		add_action( 'edit_user_profile_update',             array( $this, 'user_two_factor_options_update' ) );
-		return parent::__construct();
 	}
 
 	/**

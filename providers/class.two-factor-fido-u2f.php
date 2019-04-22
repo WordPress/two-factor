@@ -30,22 +30,11 @@ class Two_Factor_FIDO_U2F extends Two_Factor_Provider {
 	const AUTH_DATA_USER_META_KEY = '_two_factor_fido_u2f_login_request';
 
 	/**
-	 * Version number for the bundled JS scripts.
-	 *
-	 * Bump this whenever you update the javascript files to bust the static
-	 * file cache.
-	 *
-	 * @var string
-	 */
-	const JS_VERSION = '0.2.0';
-
-
-	/**
 	 * Class constructor.
 	 *
 	 * @since 0.1-dev
 	 */
-	protected function __construct() {
+	public function init() {
 		if ( version_compare( PHP_VERSION, '5.3.0', '<' ) ) {
 			return;
 		}
@@ -73,8 +62,6 @@ class Two_Factor_FIDO_U2F extends Two_Factor_Provider {
 		);
 
 		add_action( 'two-factor-user-options-' . __CLASS__, array( $this, 'user_options' ) );
-
-		return parent::__construct();
 	}
 
 	/**

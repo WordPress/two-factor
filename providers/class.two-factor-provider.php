@@ -33,6 +33,13 @@ abstract class Two_Factor_Provider {
 	}
 
 	/**
+	 * Implement any init logic for the provider.
+	 *
+	 * @return void
+	 */
+	abstract function init();
+
+	/**
 	 * Returns the name of the provider.
 	 *
 	 * @since 0.1-dev

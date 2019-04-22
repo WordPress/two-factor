@@ -23,13 +23,12 @@ class Two_Factor_Email extends Two_Factor_Provider {
 	const INPUT_NAME_RESEND_CODE = 'two-factor-email-code-resend';
 
 	/**
-	 * Class constructor.
+	 * Setup provider.
 	 *
 	 * @since 0.1-dev
 	 */
-	protected function __construct() {
+	public function init() {
 		add_action( 'two-factor-user-options-' . __CLASS__, array( $this, 'user_options' ) );
-		return parent::__construct();
 	}
 
 	/**

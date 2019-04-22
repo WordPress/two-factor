@@ -9,13 +9,12 @@
 class Two_Factor_Dummy extends Two_Factor_Provider {
 
 	/**
-	 * Class constructor.
+	 * Setup the provider instance.
 	 *
 	 * @since 0.1-dev
 	 */
-	protected function __construct() {
+	public function init() {
 		add_action( 'two-factor-user-options-' . __CLASS__, array( $this, 'user_options' ) );
-		return parent::__construct();
 	}
 
 	/**

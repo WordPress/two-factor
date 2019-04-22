@@ -23,30 +23,14 @@ class Two_Factor_Backup_Codes extends Two_Factor_Provider {
 	const NUMBER_OF_CODES = 10;
 
 	/**
-	 * Ensures only one instance of this class exists in memory at any one time.
+	 * Setup provider instance.
 	 *
 	 * @since 0.1-dev
 	 */
-	static function get_instance() {
-		static $instance;
-		$class = __CLASS__;
-		if ( ! is_a( $instance, $class ) ) {
-			$instance = new $class;
-		}
-		return $instance;
-	}
-
-	/**
-	 * Class constructor.
-	 *
-	 * @since 0.1-dev
-	 */
-	protected function __construct() {
+	public function init() {
 		add_action( 'two-factor-user-options-' . __CLASS__, array( $this, 'user_options' ) );
 		add_action( 'admin_notices', array( $this, 'admin_notices' ) );
 		add_action( 'wp_ajax_two_factor_backup_codes_generate', array( $this, 'ajax_generate_json' ) );
-
-		return parent::__construct();
 	}
 
 	/**
