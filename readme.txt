@@ -9,7 +9,16 @@ Enable Two-Factor Authentication using time-based one-time passwords (OTP, Googl
 
 == Description ==
 
+Use the "Two-Factor Options" section under "Users" → "Your Profile" to enable and configure one or multiple two-factor authentication providers for your account:
+
+- Email codes
+- Time Based One-Time Passwords (TOTP)
+- FIDO Universal 2nd Factor (U2F)
+- Backup Codes
+- Dummy Method (only for testing purposes)
+
 For more history, see [this post](https://stephanis.info/2013/08/14/two-cents-on-two-factor/).
+
 
 == Get Involved ==
 
