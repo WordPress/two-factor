@@ -8,7 +8,7 @@ Enable Two-Factor Authentication using time-based one-time passwords (OTP, Googl
 
 **Tags:** [two factor](https://wordpress.org/plugins/tags/two-factor), [two step](https://wordpress.org/plugins/tags/two-step), [authentication](https://wordpress.org/plugins/tags/authentication), [login](https://wordpress.org/plugins/tags/login), [totp](https://wordpress.org/plugins/tags/totp), [fido u2f](https://wordpress.org/plugins/tags/fido-u2f), [u2f](https://wordpress.org/plugins/tags/u2f), [email](https://wordpress.org/plugins/tags/email), [backup codes](https://wordpress.org/plugins/tags/backup-codes), [2fa](https://wordpress.org/plugins/tags/2fa), [yubikey](https://wordpress.org/plugins/tags/yubikey)  
 **Requires at least:** 4.3  
-**Tested up to:** 5.1.1  
+**Tested up to:** 5.1
 **Stable tag:** trunk (master)  
 
 [![Build Status](https://travis-ci.org/georgestephanis/two-factor.svg?branch=master)](https://travis-ci.org/georgestephanis/two-factor) [![Coverage Status](https://coveralls.io/repos/georgestephanis/two-factor/badge.svg?branch=master)](https://coveralls.io/github/georgestephanis/two-factor) [![Built with Grunt](https://gruntjs.com/cdn/builtwith.svg)](http://gruntjs.com) 
