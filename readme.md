@@ -37,7 +37,7 @@ For more history, see [this post](https://stephanis.info/2013/08/14/two-cents-on
 
 ### Two-Factor Wordpress Login Screen View.
 
-![Two-Factor Wordpress Login Screen View.](assets/screenshot-3.PNG)
+![Two-Factor Wordpress Login Screen View.](assets/screenshot-3.png)
 
 ## Get Involved ##
 
