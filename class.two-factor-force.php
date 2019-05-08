@@ -374,6 +374,10 @@ class Two_Factor_Force {
 		$forced_roles          = self::get_forced_user_roles();
 		$is_universally_forced = self::get_universally_forced_option();
 
+		?>
+		<input type="hidden" name="<?php echo esc_attr( sprintf( '%s[%s]', self::FORCED_ROLES_META_KEY, 'no-role-selected' ) ); ?>" />
+		<?php
+
 		foreach ( get_editable_roles() as $slug => $role ) :
 			?>
 			<label>
