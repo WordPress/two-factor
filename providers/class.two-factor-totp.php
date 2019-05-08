@@ -80,7 +80,7 @@ class Two_Factor_Totp extends Two_Factor_Provider {
 		<?php if ( empty( $key ) ) :
 			$key = $this->generate_key();
 			$site_name = get_bloginfo( 'name', 'display' );
-			$totp_title = apply_filters( 'two_factor_totp_title', $site_name . ':' . $user->user_login );
+			$totp_title = apply_filters( 'two_factor_totp_title', $site_name . ':' . $user->user_login, $user );
 			?>
 			<p>
 				<?php esc_html_e( 'Please scan the QR code or manually enter the key, then enter an authentication code from your app in order to complete setup.', 'two-factor' ); ?>
