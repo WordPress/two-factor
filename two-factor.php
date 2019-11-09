@@ -4,8 +4,8 @@
  * Plugin URI: https://wordpress.org/plugins/two-factor/
  * Description: A prototype extensible core to enable Two-Factor Authentication.
  * Author: Plugin Contributors
- * Version: 0.4.7
- * Author URI: https://github.com/georgestephanis/two-factor/graphs/contributors
+ * Version: 0.5.0-alpha
+ * Author URI: https://github.com/WordPress/two-factor/graphs/contributors
  * Network: True
  * Text Domain: two-factor
  */
