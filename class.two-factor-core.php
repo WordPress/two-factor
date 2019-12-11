@@ -806,7 +806,11 @@ class Two_Factor_Core {
 			}
 		}
 	}
-
+	/**
+	 * Determine the rememberme value
+	 *
+	 * @return int - The rememberme value
+	 */
 	public static function rememberme() {
 
 		$rememberme = 0;
