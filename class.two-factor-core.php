@@ -817,10 +817,10 @@ class Two_Factor_Core {
 
 		if (
 			( isset( $_REQUEST['rememberme'] ) && $_REQUEST['rememberme'] )
-			|| ( 
+			|| (
 				isset( $_GET['action'] )
 				&& 'jetpack-sso' === $_GET['action']
-				&& method_exists( 'Jetpack', 'is_module_active' ) 
+				&& method_exists( 'Jetpack', 'is_module_active' )
 				&& Jetpack::is_module_active( 'sso' )
 			)
 		) {
