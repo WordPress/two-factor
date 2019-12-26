@@ -1,6 +1,6 @@
 {
   "type": "wordpress-plugin",
-  "name": "georgestephanis/two-factor",
+  "name": "wordpress/two-factor",
   "description": "Two-Factor Authentication for WordPress.",
   "require": {
     "php": ">=5.4"

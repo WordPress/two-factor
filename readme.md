@@ -40,16 +40,16 @@ For more history, see [this post](https://stephanis.info/2013/08/14/two-cents-on
 
 ## Get Involved ##
 
-Development happens [on GitHub](https://github.com/georgestephanis/two-factor/). Join the `#core-passwords` channel [on WordPress Slack](http://wordpress.slack.com) ([sign up here](http://chat.wordpress.org)).
+Development happens [on GitHub](https://github.com/wordpress/two-factor/). Join the `#core-passwords` channel [on WordPress Slack](http://wordpress.slack.com) ([sign up here](http://chat.wordpress.org)).
 
 Here is how to get started:
 
-    $ git clone https://github.com/georgestephanis/two-factor.git
+    $ git clone https://github.com/wordpress/two-factor.git
     $ npm install
 
 Then open [a pull request](https://help.github.com/articles/creating-a-pull-request-from-a-fork/) with the suggested changes.
 
 ## Changelog ##
 
-See the [release history](https://github.com/georgestephanis/two-factor/releases).
+See the [release history](https://github.com/wordpress/two-factor/releases).
 

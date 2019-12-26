@@ -5,7 +5,7 @@
  * Description: A prototype extensible core to enable Two-Factor Authentication.
  * Author: Plugin Contributors
  * Version: 0.4.7
- * Author URI: https://github.com/georgestephanis/two-factor/graphs/contributors
+ * Author URI: https://github.com/wordpress/two-factor/graphs/contributors
  * Network: True
  * Text Domain: two-factor
  */

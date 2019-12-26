@@ -1,7 +1,7 @@
 {
   "name": "two-factor",
   "title": "Two Factor",
-  "homepage": "https://github.com/georgestephanis/two-factor",
+  "homepage": "https://github.com/wordpress/two-factor",
   "scripts": {
     "deploy": "grunt deploy",
     "build": "npm run readme && grunt build",
@@ -14,7 +14,7 @@
   },
   "repository": {
     "type": "git",
-    "url": "https://github.com/georgestephanis/two-factor.git"
+    "url": "https://github.com/wordpress/two-factor.git"
   },
   "author": "georgestephanis",
   "license": "GPL-2.0+",
