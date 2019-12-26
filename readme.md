@@ -10,7 +10,7 @@ Enable Two-Factor Authentication using time-based one-time passwords (OTP, Googl
 **Tested up to:** 5.2  
 **Stable tag:** trunk (master)  
 
-[![Build Status](https://travis-ci.org/alihusnainarshad/two-factor.svg?branch=master)](https://travis-ci.org/alihusnainarshad/two-factor) [![Coverage Status](https://coveralls.io/repos/alihusnainarshad/two-factor/badge.svg?branch=master)](https://coveralls.io/github/alihusnainarshad/two-factor) [![Built with Grunt](https://gruntjs.com/cdn/builtwith.svg)](http://gruntjs.com) 
+[![Build Status](https://travis-ci.org/wordpress/two-factor.svg?branch=master)](https://travis-ci.org/wordpress/two-factor) [![Coverage Status](https://coveralls.io/repos/wordpress/two-factor/badge.svg?branch=master)](https://coveralls.io/github/wordpress/two-factor) [![Built with Grunt](https://gruntjs.com/cdn/builtwith.svg)](http://gruntjs.com) 
 
 ## Description ##
 
