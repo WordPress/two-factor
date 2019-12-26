@@ -1,5 +1,5 @@
 === Two-Factor ===
-Contributors: georgestephanis, valendesigns, stevenkword, extendwings, sgrant, aaroncampbell, johnbillion, stevegrunwell, netweb, kasparsd
+Contributors: georgestephanis, valendesigns, stevenkword, extendwings, sgrant, aaroncampbell, johnbillion, stevegrunwell, netweb, kasparsd, alihusnainarshad
 Tags: two factor, two step, authentication, login, totp, fido u2f, u2f, email, backup codes, 2fa, yubikey
 Requires at least: 4.3
 Tested up to: 5.2
@@ -24,7 +24,7 @@ For more history, see [this post](https://stephanis.info/2013/08/14/two-cents-on
 
 1. Two-factor options under User Profile.
 2. U2F Security Keys section under User Profile.
-
+3. Email Code Authentication during WordPress Login.
 
 == Get Involved ==
 
