@@ -4,8 +4,8 @@
  * A compatability layer for some of the most popular plugins.
  *
  * Should be used with care because ideally we wouldn't need
- * any integration specific code to this plugin. Everything should
- * be handled through clever use of hooks and standard best practices.
+ * any integration specific code for this plugin. Everything should
+ * be handled through clever use of hooks and best practices.
  */
 class Two_Factor_Compat {
 	/**
