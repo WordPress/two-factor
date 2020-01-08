@@ -369,10 +369,7 @@ class Two_Factor_Core {
 		$backup_providers = array_diff_key( $available_providers, array( $provider_class => null ) );
 		$interim_login = isset( $_REQUEST['interim-login'] ); // WPCS: CSRF ok.
 
-		$rememberme = 0;
-		if ( isset( $_REQUEST['rememberme'] ) && $_REQUEST['rememberme'] ) {
-			$rememberme = 1;
-		}
+		$rememberme = self::rememberme();
 
 		if ( ! function_exists( 'login_header' ) ) {
 			// We really should migrate login_header() out of `wp-login.php` so it can be called from an includes file.
@@ -809,4 +806,29 @@ class Two_Factor_Core {
 			}
 		}
 	}
+	/**
+	 * Determine the rememberme value
+	 *
+	 * @return int - The rememberme value
+	 */
+	public static function rememberme() {
+
+		$rememberme = 0;
+
+		if (
+			( isset( $_REQUEST['rememberme'] ) && $_REQUEST['rememberme'] )
+			|| (
+				isset( $_GET['action'] )
+				&& 'jetpack-sso' === $_GET['action']
+				&& method_exists( 'Jetpack', 'is_module_active' )
+				&& Jetpack::is_module_active( 'sso' )
+			)
+		) {
+			$rememberme = 1;
+		}
+
+		return (int) apply_filters( 'two_factor_rememberme', $rememberme );
+
+	}
 }
+
