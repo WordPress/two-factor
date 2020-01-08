@@ -1,7 +1,14 @@
 {
-  "type": "wordpress-plugin",
   "name": "wordpress/two-factor",
+  "type": "wordpress-plugin",
   "description": "Two-Factor Authentication for WordPress.",
+  "license": "GPL-2.0-or-later",
+  "homepage": "https://wordpress.org/plugins/two-factor/",
+  "support": {
+    "source": "https://github.com/WordPress/application-passwords",
+    "forum": "https://wordpress.org/support/plugin/two-factor/",
+    "issues": "https://github.com/WordPress/two-factor/issues"
+  },
   "require": {
     "php": ">=5.4"
   },
