@@ -817,7 +817,7 @@ class Two_Factor_Core {
 	public static function rememberme() {
 		$rememberme = false;
 
-		if ( ! empty( $_REQUEST['rememberme'] ) )
+		if ( ! empty( $_REQUEST['rememberme'] ) ) {
 			$rememberme = true;
 		}
 
