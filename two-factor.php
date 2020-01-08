@@ -18,17 +18,17 @@ define( 'TWO_FACTOR_DIR', plugin_dir_path( __FILE__ ) );
 /**
  * Include the base class here, so that other plugins can also extend it.
  */
-require_once( TWO_FACTOR_DIR . 'providers/class.two-factor-provider.php' );
+require_once( TWO_FACTOR_DIR . 'providers/class-two-factor-provider.php' );
 
 /**
  * Include the core that handles the common bits.
  */
-require_once( TWO_FACTOR_DIR . 'class.two-factor-core.php' );
+require_once( TWO_FACTOR_DIR . 'class-two-factor-core.php' );
 
 /**
  * A compatability layer for some of the most-used plugins out there.
  */
-require_once( TWO_FACTOR_DIR . 'class.two-factor-compat.php' );
+require_once( TWO_FACTOR_DIR . 'class-two-factor-compat.php' );
 
 $two_factor_compat = new Two_Factor_Compat();
 
