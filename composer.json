@@ -1,6 +1,6 @@
 {
-  "type": "wordpress-plugin",
   "name": "wordpress/two-factor",
+  "type": "wordpress-plugin",
   "description": "Two-Factor Authentication for WordPress.",
   "license": "GPL-2.0-or-later",
   "require": {
