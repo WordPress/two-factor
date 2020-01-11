@@ -75,7 +75,7 @@ class Test_ClassTwoFactorCore extends WP_UnitTestCase {
 	 * @covers Two_Factor_Core::add_hooks
 	 */
 	public function test_add_hooks() {
-		Two_Factor_Core::add_hooks();
+		Two_Factor_Core::add_hooks( new Two_Factor_Compat() );
 
 		$this->assertGreaterThan(
 			0,

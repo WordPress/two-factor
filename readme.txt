@@ -3,6 +3,7 @@ Contributors: georgestephanis, valendesigns, stevenkword, extendwings, sgrant, a
 Tags: two factor, two step, authentication, login, totp, fido u2f, u2f, email, backup codes, 2fa, yubikey
 Requires at least: 4.3
 Tested up to: 5.3
+Requires PHP: 5.6
 Stable tag: trunk
 
 Enable Two-Factor Authentication using time-based one-time passwords (OTP, Google Authenticator), Universal 2nd Factor (FIDO U2F, YubiKey), email and backup verification codes.

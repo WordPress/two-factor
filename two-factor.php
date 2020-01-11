@@ -2,9 +2,9 @@
 /**
  * Plugin Name: Two Factor
  * Plugin URI: https://wordpress.org/plugins/two-factor/
- * Description: A prototype extensible core to enable Two-Factor Authentication.
+ * Description: Two-Factor Authentication using time-based one-time passwords, Universal 2nd Factor (FIDO U2F), email and backup verification codes.
  * Author: Plugin Contributors
- * Version: 0.4.8
+ * Version: 0.5.0
  * Author URI: https://github.com/wordpress/two-factor/graphs/contributors
  * Network: True
  * Text Domain: two-factor
