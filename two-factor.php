@@ -23,6 +23,13 @@ require_once( TWO_FACTOR_DIR . 'providers/class.two-factor-provider.php' );
 /**
  * Include the core that handles the common bits.
  */
-require_once( TWO_FACTOR_DIR . 'class.two-factor-core.php' );
+require_once( TWO_FACTOR_DIR . 'class-two-factor-core.php' );
 
-Two_Factor_Core::add_hooks();
+/**
+ * A compatability layer for some of the most-used plugins out there.
+ */
+require_once( TWO_FACTOR_DIR . 'class-two-factor-compat.php' );
+
+$two_factor_compat = new Two_Factor_Compat();
+
+Two_Factor_Core::add_hooks( $two_factor_compat );
