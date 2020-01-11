@@ -10,7 +10,7 @@
     "issues": "https://github.com/WordPress/two-factor/issues"
   },
   "require": {
-    "php": ">=5.4"
+    "php": ">=5.6"
   },
   "require-dev": {
     "php-coveralls/php-coveralls": "^1.0",
