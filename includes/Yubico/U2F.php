@@ -164,7 +164,7 @@ class U2F
         $offs = 1;
         $pubKey = substr($rawReg, $offs, PUBKEY_LEN);
         $offs += PUBKEY_LEN;
-        // decode the pubKey to make sure it's good
+        // Decode the pubKey to make sure it's good.
         $tmpKey = $this->pubkey_to_pem($pubKey);
         if($tmpKey === null) {
             throw new Error('Decoding of public key failed', ERR_PUBKEY_DECODE );
@@ -175,7 +175,7 @@ class U2F
         $offs += $khLen;
         $registration->keyHandle = $this->base64u_encode($kh);
 
-        // length of certificate is stored in byte 3 and 4 (excluding the first 4 bytes)
+        // length of certificate is stored in byte 3 and 4 (excluding the first 4 bytes).
         $certLen = 4;
         $certLen += ($regData[$offs + 2] << 8);
         $certLen += $regData[$offs + 3];

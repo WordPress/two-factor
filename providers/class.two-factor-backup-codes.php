@@ -163,7 +163,7 @@ class Two_Factor_Backup_Codes extends Two_Factor_Provider {
 							// Update counter.
 							$( '.two-factor-backup-codes-count' ).html( response.data.i18n.count );
 
-							// Build the download link
+							// Build the download link.
 							var txt_data = 'data:application/text;charset=utf-8,' + '\n';
 							txt_data += response.data.i18n.title.replace( /%s/g, document.domain ) + '\n\n';
 

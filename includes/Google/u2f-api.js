@@ -288,7 +288,7 @@ u2f.WrappedChromeRuntimePort_ = function(port) {
 u2f.formatSignRequest_ =
   function(appId, challenge, registeredKeys, timeoutSeconds, reqId) {
   if (js_api_version === undefined || js_api_version < 1.1) {
-    // Adapt request to the 1.0 JS API
+    // Adapt request to the 1.0 JS API.
     var signRequests = [];
     for (var i = 0; i < registeredKeys.length; i++) {
       signRequests[i] = {
@@ -305,7 +305,7 @@ u2f.formatSignRequest_ =
       requestId: reqId
     };
   }
-  // JS 1.1 API
+  // JS 1.1 API.
   return {
     type: u2f.MessageTypes.U2F_SIGN_REQUEST,
     appId: appId,
@@ -327,7 +327,7 @@ u2f.formatSignRequest_ =
 u2f.formatRegisterRequest_ =
   function(appId, registeredKeys, registerRequests, timeoutSeconds, reqId) {
   if (js_api_version === undefined || js_api_version < 1.1) {
-    // Adapt request to the 1.0 JS API
+    // Adapt request to the 1.0 JS API.
     for (var i = 0; i < registerRequests.length; i++) {
       registerRequests[i].appId = appId;
     }
@@ -348,7 +348,7 @@ u2f.formatRegisterRequest_ =
       requestId: reqId
     };
   }
-  // JS 1.1 API
+  // JS 1.1 API.
   return {
     type: u2f.MessageTypes.U2F_REGISTER_REQUEST,
     appId: appId,
@@ -380,7 +380,7 @@ u2f.WrappedChromeRuntimePort_.prototype.addEventListener =
   var name = eventName.toLowerCase();
   if (name == 'message' || name == 'onmessage') {
     this.port_.onMessage.addListener(function(message) {
-      // Emulate a minimal MessageEvent object
+      // Emulate a minimal MessageEvent object.
       handler({'data': message});
     });
   } else {
