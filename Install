@@ -1,0 +1,2 @@
+$ git clone https://github.com/wordpress/two-factor.git
+$ npm install
