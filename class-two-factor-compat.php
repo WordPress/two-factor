@@ -1,7 +1,7 @@
 <?php
 
 /**
- * A compatability layer for some of the most popular plugins.
+ * A compatibility layer for some of the most popular plugins.
  *
  * Should be used with care because ideally we wouldn't need
  * any integration specific code for this plugin. Everything should

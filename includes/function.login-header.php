@@ -14,7 +14,7 @@
 function login_header( $title = 'Log In', $message = '', $wp_error = null ) {
 	global $error, $interim_login, $action;
 
-	// Don't index any of these forms
+	// Don't index any of these forms.
 	add_action( 'login_head', 'wp_no_robots' );
 
 	add_action( 'login_head', 'wp_login_viewport_meta' );
@@ -179,7 +179,7 @@ function login_header( $title = 'Log In', $message = '', $wp_error = null ) {
 	if ( !empty( $message ) )
 		echo $message . "\n";
 
-	// In case a plugin uses $error rather than the $wp_errors object
+	// In case a plugin uses $error rather than the $wp_errors object.
 	if ( !empty( $error ) ) {
 		$wp_error->add('error', $error);
 		unset($error);
@@ -218,7 +218,7 @@ function login_header( $title = 'Log In', $message = '', $wp_error = null ) {
 			echo '<p class="message">' . apply_filters( 'login_messages', $messages ) . "</p>\n";
 		}
 	}
-} // End of login_header()
+} // End of login_header().
 
 function wp_login_viewport_meta() {
 	?>

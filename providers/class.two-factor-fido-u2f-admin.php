@@ -51,7 +51,7 @@ class Two_Factor_FIDO_U2F_Admin {
 		$user_id = get_current_user_id();
 		$security_keys = Two_Factor_FIDO_U2F::get_security_keys( $user_id );
 
-		// @todo Ensure that scripts don't fail because of missing u2fL10n
+		// @todo Ensure that scripts don't fail because of missing u2fL10n.
 		try {
 			$data = Two_Factor_FIDO_U2F::$u2f->getRegisterData( $security_keys );
 			list( $req,$sigs ) = $data;
