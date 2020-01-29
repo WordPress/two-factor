@@ -20,6 +20,11 @@ Use the "Two-Factor Options" section under "Users" → "Your Profile" to enable 
 
 For more history, see [this post](https://stephanis.info/2013/08/14/two-cents-on-two-factor/).
 
+= Actions & Filters =
+
+Here is a list of action and filter hooks provided by the plugin:
+
+- `two_factor_user_authenticated` action which receives the logged in `WP_User` object as the first argument for determining the logged in user right after the authentication workflow.
 
 == Screenshots ==
 
