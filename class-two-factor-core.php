@@ -237,6 +237,7 @@ class Two_Factor_Core {
 			return;
 		}
 
+		wp_destroy_current_session();
 		wp_clear_auth_cookie();
 
 		self::show_two_factor_login( $user );
