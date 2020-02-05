@@ -271,7 +271,7 @@ class Two_Factor_Core {
 		}
 
 		// Invalidate the current login session to prevent from being re-used.
-		self::destroy_logged_in_session_for_user( $user );
+		self::destroy_current_session_for_user( $user );
 
 		// Also clear the cookies which are no longer valid.
 		wp_clear_auth_cookie();
@@ -291,7 +291,7 @@ class Two_Factor_Core {
 	 *
 	 * @return void
 	 */
-	public static function destroy_logged_in_session_for_user( $user ) {
+	public static function destroy_current_session_for_user( $user ) {
 		$session_manager = WP_Session_Tokens::get_instance( $user->ID );
 
 		foreach ( self::$password_auth_tokens as $auth_token ) {
