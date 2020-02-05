@@ -30,6 +30,14 @@ class Two_Factor_Core {
 	const USER_META_NONCE_KEY    = '_two_factor_nonce';
 
 	/**
+	 * Keep track of all the password-based authentication sessions that
+	 * need to invalidated before the second factor authentication.
+	 *
+	 * @var array
+	 */
+	private static $password_auth_tokens = array();
+
+	/**
 	 * Set up filters and actions.
 	 *
 	 * @since 0.1-dev
@@ -47,6 +55,15 @@ class Two_Factor_Core {
 		add_filter( 'manage_users_columns', array( __CLASS__, 'filter_manage_users_columns' ) );
 		add_filter( 'wpmu_users_columns', array( __CLASS__, 'filter_manage_users_columns' ) );
 		add_filter( 'manage_users_custom_column', array( __CLASS__, 'manage_users_custom_column' ), 10, 3 );
+
+		/**
+		 * Keep track of all the user sessions for which we need to invalidate the
+		 * authentication cookies set during the initial password check.
+		 *
+		 * Is there a better way of doing this?
+		 */
+		add_action( 'set_auth_cookie', array( __CLASS__, 'collect_auth_cookie_tokens' ) );
+		add_action( 'set_logged_in_cookie', array( __CLASS__, 'collect_auth_cookie_tokens' ) );
 
 		// Run only after the core wp_authenticate_username_password() check.
 		add_filter( 'authenticate', array( __CLASS__, 'filter_authenticate' ), 50 );
@@ -119,6 +136,22 @@ class Two_Factor_Core {
 		}
 
 		return $providers;
+	}
+
+	/**
+	 * Keep track of all the authentication cookies that need to be
+	 * invalidated before the second factor authentication.
+	 *
+	 * @param string $cookie Cookie string.
+	 *
+	 * @return void
+	 */
+	public static function collect_auth_cookie_tokens( $cookie ) {
+		$parsed = wp_parse_auth_cookie( $cookie );
+
+		if ( ! empty( $parsed['token'] ) ) {
+			self::$password_auth_tokens[] = $parsed['token'];
+		}
 	}
 
 	/**
@@ -237,11 +270,33 @@ class Two_Factor_Core {
 			return;
 		}
 
-		wp_destroy_current_session();
+		// Invalidate the current login session to prevent from being re-used.
+		self::destroy_current_session_for_user( $user );
+
+		// Also clear the cookies which are no longer valid.
 		wp_clear_auth_cookie();
 
 		self::show_two_factor_login( $user );
 		exit;
+	}
+
+	/**
+	 * Destroy the known password-based authentication sessions for the current user.
+	 *
+	 * Is there a better way of finding the current session token without
+	 * having access to the authentication cookies which are just being set
+	 * on the first password-based authentication request.
+	 *
+	 * @param \WP_User $user User object.
+	 *
+	 * @return void
+	 */
+	public static function destroy_current_session_for_user( $user ) {
+		$session_manager = WP_Session_Tokens::get_instance( $user->ID );
+
+		foreach ( self::$password_auth_tokens as $auth_token ) {
+			$session_manager->destroy( $auth_token );
+		}
 	}
 
 	/**

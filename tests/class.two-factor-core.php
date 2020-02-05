@@ -278,4 +278,44 @@ class Test_ClassTwoFactorCore extends WP_UnitTestCase {
 		);
 	}
 
+	/**
+	 * @covers Two_Factor_Core::destroy_current_session_for_user
+	 * @covers Two_Factor_Core::collect_auth_cookie_tokens
+	 */
+	public function test_can_distroy_auth_sessions() {
+		$user_id = $this->factory->user->create(
+			array(
+				'user_login' => 'username',
+				'user_pass' => 'password',
+			)
+		);
+
+		$user = new WP_User( $user_id );
+
+		$session_manager = WP_Session_Tokens::get_instance( $user_id );
+
+		$this->assertCount( 0, $session_manager->get_all(), 'No user sessions are present first' );
+
+		$user_authenticated = wp_signon(
+			array(
+				'user_login' => 'username',
+				'user_password' => 'password',
+			)
+		);
+
+		$this->assertEquals( $user_authenticated, $user, 'User can authenticate' );
+		$this->assertCount( 1, $session_manager->get_all(), 'Can fetch the authenticated session' );
+
+		// Create one extra session which shouldn't be destroyed.
+		$session_manager->create( time() + 60 * 60 );
+		$this->assertCount( 2, $session_manager->get_all(), 'Can fetch active sessions' );
+
+		// Now clear all active password-based sessions.
+		Two_Factor_Core::destroy_current_session_for_user( $user );
+		$this->assertCount( 1, $session_manager->get_all(), 'All known authentication sessions have been destroyed' );
+
+		// Cleanup for the rest.
+		$session_manager->destroy_all();
+	}
+
 }
