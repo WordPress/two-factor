@@ -56,6 +56,12 @@ class Two_Factor_Core {
 		add_filter( 'wpmu_users_columns', array( __CLASS__, 'filter_manage_users_columns' ) );
 		add_filter( 'manage_users_custom_column', array( __CLASS__, 'manage_users_custom_column' ), 10, 3 );
 
+		/**
+		 * Keep track of all the user sessions for which we need to invalidate the
+		 * authentication cookies set during the initial password check.
+		 *
+		 * Is there a better way of doing this?
+		 */
 		add_action( 'set_auth_cookie', array( __CLASS__, 'collect_auth_cookie_tokens' ) );
 		add_action( 'set_logged_in_cookie', array( __CLASS__, 'collect_auth_cookie_tokens' ) );
 
@@ -276,6 +282,10 @@ class Two_Factor_Core {
 
 	/**
 	 * Destroy the known password-based authentication sessions for the current user.
+	 *
+	 * Is there a better way of finding the current session token without
+	 * having access to the authentication cookies which are just being set
+	 * on the first password-based authentication request.
 	 *
 	 * @param \WP_User $user User object.
 	 *
