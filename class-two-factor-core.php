@@ -645,7 +645,7 @@ class Two_Factor_Core {
 		}
 
 		wp_set_auth_cookie( $user->ID, $rememberme );
-		
+
 		do_action( 'two_factor_user_authenticated', $user );
 
 		// Must be global because that's how login_header() uses it.
