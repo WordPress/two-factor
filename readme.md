@@ -23,7 +23,7 @@ Use the "Two-Factor Options" section under "Users" → "Your Profile" to enable 
 - Backup Codes
 - Dummy Method (only for testing purposes)
 
-For more history, see [this post](https://stephanis.info/2013/08/14/two-cents-on-two-factor/).
+For more history, see [this post](https://georgestephanis.wordpress.com/2013/08/14/two-cents-on-two-factor/).
 
 ## Screenshots ##
 
