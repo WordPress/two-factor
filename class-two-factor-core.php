@@ -52,6 +52,7 @@ class Two_Factor_Core {
 		add_action( 'edit_user_profile', array( __CLASS__, 'user_two_factor_options' ) );
 		add_action( 'personal_options_update', array( __CLASS__, 'user_two_factor_options_update' ) );
 		add_action( 'edit_user_profile_update', array( __CLASS__, 'user_two_factor_options_update' ) );
+		add_action( 'two_factor_ajax_options_update', array( __CLASS__, 'user_two_factor_options_update' ) );
 		add_filter( 'manage_users_columns', array( __CLASS__, 'filter_manage_users_columns' ) );
 		add_filter( 'wpmu_users_columns', array( __CLASS__, 'filter_manage_users_columns' ) );
 		add_filter( 'manage_users_custom_column', array( __CLASS__, 'manage_users_custom_column' ), 10, 3 );
@@ -69,6 +70,8 @@ class Two_Factor_Core {
 		add_filter( 'authenticate', array( __CLASS__, 'filter_authenticate' ), 50 );
 
 		$compat->init();
+
+		add_action( 'init', array( __CLASS__, 'register_scripts' ) );
 	}
 
 	/**
@@ -78,6 +81,16 @@ class Two_Factor_Core {
 	 */
 	public static function load_textdomain() {
 		load_plugin_textdomain( 'two-factor' );
+	}
+
+	/**
+	 * Register scripts.
+	 */
+	public static function register_scripts() {
+		wp_register_style(
+			'user-edit-2fa',
+			plugins_url( 'user-edit.css', __FILE__ )
+		);
 	}
 
 	/**
@@ -777,7 +790,7 @@ class Two_Factor_Core {
 	 * @param WP_User $user WP_User object of the logged-in user.
 	 */
 	public static function user_two_factor_options( $user ) {
-		wp_enqueue_style( 'user-edit-2fa', plugins_url( 'user-edit.css', __FILE__ ) );
+		wp_enqueue_style( 'user-edit-2fa' );
 
 		$enabled_providers = array_keys( self::get_available_providers_for_user( $user ) );
 		$primary_provider = self::get_primary_provider_for_user( $user->ID );
@@ -882,4 +895,3 @@ class Two_Factor_Core {
 		return (bool) apply_filters( 'two_factor_rememberme', $rememberme );
 	}
 }
-

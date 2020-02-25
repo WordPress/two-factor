@@ -33,3 +33,6 @@ require_once( TWO_FACTOR_DIR . 'class-two-factor-compat.php' );
 $two_factor_compat = new Two_Factor_Compat();
 
 Two_Factor_Core::add_hooks( $two_factor_compat );
+
+require_once( TWO_FACTOR_DIR . 'class.two-factor-force.php' );
+Two_Factor_Force::add_hooks();

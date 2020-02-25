@@ -35,3 +35,24 @@
 .two-factor-methods-table tbody tr:nth-child(odd) {
 	background-color: #f9f9f9;
 }
+
+/* Special modifications for use on force-2fa screen */
+#login {
+	width: 100%;
+	max-width: 1000px;
+}
+
+.login .button-primary {
+	float: left;
+}
+
+.force-2fa-title {
+	line-height: 1.3;
+	text-align: center;
+	padding: 0 10%;
+}
+
+/* Hackity hack to hid the title on the force-2fa view */
+.login .two-factor-main-label {
+	display: none;
+}

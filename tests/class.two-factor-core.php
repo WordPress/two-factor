@@ -98,6 +98,29 @@ class Test_ClassTwoFactorCore extends WP_UnitTestCase {
 				array( 'Two_Factor_Core', 'backup_2fa' )
 			)
 		);
+		$this->assertGreaterThan(
+			0,
+			has_action(
+				'init',
+				array( 'Two_Factor_Core', 'register_scripts' )
+			)
+		);
+		$this->assertGreaterThan(
+			0,
+			has_action(
+				'two_factor_ajax_options_update',
+				array( 'Two_Factor_Core', 'user_two_factor_options_update' )
+			)
+		);
+	}
+
+	/**
+	 * @covers Two_Factor_Core::register_scripts
+	 */
+	public function test_register_scripts() {
+		Two_Factor_Core::register_scripts();
+
+		$this->assertTrue( wp_style_is( 'user-edit-2fa', 'registered' ) );
 	}
 
 	/**
