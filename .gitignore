@@ -4,3 +4,4 @@
 /vendor
 /composer.lock
 /dist
+*.swp
