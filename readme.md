@@ -2,6 +2,7 @@
 # Two-Factor
 
 ![Banner](assets/banner-1544x500.png)
+https://wordpress.org/plugins/two-factor/<br>
 Enable Two-Factor Authentication using time-based one-time passwords (OTP, Google Authenticator), Universal 2nd Factor (FIDO U2F, YubiKey), email and backup verification codes.
 
 **Contributors:** [georgestephanis](https://profiles.wordpress.org/georgestephanis), [valendesigns](https://profiles.wordpress.org/valendesigns), [stevenkword](https://profiles.wordpress.org/stevenkword), [extendwings](https://profiles.wordpress.org/extendwings), [sgrant](https://profiles.wordpress.org/sgrant), [aaroncampbell](https://profiles.wordpress.org/aaroncampbell), [johnbillion](https://profiles.wordpress.org/johnbillion), [stevegrunwell](https://profiles.wordpress.org/stevegrunwell), [netweb](https://profiles.wordpress.org/netweb), [kasparsd](https://profiles.wordpress.org/kasparsd), [alihusnainarshad](https://profiles.wordpress.org/alihusnainarshad), [passoniate](https://profiles.wordpress.org/passoniate)
