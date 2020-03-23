@@ -111,7 +111,7 @@ class Two_Factor_Core {
 		if ( isset( $providers['Two_Factor_FIDO_U2F'] ) && version_compare( PHP_VERSION, '5.3.0', '<' ) ) {
 			unset( $providers['Two_Factor_FIDO_U2F'] );
 			trigger_error(
-				sprintf( // WPCS: XSS OK.
+				sprintf(
 				/* translators: %s: version number */
 					__( 'FIDO U2F is not available because you are using PHP %s. (Requires 5.3 or greater)', 'two-factor' ),
 					PHP_VERSION
@@ -427,7 +427,7 @@ class Two_Factor_Core {
 
 		$available_providers = self::get_available_providers_for_user( $user );
 		$backup_providers    = array_diff_key( $available_providers, array( $provider_class => null ) );
-		$interim_login       = isset( $_REQUEST['interim-login'] ); // WPCS: CSRF ok.
+		$interim_login       = isset( $_REQUEST['interim-login'] );
 
 		$rememberme = intval( self::rememberme() );
 
@@ -709,7 +709,7 @@ class Two_Factor_Core {
 
 		// Must be global because that's how login_header() uses it.
 		global $interim_login;
-		$interim_login = isset( $_REQUEST['interim-login'] ); // WPCS: override ok.
+		$interim_login = isset( $_REQUEST['interim-login'] );
 
 		if ( $interim_login ) {
 			$customize_login = isset( $_REQUEST['customize-login'] );
@@ -717,7 +717,7 @@ class Two_Factor_Core {
 				wp_enqueue_script( 'customize-base' );
 			}
 			$message       = '<p class="message">' . __( 'You have logged in successfully.', 'two-factor' ) . '</p>';
-			$interim_login = 'success'; // WPCS: override ok.
+			$interim_login = 'success';
 			login_header( '', $message );
 			?>
 			</div>
@@ -726,7 +726,7 @@ class Two_Factor_Core {
 			do_action( 'login_footer' );
 			?>
 			<?php if ( $customize_login ) : ?>
-				<script type="text/javascript">setTimeout( function(){ new wp.customize.Messenger({ url: '<?php echo wp_customize_url(); /* WPCS: XSS OK. */ ?>', channel: 'login' }).send('login') }, 1000 );</script>
+				<script type="text/javascript">setTimeout( function(){ new wp.customize.Messenger({ url: '<?php echo wp_customize_url(); ?>', channel: 'login' }).send('login') }, 1000 );</script>
 			<?php endif; ?>
 			</body></html>
 			<?php

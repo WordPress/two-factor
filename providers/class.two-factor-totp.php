@@ -246,10 +246,10 @@ class Two_Factor_Totp extends Two_Factor_Provider {
 	 * @return bool Whether the user gave a valid code
 	 */
 	public function validate_authentication( $user ) {
-		if ( ! empty( $_REQUEST['authcode'] ) ) { // WPCS: CSRF ok, nonce verified by login_form_validate_2fa().
+		if ( ! empty( $_REQUEST['authcode'] ) ) {
 			return $this->is_valid_authcode(
 				$this->get_user_totp_key( $user->ID ),
-				sanitize_text_field( $_REQUEST['authcode'] ) // WPCS: CSRF ok, nonce verified by login_form_validate_2fa().
+				sanitize_text_field( $_REQUEST['authcode'] )
 			);
 		}
 
