@@ -24,20 +24,20 @@ class Two_Factor_Totp extends Two_Factor_Provider {
 	 */
 	const NOTICES_META_KEY = '_two_factor_totp_notices';
 
-	const DEFAULT_KEY_BIT_SIZE = 160;
-	const DEFAULT_CRYPTO = 'sha1';
-	const DEFAULT_DIGIT_COUNT = 6;
-	const DEFAULT_TIME_STEP_SEC = 30;
+	const DEFAULT_KEY_BIT_SIZE        = 160;
+	const DEFAULT_CRYPTO              = 'sha1';
+	const DEFAULT_DIGIT_COUNT         = 6;
+	const DEFAULT_TIME_STEP_SEC       = 30;
 	const DEFAULT_TIME_STEP_ALLOWANCE = 4;
-	private static $_base_32_chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ234567';
+	private static $_base_32_chars    = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ234567';
 
 	/**
 	 * Class constructor. Sets up hooks, etc.
 	 */
 	protected function __construct() {
 		add_action( 'two-factor-user-options-' . __CLASS__, array( $this, 'user_two_factor_options' ) );
-		add_action( 'personal_options_update',              array( $this, 'user_two_factor_options_update' ) );
-		add_action( 'edit_user_profile_update',             array( $this, 'user_two_factor_options_update' ) );
+		add_action( 'personal_options_update', array( $this, 'user_two_factor_options_update' ) );
+		add_action( 'edit_user_profile_update', array( $this, 'user_two_factor_options_update' ) );
 		return parent::__construct();
 	}
 
@@ -77,9 +77,10 @@ class Two_Factor_Totp extends Two_Factor_Provider {
 
 		?>
 		<div id="two-factor-totp-options">
-		<?php if ( empty( $key ) ) :
-			$key = $this->generate_key();
-			$site_name = get_bloginfo( 'name', 'display' );
+		<?php
+		if ( empty( $key ) ) :
+			$key        = $this->generate_key();
+			$site_name  = get_bloginfo( 'name', 'display' );
 			$totp_title = apply_filters( 'two_factor_totp_title', $site_name . ':' . $user->user_login, $user );
 			?>
 			<p>
@@ -122,7 +123,7 @@ class Two_Factor_Totp extends Two_Factor_Provider {
 	 */
 	public function user_two_factor_options_update( $user_id ) {
 		$notices = array();
-		$errors = array();
+		$errors  = array();
 
 		$current_key = $this->get_user_totp_key( $user_id );
 
@@ -221,7 +222,7 @@ class Two_Factor_Totp extends Two_Factor_Provider {
 			delete_user_meta( get_current_user_id(), self::NOTICES_META_KEY );
 			foreach ( $notices as $class => $messages ) {
 				?>
-				<div class="<?php echo esc_attr( $class ) ?>">
+				<div class="<?php echo esc_attr( $class ); ?>">
 					<?php
 					foreach ( $messages as $msg ) {
 						?>
@@ -297,7 +298,7 @@ class Two_Factor_Totp extends Two_Factor_Provider {
 	 * @return string $bitsize long string composed of available base32 chars.
 	 */
 	public static function generate_key( $bitsize = self::DEFAULT_KEY_BIT_SIZE ) {
-		$bytes = ceil( $bitsize / 8 );
+		$bytes  = ceil( $bitsize / 8 );
 		$secret = wp_generate_password( $bytes, true, true );
 
 		return self::base32_encode( $secret );
@@ -327,8 +328,8 @@ class Two_Factor_Totp extends Two_Factor_Provider {
 			$higher = 0;
 		}
 
-		$lowmap  = 0xffffffff;
-		$lower   = $value & $lowmap;
+		$lowmap = 0xffffffff;
+		$lower  = $value & $lowmap;
 
 		return pack( 'NN', $higher, $lower );
 	}
@@ -378,7 +379,7 @@ class Two_Factor_Totp extends Two_Factor_Provider {
 	 */
 	public static function get_google_qr_code( $name, $key, $title = null ) {
 		// Encode to support spaces, question marks and other characters.
-		$name = rawurlencode( $name );
+		$name       = rawurlencode( $name );
 		$google_url = urlencode( 'otpauth://totp/' . $name . '?secret=' . $key );
 		if ( isset( $title ) ) {
 			$google_url .= urlencode( '&issuer=' . rawurlencode( $title ) );
@@ -406,7 +407,7 @@ class Two_Factor_Totp extends Two_Factor_Provider {
 	 * @param WP_User $user WP_User object of the logged-in user.
 	 */
 	public function authentication_page( $user ) {
-		require_once( ABSPATH .  '/wp-admin/includes/template.php' );
+		require_once ABSPATH . '/wp-admin/includes/template.php';
 		?>
 		<p>
 			<label for="authcode"><?php esc_html_e( 'Authentication Code:', 'two-factor' ); ?></label>
@@ -445,7 +446,7 @@ class Two_Factor_Totp extends Two_Factor_Provider {
 		}
 
 		$five_bit_sections = str_split( $binary_string, 5 );
-		$base32_string = '';
+		$base32_string     = '';
 
 		foreach ( $five_bit_sections as $five_bit_section ) {
 			$base32_string .= self::$_base_32_chars[ base_convert( str_pad( $five_bit_section, 5, '0' ), 2, 10 ) ];
@@ -465,25 +466,25 @@ class Two_Factor_Totp extends Two_Factor_Provider {
 	 */
 	public static function base32_decode( $base32_string ) {
 
-		$base32_string 	= strtoupper( $base32_string );
+		$base32_string = strtoupper( $base32_string );
 
 		if ( ! preg_match( '/^[' . self::$_base_32_chars . ']+$/', $base32_string, $match ) ) {
 			throw new Exception( 'Invalid characters in the base32 string.' );
 		}
 
-		$l 	= strlen( $base32_string );
-		$n	= 0;
-		$j	= 0;
+		$l      = strlen( $base32_string );
+		$n      = 0;
+		$j      = 0;
 		$binary = '';
 
 		for ( $i = 0; $i < $l; $i++ ) {
 
-			$n = $n << 5; // Move buffer left by 5 to make room.
-			$n = $n + strpos( self::$_base_32_chars, $base32_string[ $i ] ); 	// Add value into buffer.
+			$n  = $n << 5; // Move buffer left by 5 to make room.
+			$n  = $n + strpos( self::$_base_32_chars, $base32_string[ $i ] );    // Add value into buffer.
 			$j += 5; // Keep track of number of bits in buffer.
 
 			if ( $j >= 8 ) {
-				$j -= 8;
+				$j      -= 8;
 				$binary .= chr( ( $n & ( 0xFF << $j ) ) >> $j );
 			}
 		}
@@ -505,6 +506,6 @@ class Two_Factor_Totp extends Two_Factor_Provider {
 		if ( $a === $b ) {
 			return 0;
 		}
-		return ($a < $b) ? -1 : 1;
+		return ( $a < $b ) ? -1 : 1;
 	}
 }

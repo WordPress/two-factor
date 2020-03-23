@@ -27,7 +27,7 @@ class Two_Factor_Core {
 	 *
 	 * @type string
 	 */
-	const USER_META_NONCE_KEY    = '_two_factor_nonce';
+	const USER_META_NONCE_KEY = '_two_factor_nonce';
 
 	/**
 	 * Keep track of all the password-based authentication sessions that
@@ -110,18 +110,20 @@ class Two_Factor_Core {
 		// FIDO U2F is PHP 5.3+ only.
 		if ( isset( $providers['Two_Factor_FIDO_U2F'] ) && version_compare( PHP_VERSION, '5.3.0', '<' ) ) {
 			unset( $providers['Two_Factor_FIDO_U2F'] );
-			trigger_error( sprintf( // WPCS: XSS OK.
+			trigger_error(
+				sprintf( // WPCS: XSS OK.
 				/* translators: %s: version number */
-				__( 'FIDO U2F is not available because you are using PHP %s. (Requires 5.3 or greater)', 'two-factor' ),
-				PHP_VERSION
-			) );
+					__( 'FIDO U2F is not available because you are using PHP %s. (Requires 5.3 or greater)', 'two-factor' ),
+					PHP_VERSION
+				)
+			);
 		}
 
 		/**
 		 * For each filtered provider,
 		 */
 		foreach ( $providers as $class => $path ) {
-			include_once( $path );
+			include_once $path;
 
 			/**
 			 * Confirm that it's been successfully included before instantiating.
@@ -424,14 +426,14 @@ class Two_Factor_Core {
 		$provider_class = get_class( $provider );
 
 		$available_providers = self::get_available_providers_for_user( $user );
-		$backup_providers = array_diff_key( $available_providers, array( $provider_class => null ) );
-		$interim_login = isset( $_REQUEST['interim-login'] ); // WPCS: CSRF ok.
+		$backup_providers    = array_diff_key( $available_providers, array( $provider_class => null ) );
+		$interim_login       = isset( $_REQUEST['interim-login'] ); // WPCS: CSRF ok.
 
 		$rememberme = intval( self::rememberme() );
 
 		if ( ! function_exists( 'login_header' ) ) {
 			// We really should migrate login_header() out of `wp-login.php` so it can be called from an includes file.
-			include_once( TWO_FACTOR_DIR . 'includes/function.login-header.php' );
+			include_once TWO_FACTOR_DIR . 'includes/function.login-header.php';
 		}
 
 		login_header();
@@ -445,11 +447,11 @@ class Two_Factor_Core {
 				<input type="hidden" name="provider"      id="provider"      value="<?php echo esc_attr( $provider_class ); ?>" />
 				<input type="hidden" name="wp-auth-id"    id="wp-auth-id"    value="<?php echo esc_attr( $user->ID ); ?>" />
 				<input type="hidden" name="wp-auth-nonce" id="wp-auth-nonce" value="<?php echo esc_attr( $login_nonce ); ?>" />
-				<?php   if ( $interim_login ) { ?>
+				<?php if ( $interim_login ) { ?>
 					<input type="hidden" name="interim-login" value="1" />
-				<?php   } else { ?>
+				<?php } else { ?>
 					<input type="hidden" name="redirect_to" value="<?php echo esc_attr( $redirect_to ); ?>" />
-				<?php   } ?>
+				<?php } ?>
 				<input type="hidden" name="rememberme"    id="rememberme"    value="<?php echo esc_attr( $rememberme ); ?>" />
 
 				<?php $provider->authentication_page( $user ); ?>
@@ -458,8 +460,8 @@ class Two_Factor_Core {
 		<?php
 		if ( 1 === count( $backup_providers ) ) :
 			$backup_classname = key( $backup_providers );
-			$backup_provider = $backup_providers[ $backup_classname ];
-			$login_url = self::login_url(
+			$backup_provider  = $backup_providers[ $backup_classname ];
+			$login_url        = self::login_url(
 				array(
 					'action'        => 'backup_2fa',
 					'provider'      => $backup_classname,
@@ -553,7 +555,8 @@ class Two_Factor_Core {
 
 		<?php
 		/** This action is documented in wp-login.php */
-		do_action( 'login_footer' ); ?>
+		do_action( 'login_footer' );
+		?>
 		<div class="clear"></div>
 		</body>
 		</html>
@@ -587,10 +590,10 @@ class Two_Factor_Core {
 	 * @return array
 	 */
 	public static function create_login_nonce( $user_id ) {
-		$login_nonce               = array();
+		$login_nonce = array();
 		try {
 			$login_nonce['key'] = bin2hex( random_bytes( 32 ) );
-		} catch (Exception $ex) {
+		} catch ( Exception $ex ) {
 			$login_nonce['key'] = wp_hash( $user_id . mt_rand() . microtime(), 'nonce' );
 		}
 		$login_nonce['expiration'] = time() + HOUR_IN_SECONDS;
@@ -715,11 +718,13 @@ class Two_Factor_Core {
 			}
 			$message       = '<p class="message">' . __( 'You have logged in successfully.', 'two-factor' ) . '</p>';
 			$interim_login = 'success'; // WPCS: override ok.
-			login_header( '', $message ); ?>
+			login_header( '', $message );
+			?>
 			</div>
 			<?php
 			/** This action is documented in wp-login.php */
-			do_action( 'login_footer' ); ?>
+			do_action( 'login_footer' );
+			?>
 			<?php if ( $customize_login ) : ?>
 				<script type="text/javascript">setTimeout( function(){ new wp.customize.Messenger({ url: '<?php echo wp_customize_url(); /* WPCS: XSS OK. */ ?>', channel: 'login' }).send('login') }, 1000 );</script>
 			<?php endif; ?>
@@ -780,7 +785,7 @@ class Two_Factor_Core {
 		wp_enqueue_style( 'user-edit-2fa', plugins_url( 'user-edit.css', __FILE__ ) );
 
 		$enabled_providers = array_keys( self::get_available_providers_for_user( $user ) );
-		$primary_provider = self::get_primary_provider_for_user( $user->ID );
+		$primary_provider  = self::get_primary_provider_for_user( $user->ID );
 
 		if ( ! empty( $primary_provider ) && is_object( $primary_provider ) ) {
 			$primary_provider_key = get_class( $primary_provider );

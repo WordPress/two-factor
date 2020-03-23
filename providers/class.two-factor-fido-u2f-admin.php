@@ -24,13 +24,13 @@ class Two_Factor_FIDO_U2F_Admin {
 	 * @static
 	 */
 	public static function add_hooks() {
-		add_action( 'admin_enqueue_scripts',       array( __CLASS__, 'enqueue_assets' ) );
+		add_action( 'admin_enqueue_scripts', array( __CLASS__, 'enqueue_assets' ) );
 		add_action( 'show_user_security_settings', array( __CLASS__, 'show_user_profile' ) );
-		add_action( 'personal_options_update',     array( __CLASS__, 'catch_submission' ), 0 );
-		add_action( 'edit_user_profile_update',    array( __CLASS__, 'catch_submission' ), 0 );
-		add_action( 'load-profile.php',            array( __CLASS__, 'catch_delete_security_key' ) );
-		add_action( 'load-user-edit.php',          array( __CLASS__, 'catch_delete_security_key' ) );
-		add_action( 'wp_ajax_inline-save-key',     array( __CLASS__, 'wp_ajax_inline_save' ) );
+		add_action( 'personal_options_update', array( __CLASS__, 'catch_submission' ), 0 );
+		add_action( 'edit_user_profile_update', array( __CLASS__, 'catch_submission' ), 0 );
+		add_action( 'load-profile.php', array( __CLASS__, 'catch_delete_security_key' ) );
+		add_action( 'load-user-edit.php', array( __CLASS__, 'catch_delete_security_key' ) );
+		add_action( 'wp_ajax_inline-save-key', array( __CLASS__, 'wp_ajax_inline_save' ) );
 	}
 
 	/**
@@ -48,12 +48,12 @@ class Two_Factor_FIDO_U2F_Admin {
 			return;
 		}
 
-		$user_id = get_current_user_id();
+		$user_id       = get_current_user_id();
 		$security_keys = Two_Factor_FIDO_U2F::get_security_keys( $user_id );
 
 		// @todo Ensure that scripts don't fail because of missing u2fL10n.
 		try {
-			$data = Two_Factor_FIDO_U2F::$u2f->getRegisterData( $security_keys );
+			$data              = Two_Factor_FIDO_U2F::$u2f->getRegisterData( $security_keys );
 			list( $req,$sigs ) = $data;
 
 			update_user_meta( $user_id, self::REGISTER_DATA_USER_META_KEY, $req );
@@ -83,12 +83,12 @@ class Two_Factor_FIDO_U2F_Admin {
 		$translation_array = array(
 			'register' => array(
 				'request' => $req,
-				'sigs' => $sigs,
+				'sigs'    => $sigs,
 			),
-			'text' => array(
-				'insert' => esc_html__( 'Now insert (and tap) your Security Key.', 'two-factor' ),
-				'error' => esc_html__( 'U2F request failed.', 'two-factor' ),
-				'error_codes' => array(
+			'text'     => array(
+				'insert'            => esc_html__( 'Now insert (and tap) your Security Key.', 'two-factor' ),
+				'error'             => esc_html__( 'U2F request failed.', 'two-factor' ),
+				'error_codes'       => array(
 					// Map u2f.ErrorCodes to error messages.
 					0 => esc_html__( 'Request OK.', 'two-factor' ),
 					1 => esc_html__( 'Other U2F error.', 'two-factor' ),
@@ -197,8 +197,8 @@ class Two_Factor_FIDO_U2F_Admin {
 			<p><a href="https://support.google.com/accounts/answer/6103523"><?php esc_html_e( 'You can find FIDO U2F Security Key devices for sale from here.', 'two-factor' ); ?></a></p>
 
 			<?php
-				require( TWO_FACTOR_DIR . 'providers/class.two-factor-fido-u2f-admin-list-table.php' );
-				$u2f_list_table = new Two_Factor_FIDO_U2F_Admin_List_Table();
+				require TWO_FACTOR_DIR . 'providers/class.two-factor-fido-u2f-admin-list-table.php';
+				$u2f_list_table        = new Two_Factor_FIDO_U2F_Admin_List_Table();
 				$u2f_list_table->items = $security_keys;
 				$u2f_list_table->prepare_items();
 				$u2f_list_table->display();
@@ -227,7 +227,7 @@ class Two_Factor_FIDO_U2F_Admin {
 
 			try {
 				$response = json_decode( stripslashes( $_POST['u2f_response'] ) );
-				$reg = Two_Factor_FIDO_U2F::$u2f->doRegister( get_user_meta( $user_id, self::REGISTER_DATA_USER_META_KEY, true ), $response );
+				$reg      = Two_Factor_FIDO_U2F::$u2f->doRegister( get_user_meta( $user_id, self::REGISTER_DATA_USER_META_KEY, true ), $response );
 				$reg->new = true;
 
 				Two_Factor_FIDO_U2F::add_security_key( $user_id, $reg );
@@ -237,9 +237,14 @@ class Two_Factor_FIDO_U2F_Admin {
 
 			delete_user_meta( $user_id, self::REGISTER_DATA_USER_META_KEY );
 
-			wp_safe_redirect( add_query_arg( array(
-				'new_app_pass' => 1,
-			), wp_get_referer() ) . '#security-keys-section' );
+			wp_safe_redirect(
+				add_query_arg(
+					array(
+						'new_app_pass' => 1,
+					),
+					wp_get_referer()
+				) . '#security-keys-section'
+			);
 			exit;
 		}
 	}
@@ -309,7 +314,7 @@ class Two_Factor_FIDO_U2F_Admin {
 	public static function wp_ajax_inline_save() {
 		check_ajax_referer( 'keyinlineeditnonce', '_inline_edit' );
 
-		require( TWO_FACTOR_DIR . 'providers/class.two-factor-fido-u2f-admin-list-table.php' );
+		require TWO_FACTOR_DIR . 'providers/class.two-factor-fido-u2f-admin-list-table.php';
 		$wp_list_table = new Two_Factor_FIDO_U2F_Admin_List_Table();
 
 		if ( ! isset( $_POST['keyHandle'] ) ) {

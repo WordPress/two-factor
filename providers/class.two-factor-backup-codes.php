@@ -31,7 +31,7 @@ class Two_Factor_Backup_Codes extends Two_Factor_Provider {
 		static $instance;
 		$class = __CLASS__;
 		if ( ! is_a( $instance, $class ) ) {
-			$instance = new $class;
+			$instance = new $class();
 		}
 		return $instance;
 	}
@@ -116,19 +116,23 @@ class Two_Factor_Backup_Codes extends Two_Factor_Provider {
 	 */
 	public function user_options( $user ) {
 		$ajax_nonce = wp_create_nonce( 'two-factor-backup-codes-generate-json-' . $user->ID );
-		$count = self::codes_remaining_for_user( $user );
+		$count      = self::codes_remaining_for_user( $user );
 		?>
 		<p id="two-factor-backup-codes">
 			<button type="button" class="button button-two-factor-backup-codes-generate button-secondary hide-if-no-js">
 				<?php esc_html_e( 'Generate Verification Codes', 'two-factor' ); ?>
 			</button>
-			<span class="two-factor-backup-codes-count"><?php
-				echo esc_html( sprintf(
+			<span class="two-factor-backup-codes-count">
+			<?php
+				echo esc_html(
+					sprintf(
 					/* translators: %s: count */
-					_n( '%s unused code remaining.', '%s unused codes remaining.', $count, 'two-factor' ),
-					$count
-				) );
-				?></span>
+						_n( '%s unused code remaining.', '%s unused codes remaining.', $count, 'two-factor' ),
+						$count
+					)
+				);
+			?>
+				</span>
 		</p>
 		<div class="two-factor-backup-codes-wrapper" style="display:none;">
 			<ol class="two-factor-backup-codes-unused-codes"></ol>
@@ -190,7 +194,7 @@ class Two_Factor_Backup_Codes extends Two_Factor_Provider {
 	 * @return array
 	 */
 	public function generate_codes( $user, $args = '' ) {
-		$codes = array();
+		$codes        = array();
 		$codes_hashed = array();
 
 		// Check for arguments.
@@ -206,9 +210,9 @@ class Two_Factor_Backup_Codes extends Two_Factor_Provider {
 		}
 
 		for ( $i = 0; $i < $num_codes; $i++ ) {
-			$code = $this->get_code();
+			$code           = $this->get_code();
 			$codes_hashed[] = wp_hash_password( $code );
-			$codes[] = $code;
+			$codes[]        = $code;
 			unset( $code );
 		}
 
@@ -230,7 +234,7 @@ class Two_Factor_Backup_Codes extends Two_Factor_Provider {
 		// Setup the return data.
 		$codes = $this->generate_codes( $user );
 		$count = self::codes_remaining_for_user( $user );
-		$i18n = array(
+		$i18n  = array(
 			/* translators: %s: count */
 			'count' => esc_html( sprintf( _n( '%s unused code remaining.', '%s unused codes remaining.', $count, 'two-factor' ), $count ) ),
 			/* translators: %s: the site's domain */
@@ -238,7 +242,12 @@ class Two_Factor_Backup_Codes extends Two_Factor_Provider {
 		);
 
 		// Send the response.
-		wp_send_json_success( array( 'codes' => $codes, 'i18n' => $i18n ) );
+		wp_send_json_success(
+			array(
+				'codes' => $codes,
+				'i18n'  => $i18n,
+			)
+		);
 	}
 
 	/**
@@ -263,7 +272,7 @@ class Two_Factor_Backup_Codes extends Two_Factor_Provider {
 	 * @param WP_User $user WP_User object of the logged-in user.
 	 */
 	public function authentication_page( $user ) {
-		require_once( ABSPATH .  '/wp-admin/includes/template.php' );
+		require_once ABSPATH . '/wp-admin/includes/template.php';
 		?>
 		<p><?php esc_html_e( 'Enter a backup verification code.', 'two-factor' ); ?></p><br/>
 		<p>

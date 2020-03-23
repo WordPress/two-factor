@@ -61,10 +61,10 @@ class Two_Factor_FIDO_U2F extends Two_Factor_Provider {
 			return;
 		}
 
-		require_once( TWO_FACTOR_DIR . 'includes/Yubico/U2F.php' );
+		require_once TWO_FACTOR_DIR . 'includes/Yubico/U2F.php';
 		self::$u2f = new u2flib_server\U2F( self::get_u2f_app_id() );
 
-		require_once( TWO_FACTOR_DIR . 'providers/class.two-factor-fido-u2f-admin.php' );
+		require_once TWO_FACTOR_DIR . 'providers/class.two-factor-fido-u2f-admin.php';
 		Two_Factor_FIDO_U2F_Admin::add_hooks();
 
 		wp_register_script(
@@ -142,7 +142,7 @@ class Two_Factor_FIDO_U2F extends Two_Factor_Provider {
 	 * @return null
 	 */
 	public function authentication_page( $user ) {
-		require_once( ABSPATH . '/wp-admin/includes/template.php' );
+		require_once ABSPATH . '/wp-admin/includes/template.php';
 
 		// U2F doesn't work without HTTPS.
 		if ( ! is_ssl() ) {

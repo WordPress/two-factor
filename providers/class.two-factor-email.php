@@ -31,7 +31,7 @@ class Two_Factor_Email extends Two_Factor_Provider {
 		static $instance;
 		$class = __CLASS__;
 		if ( ! is_a( $instance, $class ) ) {
-			$instance = new $class;
+			$instance = new $class();
 		}
 		return $instance;
 	}
@@ -171,7 +171,7 @@ class Two_Factor_Email extends Two_Factor_Provider {
 			$this->generate_and_email_token( $user );
 		}
 
-		require_once( ABSPATH .  '/wp-admin/includes/template.php' );
+		require_once ABSPATH . '/wp-admin/includes/template.php';
 		?>
 		<p><?php esc_html_e( 'A verification code has been sent to the email address associated with your account.', 'two-factor' ); ?></p>
 		<p>
@@ -251,11 +251,13 @@ class Two_Factor_Email extends Two_Factor_Provider {
 		?>
 		<div>
 			<?php
-			echo esc_html( sprintf(
+			echo esc_html(
+				sprintf(
 				/* translators: %s: email address */
-				__( 'Authentication codes will be sent to %s.', 'two-factor' ),
-				$email
-			) );
+					__( 'Authentication codes will be sent to %s.', 'two-factor' ),
+					$email
+				)
+			);
 			?>
 		</div>
 		<?php

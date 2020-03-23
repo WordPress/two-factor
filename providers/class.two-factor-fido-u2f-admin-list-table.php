@@ -35,10 +35,10 @@ class Two_Factor_FIDO_U2F_Admin_List_Table extends WP_List_Table {
 	 * @since 0.1-dev
 	 */
 	public function prepare_items() {
-		$columns  = $this->get_columns();
-		$hidden   = array();
-		$sortable = array();
-		$primary  = 'name';
+		$columns               = $this->get_columns();
+		$hidden                = array();
+		$sortable              = array();
+		$primary               = 'name';
 		$this->_column_headers = array( $columns, $hidden, $sortable, $primary );
 	}
 
@@ -55,13 +55,13 @@ class Two_Factor_FIDO_U2F_Admin_List_Table extends WP_List_Table {
 	protected function column_default( $item, $column_name ) {
 		switch ( $column_name ) {
 			case 'name':
-				$out = '<div class="hidden" id="inline_' . esc_attr( $item->keyHandle ) . '">';
+				$out  = '<div class="hidden" id="inline_' . esc_attr( $item->keyHandle ) . '">';
 				$out .= '<div class="name">' . esc_html( $item->name ) . '</div>';
 				$out .= '</div>';
 
 				$actions = array(
 					'rename hide-if-no-js' => Two_Factor_FIDO_U2F_Admin::rename_link( $item ),
-					'delete' => Two_Factor_FIDO_U2F_Admin::delete_link( $item ),
+					'delete'               => Two_Factor_FIDO_U2F_Admin::delete_link( $item ),
 				);
 
 				return esc_html( $item->name ) . $out . self::row_actions( $actions );
@@ -124,7 +124,11 @@ class Two_Factor_FIDO_U2F_Admin_List_Table extends WP_List_Table {
 							</div>
 						</fieldset>
 						<?php
-						$core_columns = array( 'name' => true, 'added' => true, 'last_used' => true );
+						$core_columns    = array(
+							'name'      => true,
+							'added'     => true,
+							'last_used' => true,
+						);
 						list( $columns ) = $this->get_column_info();
 						foreach ( $columns as $column_name => $column_display_name ) {
 							if ( isset( $core_columns[ $column_name ] ) ) {
