@@ -380,9 +380,9 @@ class Two_Factor_Totp extends Two_Factor_Provider {
 	public static function get_google_qr_code( $name, $key, $title = null ) {
 		// Encode to support spaces, question marks and other characters.
 		$name       = rawurlencode( $name );
-		$google_url = urlencode( 'otpauth://totp/' . $name . '?secret=' . $key );
+		$google_url = rawurlencode( 'otpauth://totp/' . $name . '?secret=' . $key );
 		if ( isset( $title ) ) {
-			$google_url .= urlencode( '&issuer=' . rawurlencode( $title ) );
+			$google_url .= rawurlencode( '&issuer=' . rawurlencode( $title ) );
 		}
 		return 'https://chart.googleapis.com/chart?chs=200x200&chld=M|0&cht=qr&chl=' . $google_url;
 	}
