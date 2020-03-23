@@ -29,7 +29,7 @@ class Two_Factor_Totp extends Two_Factor_Provider {
 	const DEFAULT_DIGIT_COUNT         = 6;
 	const DEFAULT_TIME_STEP_SEC       = 30;
 	const DEFAULT_TIME_STEP_ALLOWANCE = 4;
-	private static $_base_32_chars    = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ234567';
+	private static $base_32_chars     = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ234567';
 
 	/**
 	 * Class constructor. Sets up hooks, etc.
@@ -203,7 +203,7 @@ class Two_Factor_Totp extends Two_Factor_Provider {
 	 * @return boolean
 	 */
 	public function is_valid_key( $key ) {
-		$check = sprintf( '/^[%s]+$/', self::$_base_32_chars );
+		$check = sprintf( '/^[%s]+$/', self::$base_32_chars );
 
 		if ( 1 === preg_match( $check, $key ) ) {
 			return true;
@@ -449,7 +449,7 @@ class Two_Factor_Totp extends Two_Factor_Provider {
 		$base32_string     = '';
 
 		foreach ( $five_bit_sections as $five_bit_section ) {
-			$base32_string .= self::$_base_32_chars[ base_convert( str_pad( $five_bit_section, 5, '0' ), 2, 10 ) ];
+			$base32_string .= self::$base_32_chars[ base_convert( str_pad( $five_bit_section, 5, '0' ), 2, 10 ) ];
 		}
 
 		return $base32_string;
@@ -468,7 +468,7 @@ class Two_Factor_Totp extends Two_Factor_Provider {
 
 		$base32_string = strtoupper( $base32_string );
 
-		if ( ! preg_match( '/^[' . self::$_base_32_chars . ']+$/', $base32_string, $match ) ) {
+		if ( ! preg_match( '/^[' . self::$base_32_chars . ']+$/', $base32_string, $match ) ) {
 			throw new Exception( 'Invalid characters in the base32 string.' );
 		}
 
@@ -480,7 +480,7 @@ class Two_Factor_Totp extends Two_Factor_Provider {
 		for ( $i = 0; $i < $l; $i++ ) {
 
 			$n  = $n << 5; // Move buffer left by 5 to make room.
-			$n  = $n + strpos( self::$_base_32_chars, $base32_string[ $i ] );    // Add value into buffer.
+			$n  = $n + strpos( self::$base_32_chars, $base32_string[ $i ] );    // Add value into buffer.
 			$j += 5; // Keep track of number of bits in buffer.
 
 			if ( $j >= 8 ) {
