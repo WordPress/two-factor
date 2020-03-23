@@ -13,7 +13,7 @@ class Two_Factor_Dummy extends Two_Factor_Provider {
 	 *
 	 * @since 0.1-dev
 	 */
-	static function get_instance() {
+	public static function get_instance() {
 		static $instance;
 		$class = __CLASS__;
 		if ( ! is_a( $instance, $class ) ) {

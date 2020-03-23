@@ -41,7 +41,7 @@ class Two_Factor_FIDO_U2F extends Two_Factor_Provider {
 	 *
 	 * @return \Two_Factor_FIDO_U2F
 	 */
-	static function get_instance() {
+	public static function get_instance() {
 		static $instance;
 
 		if ( ! isset( $instance ) ) {
