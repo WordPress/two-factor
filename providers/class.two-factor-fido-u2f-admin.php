@@ -44,7 +44,7 @@ class Two_Factor_FIDO_U2F_Admin {
 	 * @param string $hook Current page.
 	 */
 	public static function enqueue_assets( $hook ) {
-		if ( ! in_array( $hook, array( 'user-edit.php', 'profile.php' ) ) ) {
+		if ( ! in_array( $hook, array( 'user-edit.php', 'profile.php' ), true ) ) {
 			return;
 		}
 

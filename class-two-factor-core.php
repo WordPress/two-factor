@@ -193,7 +193,7 @@ class Two_Factor_Core {
 		$configured_providers = array();
 
 		foreach ( $providers as $classname => $provider ) {
-			if ( in_array( $classname, $enabled_providers ) && $provider->is_available_for_user( $user ) ) {
+			if ( in_array( $classname, $enabled_providers, true ) && $provider->is_available_for_user( $user ) ) {
 				$configured_providers[ $classname ] = $provider;
 			}
 		}
@@ -814,7 +814,7 @@ class Two_Factor_Core {
 						<tbody>
 						<?php foreach ( self::get_providers() as $class => $object ) : ?>
 							<tr>
-								<th scope="row"><input type="checkbox" name="<?php echo esc_attr( self::ENABLED_PROVIDERS_USER_META_KEY ); ?>[]" value="<?php echo esc_attr( $class ); ?>" <?php checked( in_array( $class, $enabled_providers ) ); ?> /></th>
+								<th scope="row"><input type="checkbox" name="<?php echo esc_attr( self::ENABLED_PROVIDERS_USER_META_KEY ); ?>[]" value="<?php echo esc_attr( $class ); ?>" <?php checked( in_array( $class, $enabled_providers, true ) ); ?> /></th>
 								<th scope="row"><input type="radio" name="<?php echo esc_attr( self::PROVIDER_USER_META_KEY ); ?>" value="<?php echo esc_attr( $class ); ?>" <?php checked( $class, $primary_provider_key ); ?> /></th>
 								<td>
 									<?php $object->print_label(); ?>
