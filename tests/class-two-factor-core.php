@@ -38,8 +38,8 @@ class Test_ClassTwoFactorCore extends WP_UnitTestCase {
 	}
 
 	public static function error_handler( $errno, $errstr ) {
-		if ( E_USER_NOTICE != $errno ) {
 			echo 'Received a non-notice error: ' . $errstr;
+		if ( E_USER_NOTICE !== $errno ) {
 
 			return false;
 		}
