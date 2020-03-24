@@ -260,8 +260,8 @@ class Two_Factor_FIDO_U2F extends Two_Factor_Provider {
 		}
 
 		$register = array(
-			'key_handle'   => $register->key_handle,
-			'public_key'   => $register->public_key,
+			'key_handle'  => $register->key_handle,
+			'public_key'  => $register->public_key,
 			'certificate' => $register->certificate,
 			'counter'     => $register->counter,
 		);
