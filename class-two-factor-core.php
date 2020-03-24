@@ -652,25 +652,28 @@ class Two_Factor_Core {
 	 * @since 0.1-dev
 	 */
 	public static function login_form_validate_2fa() {
-		if ( ! isset( $_POST['wp-auth-id'], $_POST['wp-auth-nonce'] ) ) {
+		$wp_auth_id = filter_input( INPUT_POST, 'wp-auth-id', FILTER_SANITIZE_NUMBER_INT );
+		$nonce      = filter_input( INPUT_POST, 'wp-auth-nonce', FILTER_SANITIZE_STRING );
+
+		if ( ! $wp_auth_id || ! $wp_auth_nonce ) {
 			return;
 		}
 
-		$user = get_userdata( $_POST['wp-auth-id'] );
+		$user = get_userdata( $wp_auth_id );
 		if ( ! $user ) {
 			return;
 		}
 
-		$nonce = $_POST['wp-auth-nonce'];
 		if ( true !== self::verify_login_nonce( $user->ID, $nonce ) ) {
 			wp_safe_redirect( get_bloginfo( 'url' ) );
 			exit;
 		}
 
-		if ( isset( $_POST['provider'] ) ) {
+		$provider = filter_input( INPUT_POST, 'provider', FILTER_SANITIZE_STRING );
+		if ( $provider ) {
 			$providers = self::get_available_providers_for_user( $user );
-			if ( isset( $providers[ $_POST['provider'] ] ) ) {
-				$provider = $providers[ $_POST['provider'] ];
+			if ( isset( $providers[ $provider ] ) ) {
+				$provider = $providers[ $provider ];
 			} else {
 				wp_die( esc_html__( 'Cheatin&#8217; uh?', 'two-factor' ), 403 );
 			}

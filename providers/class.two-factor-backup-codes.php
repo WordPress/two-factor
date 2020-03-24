@@ -228,7 +228,7 @@ class Two_Factor_Backup_Codes extends Two_Factor_Provider {
 	 * @since 0.1-dev
 	 */
 	public function ajax_generate_json() {
-		$user = get_user_by( 'id', sanitize_text_field( $_POST['user_id'] ) );
+		$user = get_user_by( 'id', filter_input( INPUT_POST, 'user_id', FILTER_SANITIZE_NUMBER_INT ) );
 		check_ajax_referer( 'two-factor-backup-codes-generate-json-' . $user->ID, 'nonce' );
 
 		// Setup the return data.
@@ -294,7 +294,7 @@ class Two_Factor_Backup_Codes extends Two_Factor_Provider {
 	 * @return boolean
 	 */
 	public function validate_authentication( $user ) {
-		return $this->validate_code( $user, $_POST['two-factor-backup-code'] );
+		return $this->validate_code( $user, filter_input( INPUT_POST, 'two-factor-backup-code', FILTER_SANITIZE_NUMBER_INT ) );
 	}
 
 	/**
