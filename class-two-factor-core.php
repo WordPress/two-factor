@@ -40,6 +40,8 @@ class Two_Factor_Core {
 	/**
 	 * Set up filters and actions.
 	 *
+	 * @param object $compat A compaitbility later for plugins.
+	 *
 	 * @since 0.1-dev
 	 */
 	public static function add_hooks( $compat ) {

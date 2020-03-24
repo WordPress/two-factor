@@ -29,7 +29,13 @@ class Two_Factor_Totp extends Two_Factor_Provider {
 	const DEFAULT_DIGIT_COUNT         = 6;
 	const DEFAULT_TIME_STEP_SEC       = 30;
 	const DEFAULT_TIME_STEP_ALLOWANCE = 4;
-	private static $base_32_chars     = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ234567';
+
+	/**
+	 * Chracters used in base32 encoding.
+	 *
+	 * @var string
+	 */
+	private static $base_32_chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ234567';
 
 	/**
 	 * Class constructor. Sets up hooks, etc.
