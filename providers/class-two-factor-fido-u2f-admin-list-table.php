@@ -66,9 +66,9 @@ class Two_Factor_FIDO_U2F_Admin_List_Table extends WP_List_Table {
 
 				return esc_html( $item->name ) . $out . self::row_actions( $actions );
 			case 'added':
-				return date( get_option( 'date_format', 'r' ), $item->added );
+				return gmdate( get_option( 'date_format', 'r' ), $item->added );
 			case 'last_used':
-				return date( get_option( 'date_format', 'r' ), $item->last_used );
+				return gmdate( get_option( 'date_format', 'r' ), $item->last_used );
 			default:
 				return 'WTF^^?';
 		}
