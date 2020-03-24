@@ -16,6 +16,11 @@
 define( 'TWO_FACTOR_DIR', plugin_dir_path( __FILE__ ) );
 
 /**
+ * Version of the plugin.
+ */
+define( 'TWO_FACTOR_VERSION', '0.5.1' );
+
+/**
  * Include the base class here, so that other plugins can also extend it.
  */
 require_once TWO_FACTOR_DIR . 'providers/class.two-factor-provider.php';
