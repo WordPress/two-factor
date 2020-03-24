@@ -198,7 +198,7 @@ class Two_Factor_FIDO_U2F extends Two_Factor_Provider {
 		try {
 			$reg = self::$u2f->doAuthenticate( $requests, $keys, $response );
 
-			$reg->last_used = current_time( 'timestamp' );
+			$reg->last_used = time();
 
 			self::update_security_key( $user->ID, $reg );
 
@@ -267,7 +267,7 @@ class Two_Factor_FIDO_U2F extends Two_Factor_Provider {
 		);
 
 		$register['name']      = __( 'New Security Key', 'two-factor' );
-		$register['added']     = current_time( 'timestamp' );
+		$register['added']     = time();
 		$register['last_used'] = $register['added'];
 
 		return add_user_meta( $user_id, self::REGISTERED_KEY_USER_META_KEY, $register );
