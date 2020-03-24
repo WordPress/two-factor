@@ -368,7 +368,7 @@ class Two_Factor_FIDO_U2F extends Two_Factor_Provider {
 			$query .= $wpdb->prepare( ' AND meta_value LIKE %s', '%:"' . $key_handle . '";s:%' );
 		}
 
-		$meta_ids = $wpdb->get_col( $query );
+		$meta_ids = $wpdb->get_col( $query ); // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared
 		if ( ! count( $meta_ids ) ) {
 			return false;
 		}
