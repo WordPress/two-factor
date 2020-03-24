@@ -119,7 +119,8 @@ class Two_Factor_Totp extends Two_Factor_Provider {
 	 * Save the options specified in `::user_two_factor_options()`
 	 *
 	 * @param integer $user_id The user ID whose options are being updated.
-	 * @return false
+	 *
+	 * @return void
 	 */
 	public function user_two_factor_options_update( $user_id ) {
 		$notices = array();
