@@ -73,7 +73,7 @@ class Tests_Two_Factor_Email extends WP_UnitTestCase {
 	 *
 	 * @covers Two_Factor_Email::get_instance
 	 */
-	function test_get_instance() {
+	public function test_get_instance() {
 		$this->assertNotNull( $this->provider->get_instance() );
 	}
 
@@ -82,7 +82,7 @@ class Tests_Two_Factor_Email extends WP_UnitTestCase {
 	 *
 	 * @covers Two_Factor_Email::get_label
 	 */
-	function test_get_label() {
+	public function test_get_label() {
 		$this->assertContains( 'Email', $this->provider->get_label() );
 	}
 
@@ -92,7 +92,7 @@ class Tests_Two_Factor_Email extends WP_UnitTestCase {
 	 * @covers Two_Factor_Email::generate_token
 	 * @covers Two_Factor_Email::validate_token
 	 */
-	function test_generate_token_and_validate_token() {
+	public function test_generate_token_and_validate_token() {
 		$user_id = 1;
 
 		$token = $this->provider->generate_token( $user_id );
@@ -106,7 +106,7 @@ class Tests_Two_Factor_Email extends WP_UnitTestCase {
 	 * @covers Two_Factor_Email::generate_token
 	 * @covers Two_Factor_Email::validate_token
 	 */
-	function test_generate_token_and_validate_token_false_different_users() {
+	public function test_generate_token_and_validate_token_false_different_users() {
 		$user_id = 1;
 
 		$token = $this->provider->generate_token( $user_id );
@@ -121,7 +121,7 @@ class Tests_Two_Factor_Email extends WP_UnitTestCase {
 	 * @covers Two_Factor_Email::validate_token
 	 * @covers Two_Factor_Email::delete_token
 	 */
-	function test_generate_token_and_validate_token_false_deleted() {
+	public function test_generate_token_and_validate_token_false_deleted() {
 		$user_id = 1;
 
 		$token = $this->provider->generate_token( $user_id );
@@ -136,7 +136,7 @@ class Tests_Two_Factor_Email extends WP_UnitTestCase {
 	 * @covers Two_Factor_Email::generate_and_email_token
 	 * @covers Two_Factor_Email::validate_token
 	 */
-	function test_generate_and_email_token() {
+	public function test_generate_and_email_token() {
 		$user = new WP_User( $this->factory->user->create() );
 
 		$this->provider->generate_and_email_token( $user );
@@ -153,7 +153,7 @@ class Tests_Two_Factor_Email extends WP_UnitTestCase {
 	 *
 	 * @covers Two_Factor_Email::authentication_page
 	 */
-	function test_authentication_page_no_user() {
+	public function test_authentication_page_no_user() {
 		ob_start();
 		$this->provider->authentication_page( false );
 		$contents = ob_get_clean();
@@ -166,7 +166,7 @@ class Tests_Two_Factor_Email extends WP_UnitTestCase {
 	 *
 	 * @covers Two_Factor_Email::validate_authentication
 	 */
-	function test_validate_authentication_no_user_is_false() {
+	public function test_validate_authentication_no_user_is_false() {
 		$this->assertFalse( $this->provider->validate_authentication( false ) );
 	}
 
@@ -175,7 +175,7 @@ class Tests_Two_Factor_Email extends WP_UnitTestCase {
 	 *
 	 * @covers Two_Factor_Email::validate_authentication
 	 */
-	function test_validate_authentication() {
+	public function test_validate_authentication() {
 		$user = new WP_User( $this->factory->user->create() );
 
 		$token                             = $this->provider->generate_token( $user->ID );
@@ -191,7 +191,7 @@ class Tests_Two_Factor_Email extends WP_UnitTestCase {
 	 *
 	 * @covers Two_Factor_Email::is_available_for_user
 	 */
-	function test_is_available_for_user() {
+	public function test_is_available_for_user() {
 		$this->assertTrue( $this->provider->is_available_for_user( false ) );
 	}
 
@@ -200,7 +200,7 @@ class Tests_Two_Factor_Email extends WP_UnitTestCase {
 	 *
 	 * @covers Two_Factor_Email::get_user_token
 	 */
-	function test_get_user_token() {
+	public function test_get_user_token() {
 		$user_with_token    = $this->factory->user->create_and_get();
 		$user_without_token = $this->factory->user->create_and_get();
 
@@ -215,7 +215,7 @@ class Tests_Two_Factor_Email extends WP_UnitTestCase {
 	 *
 	 * @covers Two_Factor_Email::pre_process_authentication
 	 */
-	function test_pre_process_authentication() {
+	public function test_pre_process_authentication() {
 		$user           = $this->factory->user->create_and_get();
 		$token_original = wp_hash( $this->provider->generate_token( $user->ID ) );
 
