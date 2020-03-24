@@ -96,6 +96,8 @@ class Test_ClassTwoFactorCore extends WP_UnitTestCase {
 	}
 
 	/**
+	 * Verify adding hooks.
+	 *
 	 * @covers Two_Factor_Core::add_hooks
 	 */
 	public function test_add_hooks() {
@@ -125,6 +127,8 @@ class Test_ClassTwoFactorCore extends WP_UnitTestCase {
 	}
 
 	/**
+	 * Verify provider list is not empty.
+	 *
 	 * @covers Two_Factor_Core::get_providers
 	 */
 	public function test_get_providers_not_empty() {
@@ -132,6 +136,8 @@ class Test_ClassTwoFactorCore extends WP_UnitTestCase {
 	}
 
 	/**
+	 * Verify provider class exists.
+	 *
 	 * @covers Two_Factor_Core::get_providers
 	 */
 	public function test_get_providers_class_exists() {
@@ -143,6 +149,8 @@ class Test_ClassTwoFactorCore extends WP_UnitTestCase {
 	}
 
 	/**
+	 * Verify enabled providers for non-logged-in user.
+	 *
 	 * @covers Two_Factor_Core::get_enabled_providers_for_user
 	 */
 	public function test_get_enabled_providers_for_user_not_logged_in() {
@@ -150,6 +158,8 @@ class Test_ClassTwoFactorCore extends WP_UnitTestCase {
 	}
 
 	/**
+	 * Verify enabled providers for logged-in user.
+	 *
 	 * @covers Two_Factor_Core::get_enabled_providers_for_user
 	 */
 	public function test_get_enabled_providers_for_user_logged_in() {
@@ -163,6 +173,8 @@ class Test_ClassTwoFactorCore extends WP_UnitTestCase {
 	}
 
 	/**
+	 * Verify enabled providers for logged-in user and set provider.
+	 *
 	 * @covers Two_Factor_Core::get_enabled_providers_for_user
 	 * @covers Two_Factor_Core::get_available_providers_for_user
 	 * @covers Two_Factor_Core::user_two_factor_options_update
@@ -178,6 +190,8 @@ class Test_ClassTwoFactorCore extends WP_UnitTestCase {
 	}
 
 	/**
+	 * Verify enabled providers for logged-in user and set incorrect provider.
+	 *
 	 * @covers Two_Factor_Core::get_enabled_providers_for_user
 	 * @covers Two_Factor_Core::get_available_providers_for_user
 	 * @covers Two_Factor_Core::user_two_factor_options_update
@@ -193,6 +207,8 @@ class Test_ClassTwoFactorCore extends WP_UnitTestCase {
 	}
 
 	/**
+	 * Verify available providers for not-logged-in user.
+	 *
 	 * @covers Two_Factor_Core::get_available_providers_for_user
 	 */
 	public function test_get_available_providers_for_user_not_logged_in() {
@@ -200,6 +216,8 @@ class Test_ClassTwoFactorCore extends WP_UnitTestCase {
 	}
 
 	/**
+	 * Verify available providers for logged-in user.
+	 *
 	 * @covers Two_Factor_Core::get_available_providers_for_user
 	 */
 	public function test_get_available_providers_for_user_logged_in() {
@@ -213,6 +231,8 @@ class Test_ClassTwoFactorCore extends WP_UnitTestCase {
 	}
 
 	/**
+	 * Verify primary provider for not-logged-in user.
+	 *
 	 * @covers Two_Factor_Core::get_primary_provider_for_user
 	 */
 	public function test_get_primary_provider_for_user_not_logged_in() {
@@ -220,6 +240,8 @@ class Test_ClassTwoFactorCore extends WP_UnitTestCase {
 	}
 
 	/**
+	 * Verify not-logged-in-user is using two facator.
+	 *
 	 * @covers Two_Factor_Core::is_user_using_two_factor
 	 */
 	public function test_is_user_using_two_factor_not_logged_in() {
@@ -227,6 +249,8 @@ class Test_ClassTwoFactorCore extends WP_UnitTestCase {
 	}
 
 	/**
+	 * Verify the login URL.
+	 *
 	 * @covers Two_Factor_Core::login_url
 	 */
 	public function test_login_url() {
@@ -243,6 +267,8 @@ class Test_ClassTwoFactorCore extends WP_UnitTestCase {
 	}
 
 	/**
+	 * Verify user API log is enabled (when disabled by default).
+	 *
 	 * @covers Two_Factor_Core::is_user_api_login_enabled
 	 */
 	public function test_user_api_login_is_disabled_by_default() {
@@ -252,6 +278,8 @@ class Test_ClassTwoFactorCore extends WP_UnitTestCase {
 	}
 
 	/**
+	 * Verify user API log is can be enabled by filter.
+	 *
 	 * @covers Two_Factor_Core::is_user_api_login_enabled
 	 */
 	public function test_user_api_login_can_be_enabled_via_filter() {
@@ -282,6 +310,8 @@ class Test_ClassTwoFactorCore extends WP_UnitTestCase {
 	}
 
 	/**
+	 * Verify request is not an API request.
+	 *
 	 * @covers Two_Factor_Core::is_api_request
 	 */
 	public function test_is_api_request() {
@@ -289,6 +319,8 @@ class Test_ClassTwoFactorCore extends WP_UnitTestCase {
 	}
 
 	/**
+	 * Verify authentication filters.
+	 *
 	 * @covers Two_Factor_Core::filter_authenticate
 	 */
 	public function test_filter_authenticate() {
@@ -310,6 +342,8 @@ class Test_ClassTwoFactorCore extends WP_UnitTestCase {
 	}
 
 	/**
+	 * Verify destruction of auth session.
+	 *
 	 * @covers Two_Factor_Core::destroy_current_session_for_user
 	 * @covers Two_Factor_Core::collect_auth_cookie_tokens
 	 */

@@ -43,6 +43,8 @@ class Tests_Two_Factor_Totp extends WP_UnitTestCase {
 	}
 
 	/**
+	 * Verify an instance exists.
+	 *
 	 * @covers Two_Factor_Totp::get_instance
 	 */
 	public function test_get_instance() {
@@ -50,6 +52,8 @@ class Tests_Two_Factor_Totp extends WP_UnitTestCase {
 	}
 
 	/**
+	 * Verify the label value.
+	 *
 	 * @covers Two_Factor_Totp::get_label
 	 */
 	public function test_get_label() {
@@ -57,6 +61,8 @@ class Tests_Two_Factor_Totp extends WP_UnitTestCase {
 	}
 
 	/**
+	 * Verify the options list is empty.
+	 *
 	 * @covers Two_Factor_Totp::user_two_factor_options
 	 */
 	public function test_user_two_factor_options_empty() {
@@ -64,6 +70,8 @@ class Tests_Two_Factor_Totp extends WP_UnitTestCase {
 	}
 
 	/**
+	 * Verify getting user options creates a key.
+	 *
 	 * @covers Two_Factor_Totp::user_two_factor_options
 	 * @covers Two_Factor_Totp::is_available_for_user
 	 */
@@ -78,6 +86,8 @@ class Tests_Two_Factor_Totp extends WP_UnitTestCase {
 	}
 
 	/**
+	 * Verify updating user options without an authcode.
+	 *
 	 * @covers Two_Factor_Totp::user_two_factor_options_update
 	 * @covers Two_Factor_Totp::is_available_for_user
 	 */
@@ -104,6 +114,8 @@ class Tests_Two_Factor_Totp extends WP_UnitTestCase {
 	}
 
 	/**
+	 * Verify updating user options with a bad authcode.
+	 *
 	 * @covers Two_Factor_Totp::user_two_factor_options_update
 	 * @covers Two_Factor_Totp::is_available_for_user
 	 */
@@ -132,6 +144,8 @@ class Tests_Two_Factor_Totp extends WP_UnitTestCase {
 	}
 
 	/**
+	 * Verify updating user options with an authcode.
+	 *
 	 * @covers Two_Factor_Totp::user_two_factor_options_update
 	 * @covers Two_Factor_Totp::is_available_for_user
 	 */
@@ -161,6 +175,8 @@ class Tests_Two_Factor_Totp extends WP_UnitTestCase {
 	}
 
 	/**
+	 * Verify base32 encoding.
+	 *
 	 * @covers Two_Factor_Totp::base32_encode
 	 */
 	public function test_base32_encode() {
@@ -171,6 +187,8 @@ class Tests_Two_Factor_Totp extends WP_UnitTestCase {
 	}
 
 	/**
+	 * Verify base32 decoding.
+	 *
 	 * @covers Two_Factor_Totp::base32_encode
 	 */
 	public function test_base32_decode() {
@@ -181,6 +199,8 @@ class Tests_Two_Factor_Totp extends WP_UnitTestCase {
 	}
 
 	/**
+	 * Verify authcode validation.
+	 *
 	 * @covers Two_Factor_Totp::is_valid_authcode
 	 * @covers Two_Factor_Totp::generate_key
 	 * @covers Two_Factor_Totp::calc_totp
@@ -226,6 +246,8 @@ class Tests_Two_Factor_Totp extends WP_UnitTestCase {
 	}
 
 	/**
+	 * Verify key validation.
+	 *
 	 * @covers Two_Factor_Totp::is_valid_key
 	 */
 	public function test_is_valid_key() {
@@ -236,6 +258,8 @@ class Tests_Two_Factor_Totp extends WP_UnitTestCase {
 	}
 
 	/**
+	 * Verify secret deletion.
+	 *
 	 * @covers Two_Factor_Totp::user_two_factor_options_update
 	 */
 	public function test_user_can_delete_secret() {
