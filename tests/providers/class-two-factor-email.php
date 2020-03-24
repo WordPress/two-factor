@@ -20,7 +20,9 @@ class Tests_Two_Factor_Email extends WP_UnitTestCase {
 	 */
 	protected $provider;
 
-	protected static $phpmailer = null, $mockmailer;
+	protected static $phpmailer = null;
+
+	protected static $mockmailer;
 
 	/**
 	 * Set up a test case.
