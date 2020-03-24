@@ -85,8 +85,9 @@ class Tests_Two_Factor_Totp extends WP_UnitTestCase {
 		$user = new WP_User( $this->factory->user->create() );
 
 		$request_key              = '_nonce_user_two_factor_totp_options';
-		$_POST[ $request_key ]    = wp_create_nonce( 'user_two_factor_totp_options' );
-		$_REQUEST[ $request_key ] = $_POST[ $request_key ];
+		$nonce                    = wp_create_nonce( 'user_two_factor_totp_options' );
+		$_POST[ $request_key ]    = $nonce;
+		$_REQUEST[ $request_key ] = $nonce;
 
 		$_POST['two-factor-totp-key'] = $this->provider->generate_key();
 
@@ -94,10 +95,10 @@ class Tests_Two_Factor_Totp extends WP_UnitTestCase {
 		$this->provider->user_two_factor_options_update( $user->ID );
 		$content = ob_get_clean();
 
-		unset( $_POST['two-factor-totp-key'] );
+		unset( $_POST['two-factor-totp-key'] ); // phpcs:ignore WordPress.Security.NonceVerification.Missing
 
-		unset( $_REQUEST[ $request_key ] );
-		unset( $_POST[ $request_key ] );
+		unset( $_REQUEST[ $request_key ] ); // phpcs:ignore WordPress.Security.NonceVerification.Recommended
+		unset( $_POST[ $request_key ] ); // phpcs:ignore WordPress.Security.NonceVerification.Missing
 
 		$this->assertFalse( $this->provider->is_available_for_user( $user ) );
 	}
@@ -110,8 +111,9 @@ class Tests_Two_Factor_Totp extends WP_UnitTestCase {
 		$user = new WP_User( $this->factory->user->create() );
 
 		$request_key              = '_nonce_user_two_factor_totp_options';
-		$_POST[ $request_key ]    = wp_create_nonce( 'user_two_factor_totp_options' );
-		$_REQUEST[ $request_key ] = $_POST[ $request_key ];
+		$nonce                    = wp_create_nonce( 'user_two_factor_totp_options' );
+		$_POST[ $request_key ]    = $nonce;
+		$_REQUEST[ $request_key ] = $nonce;
 
 		$_POST['two-factor-totp-key']      = $this->provider->generate_key();
 		$_POST['two-factor-totp-authcode'] = 'bad_test_authcode';
@@ -120,11 +122,11 @@ class Tests_Two_Factor_Totp extends WP_UnitTestCase {
 		$this->provider->user_two_factor_options_update( $user->ID );
 		$content = ob_get_clean();
 
-		unset( $_POST['two-factor-totp-authcode'] );
-		unset( $_POST['two-factor-totp-key'] );
+		unset( $_POST['two-factor-totp-authcode'] ); // phpcs:ignore WordPress.Security.NonceVerification.Missing
+		unset( $_POST['two-factor-totp-key'] ); // phpcs:ignore WordPress.Security.NonceVerification.Missing
 
-		unset( $_REQUEST[ $request_key ] );
-		unset( $_POST[ $request_key ] );
+		unset( $_REQUEST[ $request_key ] ); // phpcs:ignore WordPress.Security.NonceVerification.Recommended
+		unset( $_POST[ $request_key ] ); // phpcs:ignore WordPress.Security.NonceVerification.Missing
 
 		$this->assertFalse( $this->provider->is_available_for_user( $user ) );
 	}
@@ -137,8 +139,9 @@ class Tests_Two_Factor_Totp extends WP_UnitTestCase {
 		$user = new WP_User( $this->factory->user->create() );
 
 		$request_key              = '_nonce_user_two_factor_totp_options';
-		$_POST[ $request_key ]    = wp_create_nonce( 'user_two_factor_totp_options' );
-		$_REQUEST[ $request_key ] = $_POST[ $request_key ];
+		$nonce                    = wp_create_nonce( 'user_two_factor_totp_options' );
+		$_POST[ $request_key ]    = $nonce;
+		$_REQUEST[ $request_key ] = $nonce;
 
 		$key                               = $this->provider->generate_key();
 		$_POST['two-factor-totp-key']      = $key;
@@ -148,11 +151,11 @@ class Tests_Two_Factor_Totp extends WP_UnitTestCase {
 		$this->provider->user_two_factor_options_update( $user->ID );
 		$content = ob_get_clean();
 
-		unset( $_POST['two-factor-totp-authcode'] );
-		unset( $_POST['two-factor-totp-key'] );
+		unset( $_POST['two-factor-totp-authcode'] ); // phpcs:ignore WordPress.Security.NonceVerification.Missing
+		unset( $_POST['two-factor-totp-key'] ); // phpcs:ignore WordPress.Security.NonceVerification.Missing
 
-		unset( $_REQUEST[ $request_key ] );
-		unset( $_POST[ $request_key ] );
+		unset( $_REQUEST[ $request_key ] ); // phpcs:ignore WordPress.Security.NonceVerification.Recommended
+		unset( $_POST[ $request_key ] ); // phpcs:ignore WordPress.Security.NonceVerification.Missing
 
 		$this->assertTrue( $this->provider->is_available_for_user( $user ) );
 	}

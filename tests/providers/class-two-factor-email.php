@@ -203,7 +203,7 @@ class Tests_Two_Factor_Email extends WP_UnitTestCase {
 
 		$this->assertTrue( $this->provider->validate_authentication( $user ) );
 
-		unset( $_REQUEST['two-factor-email-code'] );
+		unset( $_REQUEST['two-factor-email-code'] ); // phpcs:ignore WordPress.Security.NonceVerification.Recommended
 	}
 
 	/**
@@ -242,7 +242,7 @@ class Tests_Two_Factor_Email extends WP_UnitTestCase {
 		// Check pre_process_authentication() will prevent any further authentication.
 		$_REQUEST[ Two_Factor_Email::INPUT_NAME_RESEND_CODE ] = 1;
 		$this->assertTrue( $this->provider->pre_process_authentication( $user ), 'Failed to recognize a code resend request.' );
-		unset( $_REQUEST[ Two_Factor_Email::INPUT_NAME_RESEND_CODE ] );
+		unset( $_REQUEST[ Two_Factor_Email::INPUT_NAME_RESEND_CODE ] ); // phpcs:ignore WordPress.Security.NonceVerification.Recommended
 
 		// Verify that a new token has been generated.
 		$token_new = $this->provider->get_user_token( $user->ID );

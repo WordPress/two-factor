@@ -73,7 +73,7 @@ class Tests_Two_Factor_Backup_Codes extends WP_UnitTestCase {
 
 		$this->assertTrue( $this->provider->validate_authentication( $user ) );
 
-		unset( $_POST['two-factor-backup-code'] );
+		unset( $_POST['two-factor-backup-code'] ); // phpcs:ignore WordPress.Security.NonceVerification.Missing
 	}
 
 	/**

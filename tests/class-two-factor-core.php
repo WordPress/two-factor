@@ -73,8 +73,9 @@ class Test_ClassTwoFactorCore extends WP_UnitTestCase {
 		wp_set_current_user( $user->ID );
 
 		$key              = '_nonce_user_two_factor_options';
-		$_POST[ $key ]    = wp_create_nonce( 'user_two_factor_options' );
-		$_REQUEST[ $key ] = $_POST[ $key ];
+		$nonce            = wp_create_nonce( 'user_two_factor_options' );
+		$_POST[ $key ]    = $nonce;
+		$_REQUEST[ $key ] = $nonce;
 
 		$_POST[ Two_Factor_Core::ENABLED_PROVIDERS_USER_META_KEY ] = $meta_key;
 
@@ -87,11 +88,11 @@ class Test_ClassTwoFactorCore extends WP_UnitTestCase {
 	 * Clean up the dummy user object data.
 	 */
 	public function clean_dummy_user() {
-		unset( $_POST[ Two_Factor_Core::ENABLED_PROVIDERS_USER_META_KEY ] );
+		unset( $_POST[ Two_Factor_Core::ENABLED_PROVIDERS_USER_META_KEY ] ); // phpcs:ignore WordPress.Security.NonceVerification.Missing
 
 		$key = '_nonce_user_two_factor_options';
-		unset( $_REQUEST[ $key ] );
-		unset( $_POST[ $key ] );
+		unset( $_REQUEST[ $key ] ); // phpcs:ignore WordPress.Security.NonceVerification.Recommended
+		unset( $_POST[ $key ] ); // phpcs:ignore WordPress.Security.NonceVerification.Missing
 	}
 
 	/**
