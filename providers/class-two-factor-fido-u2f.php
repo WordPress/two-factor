@@ -359,12 +359,10 @@ class Two_Factor_FIDO_U2F extends Two_Factor_Provider {
 			return false;
 		}
 
-		$table = $wpdb->usermeta;
-
 		$key_handle = wp_unslash( $key_handle );
 		$key_handle = maybe_serialize( $key_handle );
 
-		$query = $wpdb->prepare( "SELECT umeta_id FROM $table WHERE meta_key = '%s' AND user_id = %d", self::REGISTERED_KEY_USER_META_KEY, $user_id );
+		$query = $wpdb->prepare( "SELECT umeta_id FROM {$wpdb->usermeta} WHERE meta_key = %s AND user_id = %d", self::REGISTERED_KEY_USER_META_KEY, $user_id );
 
 		if ( $key_handle ) {
 			$query .= $wpdb->prepare( ' AND meta_value LIKE %s', '%:"' . $key_handle . '";s:%' );
