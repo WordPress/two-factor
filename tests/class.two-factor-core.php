@@ -48,15 +48,15 @@ class Test_ClassTwoFactorCore extends WP_UnitTestCase {
 	}
 
 	public function get_dummy_user( $meta_key = array( 'Two_Factor_Dummy' => 'Two_Factor_Dummy' ) ) {
-		$user = new WP_User( $this->factory->user->create() );
+		$user              = new WP_User( $this->factory->user->create() );
 		$this->old_user_id = get_current_user_id();
 		wp_set_current_user( $user->ID );
 
-		$key = '_nonce_user_two_factor_options';
-		$_POST[$key] = wp_create_nonce( 'user_two_factor_options' );
-		$_REQUEST[$key] = $_POST[$key];
+		$key              = '_nonce_user_two_factor_options';
+		$_POST[ $key ]    = wp_create_nonce( 'user_two_factor_options' );
+		$_REQUEST[ $key ] = $_POST[ $key ];
 
-		$_POST[Two_Factor_Core::ENABLED_PROVIDERS_USER_META_KEY] = $meta_key;
+		$_POST[ Two_Factor_Core::ENABLED_PROVIDERS_USER_META_KEY ] = $meta_key;
 
 		Two_Factor_Core::user_two_factor_options_update( $user->ID );
 
@@ -64,11 +64,11 @@ class Test_ClassTwoFactorCore extends WP_UnitTestCase {
 	}
 
 	public function clean_dummy_user() {
-		unset( $_POST[Two_Factor_Core::ENABLED_PROVIDERS_USER_META_KEY] );
+		unset( $_POST[ Two_Factor_Core::ENABLED_PROVIDERS_USER_META_KEY ] );
 
 		$key = '_nonce_user_two_factor_options';
-		unset( $_REQUEST[$key] );
-		unset( $_POST[$key] );
+		unset( $_REQUEST[ $key ] );
+		unset( $_POST[ $key ] );
 	}
 
 	/**
@@ -129,7 +129,7 @@ class Test_ClassTwoFactorCore extends WP_UnitTestCase {
 	 * @covers Two_Factor_Core::get_enabled_providers_for_user
 	 */
 	public function test_get_enabled_providers_for_user_logged_in() {
-		$user = new WP_User( $this->factory->user->create() );
+		$user        = new WP_User( $this->factory->user->create() );
 		$old_user_id = get_current_user_id();
 		wp_set_current_user( $user->ID );
 
@@ -179,7 +179,7 @@ class Test_ClassTwoFactorCore extends WP_UnitTestCase {
 	 * @covers Two_Factor_Core::get_available_providers_for_user
 	 */
 	public function test_get_available_providers_for_user_logged_in() {
-		$user = new WP_User( $this->factory->user->create() );
+		$user        = new WP_User( $this->factory->user->create() );
 		$old_user_id = get_current_user_id();
 		wp_set_current_user( $user->ID );
 
@@ -210,9 +210,11 @@ class Test_ClassTwoFactorCore extends WP_UnitTestCase {
 
 		$this->assertContains(
 			'paramencoded=%2F%3D1',
-			Two_Factor_Core::login_url( array(
-				'paramencoded' => '/=1'
-			) )
+			Two_Factor_Core::login_url(
+				array(
+					'paramencoded' => '/=1',
+				)
+			)
 		);
 	}
 
@@ -232,9 +234,14 @@ class Test_ClassTwoFactorCore extends WP_UnitTestCase {
 		$user_id_default = $this->factory->user->create();
 		$user_id_enabled = $this->factory->user->create();
 
-		add_filter( 'two_factor_user_api_login_enable', function( $enabled, $user_id ) use ( $user_id_enabled ) {
-			return ( $user_id === $user_id_enabled );
-		}, 10, 2 );
+		add_filter(
+			'two_factor_user_api_login_enable',
+			function( $enabled, $user_id ) use ( $user_id_enabled ) {
+				return ( $user_id === $user_id_enabled );
+			},
+			10,
+			2
+		);
 
 		$this->assertTrue(
 			Two_Factor_Core::is_user_api_login_enabled( $user_id_enabled ),
@@ -261,7 +268,7 @@ class Test_ClassTwoFactorCore extends WP_UnitTestCase {
 	 * @covers Two_Factor_Core::filter_authenticate
 	 */
 	public function test_filter_authenticate() {
-		$user_default = new WP_User( $this->factory->user->create() );
+		$user_default     = new WP_User( $this->factory->user->create() );
 		$user_2fa_enabled = $this->get_dummy_user(); // User with a dummy two-factor method enabled.
 
 		// TODO: Get Two_Factor_Core away from static methods to allow mocking this.
@@ -286,7 +293,7 @@ class Test_ClassTwoFactorCore extends WP_UnitTestCase {
 		$user_id = $this->factory->user->create(
 			array(
 				'user_login' => 'username',
-				'user_pass' => 'password',
+				'user_pass'  => 'password',
 			)
 		);
 
@@ -298,7 +305,7 @@ class Test_ClassTwoFactorCore extends WP_UnitTestCase {
 
 		$user_authenticated = wp_signon(
 			array(
-				'user_login' => 'username',
+				'user_login'    => 'username',
 				'user_password' => 'password',
 			)
 		);
