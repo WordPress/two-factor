@@ -28,7 +28,7 @@ class Test_ClassTwoFactorCore extends WP_UnitTestCase {
 	public static function setUpBeforeClass() {
 		parent::setUpBeforeClass();
 
-		set_error_handler( array( 'Test_ClassTwoFactorCore', 'error_handler' ) );
+		set_error_handler( array( 'Test_ClassTwoFactorCore', 'error_handler' ) ); // phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_set_error_handler
 	}
 
 	/**
