@@ -5,14 +5,7 @@
 	<config name="installed_paths" value="vendor/wp-coding-standards/wpcs" />
 
 	<rule ref="WordPress-Extra" />
-
-	<rule ref="WordPress-Docs">
-		<exclude name="Squiz.Commenting.FileComment.MissingPackageTag"/>
-		<exclude name="Squiz.Commenting.FileComment.Missing"/>
-		<exclude name="Squiz.Commenting.FileComment.WrongStyle"/>
-		<exclude name="Squiz.Commenting.FileComment.SpacingAfterComment"/>
-		<exclude name="Squiz.Commenting.ClassComment.Missing"/>
-	</rule>
+	<rule ref="WordPress-Docs" />
 
 	<arg name="colors" />
 
