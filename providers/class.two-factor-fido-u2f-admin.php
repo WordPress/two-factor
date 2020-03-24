@@ -298,8 +298,8 @@ class Two_Factor_FIDO_U2F_Admin {
 	 * @return string
 	 */
 	public static function delete_link( $item ) {
-		$delete_link = add_query_arg( 'delete_security_key', $item->keyHandle );
-		$delete_link = wp_nonce_url( $delete_link, "delete_security_key-{$item->keyHandle}", '_nonce_delete_security_key' );
+		$delete_link = add_query_arg( 'delete_security_key', $item->key_handle );
+		$delete_link = wp_nonce_url( $delete_link, "delete_security_key-{$item->key_handle}", '_nonce_delete_security_key' );
 		return sprintf( '<a href="%1$s">%2$s</a>', esc_url( $delete_link ), esc_html__( 'Delete', 'two-factor' ) );
 	}
 
@@ -317,7 +317,7 @@ class Two_Factor_FIDO_U2F_Admin {
 		require TWO_FACTOR_DIR . 'providers/class.two-factor-fido-u2f-admin-list-table.php';
 		$wp_list_table = new Two_Factor_FIDO_U2F_Admin_List_Table();
 
-		if ( ! isset( $_POST['keyHandle'] ) ) {
+		if ( ! isset( $_POST['key_handle'] ) ) {
 			wp_die();
 		}
 
@@ -329,7 +329,7 @@ class Two_Factor_FIDO_U2F_Admin {
 		}
 
 		foreach ( $security_keys as &$key ) {
-			if ( $key->keyHandle === $_POST['keyHandle'] ) {
+			if ( $key->key_handle === $_POST['key_handle'] ) {
 				break;
 			}
 		}
