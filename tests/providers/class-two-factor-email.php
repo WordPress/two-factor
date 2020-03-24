@@ -20,8 +20,18 @@ class Tests_Two_Factor_Email extends WP_UnitTestCase {
 	 */
 	protected $provider;
 
+	/**
+	 * Instance of the PHPMailer class.
+	 *
+	 * @var PHPMailer
+	 */
 	protected static $phpmailer = null;
 
+	/**
+	 * Instance of the MockPHPMailer class.
+	 *
+	 * @var MockPHPMailer
+	 */
 	protected static $mockmailer;
 
 	/**
