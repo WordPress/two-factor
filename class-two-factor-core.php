@@ -380,29 +380,33 @@ class Two_Factor_Core {
 	 * @since 0.1-dev
 	 */
 	public static function backup_2fa() {
-		if ( ! isset( $_GET['wp-auth-id'], $_GET['wp-auth-nonce'], $_GET['provider'] ) ) {
+		$wp_auth_id = filter_input( INPUT_GET, 'wp-auth-id', FILTER_SANITIZE_NUMBER_INT );
+		$nonce      = filter_input( INPUT_GET, 'wp-auth-nonce', FILTER_SANITIZE_STRING );
+		$provider   = filter_input( INPUT_GET, 'provider', FILTER_SANITIZE_STRING );
+
+		if ( ! $wp_auth_id || ! $wp_auth_nonce || ! $provider ) {
 			return;
 		}
 
-		$user = get_userdata( $_GET['wp-auth-id'] );
+		$user = get_userdata( $wp_auth_id );
 		if ( ! $user ) {
 			return;
 		}
 
-		$nonce = $_GET['wp-auth-nonce'];
 		if ( true !== self::verify_login_nonce( $user->ID, $nonce ) ) {
 			wp_safe_redirect( get_bloginfo( 'url' ) );
 			exit;
 		}
 
 		$providers = self::get_available_providers_for_user( $user );
-		if ( isset( $providers[ $_GET['provider'] ] ) ) {
-			$provider = $providers[ $_GET['provider'] ];
+		if ( isset( $providers[ $provider ] ) ) {
+			$provider = $providers[ $provider ];
 		} else {
 			wp_die( esc_html__( 'Cheatin&#8217; uh?', 'two-factor' ), 403 );
 		}
 
-		self::login_html( $user, $_GET['wp-auth-nonce'], $_GET['redirect_to'], '', $provider );
+		$redirect_to = filter_input( INPUT_GET, 'redirect_to', FILTER_SANITIZE_URL );
+		self::login_html( $user, $nonce, $redirect_to, '', $provider );
 
 		exit;
 	}
