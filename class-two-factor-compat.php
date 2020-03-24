@@ -1,4 +1,9 @@
 <?php
+/**
+ * A compatibility layer for some of the most popular plugins.
+ *
+ * @package Two_Factor
+ */
 
 /**
  * A compatibility layer for some of the most popular plugins.

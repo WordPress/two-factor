@@ -2,6 +2,12 @@
 /**
  * Class for creating an email provider.
  *
+ * @package Two_Factor
+ */
+
+/**
+ * Class for creating an email provider.
+ *
  * @since 0.1-dev
  *
  * @package Two_Factor

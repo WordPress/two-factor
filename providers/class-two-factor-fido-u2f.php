@@ -2,6 +2,12 @@
 /**
  * Class for creating a FIDO Universal 2nd Factor provider.
  *
+ * @package Two_Factor
+ */
+
+/**
+ * Class for creating a FIDO Universal 2nd Factor provider.
+ *
  * @since 0.1-dev
  *
  * @package Two_Factor

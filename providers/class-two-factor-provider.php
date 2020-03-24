@@ -2,6 +2,12 @@
 /**
  * Abstract class for creating two factor authentication providers.
  *
+ * @package Two_Factor
+ */
+
+/**
+ * Abstract class for creating two factor authentication providers.
+ *
  * @since 0.1-dev
  *
  * @package Two_Factor

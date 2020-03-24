@@ -1,4 +1,10 @@
 <?php
+/**
+ * Class for displaying the list of security key items.
+ *
+ * @package Two_Factor
+ */
+
 // Load the parent class if it doesn't exist.
 if ( ! class_exists( 'WP_List_Table' ) ) {
 	require_once ABSPATH . 'wp-admin/includes/class-wp-list-table.php';

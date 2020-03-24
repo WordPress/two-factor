@@ -2,6 +2,12 @@
 /**
  * Class for creating a backup codes provider.
  *
+ * @package Two_Factor
+ */
+
+/**
+ * Class for creating a backup codes provider.
+ *
  * @since 0.1-dev
  *
  * @package Two_Factor

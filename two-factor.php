@@ -1,5 +1,13 @@
 <?php
 /**
+ * Two Factor
+ *
+ * @package     Two_Factor
+ * @author      Plugin Contributors
+ * @copyright   2020 Plugin Contributors
+ * @license     GPL-2.0-or-later
+ *
+ * @wordpress-plugin
  * Plugin Name: Two Factor
  * Plugin URI: https://wordpress.org/plugins/two-factor/
  * Description: Two-Factor Authentication using time-based one-time passwords, Universal 2nd Factor (FIDO U2F), email and backup verification codes.

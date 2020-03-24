@@ -1,5 +1,11 @@
 <?php
 /**
+ * Two Factore Core Class.
+ *
+ * @package Two_Factor
+ */
+
+/**
  * Class for creating two factor authorization.
  *
  * @since 0.1-dev

@@ -2,6 +2,12 @@
 /**
  * Class for registering & modifying FIDO U2F security keys.
  *
+ * @package Two_Factor
+ */
+
+/**
+ * Class for registering & modifying FIDO U2F security keys.
+ *
  * @since 0.1-dev
  *
  * @package Two_Factor
