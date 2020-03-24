@@ -4,19 +4,7 @@
 
 	<config name="installed_paths" value="vendor/wp-coding-standards/wpcs" />
 
-	<rule ref="WordPress-Core">
-		<exclude name="Generic.Formatting.MultipleStatementAlignment" />
-		<exclude name="WordPress.NamingConventions.ValidVariableName.VariableNotSnakeCase" />
-		<exclude name="WordPress.NamingConventions.ValidVariableName.UsedPropertyNotSnakeCase" />
-		<exclude name="WordPress.DateTime.CurrentTimeTimestamp.Requested" />
-		<exclude name="WordPress.DateTime.RestrictedFunctions.date_date" />
-		<exclude name="WordPress.Files.FileName.InvalidClassFileName" />
-		<exclude name="WordPress.NamingConventions.ValidHookName.UseUnderscores" />
-		<exclude name="WordPress.DB.PreparedSQLPlaceholders.QuotedSimplePlaceholder" />
-		<exclude name="WordPress.DB.PreparedSQL.InterpolatedNotPrepared" />
-		<exclude name="WordPress.DB.PreparedSQL.NotPrepared" />
-		<exclude name="WordPress.WP.I18n.MissingTranslatorsComment" />
-	</rule>
+	<rule ref="WordPress-Extra" />
 
 	<rule ref="WordPress-Docs">
 		<exclude name="Squiz.Commenting.FileComment.MissingPackageTag"/>
@@ -24,9 +12,16 @@
 		<exclude name="Squiz.Commenting.FileComment.WrongStyle"/>
 		<exclude name="Squiz.Commenting.FileComment.SpacingAfterComment"/>
 		<exclude name="Squiz.Commenting.ClassComment.Missing"/>
-		<exclude name="Squiz.Commenting.FunctionComment.MissingParamTag"/>
-		<exclude name="Squiz.Commenting.VariableComment.Missing"/>
 	</rule>
+
+	<arg name="colors" />
+
+	<arg value="ps" />
+	<arg name="basepath" value="."/>
+	<arg name="parallel" value="50"/>
+	<arg name="extensions" value="php"/>
+	<arg name="severity" value="1"/>
+	<file>.</file>
 
 	<exclude-pattern>*/includes/*</exclude-pattern>
 	<exclude-pattern>*/node_modules/*</exclude-pattern>
