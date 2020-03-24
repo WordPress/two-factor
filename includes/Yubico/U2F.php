@@ -169,11 +169,11 @@ class U2F
         if($tmpKey === null) {
             throw new Error('Decoding of public key failed', ERR_PUBKEY_DECODE );
         }
-        $registration->public_key = base64_encode($pubKey);
+        $registration->publicKey = base64_encode($pubKey);
         $khLen = $regData[$offs++];
         $kh = substr($rawReg, $offs, $khLen);
         $offs += $khLen;
-        $registration->key_handle = $this->base64u_encode($kh);
+        $registration->keyHandle = $this->base64u_encode($kh);
 
         // length of certificate is stored in byte 3 and 4 (excluding the first 4 bytes).
         $certLen = 4;
@@ -230,7 +230,7 @@ class U2F
 
             $sig = new SignRequest();
             $sig->appId = $this->appId;
-            $sig->key_handle = $reg->key_handle;
+            $sig->keyHandle = $reg->keyHandle;
             $sig->challenge = $challenge;
             $sigs[] = $sig;
         }
@@ -274,7 +274,7 @@ class U2F
                 throw new \InvalidArgumentException('$requests of doAuthenticate() method only accepts array of object.');
             }
 
-            if($req->key_handle === $response->key_handle && $req->challenge === $decodedClient->challenge) {
+            if($req->keyHandle === $response->keyHandle && $req->challenge === $decodedClient->challenge) {
                 break;
             }
 
@@ -288,7 +288,7 @@ class U2F
                 throw new \InvalidArgumentException('$registrations of doAuthenticate() method only accepts array of object.');
             }
 
-            if($reg->key_handle === $response->key_handle) {
+            if($reg->keyHandle === $response->keyHandle) {
                 break;
             }
             $reg = null;
@@ -296,7 +296,7 @@ class U2F
         if($reg === null) {
             throw new Error('No matching registration found', ERR_NO_MATCHING_REGISTRATION );
         }
-        $pemKey = $this->pubkey_to_pem($this->base64u_decode($reg->public_key));
+        $pemKey = $this->pubkey_to_pem($this->base64u_decode($reg->publicKey));
         if($pemKey === null) {
             throw new Error('Decoding of public key failed', ERR_PUBKEY_DECODE );
         }
@@ -462,7 +462,7 @@ class SignRequest
     public $challenge;
 
     /** Key handle of a registered authenticator */
-    public $key_handle;
+    public $keyHandle;
 
     /** Application id */
     public $appId;
@@ -476,10 +476,10 @@ class SignRequest
 class Registration
 {
     /** The key handle of the registered authenticator */
-    public $key_handle;
+    public $keyHandle;
 
     /** The public key of the registered authenticator */
-    public $public_key;
+    public $publicKey;
 
     /** The attestation certificate of the registered authenticator */
     public $certificate;
