@@ -14,15 +14,6 @@
 class Tests_Two_Factor extends WP_UnitTestCase {
 
 	/**
-	 * Set up a test case.
-	 *
-	 * @see WP_UnitTestCase::setup()
-	 */
-	public function setUp() {
-		parent::setUp();
-	}
-
-	/**
 	 * Check that the TWO_FACTOR_DIR constant is defined.
 	 */
 	public function test_constant_defined() {
