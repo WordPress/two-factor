@@ -1,4 +1,9 @@
 <?php
+/**
+ * Two Factor Core Class Tests.
+ *
+ * @package Two_Factor
+ */
 
 /**
  * Class Test_ClassTwoFactorCore
