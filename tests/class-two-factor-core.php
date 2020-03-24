@@ -42,6 +42,14 @@ class Test_ClassTwoFactorCore extends WP_UnitTestCase {
 		parent::tearDownAfterClass();
 	}
 
+	/**
+	 * Print error messages and return true if error is a notice
+	 *
+	 * @param integer $errno error number.
+	 * @param string  $errstr error message text.
+	 *
+	 * @return boolean
+	 */
 	public static function error_handler( $errno, $errstr ) {
 		if ( E_USER_NOTICE !== $errno ) {
 			echo 'Received a non-notice error: ' . esc_html( $errstr );
@@ -52,6 +60,13 @@ class Test_ClassTwoFactorCore extends WP_UnitTestCase {
 		return true;
 	}
 
+	/**
+	 * Get a dummy user object.
+	 *
+	 * @param array $meta_key authentication method.
+	 *
+	 * @return WP_User
+	 */
 	public function get_dummy_user( $meta_key = array( 'Two_Factor_Dummy' => 'Two_Factor_Dummy' ) ) {
 		$user              = new WP_User( $this->factory->user->create() );
 		$this->old_user_id = get_current_user_id();
@@ -68,6 +83,9 @@ class Test_ClassTwoFactorCore extends WP_UnitTestCase {
 		return $user;
 	}
 
+	/**
+	 * Clean up the dummy user object data.
+	 */
 	public function clean_dummy_user() {
 		unset( $_POST[ Two_Factor_Core::ENABLED_PROVIDERS_USER_META_KEY ] );
 

@@ -46,6 +46,9 @@ class Tests_Two_Factor_Email extends WP_UnitTestCase {
 		parent::tearDown();
 	}
 
+	/**
+	 * Set up before class.
+	 */
 	public static function setUpBeforeClass() {
 		parent::setUpBeforeClass();
 
@@ -59,6 +62,9 @@ class Tests_Two_Factor_Email extends WP_UnitTestCase {
 		$_SERVER['SERVER_NAME'] = 'example.com';
 	}
 
+	/**
+	 * Tear down before class.
+	 */
 	public static function tearDownBeforeClass() {
 		unset( $_SERVER['SERVER_NAME'] );
 
