@@ -718,7 +718,7 @@ class Two_Factor_Core {
 
 		// Must be global because that's how login_header() uses it.
 		global $interim_login;
-		$interim_login = isset( $_REQUEST['interim-login'] );
+		$interim_login = isset( $_REQUEST['interim-login'] ); // phpcs:ignore WordPress.WP.GlobalVariablesOverride.Prohibited
 
 		if ( $interim_login ) {
 			$customize_login = isset( $_REQUEST['customize-login'] );
@@ -726,7 +726,7 @@ class Two_Factor_Core {
 				wp_enqueue_script( 'customize-base' );
 			}
 			$message       = '<p class="message">' . __( 'You have logged in successfully.', 'two-factor' ) . '</p>';
-			$interim_login = 'success';
+			$interim_login = 'success'; // phpcs:ignore WordPress.WP.GlobalVariablesOverride.Prohibited
 			login_header( '', $message );
 			?>
 			</div>
