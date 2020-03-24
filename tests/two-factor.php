@@ -4,12 +4,12 @@
  */
 
 /**
- * Class Tests_Two_factor
+ * Class Tests_Two_Factor
  *
  * @package Two_Factor
  * @group core
  */
-class Tests_Two_factor extends WP_UnitTestCase {
+class Tests_Two_Factor extends WP_UnitTestCase {
 
 	/**
 	 * Set up a test case.
