@@ -1,6 +1,8 @@
 <?php
 /**
  * Test Two Factor Email.
+ *
+ * @package Two_Factor
  */
 
 /**

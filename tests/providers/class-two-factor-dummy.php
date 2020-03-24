@@ -1,6 +1,8 @@
 <?php
 /**
  * Test Two Factor Dummy.
+ *
+ * @package Two_Factor
  */
 
 /**

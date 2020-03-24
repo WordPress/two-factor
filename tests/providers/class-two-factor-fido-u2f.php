@@ -1,6 +1,8 @@
 <?php
 /**
  * Test Two Factor FIDO U2F.
+ *
+ * @package Two_Factor
  */
 
 /**
