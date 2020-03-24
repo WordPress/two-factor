@@ -71,9 +71,13 @@ class Two_Factor_Backup_Codes extends Two_Factor_Provider {
 			<p>
 				<span>
 					<?php
-					printf(
-						__( 'Two-Factor: You are out of backup codes and need to <a href="%s">regenerate!</a>', 'two-factor' ),
-						esc_url( get_edit_user_link( $user->ID ) . '#two-factor-backup-codes' )
+					wp_kses(
+						sprintf(
+						/* translators: %s: URL for code regeneration */
+							__( 'Two-Factor: You are out of backup codes and need to <a href="%s">regenerate!</a>', 'two-factor' ),
+							esc_url( get_edit_user_link( $user->ID ) . '#two-factor-backup-codes' )
+						),
+						array( 'a' => array( 'href' => true ) )
 					);
 					?>
 				<span>
