@@ -1,6 +1,6 @@
 <?php
 /**
- * Test Two Factor Dummy.
+ * Test Two Factor Backup Codes.
  *
  * @package Two_Factor
  */
