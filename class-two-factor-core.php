@@ -193,10 +193,10 @@ class Two_Factor_Core {
 		/**
 		 * Filter the available two-factor authentication providers for this user.
 		 *
-		 * @param array  $providers The available providers.
-		 * @param int    $user_id   The user ID.
+		 * @param array  $enabled_providers The available providers.
+		 * @param int    $user_id           The user ID.
 		 */
-		$enabled_providers = apply_filters( 'two_factor_available_providers_for_user', $enabled_providers, $user_id );
+		$enabled_providers = apply_filters( 'two_factor_available_providers_for_user', $enabled_providers, $user->ID );
 
 		foreach ( $providers as $classname => $provider ) {
 			if ( in_array( $classname, $enabled_providers ) && $provider->is_available_for_user( $user ) ) {
