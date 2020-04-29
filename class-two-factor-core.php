@@ -190,6 +190,14 @@ class Two_Factor_Core {
 		$enabled_providers    = self::get_enabled_providers_for_user( $user );
 		$configured_providers = array();
 
+		/**
+		 * Filter the available two-factor authentication providers for this user.
+		 *
+		 * @param string $providers The available providers.
+		 * @param int    $user_id   The user ID.
+		 */
+		$enabled_providers = apply_filters( 'two_factor_available_providers_for_user', $enabled_providers, $user_id );
+
 		foreach ( $providers as $classname => $provider ) {
 			if ( in_array( $classname, $enabled_providers ) && $provider->is_available_for_user( $user ) ) {
 				$configured_providers[ $classname ] = $provider;
@@ -882,4 +890,3 @@ class Two_Factor_Core {
 		return (bool) apply_filters( 'two_factor_rememberme', $rememberme );
 	}
 }
-
