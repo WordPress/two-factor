@@ -172,7 +172,13 @@ class Two_Factor_Core {
 		}
 		$enabled_providers = array_intersect( $enabled_providers, array_keys( $providers ) );
 
-		return $enabled_providers;
+		/**
+		 * Filter the enabled two-factor authentication providers for this user.
+		 *
+		 * @param array  $enabled_providers The enabled providers.
+		 * @param int    $user_id           The user ID.
+		 */
+		return apply_filters( 'two_factor_enabled_providers_for_user', $enabled_providers, $user->ID );
 	}
 
 	/**
@@ -189,14 +195,6 @@ class Two_Factor_Core {
 		$providers            = self::get_providers();
 		$enabled_providers    = self::get_enabled_providers_for_user( $user );
 		$configured_providers = array();
-
-		/**
-		 * Filter the enabled two-factor authentication providers for this user.
-		 *
-		 * @param array  $enabled_providers The enabled providers.
-		 * @param int    $user_id           The user ID.
-		 */
-		$enabled_providers = apply_filters( 'two_factor_enabled_providers_for_user', $enabled_providers, $user->ID );
 
 		foreach ( $providers as $classname => $provider ) {
 			if ( in_array( $classname, $enabled_providers ) && $provider->is_available_for_user( $user ) ) {
