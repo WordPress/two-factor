@@ -200,8 +200,8 @@ class Two_Factor_Core {
 	 * @return boolean
 	 */
 	public static function is_valid_user_action( $user_id, $action ) {
-		$request_nonce = filter_input( INPUT_REQUEST, '_wpnonce', FILTER_SANITIZE_STRING );
-		$user_action = filter_input( INPUT_REQUEST, self::USER_SETTINGS_ACTION_PARAM, FILTER_SANITIZE_STRING );
+		$request_nonce = filter_input( INPUT_GET, '_wpnonce', FILTER_SANITIZE_STRING );
+		$user_action = filter_input( INPUT_GET, self::USER_SETTINGS_ACTION_PARAM, FILTER_SANITIZE_STRING );
 
 		if ( $action !== $user_action ) {
 			return false;
