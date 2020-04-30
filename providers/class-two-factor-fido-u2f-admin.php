@@ -311,8 +311,8 @@ class Two_Factor_FIDO_U2F_Admin {
 	 * @return string
 	 */
 	public static function delete_link( $item ) {
-		$delete_link = add_query_arg( 'delete_security_key', $item->key_handle );
-		$delete_link = wp_nonce_url( $delete_link, "delete_security_key-{$item->key_handle}", '_nonce_delete_security_key' );
+		$delete_link = add_query_arg( 'delete_security_key', $item->keyHandle ); // phpcs:ignore WordPress.NamingConventions.ValidVariableName.UsedPropertyNotSnakeCase
+		$delete_link = wp_nonce_url( $delete_link, "delete_security_key-{$item->keyHandle}", '_nonce_delete_security_key' );
 		return sprintf( '<a href="%1$s">%2$s</a>', esc_url( $delete_link ), esc_html__( 'Delete', 'two-factor' ) );
 	}
 
