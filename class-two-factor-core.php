@@ -172,7 +172,13 @@ class Two_Factor_Core {
 		}
 		$enabled_providers = array_intersect( $enabled_providers, array_keys( $providers ) );
 
-		return $enabled_providers;
+		/**
+		 * Filter the enabled two-factor authentication providers for this user.
+		 *
+		 * @param array  $enabled_providers The enabled providers.
+		 * @param int    $user_id           The user ID.
+		 */
+		return apply_filters( 'two_factor_enabled_providers_for_user', $enabled_providers, $user->ID );
 	}
 
 	/**
@@ -882,4 +888,3 @@ class Two_Factor_Core {
 		return (bool) apply_filters( 'two_factor_rememberme', $rememberme );
 	}
 }
-
