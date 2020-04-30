@@ -48,7 +48,11 @@ class Two_Factor_FIDO_U2F_Admin {
 			return;
 		}
 
-		$user_id = get_current_user_id();
+		$user_id = Two_Factor_Core::current_user_being_edited();
+		if ( ! $user_id ) {
+			return;
+		}
+
 		$security_keys = Two_Factor_FIDO_U2F::get_security_keys( $user_id );
 
 		// @todo Ensure that scripts don't fail because of missing u2fL10n.
@@ -81,6 +85,7 @@ class Two_Factor_FIDO_U2F_Admin {
 		 */
 
 		$translation_array = array(
+			'user_id'  => $user_id,
 			'register' => array(
 				'request' => $req,
 				'sigs' => $sigs,
@@ -255,9 +260,11 @@ class Two_Factor_FIDO_U2F_Admin {
 	 * @static
 	 */
 	public static function catch_delete_security_key() {
-		$user_id = get_current_user_id();
-		if ( ! empty( $_REQUEST['delete_security_key'] ) ) {
+		$user_id = Two_Factor_Core::current_user_being_edited();
+
+		if ( ! empty( $user_id ) && ! empty( $_REQUEST['delete_security_key'] ) ) {
 			$slug = $_REQUEST['delete_security_key'];
+
 			check_admin_referer( "delete_security_key-{$slug}", '_nonce_delete_security_key' );
 
 			Two_Factor_FIDO_U2F::delete_security_key( $user_id, $slug );
@@ -316,8 +323,7 @@ class Two_Factor_FIDO_U2F_Admin {
 			wp_die();
 		}
 
-		$user_id = get_current_user_id();
-
+		$user_id = Two_Factor_Core::current_user_being_edited();
 		$security_keys = Two_Factor_FIDO_U2F::get_security_keys( $user_id );
 		if ( ! $security_keys ) {
 			wp_die();

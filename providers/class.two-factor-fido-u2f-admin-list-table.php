@@ -115,8 +115,6 @@ class Two_Factor_FIDO_U2F_Admin_List_Table extends WP_List_Table {
 					<td colspan="<?php echo esc_attr( $this->get_column_count() ); ?>" class="colspanchange">
 						<fieldset>
 							<div class="inline-edit-col">
-								<h4><?php esc_html_e( 'Quick Edit', 'two-factor' ); ?></h4>
-
 								<label>
 									<span class="title"><?php esc_html_e( 'Name', 'two-factor' ); ?></span>
 									<span class="input-text-wrap"><input type="text" name="name" class="ptitle" value="" /></span>

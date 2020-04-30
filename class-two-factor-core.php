@@ -243,6 +243,24 @@ class Two_Factor_Core {
 	}
 
 	/**
+	 * Get the ID of the user being edited.
+	 *
+	 * @return integer
+	 */
+	public static function current_user_being_edited() {
+		// Try to resolve the user ID from the request first.
+		if ( ! empty( $_REQUEST['user_id'] ) ) {
+			$user_id = intval( $_REQUEST['user_id'] );
+
+			if ( current_user_can( 'edit_user', $user_id ) ) {
+				return $user_id;
+			}
+		}
+
+		return get_current_user_id();
+	}
+
+	/**
 	 * Trigger our custom update action if a valid
 	 * action request is detected and passes the nonce check.
 	 *
@@ -250,11 +268,7 @@ class Two_Factor_Core {
 	 */
 	public static function trigger_user_settings_action() {
 		$action = filter_input( INPUT_GET, self::USER_SETTINGS_ACTION_QUERY_VAR, FILTER_SANITIZE_STRING );
-		$user_id = filter_input( INPUT_GET, 'user_id', FILTER_SANITIZE_NUMBER_INT );
-
-		if ( empty( $user_id ) && is_user_logged_in() ) {
-			$user_id = get_current_user_id();
-		}
+		$user_id = self::current_user_being_edited();
 
 		if ( ! empty( $action ) && self::is_valid_user_action( $user_id, $action ) ) {
 			/**
