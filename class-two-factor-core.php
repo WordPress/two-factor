@@ -68,6 +68,8 @@ class Two_Factor_Core {
 		// Run only after the core wp_authenticate_username_password() check.
 		add_filter( 'authenticate', array( __CLASS__, 'filter_authenticate' ), 50 );
 
+		add_filter( 'two_factor_providers', array( __CLASS__, 'enable_dummy_method_for_debug' ) );
+
 		$compat->init();
 	}
 
@@ -136,6 +138,30 @@ class Two_Factor_Core {
 		}
 
 		return $providers;
+	}
+
+	/**
+	 * Enable the dummy method only during debugging.
+	 *
+	 * @param array $methods List of enabled methods.
+	 *
+	 * @return array
+	 */
+	public static function enable_dummy_method_for_debug( $methods ) {
+		if ( ! self::is_wp_debug() ) {
+			unset( $methods['Two_Factor_Dummy'] );
+		}
+
+		return $methods;
+	}
+
+	/**
+	 * Check if the debug mode is enabled.
+	 *
+	 * @return boolean
+	 */
+	protected static function is_wp_debug() {
+		return ( defined( 'WP_DEBUG' ) && WP_DEBUG );
 	}
 
 	/**
