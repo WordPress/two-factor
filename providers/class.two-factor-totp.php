@@ -107,7 +107,7 @@ class Two_Factor_Totp extends Two_Factor_Provider {
 		wp_nonce_field( 'user_two_factor_totp_options', '_nonce_user_two_factor_totp_options', false );
 
 		$key = $this->get_user_totp_key( $user->ID );
-		$this->admin_notices();
+		$this->admin_notices( $user->ID );
 
 		?>
 		<div id="two-factor-totp-options">
@@ -240,12 +240,17 @@ class Two_Factor_Totp extends Two_Factor_Provider {
 
 	/**
 	 * Display any available admin notices.
+	 *
+	 * @param integer $user_id User ID.
+	 *
+	 * @return void
 	 */
-	public function admin_notices() {
-		$notices = get_user_meta( get_current_user_id(), self::NOTICES_META_KEY, true );
+	public function admin_notices( $user_id ) {
+		$notices = get_user_meta( $user_id, self::NOTICES_META_KEY, true );
 
 		if ( ! empty( $notices ) ) {
-			delete_user_meta( get_current_user_id(), self::NOTICES_META_KEY );
+			delete_user_meta( $user_id, self::NOTICES_META_KEY );
+
 			foreach ( $notices as $class => $messages ) {
 				?>
 				<div class="<?php echo esc_attr( $class ) ?>">
