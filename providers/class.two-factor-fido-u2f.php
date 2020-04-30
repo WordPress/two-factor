@@ -34,7 +34,7 @@ class Two_Factor_FIDO_U2F extends Two_Factor_Provider {
 	 *
 	 * @var string
 	 */
-	const U2F_ASSET_VERSION = '0.2.0';
+	const U2F_ASSET_VERSION = '0.2.1';
 
 	/**
 	 * Ensures only one instance of this class exists in memory at any one time.
