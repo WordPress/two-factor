@@ -48,7 +48,12 @@ class Two_Factor_FIDO_U2F_Admin {
 			return;
 		}
 
-		$user_id = get_current_user_id();
+		$user_id = filter_input( INPUT_GET, 'user_id', FILTER_SANITIZE_NUMBER_INT );
+
+		if ( empty( $user_id ) && is_user_logged_in() ) {
+			$user_id = get_current_user_id();
+		}
+
 		$security_keys = Two_Factor_FIDO_U2F::get_security_keys( $user_id );
 
 		// @todo Ensure that scripts don't fail because of missing u2fL10n.
