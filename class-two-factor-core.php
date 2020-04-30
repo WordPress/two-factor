@@ -27,7 +27,21 @@ class Two_Factor_Core {
 	 *
 	 * @type string
 	 */
-	const USER_META_NONCE_KEY    = '_two_factor_nonce';
+	const USER_META_NONCE_KEY = '_two_factor_nonce';
+
+	/**
+	 * URL query paramater used for our custom actions.
+	 *
+	 * @var string
+	 */
+	const USER_SETTINGS_ACTION_QUERY_VAR = 'two_factor_action';
+
+	/**
+	 * Nonce key for user settings.
+	 *
+	 * @var string
+	 */
+	const USER_SETTINGS_ACTION_NONCE_QUERY_ARG = '_two_factor_action_nonce';
 
 	/**
 	 * Keep track of all the password-based authentication sessions that
@@ -68,6 +82,7 @@ class Two_Factor_Core {
 		// Run only after the core wp_authenticate_username_password() check.
 		add_filter( 'authenticate', array( __CLASS__, 'filter_authenticate' ), 50 );
 
+		add_action( 'admin_init', array( __CLASS__, 'trigger_user_settings_action' ) );
 		add_filter( 'two_factor_providers', array( __CLASS__, 'enable_dummy_method_for_debug' ) );
 
 		$compat->init();
@@ -162,6 +177,95 @@ class Two_Factor_Core {
 	 */
 	protected static function is_wp_debug() {
 		return ( defined( 'WP_DEBUG' ) && WP_DEBUG );
+	}
+
+	/**
+	 * Get the user settings page URL.
+	 *
+	 * Fetch this from the plugin core after we introduce proper dependency injection
+	 * and get away from the singletons at the provider level (should be handled by core).
+	 *
+	 * @param integer $user_id User ID.
+	 *
+	 * @return string
+	 */
+	protected static function get_user_settings_page_url( $user_id ) {
+		$page = 'user-edit.php';
+
+		if ( defined( 'IS_PROFILE_PAGE' ) && IS_PROFILE_PAGE ) {
+			$page = 'profile.php';
+		}
+
+		return add_query_arg(
+			array(
+				'user_id' => intval( $user_id ),
+			),
+			self_admin_url( $page )
+		);
+	}
+
+	/**
+	 * Get the URL for resetting the secret token.
+	 *
+	 * @param integer $user_id User ID.
+	 * @param string  $action Custom two factor action key.
+	 *
+	 * @return string
+	 */
+	public static function get_user_update_action_url( $user_id, $action ) {
+		return wp_nonce_url(
+			add_query_arg(
+				array(
+					self::USER_SETTINGS_ACTION_QUERY_VAR => $action,
+				),
+				self::get_user_settings_page_url( $user_id )
+			),
+			sprintf( '%d-%s', $user_id, $action ),
+			self::USER_SETTINGS_ACTION_NONCE_QUERY_ARG
+		);
+	}
+
+	/**
+	 * Check if a user action is valid.
+	 *
+	 * @param integer $user_id User ID.
+	 * @param string  $action User action ID.
+	 *
+	 * @return boolean
+	 */
+	public static function is_valid_user_action( $user_id, $action ) {
+		$request_nonce = filter_input( INPUT_GET, self::USER_SETTINGS_ACTION_NONCE_QUERY_ARG, FILTER_SANITIZE_STRING );
+
+		return wp_verify_nonce(
+			$request_nonce,
+			sprintf( '%d-%s', $user_id, $action )
+		);
+	}
+
+	/**
+	 * Trigger our custom update action if a valid
+	 * action request is detected and passes the nonce check.
+	 *
+	 * @return void
+	 */
+	public static function trigger_user_settings_action() {
+		$action = filter_input( INPUT_GET, self::USER_SETTINGS_ACTION_QUERY_VAR, FILTER_SANITIZE_STRING );
+		$user_id = filter_input( INPUT_GET, 'user_id', FILTER_SANITIZE_NUMBER_INT );
+
+		if ( empty( $user_id ) && is_user_logged_in() ) {
+			$user_id = get_current_user_id();
+		}
+
+		if ( ! empty( $action ) && self::is_valid_user_action( $user_id, $action ) ) {
+			/**
+			 * This action is triggered when a valid Two Factor settings
+			 * action is detected and it passes the nonce validation.
+			 *
+			 * @param integer $user_id User ID.
+			 * @param string $action Settings action.
+			 */
+			do_action( 'two_factor_user_settings_action', $user_id, $action );
+		}
 	}
 
 	/**

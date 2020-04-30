@@ -24,6 +24,13 @@ class Two_Factor_Totp extends Two_Factor_Provider {
 	 */
 	const NOTICES_META_KEY = '_two_factor_totp_notices';
 
+	/**
+	 * Action name for resetting the secret token.
+	 *
+	 * @var string
+	 */
+	const ACTION_SECRET_DELETE = 'totp-delete';
+
 	const DEFAULT_KEY_BIT_SIZE = 160;
 	const DEFAULT_CRYPTO = 'sha1';
 	const DEFAULT_DIGIT_COUNT = 6;
@@ -36,8 +43,10 @@ class Two_Factor_Totp extends Two_Factor_Provider {
 	 */
 	protected function __construct() {
 		add_action( 'two-factor-user-options-' . __CLASS__, array( $this, 'user_two_factor_options' ) );
-		add_action( 'personal_options_update',              array( $this, 'user_two_factor_options_update' ) );
-		add_action( 'edit_user_profile_update',             array( $this, 'user_two_factor_options_update' ) );
+		add_action( 'personal_options_update', array( $this, 'user_two_factor_options_update' ) );
+		add_action( 'edit_user_profile_update', array( $this, 'user_two_factor_options_update' ) );
+		add_action( 'two_factor_user_settings_action', array( $this, 'user_settings_action' ), 10, 2 );
+
 		return parent::__construct();
 	}
 
@@ -60,6 +69,31 @@ class Two_Factor_Totp extends Two_Factor_Provider {
 	}
 
 	/**
+	 * Trigger our custom user settings actions.
+	 *
+	 * @param integer $user_id User ID.
+	 * @param string  $action Action ID.
+	 *
+	 * @return void
+	 */
+	public function user_settings_action( $user_id, $action ) {
+		if ( self::ACTION_SECRET_DELETE === $action ) {
+			$this->delete_user_totp_key( $user_id );
+		}
+	}
+
+	/**
+	 * Get the URL for deleting the secret token.
+	 *
+	 * @param integer $user_id User ID.
+	 *
+	 * @return string
+	 */
+	protected function get_token_delete_url_for_user( $user_id ) {
+		return Two_Factor_Core::get_user_update_action_url( $user_id, self::ACTION_SECRET_DELETE );
+	}
+
+	/**
 	 * Display TOTP options on the user settings page.
 	 *
 	 * @param WP_User $user The current user being edited.
@@ -73,7 +107,7 @@ class Two_Factor_Totp extends Two_Factor_Provider {
 		wp_nonce_field( 'user_two_factor_totp_options', '_nonce_user_two_factor_totp_options', false );
 
 		$key = $this->get_user_totp_key( $user->ID );
-		$this->admin_notices();
+		$this->admin_notices( $user->ID );
 
 		?>
 		<div id="two-factor-totp-options">
@@ -104,7 +138,7 @@ class Two_Factor_Totp extends Two_Factor_Provider {
 				<?php esc_html_e( 'Secret key configured and registered.', 'two-factor' ); ?>
 			</p>
 			<p>
-				<input type="submit" class="button" name="two-factor-totp-delete" value="<?php esc_attr_e( 'Reset Key', 'two-factor' ); ?>" />
+				<a class="button" href="<?php echo esc_url( self::get_token_delete_url_for_user( $user->ID ) ); ?>"><?php esc_html_e( 'Reset Key', 'two-factor' ); ?></a>
 				<em class="description">
 					<?php esc_html_e( 'You will have to re-scan the QR code on all devices as the previous codes will stop working.', 'two-factor' ); ?>
 				</em>
@@ -124,15 +158,8 @@ class Two_Factor_Totp extends Two_Factor_Provider {
 		$notices = array();
 		$errors = array();
 
-		$current_key = $this->get_user_totp_key( $user_id );
-
 		if ( isset( $_POST['_nonce_user_two_factor_totp_options'] ) ) {
 			check_admin_referer( 'user_two_factor_totp_options', '_nonce_user_two_factor_totp_options' );
-
-			// Delete the secret key.
-			if ( ! empty( $current_key ) && isset( $_POST['two-factor-totp-delete'] ) ) {
-				$this->delete_user_totp_key( $user_id );
-			}
 
 			// Validate and store a new secret key.
 			if ( ! empty( $_POST['two-factor-totp-authcode'] ) && ! empty( $_POST['two-factor-totp-key'] ) ) {
@@ -213,12 +240,17 @@ class Two_Factor_Totp extends Two_Factor_Provider {
 
 	/**
 	 * Display any available admin notices.
+	 *
+	 * @param integer $user_id User ID.
+	 *
+	 * @return void
 	 */
-	public function admin_notices() {
-		$notices = get_user_meta( get_current_user_id(), self::NOTICES_META_KEY, true );
+	public function admin_notices( $user_id ) {
+		$notices = get_user_meta( $user_id, self::NOTICES_META_KEY, true );
 
 		if ( ! empty( $notices ) ) {
-			delete_user_meta( get_current_user_id(), self::NOTICES_META_KEY );
+			delete_user_meta( $user_id, self::NOTICES_META_KEY );
+
 			foreach ( $notices as $class => $messages ) {
 				?>
 				<div class="<?php echo esc_attr( $class ) ?>">
