@@ -104,7 +104,8 @@ class Two_Factor_Totp extends Two_Factor_Provider {
 				<?php esc_html_e( 'Secret key configured and registered.', 'two-factor' ); ?>
 			</p>
 			<p>
-				<input type="submit" class="button" name="two-factor-totp-delete" value="<?php esc_attr_e( 'Reset Key', 'two-factor' ); ?>" />
+				<?php // There is a button with a name "submit" so we can't do this.form.submit(). ?>
+				<input type="button" onclick="this.form.submit.click()" class="button" name="two-factor-totp-delete" value="<?php esc_attr_e( 'Reset Key', 'two-factor' ); ?>" />
 				<em class="description">
 					<?php esc_html_e( 'You will have to re-scan the QR code on all devices as the previous codes will stop working.', 'two-factor' ); ?>
 				</em>
