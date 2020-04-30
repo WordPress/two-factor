@@ -248,14 +248,13 @@ class Two_Factor_Core {
 	 * @return integer
 	 */
 	public static function current_user_being_edited() {
-		$user_id = null;
-
+		// Try to resolve the user ID from the request first.
 		if ( ! empty( $_REQUEST['user_id'] ) ) {
 			$user_id = intval( $_REQUEST['user_id'] );
-		}
 
-		if ( ! empty( $user_id ) && current_user_can( 'edit_user', $user_id ) ) {
-			return intval( $user_id );
+			if ( current_user_can( 'edit_user', $user_id ) ) {
+				return $user_id;
+			}
 		}
 
 		return get_current_user_id();
