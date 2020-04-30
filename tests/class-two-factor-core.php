@@ -88,11 +88,11 @@ class Test_ClassTwoFactorCore extends WP_UnitTestCase {
 	 * Clean up the dummy user object data.
 	 */
 	public function clean_dummy_user() {
-		unset( $_POST[ Two_Factor_Core::ENABLED_PROVIDERS_USER_META_KEY ] ); // phpcs:ignore WordPress.Security.NonceVerification.Missing
+		unset( $_POST[ Two_Factor_Core::ENABLED_PROVIDERS_USER_META_KEY ] );
 
 		$key = '_nonce_user_two_factor_options';
-		unset( $_REQUEST[ $key ] ); // phpcs:ignore WordPress.Security.NonceVerification.Recommended
-		unset( $_POST[ $key ] ); // phpcs:ignore WordPress.Security.NonceVerification.Missing
+		unset( $_REQUEST[ $key ] );
+		unset( $_POST[ $key ] );
 	}
 
 	/**

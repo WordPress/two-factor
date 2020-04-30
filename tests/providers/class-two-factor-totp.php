@@ -105,10 +105,10 @@ class Tests_Two_Factor_Totp extends WP_UnitTestCase {
 		$this->provider->user_two_factor_options_update( $user->ID );
 		$content = ob_get_clean();
 
-		unset( $_POST['two-factor-totp-key'] ); // phpcs:ignore WordPress.Security.NonceVerification.Missing
+		unset( $_POST['two-factor-totp-key'] );
 
-		unset( $_REQUEST[ $request_key ] ); // phpcs:ignore WordPress.Security.NonceVerification.Recommended
-		unset( $_POST[ $request_key ] ); // phpcs:ignore WordPress.Security.NonceVerification.Missing
+		unset( $_REQUEST[ $request_key ] );
+		unset( $_POST[ $request_key ] );
 
 		$this->assertFalse( $this->provider->is_available_for_user( $user ) );
 	}
@@ -134,11 +134,11 @@ class Tests_Two_Factor_Totp extends WP_UnitTestCase {
 		$this->provider->user_two_factor_options_update( $user->ID );
 		$content = ob_get_clean();
 
-		unset( $_POST['two-factor-totp-authcode'] ); // phpcs:ignore WordPress.Security.NonceVerification.Missing
-		unset( $_POST['two-factor-totp-key'] ); // phpcs:ignore WordPress.Security.NonceVerification.Missing
+		unset( $_POST['two-factor-totp-authcode'] );
+		unset( $_POST['two-factor-totp-key'] );
 
-		unset( $_REQUEST[ $request_key ] ); // phpcs:ignore WordPress.Security.NonceVerification.Recommended
-		unset( $_POST[ $request_key ] ); // phpcs:ignore WordPress.Security.NonceVerification.Missing
+		unset( $_REQUEST[ $request_key ] );
+		unset( $_POST[ $request_key ] );
 
 		$this->assertFalse( $this->provider->is_available_for_user( $user ) );
 	}
@@ -165,11 +165,11 @@ class Tests_Two_Factor_Totp extends WP_UnitTestCase {
 		$this->provider->user_two_factor_options_update( $user->ID );
 		$content = ob_get_clean();
 
-		unset( $_POST['two-factor-totp-authcode'] ); // phpcs:ignore WordPress.Security.NonceVerification.Missing
-		unset( $_POST['two-factor-totp-key'] ); // phpcs:ignore WordPress.Security.NonceVerification.Missing
+		unset( $_POST['two-factor-totp-authcode'] );
+		unset( $_POST['two-factor-totp-key'] );
 
-		unset( $_REQUEST[ $request_key ] ); // phpcs:ignore WordPress.Security.NonceVerification.Recommended
-		unset( $_POST[ $request_key ] ); // phpcs:ignore WordPress.Security.NonceVerification.Missing
+		unset( $_REQUEST[ $request_key ] );
+		unset( $_POST[ $request_key ] );
 
 		$this->assertTrue( $this->provider->is_available_for_user( $user ) );
 	}

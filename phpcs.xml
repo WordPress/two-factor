@@ -16,6 +16,12 @@
 	<arg name="severity" value="1"/>
 	<file>.</file>
 
+	<!-- disable nonce checks on tests -->
+	<rule ref="WordPress.Security.NonceVerification">
+		<exclude-pattern>tests/*.php</exclude-pattern>
+		<exclude-pattern>tests/providers/*.php</exclude-pattern>
+	</rule>
+
 	<exclude-pattern>*/includes/*</exclude-pattern>
 	<exclude-pattern>*/node_modules/*</exclude-pattern>
 	<exclude-pattern>*/vendor/*</exclude-pattern>
