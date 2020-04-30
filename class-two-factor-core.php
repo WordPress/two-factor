@@ -27,7 +27,14 @@ class Two_Factor_Core {
 	 *
 	 * @type string
 	 */
-	const USER_META_NONCE_KEY    = '_two_factor_nonce';
+	const USER_META_NONCE_KEY = '_two_factor_nonce';
+
+	/**
+	 * URL query paramater used for our custom actions.
+	 *
+	 * @var string
+	 */
+	const USER_SETTINGS_ACTION_PARAM = 'action-two-factor';
 
 	/**
 	 * Keep track of all the password-based authentication sessions that
@@ -136,6 +143,74 @@ class Two_Factor_Core {
 		}
 
 		return $providers;
+	}
+
+	/**
+	 * Get the user settings page URL.
+	 *
+	 * Fetch this from the plugin core after we introduce proper dependency injection
+	 * and get away from the singletons at the provider level (should be handled by core).
+	 *
+	 * @param integer $user_id User ID.
+	 *
+	 * @return string
+	 */
+	protected static function get_user_settings_page_url( $user_id ) {
+		$page = 'user-edit.php';
+
+		if ( defined( 'IS_PROFILE_PAGE' ) && IS_PROFILE_PAGE ) {
+			$page = 'profile.php';
+		}
+
+		return add_query_arg(
+			array(
+				'user_id' => intval( $user_id ),
+			),
+			self_admin_url( $page )
+		);
+	}
+
+	/**
+	 * Get the URL for resetting the secret token.
+	 *
+	 * @param integer $user_id User ID.
+	 * @param string  $action Custom two factor action key.
+	 *
+	 * @return string
+	 */
+	public static function get_user_update_action_url( $user_id, $action ) {
+		return wp_nonce_url(
+			add_query_arg(
+				array(
+					'action'                         => 'update',
+					self::USER_SETTINGS_ACTION_PARAM => $action,
+				),
+				self::get_user_settings_page_url( $user_id )
+			),
+			sprintf( '%d-%s', $user_id, $action )
+		);
+	}
+
+	/**
+	 * Check if a user action is valid.
+	 *
+	 * @param integer $user_id User ID.
+	 * @param string  $action User action ID.
+	 *
+	 * @return boolean
+	 */
+	public static function is_valid_user_action( $user_id, $action ) {
+		$request_nonce = filter_input( INPUT_REQUEST, '_wpnonce', FILTER_SANITIZE_STRING );
+		$user_action = filter_input( INPUT_REQUEST, self::USER_SETTINGS_ACTION_PARAM, FILTER_SANITIZE_STRING );
+
+		if ( $action !== $user_action ) {
+			return false;
+		}
+
+		return wp_verify_nonce(
+			$request_nonce,
+			sprintf( '%d-%s', $user_id, $action )
+		);
 	}
 
 	/**
