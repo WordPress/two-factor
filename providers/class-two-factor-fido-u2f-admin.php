@@ -341,7 +341,7 @@ class Two_Factor_FIDO_U2F_Admin {
 		}
 
 		foreach ( $security_keys as &$key ) {
-			if ( $key->keyHandle === $_POST['keyHandle'] ) {
+			if ( $key->keyHandle === $_POST['keyHandle'] ) { // phpcs:ignore WordPress.NamingConventions.ValidVariableName.UsedPropertyNotSnakeCase
 				break;
 			}
 		}

@@ -257,8 +257,8 @@ class Two_Factor_FIDO_U2F extends Two_Factor_Provider {
 
 		if (
 			! is_object( $register )
-				|| ! property_exists( $register, 'keyHandle' ) || empty( $register->keyHandle )
-				|| ! property_exists( $register, 'publicKey' ) || empty( $register->publicKey )
+				|| ! property_exists( $register, 'keyHandle' ) || empty( $register->keyHandle ) // phpcs:ignore WordPress.NamingConventions.ValidVariableName.UsedPropertyNotSnakeCase
+				|| ! property_exists( $register, 'publicKey' ) || empty( $register->publicKey ) // phpcs:ignore WordPress.NamingConventions.ValidVariableName.UsedPropertyNotSnakeCase
 				|| ! property_exists( $register, 'certificate' ) || empty( $register->certificate )
 				|| ! property_exists( $register, 'counter' ) || ( -1 > $register->counter )
 		) {
@@ -266,8 +266,8 @@ class Two_Factor_FIDO_U2F extends Two_Factor_Provider {
 		}
 
 		$register = array(
-			'keyHandle'   => $register->keyHandle,
-			'publicKey'   => $register->publicKey,
+			'keyHandle'   => $register->keyHandle, // phpcs:ignore WordPress.NamingConventions.ValidVariableName.UsedPropertyNotSnakeCase
+			'publicKey'   => $register->publicKey, // phpcs:ignore WordPress.NamingConventions.ValidVariableName.UsedPropertyNotSnakeCase
 			'certificate' => $register->certificate,
 			'counter'     => $register->counter,
 		);
@@ -324,8 +324,8 @@ class Two_Factor_FIDO_U2F extends Two_Factor_Provider {
 
 		if (
 			! is_object( $data )
-				|| ! property_exists( $data, 'keyHandle' ) || empty( $data->keyHandle )
-				|| ! property_exists( $data, 'publicKey' ) || empty( $data->publicKey )
+				|| ! property_exists( $data, 'keyHandle' ) || empty( $data->keyHandle ) // phpcs:ignore WordPress.NamingConventions.ValidVariableName.UsedPropertyNotSnakeCase
+				|| ! property_exists( $data, 'publicKey' ) || empty( $data->publicKey ) // phpcs:ignore WordPress.NamingConventions.ValidVariableName.UsedPropertyNotSnakeCase
 				|| ! property_exists( $data, 'certificate' ) || empty( $data->certificate )
 				|| ! property_exists( $data, 'counter' ) || ( -1 > $data->counter )
 		) {
@@ -335,7 +335,7 @@ class Two_Factor_FIDO_U2F extends Two_Factor_Provider {
 		$keys = self::get_security_keys( $user_id );
 		if ( $keys ) {
 			foreach ( $keys as $key ) {
-				if ( $key->keyHandle === $data->keyHandle ) {
+				if ( $key->keyHandle === $data->keyHandle ) { // phpcs:ignore WordPress.NamingConventions.ValidVariableName.UsedPropertyNotSnakeCase
 					return update_user_meta( $user_id, self::REGISTERED_KEY_USER_META_KEY, (array) $data, (array) $key );
 				}
 			}
@@ -353,7 +353,7 @@ class Two_Factor_FIDO_U2F extends Two_Factor_Provider {
 	 * @param string $keyHandle Optional. Key handle.
 	 * @return bool True on success, false on failure.
 	 */
-	public static function delete_security_key( $user_id, $keyHandle = null ) {
+	public static function delete_security_key( $user_id, $keyHandle = null ) { // phpcs:ignore WordPress.NamingConventions.ValidVariableName.VariableNotSnakeCase
 		global $wpdb;
 
 		if ( ! is_numeric( $user_id ) ) {
@@ -365,13 +365,13 @@ class Two_Factor_FIDO_U2F extends Two_Factor_Provider {
 			return false;
 		}
 
-		$keyHandle = wp_unslash( $keyHandle );
-		$keyHandle = maybe_serialize( $keyHandle );
+		$keyHandle = wp_unslash( $keyHandle ); // phpcs:ignore WordPress.NamingConventions.ValidVariableName.VariableNotSnakeCase
+		$keyHandle = maybe_serialize( $keyHandle ); // phpcs:ignore WordPress.NamingConventions.ValidVariableName.VariableNotSnakeCase
 
 		$query = $wpdb->prepare( "SELECT umeta_id FROM {$wpdb->usermeta} WHERE meta_key = %s AND user_id = %d", self::REGISTERED_KEY_USER_META_KEY, $user_id );
 
-		if ( $keyHandle ) {
-			$query .= $wpdb->prepare( ' AND meta_value LIKE %s', '%:"' . $keyHandle . '";s:%' );
+		if ( $keyHandle ) { // phpcs:ignore WordPress.NamingConventions.ValidVariableName.VariableNotSnakeCase
+			$query .= $wpdb->prepare( ' AND meta_value LIKE %s', '%:"' . $keyHandle . '";s:%' ); // phpcs:ignore WordPress.NamingConventions.ValidVariableName.VariableNotSnakeCase
 		}
 
 		$meta_ids = $wpdb->get_col( $query ); // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared

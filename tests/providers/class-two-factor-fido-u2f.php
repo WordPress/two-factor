@@ -107,8 +107,8 @@ class Tests_Two_Factor_FIDO_U2F extends WP_UnitTestCase {
 		$add_method->invoke( $this->provider, $user_id, $reg );
 		$actual = $get_method->invoke( $this->provider, $user_id );
 
-		$this->assertEquals( $reg->keyHandle, $actual[0]->keyHandle );
-		$this->assertEquals( $reg->publicKey, $actual[0]->publicKey );
+		$this->assertEquals( $reg->keyHandle, $actual[0]->keyHandle ); // phpcs:ignore WordPress.NamingConventions.ValidVariableName.UsedPropertyNotSnakeCase
+		$this->assertEquals( $reg->publicKey, $actual[0]->publicKey ); // phpcs:ignore WordPress.NamingConventions.ValidVariableName.UsedPropertyNotSnakeCase
 		$this->assertEquals( $reg->certificate, $actual[0]->certificate );
 		$this->assertEquals( $reg->counter, $actual[0]->counter );
 
@@ -140,8 +140,8 @@ class Tests_Two_Factor_FIDO_U2F extends WP_UnitTestCase {
 		$this->assertEquals( true, $update_method->invoke( $this->provider, $user_id, $data ) );
 
 		$meta = $get_method->invoke( $this->provider, $user_id );
-		$this->assertEquals( $data->keyHandle, $meta[0]->keyHandle );
-		$this->assertEquals( $data->publicKey, $meta[0]->publicKey );
+		$this->assertEquals( $data->keyHandle, $meta[0]->keyHandle ); // phpcs:ignore WordPress.NamingConventions.ValidVariableName.UsedPropertyNotSnakeCase
+		$this->assertEquals( $data->publicKey, $meta[0]->publicKey ); // phpcs:ignore WordPress.NamingConventions.ValidVariableName.UsedPropertyNotSnakeCase
 		$this->assertEquals( $data->certificate, $meta[0]->certificate );
 		$this->assertEquals( $data->counter, $meta[0]->counter );
 		$this->assertEquals( 4, $meta[0]->counter );
@@ -173,8 +173,8 @@ class Tests_Two_Factor_FIDO_U2F extends WP_UnitTestCase {
 		$this->assertInternalType( 'int', $update_method->invoke( $this->provider, $user_id, $data ) );
 
 		$meta = $get_method->invoke( $this->provider, $user_id );
-		$this->assertEquals( $data->keyHandle, $meta[0]->keyHandle );
-		$this->assertEquals( $data->publicKey, $meta[0]->publicKey );
+		$this->assertEquals( $data->keyHandle, $meta[0]->keyHandle ); // phpcs:ignore WordPress.NamingConventions.ValidVariableName.UsedPropertyNotSnakeCase
+		$this->assertEquals( $data->publicKey, $meta[0]->publicKey ); // phpcs:ignore WordPress.NamingConventions.ValidVariableName.UsedPropertyNotSnakeCase
 		$this->assertEquals( $data->certificate, $meta[0]->certificate );
 		$this->assertEquals( $data->counter, $meta[0]->counter );
 		$this->assertEquals( 4, $meta[0]->counter );
