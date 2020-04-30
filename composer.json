@@ -5,9 +5,14 @@
   "license": "GPL-2.0-or-later",
   "homepage": "https://wordpress.org/plugins/two-factor/",
   "support": {
-    "source": "https://github.com/WordPress/application-passwords",
+    "source": "https://github.com/WordPress/two-factor",
     "forum": "https://wordpress.org/support/plugin/two-factor/",
     "issues": "https://github.com/WordPress/two-factor/issues"
+  },
+  "config": {
+    "platform": {
+      "php": "5.6.20"
+    }
   },
   "require": {
     "php": ">=5.6"
