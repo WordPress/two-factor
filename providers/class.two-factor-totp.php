@@ -163,10 +163,13 @@ class Two_Factor_Totp extends Two_Factor_Provider {
 
 			// Validate and store a new secret key.
 			if ( ! empty( $_POST['two-factor-totp-authcode'] ) && ! empty( $_POST['two-factor-totp-key'] ) ) {
-				if ( $this->is_valid_key( $_POST['two-factor-totp-key'] ) ) {
-					$authcode = filter_input( INPUT_POST, 'two-factor-totp-authcode', FILTER_SANITIZE_NUMBER_INT );
-					if ( $this->is_valid_authcode( $_POST['two-factor-totp-key'], $authcode ) ) {
-						if ( ! $this->set_user_totp_key( $user_id, $_POST['two-factor-totp-key'] ) ) {
+				// Don't use filter_input() because we can't mock it during tests for now.
+				$authcode = sanitize_text_field( $_POST['two-factor-totp-authcode'] );
+				$key = sanitize_text_field( $_POST['two-factor-totp-key'] );
+
+				if ( $this->is_valid_key( $key ) ) {
+					if ( $this->is_valid_authcode( $key, $authcode ) ) {
+						if ( ! $this->set_user_totp_key( $user_id, $key ) ) {
 							$errors[] = __( 'Unable to save Two Factor Authentication code. Please re-scan the QR code and enter the code provided by your application.', 'two-factor' );
 						}
 					} else {
