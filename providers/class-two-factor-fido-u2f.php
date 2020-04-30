@@ -257,8 +257,8 @@ class Two_Factor_FIDO_U2F extends Two_Factor_Provider {
 
 		if (
 			! is_object( $register )
-				|| ! property_exists( $register, 'key_handle' ) || empty( $register->key_handle )
-				|| ! property_exists( $register, 'public_key' ) || empty( $register->public_key )
+				|| ! property_exists( $register, 'keyHandle' ) || empty( $register->keyHandle )
+				|| ! property_exists( $register, 'publicKey' ) || empty( $register->publicKey )
 				|| ! property_exists( $register, 'certificate' ) || empty( $register->certificate )
 				|| ! property_exists( $register, 'counter' ) || ( -1 > $register->counter )
 		) {
@@ -266,8 +266,8 @@ class Two_Factor_FIDO_U2F extends Two_Factor_Provider {
 		}
 
 		$register = array(
-			'key_handle'  => $register->key_handle,
-			'public_key'  => $register->public_key,
+			'keyHandle'  => $register->keyHandle,
+			'publicKey'  => $register->publicKey,
 			'certificate' => $register->certificate,
 			'counter'     => $register->counter,
 		);
@@ -324,8 +324,8 @@ class Two_Factor_FIDO_U2F extends Two_Factor_Provider {
 
 		if (
 			! is_object( $data )
-				|| ! property_exists( $data, 'key_handle' ) || empty( $data->key_handle )
-				|| ! property_exists( $data, 'public_key' ) || empty( $data->public_key )
+				|| ! property_exists( $data, 'keyHandle' ) || empty( $data->keyHandle )
+				|| ! property_exists( $data, 'publicKey' ) || empty( $data->publicKey )
 				|| ! property_exists( $data, 'certificate' ) || empty( $data->certificate )
 				|| ! property_exists( $data, 'counter' ) || ( -1 > $data->counter )
 		) {
@@ -335,7 +335,7 @@ class Two_Factor_FIDO_U2F extends Two_Factor_Provider {
 		$keys = self::get_security_keys( $user_id );
 		if ( $keys ) {
 			foreach ( $keys as $key ) {
-				if ( $key->key_handle === $data->key_handle ) {
+				if ( $key->keyHandle === $data->keyHandle ) {
 					return update_user_meta( $user_id, self::REGISTERED_KEY_USER_META_KEY, (array) $data, (array) $key );
 				}
 			}
@@ -350,10 +350,10 @@ class Two_Factor_FIDO_U2F extends Two_Factor_Provider {
 	 * @since 0.1-dev
 	 *
 	 * @param int    $user_id   User ID.
-	 * @param string $key_handle Optional. Key handle.
+	 * @param string $keyHandle Optional. Key handle.
 	 * @return bool True on success, false on failure.
 	 */
-	public static function delete_security_key( $user_id, $key_handle = null ) {
+	public static function delete_security_key( $user_id, $keyHandle = null ) {
 		global $wpdb;
 
 		if ( ! is_numeric( $user_id ) ) {
@@ -365,13 +365,13 @@ class Two_Factor_FIDO_U2F extends Two_Factor_Provider {
 			return false;
 		}
 
-		$key_handle = wp_unslash( $key_handle );
-		$key_handle = maybe_serialize( $key_handle );
+		$keyHandle = wp_unslash( $keyHandle );
+		$keyHandle = maybe_serialize( $keyHandle );
 
 		$query = $wpdb->prepare( "SELECT umeta_id FROM {$wpdb->usermeta} WHERE meta_key = %s AND user_id = %d", self::REGISTERED_KEY_USER_META_KEY, $user_id );
 
-		if ( $key_handle ) {
-			$query .= $wpdb->prepare( ' AND meta_value LIKE %s', '%:"' . $key_handle . '";s:%' );
+		if ( $keyHandle ) {
+			$query .= $wpdb->prepare( ' AND meta_value LIKE %s', '%:"' . $keyHandle . '";s:%' );
 		}
 
 		$meta_ids = $wpdb->get_col( $query ); // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared

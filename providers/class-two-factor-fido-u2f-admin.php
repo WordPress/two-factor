@@ -323,7 +323,7 @@ class Two_Factor_FIDO_U2F_Admin {
 		require TWO_FACTOR_DIR . 'providers/class-two-factor-fido-u2f-admin-list-table.php';
 		$wp_list_table = new Two_Factor_FIDO_U2F_Admin_List_Table();
 
-		if ( ! isset( $_POST['key_handle'] ) ) {
+		if ( ! isset( $_POST['keyHandle'] ) ) {
 			wp_die();
 		}
 
@@ -335,7 +335,7 @@ class Two_Factor_FIDO_U2F_Admin {
 		}
 
 		foreach ( $security_keys as &$key ) {
-			if ( $key->key_handle === $_POST['key_handle'] ) {
+			if ( $key->keyHandle === $_POST['keyHandle'] ) {
 				break;
 			}
 		}

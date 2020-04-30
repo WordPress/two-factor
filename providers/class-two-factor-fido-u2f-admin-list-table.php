@@ -61,7 +61,7 @@ class Two_Factor_FIDO_U2F_Admin_List_Table extends WP_List_Table {
 	protected function column_default( $item, $column_name ) {
 		switch ( $column_name ) {
 			case 'name':
-				$out  = '<div class="hidden" id="inline_' . esc_attr( $item->key_handle ) . '">';
+				$out  = '<div class="hidden" id="inline_' . esc_attr( $item->keyHandle ) . '">';
 				$out .= '<div class="name">' . esc_html( $item->name ) . '</div>';
 				$out .= '</div>';
 
@@ -102,7 +102,7 @@ class Two_Factor_FIDO_U2F_Admin_List_Table extends WP_List_Table {
 	 */
 	public function single_row( $item ) {
 		?>
-		<tr id="key-<?php echo esc_attr( $item->key_handle ); ?>">
+		<tr id="key-<?php echo esc_attr( $item->keyHandle ); ?>">
 		<?php $this->single_row_columns( $item ); ?>
 		</tr>
 		<?php
