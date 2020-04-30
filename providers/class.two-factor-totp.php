@@ -161,21 +161,19 @@ class Two_Factor_Totp extends Two_Factor_Provider {
 		if ( isset( $_POST['_nonce_user_two_factor_totp_options'] ) ) {
 			check_admin_referer( 'user_two_factor_totp_options', '_nonce_user_two_factor_totp_options' );
 
-			$authcode = filter_input( INPUT_POST, 'two-factor-totp-authcode', FILTER_SANITIZE_NUMBER_INT );
-			$key = filter_input( INPUT_POST, 'two-factor-totp-key', FILTER_SANITIZE_STRING );
-
 			// Validate and store a new secret key.
-			if ( ! empty( $authcode ) && ! empty( $key ) ) {
-				if ( ! $this->is_valid_key( $key ) ) {
-					$errors[] = __( 'Invalid Two Factor Authentication secret key.', 'two-factor' );
-				}
-
-				if ( $this->is_valid_authcode( $key, $authcode ) ) {
-					if ( ! $this->set_user_totp_key( $user_id, $key ) ) {
-						$errors[] = __( 'Unable to save Two Factor Authentication code. Please re-scan the QR code and enter the code provided by your application.', 'two-factor' );
+			if ( ! empty( $_POST['two-factor-totp-authcode'] ) && ! empty( $_POST['two-factor-totp-key'] ) ) {
+				if ( $this->is_valid_key( $_POST['two-factor-totp-key'] ) ) {
+					$authcode = filter_input( INPUT_POST, 'two-factor-totp-authcode', FILTER_SANITIZE_NUMBER_INT );
+					if ( $this->is_valid_authcode( $_POST['two-factor-totp-key'], $authcode ) ) {
+						if ( ! $this->set_user_totp_key( $user_id, $_POST['two-factor-totp-key'] ) ) {
+							$errors[] = __( 'Unable to save Two Factor Authentication code. Please re-scan the QR code and enter the code provided by your application.', 'two-factor' );
+						}
+					} else {
+						$errors[] = __( 'Invalid Two Factor Authentication code.', 'two-factor' );
 					}
 				} else {
-					$errors[] = __( 'Invalid Two Factor Authentication code.', 'two-factor' );
+					$errors[] = __( 'Invalid Two Factor Authentication secret key.', 'two-factor' );
 				}
 			}
 
