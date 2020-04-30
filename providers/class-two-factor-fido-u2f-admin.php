@@ -334,7 +334,7 @@ class Two_Factor_FIDO_U2F_Admin {
 			wp_die();
 		}
 
-		$user_id = Two_Factor_Core::current_user_being_edited();
+		$user_id       = Two_Factor_Core::current_user_being_edited();
 		$security_keys = Two_Factor_FIDO_U2F::get_security_keys( $user_id );
 		if ( ! $security_keys ) {
 			wp_die();

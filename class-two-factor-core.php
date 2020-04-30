@@ -277,7 +277,7 @@ class Two_Factor_Core {
 	 * @return void
 	 */
 	public static function trigger_user_settings_action() {
-		$action = filter_input( INPUT_GET, self::USER_SETTINGS_ACTION_QUERY_VAR, FILTER_SANITIZE_STRING );
+		$action  = filter_input( INPUT_GET, self::USER_SETTINGS_ACTION_QUERY_VAR, FILTER_SANITIZE_STRING );
 		$user_id = self::current_user_being_edited();
 
 		if ( ! empty( $action ) && self::is_valid_user_action( $user_id, $action ) ) {
