@@ -173,7 +173,7 @@ class Two_Factor_Totp extends Two_Factor_Provider {
 			if ( ! empty( $_POST['two-factor-totp-authcode'] ) && ! empty( $_POST['two-factor-totp-key'] ) ) {
 				// Don't use filter_input() because we can't mock it during tests for now.
 				$authcode = sanitize_text_field( $_POST['two-factor-totp-authcode'] );
-				$key = sanitize_text_field( $_POST['two-factor-totp-key'] );
+				$key      = sanitize_text_field( $_POST['two-factor-totp-key'] );
 
 				if ( $this->is_valid_key( $key ) ) {
 					if ( $this->is_valid_authcode( $key, $authcode ) ) {
