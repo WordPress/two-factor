@@ -589,7 +589,7 @@ class Two_Factor_Core {
 
 		$available_providers = self::get_available_providers_for_user( $user );
 		$backup_providers    = array_diff_key( $available_providers, array( $provider_class => null ) );
-		$interim_login       = isset( $_REQUEST['interim-login'] );
+		$interim_login       = isset( $_REQUEST['interim-login'] ); // phpcs:ignore WordPress.Security.NonceVerification.Recommended
 
 		$rememberme = intval( self::rememberme() );
 
