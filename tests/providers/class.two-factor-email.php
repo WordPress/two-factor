@@ -217,4 +217,48 @@ class Tests_Two_Factor_Email extends WP_UnitTestCase {
 		$this->assertNotEquals( $token_original, $token_new, 'Failed to generate a new code as requested.' );
 	}
 
+	/**
+	 * Ensure that a default TTL is set.
+	 *
+	 * @covers Two_Factor_Email::user_token_ttl
+	 */
+	public function test_user_token_has_ttl() {
+		$this->assertEquals(
+			15 * 60,
+			$this->provider->user_token_ttl( 123 ),
+			'Default TTL is 15 minutes'
+		);
+	}
+
+	/**
+	 * Ensure the token generation time is stored.
+	 *
+	 * @covers Two_Factor_Email::user_token_lifetime
+	 */
+	public function test_tokens_have_generation_time() {
+		$user_id = $this->factory->user->create();
+
+		$this->assertFalse(
+			$this->provider->user_has_token( $user_id ),
+			'User does not have a valid token before requesting it'
+		);
+
+		$this->assertNull(
+			$this->provider->user_token_lifetime( $user_id ),
+			'Token lifetime is not present until a token is generated'
+		);
+
+		$this->provider->generate_token( $user_id );
+
+		$this->assertTrue(
+			$this->provider->user_has_token( $user_id ),
+			'User has a token after requesting it'
+		);
+
+		$this->assertTrue(
+			is_int( $this->provider->user_token_lifetime( $user_id ) ),
+			'Lifetime is a valid integer if present'
+		);
+	}
+
 }
