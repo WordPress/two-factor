@@ -249,7 +249,7 @@ class Two_Factor_Email extends Two_Factor_Provider {
 			return;
 		}
 
-		if ( ! $this->user_has_token( $user_id ) || $this->user_token_has_expired( $user_id ) ) {
+		if ( ! $this->user_has_token( $user->ID ) || $this->user_token_has_expired( $user->ID ) ) {
 			$this->generate_and_email_token( $user );
 		}
 
