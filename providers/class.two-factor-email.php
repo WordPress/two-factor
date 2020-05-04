@@ -106,7 +106,7 @@ class Two_Factor_Email extends Two_Factor_Provider {
 		$token_lifetime = $this->user_token_lifetime( $user_id );
 		$token_ttl = $this->user_token_ttl( $user_id );
 
-		return ( $token_lifetime >= $token_ttl );
+		return ( null !== $token_lifetime && $token_lifetime >= $token_ttl );
 	}
 
 	/**
