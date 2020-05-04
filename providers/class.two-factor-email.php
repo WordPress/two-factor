@@ -189,7 +189,7 @@ class Two_Factor_Email extends Two_Factor_Provider {
 			return false;
 		}
 
-		// Ensure that the token can't be re-used.
+		// Ensure the token can be used only once.
 		$this->delete_token( $user_id );
 
 		return true;
