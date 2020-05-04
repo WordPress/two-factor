@@ -367,7 +367,7 @@ class Two_Factor_FIDO_U2F extends Two_Factor_Provider {
 		$query = $wpdb->prepare( "SELECT umeta_id FROM $table WHERE meta_key = '%s' AND user_id = %d", self::REGISTERED_KEY_USER_META_KEY, $user_id );
 
 		if ( $keyHandle ) {
-			$key_handle_lookup = sprintf( ':"%s";s:', $keyHandle );
+			$key_handle_lookup = sprintf( ':"%s";s:', $keyHandle ); // phpcs:ignore WordPress.NamingConventions.ValidVariableName.VariableNotSnakeCase
 
 			$query .= $wpdb->prepare(
 				' AND meta_value LIKE %s',
