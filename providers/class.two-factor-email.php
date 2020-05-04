@@ -11,9 +11,16 @@ class Two_Factor_Email extends Two_Factor_Provider {
 	/**
 	 * The user meta token key.
 	 *
-	 * @type string
+	 * @var string
 	 */
 	const TOKEN_META_KEY = '_two_factor_email_token';
+
+	/**
+	 * Store the timestamp when the token was generated.
+	 *
+	 * @var string
+	 */
+	const TOKEN_META_KEY_TIMESTAMP = '_two_factor_email_token_timestamp';
 
 	/**
 	 * Name of the input field used for code resend.
@@ -65,7 +72,10 @@ class Two_Factor_Email extends Two_Factor_Provider {
 	 */
 	public function generate_token( $user_id ) {
 		$token = $this->get_code();
+
+		update_user_meta( $user_id, self::TOKEN_META_KEY_TIMESTAMP, time() );
 		update_user_meta( $user_id, self::TOKEN_META_KEY, wp_hash( $token ) );
+
 		return $token;
 	}
 
@@ -80,9 +90,65 @@ class Two_Factor_Email extends Two_Factor_Provider {
 
 		if ( ! empty( $hashed_token ) ) {
 			return true;
-		} else {
-			return false;
 		}
+
+		return false;
+	}
+
+	/**
+	 * Has the user token validity timestamp expired.
+	 *
+	 * @param integer $user_id User ID.
+	 *
+	 * @return boolean
+	 */
+	public function user_token_has_expired( $user_id ) {
+		$token_lifetime = $this->user_token_lifetime( $user_id );
+		$token_ttl = $this->user_token_ttl( $user_id );
+
+		// Assume that lifetime below a second is invalid.
+		if ( ! $token_lifetime ) {
+			return true;
+		}
+
+		return ( $token_lifetime >= $token_ttl );
+	}
+
+	/**
+	 * Get the lifetime of a user token in seconds.
+	 *
+	 * @param integer $user_id User ID.
+	 *
+	 * @return integer|null Return `null` if the lifetime can't be measured.
+	 */
+	public function user_token_lifetime( $user_id ) {
+		$timestamp = intval( get_user_meta( $user_id, self::TOKEN_META_KEY_TIMESTAMP, true ) );
+
+		if ( ! empty( $timestamp ) ) {
+			return time() - $timestamp;
+		}
+
+		return null;
+	}
+
+	/**
+	 * Return the token time-to-live for a user.
+	 *
+	 * @param integer $user_id User ID.
+	 *
+	 * @return integer
+	 */
+	public function user_token_ttl( $user_id ) {
+		$token_ttl = 15 * MINUTE_IN_SECONDS;
+
+		/**
+		 * Number of seconds the token is considered valid
+		 * after the generation.
+		 *
+		 * @param integer $token_ttl Token time-to-live in seconds.
+		 * @param integer $user_id User ID.
+		 */
+		return (int) apply_filters( 'two_factor_token_ttl', $token_ttl, $user_id );
 	}
 
 	/**
@@ -116,6 +182,10 @@ class Two_Factor_Email extends Two_Factor_Provider {
 
 		// Bail if token is empty or it doesn't match.
 		if ( empty( $hashed_token ) || ( wp_hash( $token ) !== $hashed_token ) ) {
+			return false;
+		}
+
+		if ( $this->user_token_has_expired( $user_id ) ) {
 			return false;
 		}
 
@@ -184,7 +254,7 @@ class Two_Factor_Email extends Two_Factor_Provider {
 			return;
 		}
 
-		if ( ! $this->user_has_token( $user->ID ) ) {
+		if ( ! $this->user_has_token( $user_id ) || $this->user_token_has_expired( $user_id ) ) {
 			$this->generate_and_email_token( $user );
 		}
 
