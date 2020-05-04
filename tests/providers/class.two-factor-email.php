@@ -288,7 +288,7 @@ class Tests_Two_Factor_Email extends WP_UnitTestCase {
 
 		// Update the generation time to one second before the TTL.
 		$expired_token_timestamp = time() - $this->provider->user_token_ttl( $user_id ) - 1;
-		update_user_meta( $user_id, $this->provider::TOKEN_META_KEY_TIMESTAMP, $expired_token_timestamp );
+		update_user_meta( $user_id, Two_Factor_Email::TOKEN_META_KEY_TIMESTAMP, $expired_token_timestamp );
 
 		$this->assertTrue(
 			$this->provider->user_token_has_expired( $user_id ),
