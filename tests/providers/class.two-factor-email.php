@@ -217,4 +217,88 @@ class Tests_Two_Factor_Email extends WP_UnitTestCase {
 		$this->assertNotEquals( $token_original, $token_new, 'Failed to generate a new code as requested.' );
 	}
 
+	/**
+	 * Ensure that a default TTL is set.
+	 *
+	 * @covers Two_Factor_Email::user_token_ttl
+	 */
+	public function test_user_token_has_ttl() {
+		$this->assertEquals(
+			15 * 60,
+			$this->provider->user_token_ttl( 123 ),
+			'Default TTL is 15 minutes'
+		);
+	}
+
+	/**
+	 * Ensure the token generation time is stored.
+	 *
+	 * @covers Two_Factor_Email::user_token_lifetime
+	 */
+	public function test_tokens_have_generation_time() {
+		$user_id = $this->factory->user->create();
+
+		$this->assertFalse(
+			$this->provider->user_has_token( $user_id ),
+			'User does not have a valid token before requesting it'
+		);
+
+		$this->assertNull(
+			$this->provider->user_token_lifetime( $user_id ),
+			'Token lifetime is not present until a token is generated'
+		);
+
+		$this->provider->generate_token( $user_id );
+
+		$this->assertTrue(
+			$this->provider->user_has_token( $user_id ),
+			'User has a token after requesting it'
+		);
+
+		$this->assertTrue(
+			is_int( $this->provider->user_token_lifetime( $user_id ) ),
+			'Lifetime is a valid integer if present'
+		);
+
+		$this->assertFalse(
+			$this->provider->user_token_has_expired( $user_id ),
+			'Fresh token do not expire'
+		);
+	}
+
+	/**
+	 * Ensure the token generation time is stored.
+	 *
+	 * @covers Two_Factor_Email::user_token_has_expired
+	 * @covers Two_Factor_Email::validate_token
+	 */
+	public function test_tokens_can_expire() {
+		$user_id = $this->factory->user->create();
+		$token = $this->provider->generate_token( $user_id );
+
+		$this->assertFalse(
+			$this->provider->user_token_has_expired( $user_id ),
+			'Fresh token have not expired'
+		);
+
+		$this->assertTrue(
+			$this->provider->validate_token( $user_id, $token ),
+			'Fresh tokens are also valid'
+		);
+
+		// Update the generation time to one second before the TTL.
+		$expired_token_timestamp = time() - $this->provider->user_token_ttl( $user_id ) - 1;
+		update_user_meta( $user_id, Two_Factor_Email::TOKEN_META_KEY_TIMESTAMP, $expired_token_timestamp );
+
+		$this->assertTrue(
+			$this->provider->user_token_has_expired( $user_id ),
+			'Tokens expire after their TTL'
+		);
+
+		$this->assertFalse(
+			$this->provider->validate_token( $user_id, $token ),
+			'Expired tokens are invalid'
+		);
+	}
+
 }
