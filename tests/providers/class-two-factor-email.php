@@ -306,7 +306,7 @@ class Tests_Two_Factor_Email extends WP_UnitTestCase {
 	 */
 	public function test_tokens_can_expire() {
 		$user_id = $this->factory->user->create();
-		$token = $this->provider->generate_token( $user_id );
+		$token   = $this->provider->generate_token( $user_id );
 
 		$this->assertFalse(
 			$this->provider->user_token_has_expired( $user_id ),
