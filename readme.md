@@ -11,7 +11,7 @@ Enable Two-Factor Authentication using time-based one-time passwords (OTP, Googl
 **Stable tag:** trunk (master)  
 **Requires PHP:** 5.6  
 
-[![Build Status](https://travis-ci.org/wordpress/two-factor.svg?branch=master)](https://travis-ci.org/wordpress/two-factor) [![Coverage Status](https://coveralls.io/repos/wordpress/two-factor/badge.svg?branch=master)](https://coveralls.io/github/wordpress/two-factor) [![Built with Grunt](https://gruntjs.com/cdn/builtwith.svg)](http://gruntjs.com) 
+[![Build Status](https://travis-ci.org/paulschreiber/two-factor.svg?branch=master)](https://travis-ci.org/paulschreiber/two-factor) [![Coverage Status](https://coveralls.io/repos/paulschreiber/two-factor/badge.svg?branch=master)](https://coveralls.io/github/paulschreiber/two-factor) [![Built with Grunt](https://gruntjs.com/cdn/builtwith.svg)](http://gruntjs.com) 
 
 ## Description ##
 
