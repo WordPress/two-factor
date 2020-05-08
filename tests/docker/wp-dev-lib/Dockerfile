@@ -14,6 +14,10 @@ RUN apt-get update \
 	&& npm install --global npm@latest \
 	&& rm -rf /var/lib/apt/lists/*
 
+# Setup xdebug.
+RUN	pecl install xdebug \
+	&& docker-php-ext-enable xdebug
+
 # Install Composer.
 RUN curl -s https://getcomposer.org/installer | php \
 	&& mv composer.phar /usr/local/bin/composer
@@ -21,12 +25,12 @@ RUN curl -s https://getcomposer.org/installer | php \
 # Checkout WP with tests.
 RUN svn export "$WP_SVN_URL" /tmp/wordpress
 
-VOLUME /tmp/wordpress
-
 # Copy our WP tests config.
 COPY wp-tests-config.php /tmp/wordpress/wp-tests-config.php
 
 # Setup a custom entrypoint that bootstraps the environment.
 COPY entrypoint.sh /usr/local/bin/entrypoint.sh
+
+VOLUME /tmp/wordpress
 
 ENTRYPOINT ["entrypoint.sh"]
