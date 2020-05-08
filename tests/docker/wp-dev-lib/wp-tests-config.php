@@ -1,5 +1,10 @@
 <?php
 
+// Ensure this is run only once.
+if ( defined( 'ABSPATH' ) ) {
+	return;
+}
+
 define( 'DB_NAME', 'wordpress_test' );
 define( 'DB_USER', 'root' );
 define( 'DB_PASSWORD', 'root' );
