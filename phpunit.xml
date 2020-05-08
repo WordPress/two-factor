@@ -10,7 +10,7 @@
 		<const name="WP_TEST_ACTIVATED_PLUGINS" value="two-factor/two-factor.php" />
 	</php>
 	<testsuites>
-		<testsuite>
+		<testsuite name="All Tests">
 			<directory suffix=".php">tests</directory>
 		</testsuite>
 	</testsuites>
