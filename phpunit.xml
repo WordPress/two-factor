@@ -16,13 +16,10 @@
 	</testsuites>
 	<filter>
 		<whitelist processUncoveredFilesFromWhitelist="false">
-			<directory suffix=".php">.</directory>
-			<exclude>
-				<directory suffix=".php">includes</directory>
-				<directory suffix=".php">tests</directory>
-				<directory suffix=".php">vendor</directory>
-				<directory suffix=".php">node_modules</directory>
-			</exclude>
+			<directory suffix=".php">providers</directory>
+			<file>class-two-factor-compat.php</file>
+			<file>class-two-factor-core.php</file>
+			<file>two-factor.php</file>
 		</whitelist>
 	</filter>
 	<logging>
