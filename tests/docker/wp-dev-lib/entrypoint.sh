@@ -6,14 +6,15 @@ export WP_TESTS_DIR="${WP_TESTS_DIR:-$WP_CORE_DIR/tests/phpunit}"
 # Start the MySQL server.
 service mysql start
 
-# Setup the test DB.
+# Ensure we have a password and a fresh DB.
 mysql --user=root --password=root --execute \
-	"GRANT ALL ON *.* TO 'root'@'localhost' WITH GRANT OPTION;
-	FLUSH PRIVILEGES;
+	"
 	DROP DATABASE IF EXISTS wordpress_test;
-	CREATE DATABASE wordpress_test"
-
-mysqladmin --user=root --password=root password root
+	CREATE DATABASE wordpress_test;
+	SET PASSWORD FOR 'root'@'localhost' = PASSWORD('root');
+	GRANT ALL ON *.* TO 'root'@'localhost' WITH GRANT OPTION;
+	FLUSH PRIVILEGES;
+	"
 
 # Run the command passed to this container.
 exec "$@"
