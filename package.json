@@ -10,7 +10,6 @@
     "phpunit": "DEV_LIB_ONLY=phpunit ./vendor/xwp/wp-dev-lib/scripts/pre-commit",
     "preinstall": "composer install",
     "precommit": "DEV_LIB_SKIP=phpunit ./vendor/xwp/wp-dev-lib/scripts/pre-commit",
-    "prepush": "npm test",
     "docker-cli": "docker-compose run wpdevlib",
     "docker-test": "docker-compose run -e DEV_LIB_ONLY=phpunit wpdevlib ./vendor/xwp/wp-dev-lib/scripts/pre-commit",
     "docker-lint": "docker-compose run -e DEV_LIB_SKIP=phpunit wpdevlib ./vendor/xwp/wp-dev-lib/scripts/pre-commit"
