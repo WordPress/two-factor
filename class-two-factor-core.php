@@ -994,7 +994,7 @@ class Two_Factor_Core {
 										 *
 										 * @param WP_User $user The user.
 										 */
-										do_action_deprecated(  'two-factor-user-options-' . $class, [ $user ], '0.7.0', 'two_factor_user_options_' . $class );
+										do_action_deprecated(  'two-factor-user-options-' . $class, array( $user ), '0.7.0', 'two_factor_user_options_' . $class );
 										do_action( 'two_factor_user_options_' . $class, $user );
 									?>
 								</td>
