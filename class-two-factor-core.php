@@ -982,8 +982,21 @@ class Two_Factor_Core {
 								<th scope="row"><input type="checkbox" name="<?php echo esc_attr( self::ENABLED_PROVIDERS_USER_META_KEY ); ?>[]" value="<?php echo esc_attr( $class ); ?>" <?php checked( in_array( $class, $enabled_providers, true ) ); ?> /></th>
 								<th scope="row"><input type="radio" name="<?php echo esc_attr( self::PROVIDER_USER_META_KEY ); ?>" value="<?php echo esc_attr( $class ); ?>" <?php checked( $class, $primary_provider_key ); ?> /></th>
 								<td>
-									<?php $object->print_label(); ?>
-									<?php do_action( 'two-factor-user-options-' . $class, $user ); ?>
+									<?php
+										$object->print_label();
+
+										/**
+										 * Fires after user options are shown.
+										 *
+										 * Use the {@see 'two_factor_user_options_' . $class } hook instead.
+										 *
+										 * @deprecated 0.7.0
+										 *
+										 * @param WP_User $user The user.
+										 */
+										do_action_deprecated(  'two-factor-user-options-' . $class, array( $user ), '0.7.0', 'two_factor_user_options_' . $class );
+										do_action( 'two_factor_user_options_' . $class, $user );
+									?>
 								</td>
 							</tr>
 						<?php endforeach; ?>
