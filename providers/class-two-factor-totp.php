@@ -313,9 +313,12 @@ class Two_Factor_Totp extends Two_Factor_Provider {
 		 * Ticks are the allowed offset from the correct time in 30 second increments,
 		 * so the default of 4 allows codes that are two minutes to either side of server time
 		 *
+		 * @deprecated 0.7.0 Use {@see 'two_factor_totp_time_step_allowance'} instead.
 		 * @param int $max_ticks Max ticks of time correction to allow. Default 4.
 		 */
-		$max_ticks = apply_filters( 'two-factor-totp-time-step-allowance', self::DEFAULT_TIME_STEP_ALLOWANCE );
+		$max_ticks = apply_filters_deprecated( 'two-factor-totp-time-step-allowance', [ self::DEFAULT_TIME_STEP_ALLOWANCE ], '0.7.0', 'two_factor_totp_time_step_allowance' );
+
+		$max_ticks = apply_filters( 'two_factor_totp_time_step_allowance', self::DEFAULT_TIME_STEP_ALLOWANCE );
 
 		// Array of all ticks to allow, sorted using absolute value to test closest match first.
 		$ticks = range( - $max_ticks, $max_ticks );
