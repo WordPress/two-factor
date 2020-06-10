@@ -7,10 +7,12 @@
     "build": "npm run readme && grunt build",
     "test": "DIFF_BASE=master ./vendor/xwp/wp-dev-lib/scripts/pre-commit",
     "readme": "./vendor/xwp/wp-dev-lib/scripts/generate-markdown-readme",
-    "phpunit": "DEV_LIB_ONLY=phpunit ./vendor/xwp/wp-dev-lib/scripts/pre-commit",
+    "phpunit": "DEV_LIB_ONLY=phpunit SYNC_README_MD=0 ./vendor/xwp/wp-dev-lib/scripts/pre-commit",
     "preinstall": "composer install",
     "precommit": "DEV_LIB_SKIP=phpunit ./vendor/xwp/wp-dev-lib/scripts/pre-commit",
-    "prepush": "npm test"
+    "docker-cli": "docker-compose run wpdevlib",
+    "docker-test": "docker-compose run -e DEV_LIB_ONLY=phpunit -e SYNC_README_MD=0 wpdevlib ./vendor/xwp/wp-dev-lib/scripts/pre-commit",
+    "docker-lint": "docker-compose run -e DEV_LIB_SKIP=phpunit wpdevlib ./vendor/xwp/wp-dev-lib/scripts/pre-commit"
   },
   "repository": {
     "type": "git",
