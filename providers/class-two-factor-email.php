@@ -2,6 +2,12 @@
 /**
  * Class for creating an email provider.
  *
+ * @package Two_Factor
+ */
+
+/**
+ * Class for creating an email provider.
+ *
  * @since 0.1-dev
  *
  * @package Two_Factor
@@ -34,11 +40,11 @@ class Two_Factor_Email extends Two_Factor_Provider {
 	 *
 	 * @since 0.1-dev
 	 */
-	static function get_instance() {
+	public static function get_instance() {
 		static $instance;
 		$class = __CLASS__;
 		if ( ! is_a( $instance, $class ) ) {
-			$instance = new $class;
+			$instance = new $class();
 		}
 		return $instance;
 	}
@@ -104,7 +110,7 @@ class Two_Factor_Email extends Two_Factor_Provider {
 	 */
 	public function user_token_has_expired( $user_id ) {
 		$token_lifetime = $this->user_token_lifetime( $user_id );
-		$token_ttl = $this->user_token_ttl( $user_id );
+		$token_ttl      = $this->user_token_ttl( $user_id );
 
 		// Invalid token lifetime is considered an expired token.
 		if ( is_int( $token_lifetime ) && $token_lifetime <= $token_ttl ) {
@@ -258,7 +264,7 @@ class Two_Factor_Email extends Two_Factor_Provider {
 			$this->generate_and_email_token( $user );
 		}
 
-		require_once( ABSPATH .  '/wp-admin/includes/template.php' );
+		require_once ABSPATH . '/wp-admin/includes/template.php';
 		?>
 		<p><?php esc_html_e( 'A verification code has been sent to the email address associated with your account.', 'two-factor' ); ?></p>
 		<p>
@@ -338,11 +344,13 @@ class Two_Factor_Email extends Two_Factor_Provider {
 		?>
 		<div>
 			<?php
-			echo esc_html( sprintf(
+			echo esc_html(
+				sprintf(
 				/* translators: %s: email address */
-				__( 'Authentication codes will be sent to %s.', 'two-factor' ),
-				$email
-			) );
+					__( 'Authentication codes will be sent to %s.', 'two-factor' ),
+					$email
+				)
+			);
 			?>
 		</div>
 		<?php

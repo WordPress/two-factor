@@ -1,4 +1,10 @@
 <?php
+/**
+ * Class for displaying the list of security key items.
+ *
+ * @package Two_Factor
+ */
+
 // Load the parent class if it doesn't exist.
 if ( ! class_exists( 'WP_List_Table' ) ) {
 	require_once ABSPATH . 'wp-admin/includes/class-wp-list-table.php';
@@ -35,10 +41,10 @@ class Two_Factor_FIDO_U2F_Admin_List_Table extends WP_List_Table {
 	 * @since 0.1-dev
 	 */
 	public function prepare_items() {
-		$columns  = $this->get_columns();
-		$hidden   = array();
-		$sortable = array();
-		$primary  = 'name';
+		$columns               = $this->get_columns();
+		$hidden                = array();
+		$sortable              = array();
+		$primary               = 'name';
 		$this->_column_headers = array( $columns, $hidden, $sortable, $primary );
 	}
 
@@ -55,20 +61,20 @@ class Two_Factor_FIDO_U2F_Admin_List_Table extends WP_List_Table {
 	protected function column_default( $item, $column_name ) {
 		switch ( $column_name ) {
 			case 'name':
-				$out = '<div class="hidden" id="inline_' . esc_attr( $item->keyHandle ) . '">';
+				$out  = '<div class="hidden" id="inline_' . esc_attr( $item->keyHandle ) . '">'; // phpcs:ignore WordPress.NamingConventions.ValidVariableName.UsedPropertyNotSnakeCase
 				$out .= '<div class="name">' . esc_html( $item->name ) . '</div>';
 				$out .= '</div>';
 
 				$actions = array(
 					'rename hide-if-no-js' => Two_Factor_FIDO_U2F_Admin::rename_link( $item ),
-					'delete' => Two_Factor_FIDO_U2F_Admin::delete_link( $item ),
+					'delete'               => Two_Factor_FIDO_U2F_Admin::delete_link( $item ),
 				);
 
 				return esc_html( $item->name ) . $out . self::row_actions( $actions );
 			case 'added':
-				return date( get_option( 'date_format', 'r' ), $item->added );
+				return gmdate( get_option( 'date_format', 'r' ), $item->added );
 			case 'last_used':
-				return date( get_option( 'date_format', 'r' ), $item->last_used );
+				return gmdate( get_option( 'date_format', 'r' ), $item->last_used );
 			default:
 				return 'WTF^^?';
 		}
@@ -96,7 +102,7 @@ class Two_Factor_FIDO_U2F_Admin_List_Table extends WP_List_Table {
 	 */
 	public function single_row( $item ) {
 		?>
-		<tr id="key-<?php echo esc_attr( $item->keyHandle ); ?>">
+		<tr id="key-<?php echo esc_attr( $item->keyHandle ); // phpcs:ignore WordPress.NamingConventions.ValidVariableName.UsedPropertyNotSnakeCase ?>">
 		<?php $this->single_row_columns( $item ); ?>
 		</tr>
 		<?php
@@ -122,7 +128,11 @@ class Two_Factor_FIDO_U2F_Admin_List_Table extends WP_List_Table {
 							</div>
 						</fieldset>
 						<?php
-						$core_columns = array( 'name' => true, 'added' => true, 'last_used' => true );
+						$core_columns    = array(
+							'name'      => true,
+							'added'     => true,
+							'last_used' => true,
+						);
 						list( $columns ) = $this->get_column_info();
 						foreach ( $columns as $column_name => $column_display_name ) {
 							if ( isset( $core_columns[ $column_name ] ) ) {

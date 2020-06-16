@@ -1,4 +1,9 @@
 <?php
+/**
+ * A compatibility layer for some of the most popular plugins.
+ *
+ * @package Two_Factor
+ */
 
 /**
  * A compatibility layer for some of the most popular plugins.
@@ -30,7 +35,9 @@ class Two_Factor_Compat {
 	 * @return boolean
 	 */
 	public function jetpack_rememberme( $rememberme ) {
-		if ( isset( $_GET['action'] ) && 'jetpack-sso' === $_GET['action'] && $this->jetpack_is_sso_active() ) {
+		$action = filter_input( INPUT_GET, 'action', FILTER_SANITIZE_STRING );
+
+		if ( 'jetpack-sso' === $action && $this->jetpack_is_sso_active() ) {
 			return true;
 		}
 

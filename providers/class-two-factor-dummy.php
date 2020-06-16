@@ -2,6 +2,12 @@
 /**
  * Class for creating a dummy provider.
  *
+ * @package Two_Factor
+ */
+
+/**
+ * Class for creating a dummy provider.
+ *
  * @since 0.1-dev
  *
  * @package Two_Factor
@@ -13,11 +19,11 @@ class Two_Factor_Dummy extends Two_Factor_Provider {
 	 *
 	 * @since 0.1-dev
 	 */
-	static function get_instance() {
+	public static function get_instance() {
 		static $instance;
 		$class = __CLASS__;
 		if ( ! is_a( $instance, $class ) ) {
-			$instance = new $class;
+			$instance = new $class();
 		}
 		return $instance;
 	}
@@ -49,7 +55,7 @@ class Two_Factor_Dummy extends Two_Factor_Provider {
 	 * @param WP_User $user WP_User object of the logged-in user.
 	 */
 	public function authentication_page( $user ) {
-		require_once( ABSPATH .  '/wp-admin/includes/template.php' );
+		require_once ABSPATH . '/wp-admin/includes/template.php';
 		?>
 		<p><?php esc_html_e( 'Are you really you?', 'two-factor' ); ?></p>
 		<?php

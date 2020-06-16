@@ -4,20 +4,25 @@
 
 	<config name="installed_paths" value="vendor/wp-coding-standards/wpcs" />
 
-	<rule ref="WordPress-Core">
-		<exclude name="Generic.Formatting.MultipleStatementAlignment" />
-	</rule>
+	<rule ref="WordPress-Extra" />
+	<rule ref="WordPress-Docs" />
 
-	<rule ref="WordPress-Docs">
-		<exclude name="Squiz.Commenting.FileComment.MissingPackageTag"/>
-		<exclude name="Squiz.Commenting.FileComment.Missing"/>
-		<exclude name="Squiz.Commenting.FileComment.WrongStyle"/>
-		<exclude name="Squiz.Commenting.FileComment.SpacingAfterComment"/>
-		<exclude name="Squiz.Commenting.ClassComment.Missing"/>
+	<arg name="colors" />
+
+	<arg value="ps" />
+	<arg name="basepath" value="."/>
+	<arg name="parallel" value="50"/>
+	<arg name="extensions" value="php"/>
+	<arg name="severity" value="1"/>
+	<file>.</file>
+
+	<!-- disable nonce checks on tests -->
+	<rule ref="WordPress.Security.NonceVerification">
+		<exclude-pattern>tests/*.php</exclude-pattern>
+		<exclude-pattern>tests/providers/*.php</exclude-pattern>
 	</rule>
 
 	<exclude-pattern>*/includes/*</exclude-pattern>
 	<exclude-pattern>*/node_modules/*</exclude-pattern>
-	<exclude-pattern>*/tests/*</exclude-pattern>
 	<exclude-pattern>*/vendor/*</exclude-pattern>
 </ruleset>

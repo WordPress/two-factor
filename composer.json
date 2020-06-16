@@ -19,7 +19,7 @@
   },
   "require-dev": {
     "php-coveralls/php-coveralls": "^1.0",
-    "wp-coding-standards/wpcs": "^2.0",
+    "wp-coding-standards/wpcs": "^2.2.1",
     "xwp/wp-dev-lib": "^1.0"
   }
 }
