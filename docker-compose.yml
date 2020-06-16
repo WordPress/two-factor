@@ -1,0 +1,11 @@
+version: '3.6'
+
+services:
+
+  wpdevlib:
+    build: ./tests/docker/wp-dev-lib
+    working_dir: /var/www/html
+    volumes:
+      - .:/var/www/html
+    environment:
+      CHECK_SCOPE: all
