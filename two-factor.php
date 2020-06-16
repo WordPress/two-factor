@@ -12,7 +12,7 @@
  * Plugin URI: https://wordpress.org/plugins/two-factor/
  * Description: Two-Factor Authentication using time-based one-time passwords, Universal 2nd Factor (FIDO U2F), email and backup verification codes.
  * Author: Plugin Contributors
- * Version: 0.6.0
+ * Version: 0.7.0-rc.1
  * Author URI: https://github.com/wordpress/two-factor/graphs/contributors
  * Network: True
  * Text Domain: two-factor
@@ -26,7 +26,7 @@ define( 'TWO_FACTOR_DIR', plugin_dir_path( __FILE__ ) );
 /**
  * Version of the plugin.
  */
-define( 'TWO_FACTOR_VERSION', '0.5.1' );
+define( 'TWO_FACTOR_VERSION', '0.7.0-rc.1' );
 
 /**
  * Include the base class here, so that other plugins can also extend it.
