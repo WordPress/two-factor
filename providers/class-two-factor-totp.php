@@ -316,7 +316,7 @@ class Two_Factor_Totp extends Two_Factor_Provider {
 		 * @deprecated 0.7.0 Use {@see 'two_factor_totp_time_step_allowance'} instead.
 		 * @param int $max_ticks Max ticks of time correction to allow. Default 4.
 		 */
-		$max_ticks = apply_filters_deprecated( 'two-factor-totp-time-step-allowance', [ self::DEFAULT_TIME_STEP_ALLOWANCE ], '0.7.0', 'two_factor_totp_time_step_allowance' );
+		$max_ticks = apply_filters_deprecated( 'two-factor-totp-time-step-allowance', array( self::DEFAULT_TIME_STEP_ALLOWANCE ), '0.7.0', 'two_factor_totp_time_step_allowance' );
 
 		$max_ticks = apply_filters( 'two_factor_totp_time_step_allowance', self::DEFAULT_TIME_STEP_ALLOWANCE );
 
