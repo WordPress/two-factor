@@ -25,5 +25,6 @@
 	<logging>
 		<!-- Note that wp-dev-lib still writes to build/logs/clover.xml, see https://github.com/xwp/wp-dev-lib/issues/323 -->
 		<log type="coverage-clover" target="tests/logs/clover.xml" />
+		<log type="coverage-text" target="php://stdout" />
 	</logging>
 </phpunit>
