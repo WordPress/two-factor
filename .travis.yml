@@ -39,4 +39,4 @@ script:
 
 after_script:
   # Report PHP test coverage, if present.
-  - test -f tests/logs/clover.xml && npm run phpunit-report-coverage || true
+  - test -f tests/logs/clover.xml && npm run test-report-coverage || true
