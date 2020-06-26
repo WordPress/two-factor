@@ -17,9 +17,7 @@ class Tests_Two_Factor extends WP_UnitTestCase {
 	 * Check that the TWO_FACTOR_DIR constant is defined.
 	 */
 	public function test_constant_defined() {
-
 		$this->assertTrue( defined( 'TWO_FACTOR_DIR' ) );
-
 	}
 
 	/**
