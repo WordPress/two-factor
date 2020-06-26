@@ -39,4 +39,5 @@ script:
 
 after_script:
   # Report PHP test coverage, if present.
-  - test -f tests/logs/clover.xml && npm run test-report-coverage || true
+  - test -f tests/logs/clover.xml && echo "Clover report exists!"
+  - npm run test-report-coverage
