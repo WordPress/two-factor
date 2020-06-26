@@ -26,9 +26,7 @@ class Tests_Two_Factor extends WP_UnitTestCase {
 	 * Check that the files were included.
 	 */
 	public function test_classes_exist() {
-
 		$this->assertTrue( class_exists( 'Two_Factor_Provider' ) );
 		$this->assertTrue( class_exists( 'Two_Factor_Core' ) );
-
 	}
 }
