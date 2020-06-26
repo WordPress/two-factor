@@ -1,3 +1,4 @@
 service_name: travis-ci
-coverage_clover: tests/logs/clover.xml
+# Change to tests/logs/clover.xml after fixing https://github.com/xwp/wp-dev-lib/issues/323 as defined in phpunit.xml.
+coverage_clover: build/logs/clover.xml
 json_path: tests/logs/coveralls-upload.json

@@ -40,5 +40,5 @@ script:
 
 after_script:
   # Report PHP test coverage, if present.
-  - ls -lah tests/logs
+  - ls -lah build/logs tests/logs
   - test -f tests/logs/clover.xml && npm run test-report-coverage || true
