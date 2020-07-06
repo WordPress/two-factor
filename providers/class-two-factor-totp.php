@@ -456,14 +456,13 @@ class Two_Factor_Totp extends Two_Factor_Provider {
 		?>
 		<p>
 			<label for="authcode"><?php esc_html_e( 'Authentication Code:', 'two-factor' ); ?></label>
-			<input type="tel" name="authcode" id="authcode" class="input" value="" size="20" pattern="[0-9]*" />
+			<input type="tel" autocomplete="off" name="authcode" id="authcode" class="input" value="" size="20" pattern="[0-9]*" />
 		</p>
 		<script type="text/javascript">
 			setTimeout( function(){
 				var d;
 				try{
 					d = document.getElementById('authcode');
-					d.value = '';
 					d.focus();
 				} catch(e){}
 			}, 200);
