@@ -48,7 +48,7 @@ class Two_Factor_Totp extends Two_Factor_Provider {
 	 * Class constructor. Sets up hooks, etc.
 	 */
 	protected function __construct() {
-		add_action( 'two-factor-user-options-' . __CLASS__, array( $this, 'user_two_factor_options' ) );
+		add_action( 'two_factor_user_options_' . __CLASS__, array( $this, 'user_two_factor_options' ) );
 		add_action( 'personal_options_update', array( $this, 'user_two_factor_options_update' ) );
 		add_action( 'edit_user_profile_update', array( $this, 'user_two_factor_options_update' ) );
 		add_action( 'two_factor_user_settings_action', array( $this, 'user_settings_action' ), 10, 2 );
@@ -172,7 +172,7 @@ class Two_Factor_Totp extends Two_Factor_Provider {
 			// Validate and store a new secret key.
 			if ( ! empty( $_POST['two-factor-totp-authcode'] ) && ! empty( $_POST['two-factor-totp-key'] ) ) {
 				// Don't use filter_input() because we can't mock it during tests for now.
-				$authcode = sanitize_text_field( $_POST['two-factor-totp-authcode'] );
+				$authcode = filter_var( sanitize_text_field( $_POST['two-factor-totp-authcode'] ), FILTER_SANITIZE_NUMBER_INT );
 				$key      = sanitize_text_field( $_POST['two-factor-totp-key'] );
 
 				if ( $this->is_valid_key( $key ) ) {
@@ -313,9 +313,12 @@ class Two_Factor_Totp extends Two_Factor_Provider {
 		 * Ticks are the allowed offset from the correct time in 30 second increments,
 		 * so the default of 4 allows codes that are two minutes to either side of server time
 		 *
+		 * @deprecated 0.7.0 Use {@see 'two_factor_totp_time_step_allowance'} instead.
 		 * @param int $max_ticks Max ticks of time correction to allow. Default 4.
 		 */
-		$max_ticks = apply_filters( 'two-factor-totp-time-step-allowance', self::DEFAULT_TIME_STEP_ALLOWANCE );
+		$max_ticks = apply_filters_deprecated( 'two-factor-totp-time-step-allowance', array( self::DEFAULT_TIME_STEP_ALLOWANCE ), '0.7.0', 'two_factor_totp_time_step_allowance' );
+
+		$max_ticks = apply_filters( 'two_factor_totp_time_step_allowance', self::DEFAULT_TIME_STEP_ALLOWANCE );
 
 		// Array of all ticks to allow, sorted using absolute value to test closest match first.
 		$ticks = range( - $max_ticks, $max_ticks );
@@ -453,14 +456,13 @@ class Two_Factor_Totp extends Two_Factor_Provider {
 		?>
 		<p>
 			<label for="authcode"><?php esc_html_e( 'Authentication Code:', 'two-factor' ); ?></label>
-			<input type="tel" name="authcode" id="authcode" class="input" value="" size="20" pattern="[0-9]*" />
+			<input type="tel" autocomplete="off" name="authcode" id="authcode" class="input" value="" size="20" pattern="[0-9]*" />
 		</p>
 		<script type="text/javascript">
 			setTimeout( function(){
 				var d;
 				try{
 					d = document.getElementById('authcode');
-					d.value = '';
 					d.focus();
 				} catch(e){}
 			}, 200);
