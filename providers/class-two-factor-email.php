@@ -317,7 +317,10 @@ class Two_Factor_Email extends Two_Factor_Provider {
 			return false;
 		}
 
-		return $this->validate_token( $user->ID, $_REQUEST['two-factor-email-code'] );
+		// Ensure there are no spaces or line breaks around the code.
+		$code = trim( sanitize_text_field( $_REQUEST['two-factor-email-code'] ) ); // phpcs:ignore WordPress.Security.NonceVerification.Recommended, handled by the core method already.
+
+		return $this->validate_token( $user->ID, $code );
 	}
 
 	/**
