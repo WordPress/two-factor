@@ -811,7 +811,7 @@ class Two_Factor_Core {
 		$wp_auth_id = filter_input( INPUT_POST, 'wp-auth-id', FILTER_SANITIZE_NUMBER_INT );
 		$nonce      = filter_input( INPUT_POST, 'wp-auth-nonce', FILTER_SANITIZE_STRING );
 
-		if ( ! $wp_auth_id || ! $wp_auth_nonce ) {
+		if ( ! $wp_auth_id || ! $nonce ) {
 			return;
 		}
 
