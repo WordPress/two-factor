@@ -540,7 +540,7 @@ class Two_Factor_Core {
 		$nonce      = filter_input( INPUT_GET, 'wp-auth-nonce', FILTER_SANITIZE_STRING );
 		$provider   = filter_input( INPUT_GET, 'provider', FILTER_SANITIZE_STRING );
 
-		if ( ! $wp_auth_id || ! $wp_auth_nonce || ! $provider ) {
+		if ( ! $wp_auth_id || ! $nonce || ! $provider ) {
 			return;
 		}
 
