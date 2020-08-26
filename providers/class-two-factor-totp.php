@@ -142,7 +142,7 @@ class Two_Factor_Totp extends Two_Factor_Provider {
 			</p>
 		<?php else : ?>
 			<p class="success">
-				<?php esc_html_e( 'Secret key configured and registered.', 'two-factor' ); ?>
+				<?php esc_html_e( 'Secret key is configured and registered. It is not possible to view it again for security reasons.', 'two-factor' ); ?>
 			</p>
 			<p>
 				<a class="button" href="<?php echo esc_url( self::get_token_delete_url_for_user( $user->ID ) ); ?>"><?php esc_html_e( 'Reset Key', 'two-factor' ); ?></a>
