@@ -50,7 +50,7 @@ class Tests_Two_Factor_FIDO_U2F extends WP_UnitTestCase {
 	 * Verify the label value.
 	 */
 	public function test_get_label() {
-		$this->assertContains( 'FIDO Universal 2nd Factor (U2F)', $this->provider->get_label() );
+		$this->assertContains( 'FIDO U2F Security Keys', $this->provider->get_label() );
 	}
 
 	/**
