@@ -207,6 +207,22 @@ class Tests_Two_Factor_Email extends WP_UnitTestCase {
 	}
 
 	/**
+	 * Can strip away blank spaces and new line characters in code input.
+	 *
+	 * @covers Two_Factor_Email::validate_authentication
+	 */
+	public function test_validate_authentication_code_with_spaces() {
+		$user = new WP_User( $this->factory->user->create() );
+
+		$token                             = $this->provider->generate_token( $user->ID );
+		$_REQUEST['two-factor-email-code'] = sprintf( ' %s ', $token );
+
+		$this->assertTrue( $this->provider->validate_authentication( $user ) );
+
+		unset( $_REQUEST['two-factor-email-code'] );
+	}
+
+	/**
 	 * Verify that availability returns true.
 	 *
 	 * @covers Two_Factor_Email::is_available_for_user

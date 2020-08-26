@@ -269,7 +269,7 @@ class Two_Factor_Email extends Two_Factor_Provider {
 		<p><?php esc_html_e( 'A verification code has been sent to the email address associated with your account.', 'two-factor' ); ?></p>
 		<p>
 			<label for="authcode"><?php esc_html_e( 'Verification Code:', 'two-factor' ); ?></label>
-			<input type="tel" name="two-factor-email-code" id="authcode" class="input" value="" size="20" pattern="[0-9]*" />
+			<input type="tel" name="two-factor-email-code" id="authcode" class="input" value="" size="20" />
 			<?php submit_button( __( 'Log In', 'two-factor' ) ); ?>
 		</p>
 		<p class="two-factor-email-resend">
@@ -317,7 +317,10 @@ class Two_Factor_Email extends Two_Factor_Provider {
 			return false;
 		}
 
-		return $this->validate_token( $user->ID, $_REQUEST['two-factor-email-code'] );
+		// Ensure there are no spaces or line breaks around the code.
+		$code = trim( sanitize_text_field( $_REQUEST['two-factor-email-code'] ) ); // phpcs:ignore WordPress.Security.NonceVerification.Recommended, handled by the core method already.
+
+		return $this->validate_token( $user->ID, $code );
 	}
 
 	/**
