@@ -973,7 +973,7 @@ class Two_Factor_Core {
 							<tr>
 								<th class="col-enabled" scope="col"><?php esc_html_e( 'Enabled', 'two-factor' ); ?></th>
 								<th class="col-primary" scope="col"><?php esc_html_e( 'Primary', 'two-factor' ); ?></th>
-								<th class="col-name" scope="col"><?php esc_html_e( 'Name', 'two-factor' ); ?></th>
+								<th class="col-name" scope="col"><?php esc_html_e( 'Type', 'two-factor' ); ?></th>
 							</tr>
 						</thead>
 						<tbody>
