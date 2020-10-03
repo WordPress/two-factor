@@ -8,6 +8,9 @@
 	vertical-align: middle;
 	font-style: italic;
 }
-#security-keys-section.no-js {
+#security-keys-section {
 	display: none;
+}
+body.no-js #security-keys-section {
+	display: block;
 }
