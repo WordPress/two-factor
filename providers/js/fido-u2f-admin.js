@@ -3,6 +3,20 @@
 	var $button = $( '#register_security_key' );
 	var $statusNotice = $( '#security-keys-section .security-key-status' );
 	var u2fSupported = ( window.u2f && 'register' in window.u2f );
+	var $securityKeys = $( '#security-keys-section' );
+	var $u2fCheckbox = $( '#two-factor-options input[value="Two_Factor_FIDO_U2F"]' );
+
+	if ( $u2fCheckbox.prop( 'checked' ) ) {
+		$securityKeys.show();
+	}
+
+	$u2fCheckbox.on( 'change', function() {
+		if ( $(this).prop( 'checked' ) ) {
+			$securityKeys.show();
+		} else {
+			$securityKeys.hide();
+		}
+	} );
 
 	if ( ! u2fSupported ) {
 		$statusNotice.text( u2fL10n.text.u2f_not_supported );

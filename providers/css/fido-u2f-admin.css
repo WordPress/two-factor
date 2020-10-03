@@ -8,3 +8,6 @@
 	vertical-align: middle;
 	font-style: italic;
 }
+#security-keys-section.no-js {
+	display: none;
+}

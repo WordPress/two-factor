@@ -182,7 +182,7 @@ class Two_Factor_FIDO_U2F_Admin {
 		}
 
 		?>
-		<div class="security-keys" id="security-keys-section">
+		<div class="security-keys no-js" id="security-keys-section">
 			<h3><?php esc_html_e( 'Security Keys', 'two-factor' ); ?></h3>
 
 			<?php if ( ! is_ssl() ) : ?>
