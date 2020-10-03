@@ -979,12 +979,12 @@ class Two_Factor_Core {
 						<tbody>
 						<?php foreach ( self::get_providers() as $class => $object ) : ?>
 							<tr>
-								<th scope="row"><input type="checkbox" name="<?php echo esc_attr( self::ENABLED_PROVIDERS_USER_META_KEY ); ?>[]" value="<?php echo esc_attr( $class ); ?>" <?php checked( in_array( $class, $enabled_providers, true ) ); ?> /></th>
-								<th scope="row"><input type="radio" name="<?php echo esc_attr( self::PROVIDER_USER_META_KEY ); ?>" value="<?php echo esc_attr( $class ); ?>" <?php checked( $class, $primary_provider_key ); ?> /></th>
+								<th scope="row"><input id="enabled-<?php esc_attr_e( $class ); ?>" type="checkbox" name="<?php esc_attr_e( self::ENABLED_PROVIDERS_USER_META_KEY ); ?>[]" value="<?php esc_attr_e( $class ); ?>" <?php checked( in_array( $class, $enabled_providers, true ) ); ?> /></th>
+								<th scope="row"><input type="radio" name="<?php esc_attr_e( self::PROVIDER_USER_META_KEY ); ?>" value="<?php esc_attr_e( $class ); ?>" <?php checked( $class, $primary_provider_key ); ?> /></th>
 								<td>
-									<?php
-										$object->print_label();
+									<label for="enabled-<?php esc_attr_e( $class ); ?>"><?php $object->print_label(); ?></label>
 
+									<?php
 										/**
 										 * Fires after user options are shown.
 										 *
