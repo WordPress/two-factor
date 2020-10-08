@@ -7,12 +7,12 @@
  * @license   http://opensource.org/licenses/BSD-2-Clause Simplified BSD License
  */
 
-namespace BaconQrCode;
+namespace TwoFactor\BaconQrCode;
 
-use BaconQrCode\Common\ErrorCorrectionLevel;
-use BaconQrCode\Encoder\Encoder;
-use BaconQrCode\Exception;
-use BaconQrCode\Renderer\RendererInterface;
+use TwoFactor\BaconQrCode\Common\ErrorCorrectionLevel;
+use TwoFactor\BaconQrCode\Encoder\Encoder;
+use TwoFactor\BaconQrCode\Exception;
+use TwoFactor\BaconQrCode\Renderer\RendererInterface;
 
 /**
  * QR code writer.

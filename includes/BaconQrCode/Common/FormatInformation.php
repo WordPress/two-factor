@@ -7,7 +7,7 @@
  * @license   http://opensource.org/licenses/BSD-2-Clause Simplified BSD License
  */
 
-namespace BaconQrCode\Common;
+namespace TwoFactor\BaconQrCode\Common;
 
 /**
  * Encapsulates a QR Code's format information, including the data mask used and

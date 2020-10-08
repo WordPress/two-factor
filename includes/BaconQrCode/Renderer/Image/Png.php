@@ -7,10 +7,10 @@
  * @license   http://opensource.org/licenses/BSD-2-Clause Simplified BSD License
  */
 
-namespace BaconQrCode\Renderer\Image;
+namespace TwoFactor\BaconQrCode\Renderer\Image;
 
-use BaconQrCode\Exception;
-use BaconQrCode\Renderer\Color\ColorInterface;
+use TwoFactor\BaconQrCode\Exception;
+use TwoFactor\BaconQrCode\Renderer\Color\ColorInterface;
 
 /**
  * PNG backend.

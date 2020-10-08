@@ -7,7 +7,7 @@
  * @license   http://opensource.org/licenses/BSD-2-Clause Simplified BSD License
  */
 
-namespace BaconQrCode\Common;
+namespace TwoFactor\BaconQrCode\Common;
 
 /**
  * Encapsulates a Character Set ECI, according to "Extended Channel

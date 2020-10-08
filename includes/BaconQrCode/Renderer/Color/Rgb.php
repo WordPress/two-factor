@@ -7,9 +7,9 @@
  * @license   http://opensource.org/licenses/BSD-2-Clause Simplified BSD License
  */
 
-namespace BaconQrCode\Renderer\Color;
+namespace TwoFactor\BaconQrCode\Renderer\Color;
 
-use BaconQrCode\Exception;
+use TwoFactor\BaconQrCode\Exception;
 
 /**
  * RGB color.

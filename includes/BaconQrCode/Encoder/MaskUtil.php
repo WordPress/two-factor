@@ -7,9 +7,9 @@
  * @license   http://opensource.org/licenses/BSD-2-Clause Simplified BSD License
  */
 
-namespace BaconQrCode\Encoder;
+namespace TwoFactor\BaconQrCode\Encoder;
 
-use BaconQrCode\Common\BitUtils;
+use TwoFactor\BaconQrCode\Common\BitUtils;
 
 /**
  * Mask utility.

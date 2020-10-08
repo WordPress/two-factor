@@ -7,9 +7,9 @@
  * @license   http://opensource.org/licenses/BSD-2-Clause Simplified BSD License
  */
 
-namespace BaconQrCode\Common;
+namespace TwoFactor\BaconQrCode\Common;
 
-use BaconQrCode\Exception;
+use TwoFactor\BaconQrCode\Exception;
 use ReflectionClass;
 
 /**

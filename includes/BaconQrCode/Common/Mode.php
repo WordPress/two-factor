@@ -7,7 +7,7 @@
  * @license   http://opensource.org/licenses/BSD-2-Clause Simplified BSD License
  */
 
-namespace BaconQrCode\Common;
+namespace TwoFactor\BaconQrCode\Common;
 
 /**
  * Enum representing various modes in which data can be encoded to bits.

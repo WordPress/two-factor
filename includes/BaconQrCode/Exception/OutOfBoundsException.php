@@ -7,7 +7,7 @@
  * @license   http://opensource.org/licenses/BSD-2-Clause Simplified BSD License
  */
 
-namespace BaconQrCode\Exception;
+namespace TwoFactor\BaconQrCode\Exception;
 
 class OutOfBoundsException extends \OutOfBoundsException implements ExceptionInterface
 {

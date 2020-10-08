@@ -7,12 +7,12 @@
  * @license   http://opensource.org/licenses/BSD-2-Clause Simplified BSD License
  */
 
-namespace BaconQrCode\Renderer\Image;
+namespace TwoFactor\BaconQrCode\Renderer\Image;
 
-use BaconQrCode\Renderer\Color\ColorInterface;
-use BaconQrCode\Renderer\Color\Rgb;
-use BaconQrCode\Renderer\Color\Cmyk;
-use BaconQrCode\Renderer\Color\Gray;
+use TwoFactor\BaconQrCode\Renderer\Color\ColorInterface;
+use TwoFactor\BaconQrCode\Renderer\Color\Rgb;
+use TwoFactor\BaconQrCode\Renderer\Color\Cmyk;
+use TwoFactor\BaconQrCode\Renderer\Color\Gray;
 
 /**
  * EPS backend.

@@ -7,12 +7,12 @@
  * @license   http://opensource.org/licenses/BSD-2-Clause Simplified BSD License
  */
 
-namespace BaconQrCode\Encoder;
+namespace TwoFactor\BaconQrCode\Encoder;
 
-use BaconQrCode\Common\BitArray;
-use BaconQrCode\Common\ErrorCorrectionLevel;
-use BaconQrCode\Common\Version;
-use BaconQrCode\Exception;
+use TwoFactor\BaconQrCode\Common\BitArray;
+use TwoFactor\BaconQrCode\Common\ErrorCorrectionLevel;
+use TwoFactor\BaconQrCode\Common\Version;
+use TwoFactor\BaconQrCode\Exception;
 
 /**
  * Matrix utility.

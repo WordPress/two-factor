@@ -7,11 +7,11 @@
  * @license   http://opensource.org/licenses/BSD-2-Clause Simplified BSD License
  */
 
-namespace BaconQrCode\Renderer\Text;
+namespace TwoFactor\BaconQrCode\Renderer\Text;
 
-use BaconQrCode\Exception;
-use BaconQrCode\Encoder\QrCode;
-use BaconQrCode\Renderer\RendererInterface;
+use TwoFactor\BaconQrCode\Exception;
+use TwoFactor\BaconQrCode\Encoder\QrCode;
+use TwoFactor\BaconQrCode\Renderer\RendererInterface;
 
 /**
  * Plaintext renderer.

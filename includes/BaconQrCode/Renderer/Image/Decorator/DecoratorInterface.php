@@ -7,10 +7,10 @@
  * @license   http://opensource.org/licenses/BSD-2-Clause Simplified BSD License
  */
 
-namespace BaconQrCode\Renderer\Image\Decorator;
+namespace TwoFactor\BaconQrCode\Renderer\Image\Decorator;
 
-use BaconQrCode\Encoder\QrCode;
-use BaconQrCode\Renderer\Image\RendererInterface;
+use TwoFactor\BaconQrCode\Encoder\QrCode;
+use TwoFactor\BaconQrCode\Renderer\Image\RendererInterface;
 
 /**
  * Decorator interface.
