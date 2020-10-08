@@ -29,6 +29,31 @@ define( 'TWO_FACTOR_DIR', plugin_dir_path( __FILE__ ) );
 define( 'TWO_FACTOR_VERSION', '0.7.0' );
 
 /**
+ * Set up the autoloader to handle classes in the includes directory.
+ */
+spl_autoload_register(function ($class) {
+	$class = str_replace('\\', '/', $class);
+
+	// First check that the class is one in our namespace
+	if (strpos($class, 'TwoFactor/') !== 0) {
+		return false;
+	}
+
+	// Then check if the corresponding file exists
+	$class = str_replace('TwoFactor/', '', $class);
+	$path = __DIR__ . '/includes/' . $class . '.php';
+
+	// If the file exists, include it
+	// Otherwise tell the autoloader we don't know about it
+	if (file_exists($path)) {
+		include $path;
+		return true;
+	} else {
+		return false;
+	}
+});
+
+/**
  * Include the base class here, so that other plugins can also extend it.
  */
 require_once TWO_FACTOR_DIR . 'providers/class-two-factor-provider.php';
