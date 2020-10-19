@@ -38,6 +38,23 @@ class Two_Factor_Totp extends Two_Factor_Provider {
 	const DEFAULT_TIME_STEP_ALLOWANCE = 4;
 
 	/**
+	 * Prefix for encrypted TOTP secrets. Contains a version identifier.
+	 *
+	 * $t1$ -> TOTP v1 (RFC 6238, encrypted with XChaCha20-Poly1305, with a key derived from HMAC-SHA256
+	 *                  of SECURE_AUTH_SAL.)
+	 *
+	 * @var string
+	 */
+	const ENCRYPTED_TOTP_PREFIX = '$t1$';
+
+	/**
+	 * Current "version" of the TOTP encryption protocol.
+	 *
+	 * 1 -> $t1$nonce|ciphertext|tag
+	 */
+	const ENCRYPTED_TOTP_VERSION = 1;
+
+	/**
 	 * Chracters used in base32 encoding.
 	 *
 	 * @var string
@@ -206,7 +223,12 @@ class Two_Factor_Totp extends Two_Factor_Provider {
 	 * @return string
 	 */
 	public function get_user_totp_key( $user_id ) {
-		return (string) get_user_meta( $user_id, self::SECRET_META_KEY, true );
+		$user_meta_value = get_user_meta( $user_id, self::SECRET_META_KEY, true );
+		if ( ! self::is_encrypted( $user_meta_value ) ) {
+			$user_meta_value = self::encrypt( $user_meta_value, $user_id );
+			update_user_meta( $user_id, self::SECRET_META_KEY, $user_meta_value );
+		}
+		return self::decrypt( $user_meta_value, $user_id );
 	}
 
 	/**
@@ -218,7 +240,8 @@ class Two_Factor_Totp extends Two_Factor_Provider {
 	 * @return boolean If the key was stored successfully.
 	 */
 	public function set_user_totp_key( $user_id, $key ) {
-		return update_user_meta( $user_id, self::SECRET_META_KEY, $key );
+		$encrypted = self::encrypt( $key, $user_id );
+		return update_user_meta( $user_id, self::SECRET_META_KEY, $encrypted );
 	}
 
 	/**
@@ -554,5 +577,143 @@ class Two_Factor_Totp extends Two_Factor_Provider {
 			return 0;
 		}
 		return ( $a < $b ) ? -1 : 1;
+	}
+
+	/**
+	 * Is this string an encrypted TOTP secret?
+	 *
+	 * @param string $secret Stored TOTP secret.
+	 * @return bool
+	 */
+	public static function is_encrypted( $secret ) {
+		if ( strlen( $secret ) < 40 ) {
+			return false;
+		}
+		if ( strpos( $secret, self::ENCRYPTED_TOTP_PREFIX ) !== 0 ) {
+			return false;
+		}
+		return true;
+	}
+
+	/**
+	 * Encrypt a TOTP secret.
+	 *
+	 * @param string $secret  TOTP secret.
+	 * @param int    $user_id User ID.
+	 * @param int    $version (Optional) Version ID.
+	 * @return string
+	 * @throws SodiumException From sodium_compat or ext/sodium.
+	 */
+	public static function encrypt( $secret, $user_id, $version = self::ENCRYPTED_TOTP_VERSION ) {
+		$prefix     = self::get_version_header( $version );
+		$nonce      = random_bytes( 24 );
+		$ciphertext = sodium_crypto_aead_xchacha20poly1305_ietf_encrypt(
+			$secret,
+			self::serialize_aad( $prefix, $nonce, $user_id ),
+			$nonce,
+			self::get_key( $version )
+		);
+		// @codingStandardsIgnoreStart
+		return self::ENCRYPTED_TOTP_PREFIX . base64_encode( $nonce . $ciphertext );
+		// @codingStandardsIgnoreEnd
+	}
+
+	/**
+	 * Decrypt a TOTP secret.
+	 *
+	 * Version information is encoded with the ciphertext and thus omitted from this function.
+	 *
+	 * @param string $encrypted Encrypted TOTP secret.
+	 * @param int    $user_id User ID.
+	 * @return string
+	 * @throws RuntimeException Decryption failed.
+	 */
+	public static function decrypt( $encrypted, $user_id ) {
+		if ( strlen( $encrypted ) < 4 ) {
+			throw new RuntimeException( 'Message is too short to be encrypted' );
+		}
+		$prefix  = substr( $encrypted, 0, 4 );
+		$version = self::get_version_id( $prefix );
+		if ( 1 === $version ) {
+			// @codingStandardsIgnoreStart
+			$decoded    = base64_decode( substr( $encrypted, 4 ) );
+			// @codingStandardsIgnoreEnd
+			$nonce      = RandomCompat_substr( $decoded, 0, 24 );
+			$ciphertext = RandomCompat_substr( $decoded, 24 );
+			try {
+				$decrypted = sodium_crypto_aead_xchacha20poly1305_ietf_decrypt(
+					$ciphertext,
+					self::serialize_aad( $prefix, $nonce, $user_id ),
+					$nonce,
+					self::get_key( $version )
+				);
+			} catch ( SodiumException $ex ) {
+				throw new RuntimeException( 'Decryption failed', 0, $ex );
+			}
+		} else {
+			throw new RuntimeException( 'Unknown version: ' . $version );
+		}
+
+		// If we don't have a string, throw an exception because decryption failed.
+		if ( ! is_string( $decrypted ) ) {
+			throw new RuntimeException( 'Could not decrypt TOTP secret' );
+		}
+		return $decrypted;
+	}
+
+	/**
+	 * Serialize the Additional Authenticated Data for TOTP secret encryption.
+	 *
+	 * @param string $prefix Version prefix.
+	 * @param string $nonce Encryption nonce.
+	 * @param int    $user_id User ID.
+	 * @return string
+	 */
+	public static function serialize_aad( $prefix, $nonce, $user_id ) {
+		return $prefix . $nonce . pack( 'N', $user_id );
+	}
+
+	/**
+	 * Get the version prefix from a given version number.
+	 *
+	 * @param int $number Version number.
+	 * @return string
+	 * @throws RuntimeException For incorrect versions.
+	 */
+	final private static function get_version_header( $number = self::ENCRYPTED_TOTP_VERSION ) {
+		switch ( $number ) {
+			case 1:
+				return '$t1$';
+		}
+		throw new RuntimeException( 'Incorrect version number: ' . $number );
+	}
+
+	/**
+	 * Get the version prefix from a given version number.
+	 *
+	 * @param string $prefix Version prefix.
+	 * @return int
+	 * @throws RuntimeException For incorrect versions.
+	 */
+	final private static function get_version_id( $prefix = self::ENCRYPTED_TOTP_PREFIX ) {
+		switch ( $prefix ) {
+			case '$t1$':
+				return 1;
+		}
+		throw new RuntimeException( 'Incorrect version identifier: ' . $prefix );
+	}
+
+	/**
+	 * Get the encryption key for encrypting TOTP secrets.
+	 *
+	 * @param int $version Key derivation strategy.
+	 * @return string
+	 * @throws RuntimeException For incorrect versions.
+	 */
+	final private static function get_key( $version = self::ENCRYPTED_TOTP_VERSION ) {
+		if ( 1 === $version ) {
+			return hash_hmac( 'sha256', SECURE_AUTH_SALT, 'totp-encryption', true );
+		}
+		throw new RuntimeException( 'Incorrect version number: ' . $version );
 	}
 }
