@@ -138,8 +138,20 @@ class Two_Factor_Totp extends Two_Factor_Provider {
 					<?php esc_html_e( 'Authentication Code:', 'two-factor' ); ?>
 					<input type="tel" name="two-factor-totp-authcode" id="two-factor-totp-authcode" class="input" value="" size="20" pattern="[0-9]*" />
 				</label>
-				<input type="submit" class="button" name="two-factor-totp-submit" value="<?php esc_attr_e( 'Submit', 'two-factor' ); ?>" />
+				<input type="submit" class="button" id="two-factor-totp-submit" name="two-factor-totp-submit" value="<?php esc_attr_e( 'Submit', 'two-factor' ); ?>" />
 			</p>
+
+			<script>
+			jQuery(function($){
+				$('#two-factor-totp-authcode').keypress(function(e) {
+					if (13 === e.which) {
+						$('#two-factor-totp-submit').focus().click();
+						return false;
+					}
+				});
+			});
+			</script>
+
 		<?php else : ?>
 			<p class="success">
 				<?php esc_html_e( 'Secret key is configured and registered. It is not possible to view it again for security reasons.', 'two-factor' ); ?>
