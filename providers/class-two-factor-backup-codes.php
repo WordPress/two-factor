@@ -77,7 +77,7 @@ class Two_Factor_Backup_Codes extends Two_Factor_Provider {
 			<p>
 				<span>
 					<?php
-					wp_kses(
+					echo wp_kses(
 						sprintf(
 						/* translators: %s: URL for code regeneration */
 							__( 'Two-Factor: You are out of backup codes and need to <a href="%s">regenerate!</a>', 'two-factor' ),
