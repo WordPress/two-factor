@@ -681,17 +681,18 @@ class Two_Factor_Core {
 		<?php endif; ?>
 
 		<p id="backtoblog">
-			<a href="<?php echo esc_url( home_url( '/' ) ); ?>" title="<?php esc_attr_e( 'Are you lost?', 'two-factor' ); ?>">
-				<?php
-				echo esc_html(
-					sprintf(
-						// translators: %s: site name.
-						__( '&larr; Back to %s', 'two-factor' ),
-						get_bloginfo( 'title', 'display' )
-					)
-				);
-				?>
-			</a>
+		    <?php
+		    $html_link = sprintf(
+			'<a href="%s">%s</a>',
+			esc_url( home_url( '/' ) ),
+			sprintf(
+			/* translators: %s: Site title. */
+			    _x( '&larr; Go to %s', 'site' ),
+			    get_bloginfo( 'title', 'display' )
+			)
+		    );
+		    echo apply_filters( 'login_site_html_link', $html_link );
+		    ?>
 		</p>
 		</div>
 		<style>
