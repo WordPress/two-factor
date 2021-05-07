@@ -29,7 +29,10 @@ env:
   - WP_VERSION=trunk WP_MULTISITE=0
   - WP_VERSION=trunk WP_MULTISITE=1
 
-before_script:
+before_install:
+  - composer self-update --1
+
+install:
   - npm install
   - export DEV_LIB_PATH="vendor/xwp/wp-dev-lib/scripts"
   - source "$DEV_LIB_PATH/travis.install.sh"
