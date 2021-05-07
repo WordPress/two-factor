@@ -678,52 +678,29 @@ class Two_Factor_Core {
 					<?php endforeach; ?>
 				</ul>
 			</div>
-		<?php endif; ?>
-
-		<p id="backtoblog">
-		    <?php
-		    $html_link = sprintf(
-			'<a href="%s">%s</a>',
-			esc_url( home_url( '/' ) ),
-			sprintf(
-			/* translators: %s: Site title. */
-			    _x( '&larr; Go to %s', 'site' ),
-			    get_bloginfo( 'title', 'display' )
-			)
-		    );
-		    echo apply_filters( 'login_site_html_link', $html_link );
-		    ?>
-		</p>
-		</div>
+		<?php endif; ?>        
 		<style>
-		/* @todo: migrate to an external stylesheet. */
-		.backup-methods-wrap {
+		    /* @todo: migrate to an external stylesheet. */
+		    .backup-methods-wrap {
 			margin-top: 16px;
 			padding: 0 24px;
-		}
-		.backup-methods-wrap a {
+		    }
+		    .backup-methods-wrap a {
 			color: #999;
 			text-decoration: none;
-		}
-		ul.backup-methods {
+		    }
+		    ul.backup-methods {
 			display: none;
 			padding-left: 1.5em;
-		}
-		/* Prevent Jetpack from hiding our controls, see https://github.com/Automattic/jetpack/issues/3747 */
-		.jetpack-sso-form-display #loginform > p,
-		.jetpack-sso-form-display #loginform > div {
+		    }
+		    /* Prevent Jetpack from hiding our controls, see https://github.com/Automattic/jetpack/issues/3747 */
+		    .jetpack-sso-form-display #loginform > p,
+		    .jetpack-sso-form-display #loginform > div {
 			display: block;
-		}
+		    }
 		</style>
-
-		<?php
-		/** This action is documented in wp-login.php */
-		do_action( 'login_footer' );
-		?>
-		<div class="clear"></div>
-		</body>
-		</html>
-		<?php
+		<?php login_footer(); ?>
+	<?php
 	}
 
 	/**
