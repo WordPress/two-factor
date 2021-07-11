@@ -702,7 +702,6 @@ class Two_Factor_Core {
 
 		<?php
 			if ( ! function_exists( 'login_footer' ) ) {
-				// We really should migrate login_header() out of `wp-login.php` so it can be called from an includes file.
 				include_once TWO_FACTOR_DIR . 'includes/function.login-footer.php';
 			}
 
