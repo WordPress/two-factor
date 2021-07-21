@@ -80,7 +80,8 @@ var inlineEditKey;
 
 			params = {
 				action: 'inline-save-key',
-				keyHandle: id
+				keyHandle: id,
+				user_id: window.u2fL10n.user_id
 			};
 
 			fields = $( '#edit-' + id ).find( ':input' ).serialize();

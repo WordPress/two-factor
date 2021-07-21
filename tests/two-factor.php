@@ -1,29 +1,22 @@
 <?php
 /**
  * Test Two Factor.
+ *
+ * @package Two_Factor
  */
 
 /**
- * Class Tests_Two_factor
+ * Class Tests_Two_Factor
  *
  * @package Two_Factor
  * @group core
  */
-class Tests_Two_factor extends WP_UnitTestCase {
-
-	/**
-	 * Set up a test case.
-	 *
-	 * @see WP_UnitTestCase::setup()
-	 */
-	function setUp() {
-		parent::setUp();
-	}
+class Tests_Two_Factor extends WP_UnitTestCase {
 
 	/**
 	 * Check that the TWO_FACTOR_DIR constant is defined.
 	 */
-	function test_constant_defined() {
+	public function test_constant_defined() {
 
 		$this->assertTrue( defined( 'TWO_FACTOR_DIR' ) );
 
@@ -32,7 +25,7 @@ class Tests_Two_factor extends WP_UnitTestCase {
 	/**
 	 * Check that the files were included.
 	 */
-	function test_classes_exist() {
+	public function test_classes_exist() {
 
 		$this->assertTrue( class_exists( 'Two_Factor_Provider' ) );
 		$this->assertTrue( class_exists( 'Two_Factor_Core' ) );

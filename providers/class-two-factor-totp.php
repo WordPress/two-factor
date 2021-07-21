@@ -24,20 +24,35 @@ class Two_Factor_Totp extends Two_Factor_Provider {
 	 */
 	const NOTICES_META_KEY = '_two_factor_totp_notices';
 
-	const DEFAULT_KEY_BIT_SIZE = 160;
-	const DEFAULT_CRYPTO = 'sha1';
-	const DEFAULT_DIGIT_COUNT = 6;
-	const DEFAULT_TIME_STEP_SEC = 30;
+	/**
+	 * Action name for resetting the secret token.
+	 *
+	 * @var string
+	 */
+	const ACTION_SECRET_DELETE = 'totp-delete';
+
+	const DEFAULT_KEY_BIT_SIZE        = 160;
+	const DEFAULT_CRYPTO              = 'sha1';
+	const DEFAULT_DIGIT_COUNT         = 6;
+	const DEFAULT_TIME_STEP_SEC       = 30;
 	const DEFAULT_TIME_STEP_ALLOWANCE = 4;
-	private static $_base_32_chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ234567';
+
+	/**
+	 * Chracters used in base32 encoding.
+	 *
+	 * @var string
+	 */
+	private static $base_32_chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ234567';
 
 	/**
 	 * Class constructor. Sets up hooks, etc.
 	 */
 	protected function __construct() {
-		add_action( 'two-factor-user-options-' . __CLASS__, array( $this, 'user_two_factor_options' ) );
-		add_action( 'personal_options_update',              array( $this, 'user_two_factor_options_update' ) );
-		add_action( 'edit_user_profile_update',             array( $this, 'user_two_factor_options_update' ) );
+		add_action( 'two_factor_user_options_' . __CLASS__, array( $this, 'user_two_factor_options' ) );
+		add_action( 'personal_options_update', array( $this, 'user_two_factor_options_update' ) );
+		add_action( 'edit_user_profile_update', array( $this, 'user_two_factor_options_update' ) );
+		add_action( 'two_factor_user_settings_action', array( $this, 'user_settings_action' ), 10, 2 );
+
 		return parent::__construct();
 	}
 
@@ -56,7 +71,32 @@ class Two_Factor_Totp extends Two_Factor_Provider {
 	 * Returns the name of the provider.
 	 */
 	public function get_label() {
-		return _x( 'Time Based One-Time Password (Google Authenticator)', 'Provider Label', 'two-factor' );
+		return _x( 'Time Based One-Time Password (TOTP)', 'Provider Label', 'two-factor' );
+	}
+
+	/**
+	 * Trigger our custom user settings actions.
+	 *
+	 * @param integer $user_id User ID.
+	 * @param string  $action Action ID.
+	 *
+	 * @return void
+	 */
+	public function user_settings_action( $user_id, $action ) {
+		if ( self::ACTION_SECRET_DELETE === $action ) {
+			$this->delete_user_totp_key( $user_id );
+		}
+	}
+
+	/**
+	 * Get the URL for deleting the secret token.
+	 *
+	 * @param integer $user_id User ID.
+	 *
+	 * @return string
+	 */
+	protected function get_token_delete_url_for_user( $user_id ) {
+		return Two_Factor_Core::get_user_update_action_url( $user_id, self::ACTION_SECRET_DELETE );
 	}
 
 	/**
@@ -71,27 +111,45 @@ class Two_Factor_Totp extends Two_Factor_Provider {
 		}
 
 		wp_nonce_field( 'user_two_factor_totp_options', '_nonce_user_two_factor_totp_options', false );
-		$key = get_user_meta( $user->ID, self::SECRET_META_KEY, true );
-		$this->admin_notices();
+
+		$key = $this->get_user_totp_key( $user->ID );
+		$this->admin_notices( $user->ID );
+
 		?>
-		<br />
-		<?php if ( empty( $key ) ) :
-			$key = $this->generate_key();
-			$site_name = get_bloginfo( 'name', 'display' );
+		<div id="two-factor-totp-options">
+		<?php
+		if ( empty( $key ) ) :
+			$key        = $this->generate_key();
+			$site_name  = get_bloginfo( 'name', 'display' );
+			$totp_title = apply_filters( 'two_factor_totp_title', $site_name . ':' . $user->user_login, $user );
 			?>
-			<a href="javascript:;" onclick="jQuery('#two-factor-totp-options').toggle();"><?php esc_html_e( 'View Options &rarr;', 'two-factor' ); ?></a>
-			<div id="two-factor-totp-options" style="display:none;">
-					<img src="<?php echo esc_url( $this->get_google_qr_code( $site_name . ':' . $user->user_login, $key, $site_name ) ); ?>" id="two-factor-totp-qrcode" />
-					<p><strong><?php echo esc_html( $key ); ?></strong></p>
-					<p><?php esc_html_e( 'Please scan the QR code or manually enter the key, then enter an authentication code from your app in order to complete setup', 'two-factor' ); ?></p>
-					<p>
-						<label for="two-factor-totp-authcode"><?php esc_html_e( 'Authentication Code:', 'two-factor' ); ?></label>
-						<input type="hidden" name="two-factor-totp-key" value="<?php echo esc_attr( $key ) ?>" />
-						<input type="tel" name="two-factor-totp-authcode" id="two-factor-totp-authcode" class="input" value="" size="20" pattern="[0-9]*" />
-					</p>
-			</div>
+			<p>
+				<?php esc_html_e( 'Please scan the QR code or manually enter the key, then enter an authentication code from your app in order to complete setup.', 'two-factor' ); ?>
+			</p>
+			<p>
+				<img src="<?php echo esc_url( $this->get_google_qr_code( $totp_title, $key, $site_name ) ); ?>" id="two-factor-totp-qrcode" />
+			</p>
+			<p>
+				<code><?php echo esc_html( $key ); ?></code>
+			</p>
+			<p>
+				<input type="hidden" name="two-factor-totp-key" value="<?php echo esc_attr( $key ); ?>" />
+				<label for="two-factor-totp-authcode">
+					<?php esc_html_e( 'Authentication Code:', 'two-factor' ); ?>
+					<input type="tel" name="two-factor-totp-authcode" id="two-factor-totp-authcode" class="input" value="" size="20" pattern="[0-9]*" />
+				</label>
+				<input type="submit" class="button" name="two-factor-totp-submit" value="<?php esc_attr_e( 'Submit', 'two-factor' ); ?>" />
+			</p>
 		<?php else : ?>
-			<p class="success"><?php esc_html_e( 'Enabled', 'two-factor' ); ?></p>
+			<p class="success">
+				<?php esc_html_e( 'Secret key is configured and registered. It is not possible to view it again for security reasons.', 'two-factor' ); ?>
+			</p>
+			<p>
+				<a class="button" href="<?php echo esc_url( self::get_token_delete_url_for_user( $user->ID ) ); ?>"><?php esc_html_e( 'Reset Key', 'two-factor' ); ?></a>
+				<em class="description">
+					<?php esc_html_e( 'You will have to re-scan the QR code on all devices as the previous codes will stop working.', 'two-factor' ); ?>
+				</em>
+			</p>
 		<?php endif; ?>
 		</div>
 		<?php
@@ -101,31 +159,37 @@ class Two_Factor_Totp extends Two_Factor_Provider {
 	 * Save the options specified in `::user_two_factor_options()`
 	 *
 	 * @param integer $user_id The user ID whose options are being updated.
-	 * @return false
+	 *
+	 * @return void
 	 */
 	public function user_two_factor_options_update( $user_id ) {
+		$notices = array();
+		$errors  = array();
+
 		if ( isset( $_POST['_nonce_user_two_factor_totp_options'] ) ) {
 			check_admin_referer( 'user_two_factor_totp_options', '_nonce_user_two_factor_totp_options' );
 
-			$current_key = get_user_meta( $user_id, self::SECRET_META_KEY, true );
-			if ( $current_key && ! in_array( 'Two_Factor_Totp', Two_Factor_Core::get_enabled_providers_for_user( $user_id ), true ) ) {
-				delete_user_meta( $user_id, self::SECRET_META_KEY );
-				return;
-			} elseif ( ! isset( $_POST['two-factor-totp-key'] ) || $current_key === $_POST['two-factor-totp-key'] || ! preg_match( '/^[' . self::$_base_32_chars . ']+$/', $_POST['two-factor-totp-key'] ) ) {
-				// If the key hasn't changed or is invalid, do nothing.
-				return false;
-			}
+			// Validate and store a new secret key.
+			if ( ! empty( $_POST['two-factor-totp-authcode'] ) && ! empty( $_POST['two-factor-totp-key'] ) ) {
+				// Don't use filter_input() because we can't mock it during tests for now.
+				$authcode = filter_var( sanitize_text_field( $_POST['two-factor-totp-authcode'] ), FILTER_SANITIZE_NUMBER_INT );
+				$key      = sanitize_text_field( $_POST['two-factor-totp-key'] );
 
-			$notices = array();
-
-			if ( ! empty( $_POST['two-factor-totp-authcode'] ) ) {
-				if ( $this->is_valid_authcode( $_POST['two-factor-totp-key'], $_POST['two-factor-totp-authcode'] ) ) {
-					if ( ! update_user_meta( $user_id, self::SECRET_META_KEY, $_POST['two-factor-totp-key'] ) ) {
-						$notices['error'][] = __( 'Unable to save Two Factor Authentication code. Please re-scan the QR code and enter the code provided by your application.', 'two-factor' );
+				if ( $this->is_valid_key( $key ) ) {
+					if ( $this->is_valid_authcode( $key, $authcode ) ) {
+						if ( ! $this->set_user_totp_key( $user_id, $key ) ) {
+							$errors[] = __( 'Unable to save Two Factor Authentication code. Please re-scan the QR code and enter the code provided by your application.', 'two-factor' );
+						}
+					} else {
+						$errors[] = __( 'Invalid Two Factor Authentication code.', 'two-factor' );
 					}
 				} else {
-					$notices['error'][] = __( 'Two Factor Authentication not activated, the authentication code you entered was not valid. Please re-scan the QR code and enter the code provided by your application.', 'two-factor' );
+					$errors[] = __( 'Invalid Two Factor Authentication secret key.', 'two-factor' );
 				}
+			}
+
+			if ( ! empty( $errors ) ) {
+				$notices['error'] = $errors;
 			}
 
 			if ( ! empty( $notices ) ) {
@@ -135,16 +199,72 @@ class Two_Factor_Totp extends Two_Factor_Provider {
 	}
 
 	/**
-	 * Display any available admin notices.
+	 * Get the TOTP secret key for a user.
+	 *
+	 * @param  int $user_id User ID.
+	 *
+	 * @return string
 	 */
-	public function admin_notices() {
-		$notices = get_user_meta( get_current_user_id(), self::NOTICES_META_KEY, true );
+	public function get_user_totp_key( $user_id ) {
+		return (string) get_user_meta( $user_id, self::SECRET_META_KEY, true );
+	}
+
+	/**
+	 * Set the TOTP secret key for a user.
+	 *
+	 * @param int    $user_id User ID.
+	 * @param string $key TOTP secret key.
+	 *
+	 * @return boolean If the key was stored successfully.
+	 */
+	public function set_user_totp_key( $user_id, $key ) {
+		return update_user_meta( $user_id, self::SECRET_META_KEY, $key );
+	}
+
+	/**
+	 * Delete the TOTP secret key for a user.
+	 *
+	 * @param  int $user_id User ID.
+	 *
+	 * @return boolean If the key was deleted successfully.
+	 */
+	public function delete_user_totp_key( $user_id ) {
+		return delete_user_meta( $user_id, self::SECRET_META_KEY );
+	}
+
+	/**
+	 * Check if the TOTP secret key has a proper format.
+	 *
+	 * @param  string $key TOTP secret key.
+	 *
+	 * @return boolean
+	 */
+	public function is_valid_key( $key ) {
+		$check = sprintf( '/^[%s]+$/', self::$base_32_chars );
+
+		if ( 1 === preg_match( $check, $key ) ) {
+			return true;
+		}
+
+		return false;
+	}
+
+	/**
+	 * Display any available admin notices.
+	 *
+	 * @param integer $user_id User ID.
+	 *
+	 * @return void
+	 */
+	public function admin_notices( $user_id ) {
+		$notices = get_user_meta( $user_id, self::NOTICES_META_KEY, true );
 
 		if ( ! empty( $notices ) ) {
-			delete_user_meta( get_current_user_id(), self::NOTICES_META_KEY );
+			delete_user_meta( $user_id, self::NOTICES_META_KEY );
+
 			foreach ( $notices as $class => $messages ) {
 				?>
-				<div class="<?php echo esc_attr( $class ) ?>">
+				<div class="<?php echo esc_attr( $class ); ?>">
 					<?php
 					foreach ( $messages as $msg ) {
 						?>
@@ -168,9 +288,14 @@ class Two_Factor_Totp extends Two_Factor_Provider {
 	 * @return bool Whether the user gave a valid code
 	 */
 	public function validate_authentication( $user ) {
-		$key = get_user_meta( $user->ID, self::SECRET_META_KEY, true );
+		if ( ! empty( $_REQUEST['authcode'] ) ) {
+			return $this->is_valid_authcode(
+				$this->get_user_totp_key( $user->ID ),
+				sanitize_text_field( $_REQUEST['authcode'] )
+			);
+		}
 
-		return $this->is_valid_authcode( $key, $_REQUEST['authcode'] );
+		return false;
 	}
 
 	/**
@@ -188,9 +313,12 @@ class Two_Factor_Totp extends Two_Factor_Provider {
 		 * Ticks are the allowed offset from the correct time in 30 second increments,
 		 * so the default of 4 allows codes that are two minutes to either side of server time
 		 *
+		 * @deprecated 0.7.0 Use {@see 'two_factor_totp_time_step_allowance'} instead.
 		 * @param int $max_ticks Max ticks of time correction to allow. Default 4.
 		 */
-		$max_ticks = apply_filters( 'two-factor-totp-time-step-allowance', self::DEFAULT_TIME_STEP_ALLOWANCE );
+		$max_ticks = apply_filters_deprecated( 'two-factor-totp-time-step-allowance', array( self::DEFAULT_TIME_STEP_ALLOWANCE ), '0.7.0', 'two_factor_totp_time_step_allowance' );
+
+		$max_ticks = apply_filters( 'two_factor_totp_time_step_allowance', self::DEFAULT_TIME_STEP_ALLOWANCE );
 
 		// Array of all ticks to allow, sorted using absolute value to test closest match first.
 		$ticks = range( - $max_ticks, $max_ticks );
@@ -215,7 +343,7 @@ class Two_Factor_Totp extends Two_Factor_Provider {
 	 * @return string $bitsize long string composed of available base32 chars.
 	 */
 	public static function generate_key( $bitsize = self::DEFAULT_KEY_BIT_SIZE ) {
-		$bytes = ceil( $bitsize / 8 );
+		$bytes  = ceil( $bitsize / 8 );
 		$secret = wp_generate_password( $bytes, true, true );
 
 		return self::base32_encode( $secret );
@@ -245,8 +373,8 @@ class Two_Factor_Totp extends Two_Factor_Provider {
 			$higher = 0;
 		}
 
-		$lowmap  = 0xffffffff;
-		$lower   = $value & $lowmap;
+		$lowmap = 0xffffffff;
+		$lower  = $value & $lowmap;
 
 		return pack( 'NN', $higher, $lower );
 	}
@@ -296,7 +424,7 @@ class Two_Factor_Totp extends Two_Factor_Provider {
 	 */
 	public static function get_google_qr_code( $name, $key, $title = null ) {
 		// Encode to support spaces, question marks and other characters.
-		$name = rawurlencode( $name );
+		$name       = rawurlencode( $name );
 		$google_url = urlencode( 'otpauth://totp/' . $name . '?secret=' . $key );
 		if ( isset( $title ) ) {
 			$google_url .= urlencode( '&issuer=' . rawurlencode( $title ) );
@@ -308,11 +436,12 @@ class Two_Factor_Totp extends Two_Factor_Provider {
 	 * Whether this Two Factor provider is configured and available for the user specified.
 	 *
 	 * @param WP_User $user WP_User object of the logged-in user.
+	 *
 	 * @return boolean
 	 */
 	public function is_available_for_user( $user ) {
 		// Only available if the secret key has been saved for the user.
-		$key = get_user_meta( $user->ID, self::SECRET_META_KEY, true );
+		$key = $this->get_user_totp_key( $user->ID );
 
 		return ! empty( $key );
 	}
@@ -323,18 +452,20 @@ class Two_Factor_Totp extends Two_Factor_Provider {
 	 * @param WP_User $user WP_User object of the logged-in user.
 	 */
 	public function authentication_page( $user ) {
-		require_once( ABSPATH .  '/wp-admin/includes/template.php' );
+		require_once ABSPATH . '/wp-admin/includes/template.php';
 		?>
 		<p>
+			<?php esc_html_e( 'Please enter the code generated by your authenticator app.', 'two-factor' ); ?>
+		</p>
+		<p>
 			<label for="authcode"><?php esc_html_e( 'Authentication Code:', 'two-factor' ); ?></label>
-			<input type="tel" name="authcode" id="authcode" class="input" value="" size="20" pattern="[0-9]*" />
+			<input type="tel" autocomplete="off" name="authcode" id="authcode" class="input" value="" size="20" pattern="[0-9]*" />
 		</p>
 		<script type="text/javascript">
 			setTimeout( function(){
 				var d;
 				try{
 					d = document.getElementById('authcode');
-					d.value = '';
 					d.focus();
 				} catch(e){}
 			}, 200);
@@ -362,10 +493,10 @@ class Two_Factor_Totp extends Two_Factor_Provider {
 		}
 
 		$five_bit_sections = str_split( $binary_string, 5 );
-		$base32_string = '';
+		$base32_string     = '';
 
 		foreach ( $five_bit_sections as $five_bit_section ) {
-			$base32_string .= self::$_base_32_chars[ base_convert( str_pad( $five_bit_section, 5, '0' ), 2, 10 ) ];
+			$base32_string .= self::$base_32_chars[ base_convert( str_pad( $five_bit_section, 5, '0' ), 2, 10 ) ];
 		}
 
 		return $base32_string;
@@ -382,25 +513,25 @@ class Two_Factor_Totp extends Two_Factor_Provider {
 	 */
 	public static function base32_decode( $base32_string ) {
 
-		$base32_string 	= strtoupper( $base32_string );
+		$base32_string = strtoupper( $base32_string );
 
-		if ( ! preg_match( '/^[' . self::$_base_32_chars . ']+$/', $base32_string, $match ) ) {
+		if ( ! preg_match( '/^[' . self::$base_32_chars . ']+$/', $base32_string, $match ) ) {
 			throw new Exception( 'Invalid characters in the base32 string.' );
 		}
 
-		$l 	= strlen( $base32_string );
-		$n	= 0;
-		$j	= 0;
+		$l      = strlen( $base32_string );
+		$n      = 0;
+		$j      = 0;
 		$binary = '';
 
 		for ( $i = 0; $i < $l; $i++ ) {
 
-			$n = $n << 5; // Move buffer left by 5 to make room.
-			$n = $n + strpos( self::$_base_32_chars, $base32_string[ $i ] ); 	// Add value into buffer.
+			$n  = $n << 5; // Move buffer left by 5 to make room.
+			$n  = $n + strpos( self::$base_32_chars, $base32_string[ $i ] );    // Add value into buffer.
 			$j += 5; // Keep track of number of bits in buffer.
 
 			if ( $j >= 8 ) {
-				$j -= 8;
+				$j      -= 8;
 				$binary .= chr( ( $n & ( 0xFF << $j ) ) >> $j );
 			}
 		}
@@ -422,6 +553,6 @@ class Two_Factor_Totp extends Two_Factor_Provider {
 		if ( $a === $b ) {
 			return 0;
 		}
-		return ($a < $b) ? -1 : 1;
+		return ( $a < $b ) ? -1 : 1;
 	}
 }

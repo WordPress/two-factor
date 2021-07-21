@@ -1,10 +1,12 @@
+dist: trusty
+
 language: php
 
 php:
-  - 5.4
-  - 5.5
-  - 5.6
-  - 7.0
+  - "5.6"
+  - "7.2"
+  - "7.3"
+  - "7.4"
 
 addons:
   apt:
@@ -13,8 +15,12 @@ addons:
 
 cache:
   directories:
-    - node_modules
-    - vendor
+    - $HOME/.composer/cache
+    - $HOME/.npm
+
+branches:
+  only:
+  - master
 
 notifications:
   email: false
@@ -23,13 +29,16 @@ env:
   - WP_VERSION=trunk WP_MULTISITE=0
   - WP_VERSION=trunk WP_MULTISITE=1
 
-before_script:
+before_install:
+  - composer self-update --1
+
+install:
   - npm install
-  - export DEV_LIB_PATH=vendor/xwp/wp-dev-lib
-  - source $DEV_LIB_PATH/travis.install.sh
+  - export DEV_LIB_PATH="vendor/xwp/wp-dev-lib/scripts"
+  - source "$DEV_LIB_PATH/travis.install.sh"
 
 script:
-  - source $DEV_LIB_PATH/travis.script.sh
+  - source "$DEV_LIB_PATH/travis.script.sh"
 
 after_script:
-  - source $DEV_LIB_PATH/travis.after_script.sh
+  - source "$DEV_LIB_PATH/travis.after_script.sh"

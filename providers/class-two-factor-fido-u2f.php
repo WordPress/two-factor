@@ -2,6 +2,12 @@
 /**
  * Class for creating a FIDO Universal 2nd Factor provider.
  *
+ * @package Two_Factor
+ */
+
+/**
+ * Class for creating a FIDO Universal 2nd Factor provider.
+ *
  * @since 0.1-dev
  *
  * @package Two_Factor
@@ -30,11 +36,18 @@ class Two_Factor_FIDO_U2F extends Two_Factor_Provider {
 	const AUTH_DATA_USER_META_KEY = '_two_factor_fido_u2f_login_request';
 
 	/**
+	 * Version number for the bundled assets.
+	 *
+	 * @var string
+	 */
+	const U2F_ASSET_VERSION = '0.2.1';
+
+	/**
 	 * Ensures only one instance of this class exists in memory at any one time.
 	 *
 	 * @return \Two_Factor_FIDO_U2F
 	 */
-	static function get_instance() {
+	public static function get_instance() {
 		static $instance;
 
 		if ( ! isset( $instance ) ) {
@@ -54,31 +67,31 @@ class Two_Factor_FIDO_U2F extends Two_Factor_Provider {
 			return;
 		}
 
-		require_once( TWO_FACTOR_DIR . 'includes/Yubico/U2F.php' );
+		require_once TWO_FACTOR_DIR . 'includes/Yubico/U2F.php';
 		self::$u2f = new u2flib_server\U2F( self::get_u2f_app_id() );
 
-		require_once( TWO_FACTOR_DIR . 'providers/class.two-factor-fido-u2f-admin.php' );
+		require_once TWO_FACTOR_DIR . 'providers/class-two-factor-fido-u2f-admin.php';
 		Two_Factor_FIDO_U2F_Admin::add_hooks();
 
-		wp_register_script(
-			'fido-u2f-api',
-			plugins_url( 'includes/Google/u2f-api.js', dirname( __FILE__ ) ),
-			null,
-			'0.1.0-dev.2',
-			true
-		);
+		// Ensure the script dependencies have been registered before they're enqueued at a later priority.
+		add_action( 'admin_enqueue_scripts', array( __CLASS__, 'enqueue_scripts' ), 5 );
+		add_action( 'wp_enqueue_scripts', array( __CLASS__, 'enqueue_scripts' ), 5 );
+		add_action( 'login_enqueue_scripts', array( __CLASS__, 'enqueue_scripts' ), 5 );
 
-		wp_register_script(
-			'fido-u2f-login',
-			plugins_url( 'js/fido-u2f-login.js', __FILE__ ),
-			array( 'jquery', 'fido-u2f-api' ),
-			'0.1.0-dev.2',
-			true
-		);
-
-		add_action( 'two-factor-user-options-' . __CLASS__, array( $this, 'user_options' ) );
+		add_action( 'two_factor_user_options_' . __CLASS__, array( $this, 'user_options' ) );
 
 		return parent::__construct();
+	}
+
+	/**
+	 * Get the asset version number.
+	 *
+	 * TODO: There should be a plugin-level helper for getting the current plugin version.
+	 *
+	 * @return string
+	 */
+	public static function asset_version() {
+		return self::U2F_ASSET_VERSION;
 	}
 
 	/**
@@ -103,16 +116,31 @@ class Two_Factor_FIDO_U2F extends Two_Factor_Provider {
 	 * @since 0.1-dev
 	 */
 	public function get_label() {
-		return _x( 'FIDO Universal 2nd Factor (U2F)', 'Provider Label', 'two-factor' );
+		return _x( 'FIDO U2F Security Keys', 'Provider Label', 'two-factor' );
 	}
 
 	/**
-	 * Enqueue assets for login form.
+	 * Register script dependencies used during login and when
+	 * registering keys in the WP admin.
 	 *
-	 * @since 0.1-dev
+	 * @return void
 	 */
-	public function login_enqueue_assets() {
-		wp_enqueue_script( 'fido-u2f-login' );
+	public static function enqueue_scripts() {
+		wp_register_script(
+			'fido-u2f-api',
+			plugins_url( 'includes/Google/u2f-api.js', dirname( __FILE__ ) ),
+			null,
+			self::asset_version(),
+			true
+		);
+
+		wp_register_script(
+			'fido-u2f-login',
+			plugins_url( 'js/fido-u2f-login.js', __FILE__ ),
+			array( 'jquery', 'fido-u2f-api' ),
+			self::asset_version(),
+			true
+		);
 	}
 
 	/**
@@ -124,9 +152,9 @@ class Two_Factor_FIDO_U2F extends Two_Factor_Provider {
 	 * @return null
 	 */
 	public function authentication_page( $user ) {
-		require_once( ABSPATH . '/wp-admin/includes/template.php' );
+		require_once ABSPATH . '/wp-admin/includes/template.php';
 
-		// U2F doesn't work without HTTPS
+		// U2F doesn't work without HTTPS.
 		if ( ! is_ssl() ) {
 			?>
 			<p><?php esc_html_e( 'U2F requires an HTTPS connection. Please use an alternative 2nd factor method.', 'two-factor' ); ?></p>
@@ -180,7 +208,7 @@ class Two_Factor_FIDO_U2F extends Two_Factor_Provider {
 		try {
 			$reg = self::$u2f->doAuthenticate( $requests, $keys, $response );
 
-			$reg->last_used = current_time( 'timestamp' );
+			$reg->last_used = time();
 
 			self::update_security_key( $user->ID, $reg );
 
@@ -233,8 +261,8 @@ class Two_Factor_FIDO_U2F extends Two_Factor_Provider {
 
 		if (
 			! is_object( $register )
-				|| ! property_exists( $register, 'keyHandle' ) || empty( $register->keyHandle )
-				|| ! property_exists( $register, 'publicKey' ) || empty( $register->publicKey )
+				|| ! property_exists( $register, 'keyHandle' ) || empty( $register->keyHandle ) // phpcs:ignore WordPress.NamingConventions.ValidVariableName.UsedPropertyNotSnakeCase
+				|| ! property_exists( $register, 'publicKey' ) || empty( $register->publicKey ) // phpcs:ignore WordPress.NamingConventions.ValidVariableName.UsedPropertyNotSnakeCase
 				|| ! property_exists( $register, 'certificate' ) || empty( $register->certificate )
 				|| ! property_exists( $register, 'counter' ) || ( -1 > $register->counter )
 		) {
@@ -242,14 +270,14 @@ class Two_Factor_FIDO_U2F extends Two_Factor_Provider {
 		}
 
 		$register = array(
-			'keyHandle'   => $register->keyHandle,
-			'publicKey'   => $register->publicKey,
+			'keyHandle'   => $register->keyHandle, // phpcs:ignore WordPress.NamingConventions.ValidVariableName.UsedPropertyNotSnakeCase
+			'publicKey'   => $register->publicKey, // phpcs:ignore WordPress.NamingConventions.ValidVariableName.UsedPropertyNotSnakeCase
 			'certificate' => $register->certificate,
 			'counter'     => $register->counter,
 		);
 
 		$register['name']      = __( 'New Security Key', 'two-factor' );
-		$register['added']     = current_time( 'timestamp' );
+		$register['added']     = time();
 		$register['last_used'] = $register['added'];
 
 		return add_user_meta( $user_id, self::REGISTERED_KEY_USER_META_KEY, $register );
@@ -300,8 +328,8 @@ class Two_Factor_FIDO_U2F extends Two_Factor_Provider {
 
 		if (
 			! is_object( $data )
-				|| ! property_exists( $data, 'keyHandle' ) || empty( $data->keyHandle )
-				|| ! property_exists( $data, 'publicKey' ) || empty( $data->publicKey )
+				|| ! property_exists( $data, 'keyHandle' ) || empty( $data->keyHandle ) // phpcs:ignore WordPress.NamingConventions.ValidVariableName.UsedPropertyNotSnakeCase
+				|| ! property_exists( $data, 'publicKey' ) || empty( $data->publicKey ) // phpcs:ignore WordPress.NamingConventions.ValidVariableName.UsedPropertyNotSnakeCase
 				|| ! property_exists( $data, 'certificate' ) || empty( $data->certificate )
 				|| ! property_exists( $data, 'counter' ) || ( -1 > $data->counter )
 		) {
@@ -311,7 +339,7 @@ class Two_Factor_FIDO_U2F extends Two_Factor_Provider {
 		$keys = self::get_security_keys( $user_id );
 		if ( $keys ) {
 			foreach ( $keys as $key ) {
-				if ( $key->keyHandle === $data->keyHandle ) {
+				if ( $key->keyHandle === $data->keyHandle ) { // phpcs:ignore WordPress.NamingConventions.ValidVariableName.UsedPropertyNotSnakeCase
 					return update_user_meta( $user_id, self::REGISTERED_KEY_USER_META_KEY, (array) $data, (array) $key );
 				}
 			}
@@ -329,7 +357,7 @@ class Two_Factor_FIDO_U2F extends Two_Factor_Provider {
 	 * @param string $keyHandle Optional. Key handle.
 	 * @return bool True on success, false on failure.
 	 */
-	public static function delete_security_key( $user_id, $keyHandle = null ) {
+	public static function delete_security_key( $user_id, $keyHandle = null ) { // phpcs:ignore WordPress.NamingConventions.ValidVariableName.VariableNotSnakeCase
 		global $wpdb;
 
 		if ( ! is_numeric( $user_id ) ) {
@@ -341,18 +369,21 @@ class Two_Factor_FIDO_U2F extends Two_Factor_Provider {
 			return false;
 		}
 
-		$table = $wpdb->usermeta;
+		$keyHandle = wp_unslash( $keyHandle ); // phpcs:ignore WordPress.NamingConventions.ValidVariableName.VariableNotSnakeCase
+		$keyHandle = maybe_serialize( $keyHandle ); // phpcs:ignore WordPress.NamingConventions.ValidVariableName.VariableNotSnakeCase
 
-		$keyHandle = wp_unslash( $keyHandle );
-		$keyHandle = maybe_serialize( $keyHandle );
+		$query = $wpdb->prepare( "SELECT umeta_id FROM {$wpdb->usermeta} WHERE meta_key = %s AND user_id = %d", self::REGISTERED_KEY_USER_META_KEY, $user_id );
 
-		$query = $wpdb->prepare( "SELECT umeta_id FROM $table WHERE meta_key = '%s' AND user_id = %d", self::REGISTERED_KEY_USER_META_KEY, $user_id );
+		if ( $keyHandle ) { // phpcs:ignore WordPress.NamingConventions.ValidVariableName.VariableNotSnakeCase
+			$key_handle_lookup = sprintf( ':"%s";s:', $keyHandle ); // phpcs:ignore WordPress.NamingConventions.ValidVariableName.VariableNotSnakeCase
 
-		if ( $keyHandle ) {
-			$query .= $wpdb->prepare( ' AND meta_value LIKE %s', '%:"' . $keyHandle . '";s:%' );
+			$query .= $wpdb->prepare(
+				' AND meta_value LIKE %s',
+				'%' . $wpdb->esc_like( $key_handle_lookup ) . '%'
+			);
 		}
 
-		$meta_ids = $wpdb->get_col( $query );
+		$meta_ids = $wpdb->get_col( $query ); // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared
 		if ( ! count( $meta_ids ) ) {
 			return false;
 		}

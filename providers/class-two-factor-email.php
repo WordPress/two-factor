@@ -2,6 +2,12 @@
 /**
  * Class for creating an email provider.
  *
+ * @package Two_Factor
+ */
+
+/**
+ * Class for creating an email provider.
+ *
  * @since 0.1-dev
  *
  * @package Two_Factor
@@ -11,9 +17,16 @@ class Two_Factor_Email extends Two_Factor_Provider {
 	/**
 	 * The user meta token key.
 	 *
-	 * @type string
+	 * @var string
 	 */
 	const TOKEN_META_KEY = '_two_factor_email_token';
+
+	/**
+	 * Store the timestamp when the token was generated.
+	 *
+	 * @var string
+	 */
+	const TOKEN_META_KEY_TIMESTAMP = '_two_factor_email_token_timestamp';
 
 	/**
 	 * Name of the input field used for code resend.
@@ -27,11 +40,11 @@ class Two_Factor_Email extends Two_Factor_Provider {
 	 *
 	 * @since 0.1-dev
 	 */
-	static function get_instance() {
+	public static function get_instance() {
 		static $instance;
 		$class = __CLASS__;
 		if ( ! is_a( $instance, $class ) ) {
-			$instance = new $class;
+			$instance = new $class();
 		}
 		return $instance;
 	}
@@ -42,7 +55,7 @@ class Two_Factor_Email extends Two_Factor_Provider {
 	 * @since 0.1-dev
 	 */
 	protected function __construct() {
-		add_action( 'two-factor-user-options-' . __CLASS__, array( $this, 'user_options' ) );
+		add_action( 'two_factor_user_options_' . __CLASS__, array( $this, 'user_options' ) );
 		return parent::__construct();
 	}
 
@@ -65,7 +78,10 @@ class Two_Factor_Email extends Two_Factor_Provider {
 	 */
 	public function generate_token( $user_id ) {
 		$token = $this->get_code();
+
+		update_user_meta( $user_id, self::TOKEN_META_KEY_TIMESTAMP, time() );
 		update_user_meta( $user_id, self::TOKEN_META_KEY, wp_hash( $token ) );
+
 		return $token;
 	}
 
@@ -80,9 +96,65 @@ class Two_Factor_Email extends Two_Factor_Provider {
 
 		if ( ! empty( $hashed_token ) ) {
 			return true;
-		} else {
+		}
+
+		return false;
+	}
+
+	/**
+	 * Has the user token validity timestamp expired.
+	 *
+	 * @param integer $user_id User ID.
+	 *
+	 * @return boolean
+	 */
+	public function user_token_has_expired( $user_id ) {
+		$token_lifetime = $this->user_token_lifetime( $user_id );
+		$token_ttl      = $this->user_token_ttl( $user_id );
+
+		// Invalid token lifetime is considered an expired token.
+		if ( is_int( $token_lifetime ) && $token_lifetime <= $token_ttl ) {
 			return false;
 		}
+
+		return true;
+	}
+
+	/**
+	 * Get the lifetime of a user token in seconds.
+	 *
+	 * @param integer $user_id User ID.
+	 *
+	 * @return integer|null Return `null` if the lifetime can't be measured.
+	 */
+	public function user_token_lifetime( $user_id ) {
+		$timestamp = intval( get_user_meta( $user_id, self::TOKEN_META_KEY_TIMESTAMP, true ) );
+
+		if ( ! empty( $timestamp ) ) {
+			return time() - $timestamp;
+		}
+
+		return null;
+	}
+
+	/**
+	 * Return the token time-to-live for a user.
+	 *
+	 * @param integer $user_id User ID.
+	 *
+	 * @return integer
+	 */
+	public function user_token_ttl( $user_id ) {
+		$token_ttl = 15 * MINUTE_IN_SECONDS;
+
+		/**
+		 * Number of seconds the token is considered valid
+		 * after the generation.
+		 *
+		 * @param integer $token_ttl Token time-to-live in seconds.
+		 * @param integer $user_id User ID.
+		 */
+		return (int) apply_filters( 'two_factor_token_ttl', $token_ttl, $user_id );
 	}
 
 	/**
@@ -119,7 +191,11 @@ class Two_Factor_Email extends Two_Factor_Provider {
 			return false;
 		}
 
-		// Ensure that the token can't be re-used.
+		if ( $this->user_token_has_expired( $user_id ) ) {
+			return false;
+		}
+
+		// Ensure the token can be used only once.
 		$this->delete_token( $user_id );
 
 		return true;
@@ -152,6 +228,23 @@ class Two_Factor_Email extends Two_Factor_Provider {
 		/* translators: %s: token */
 		$message = wp_strip_all_tags( sprintf( __( 'Enter %s to log in.', 'two-factor' ), $token ) );
 
+		/**
+		 * Filter the token email subject.
+		 *
+		 * @param string $subject The email subject line.
+		 * @param int    $user_id The ID of the user.
+		 */
+		$subject = apply_filters( 'two_factor_token_email_subject', $subject, $user->ID );
+
+		/**
+		 * Filter the token email message.
+		 *
+		 * @param string $message The email message.
+		 * @param string $token   The token.
+		 * @param int    $user_id The ID of the user.
+		 */
+		$message = apply_filters( 'two_factor_token_email_message', $message, $token, $user->ID );
+
 		return wp_mail( $user->user_email, $subject, $message );
 	}
 
@@ -167,16 +260,16 @@ class Two_Factor_Email extends Two_Factor_Provider {
 			return;
 		}
 
-		if ( ! $this->user_has_token( $user->ID ) ) {
+		if ( ! $this->user_has_token( $user->ID ) || $this->user_token_has_expired( $user->ID ) ) {
 			$this->generate_and_email_token( $user );
 		}
 
-		require_once( ABSPATH .  '/wp-admin/includes/template.php' );
+		require_once ABSPATH . '/wp-admin/includes/template.php';
 		?>
 		<p><?php esc_html_e( 'A verification code has been sent to the email address associated with your account.', 'two-factor' ); ?></p>
 		<p>
 			<label for="authcode"><?php esc_html_e( 'Verification Code:', 'two-factor' ); ?></label>
-			<input type="tel" name="two-factor-email-code" id="authcode" class="input" value="" size="20" pattern="[0-9]*" />
+			<input type="tel" name="two-factor-email-code" id="authcode" class="input" value="" size="20" />
 			<?php submit_button( __( 'Log In', 'two-factor' ) ); ?>
 		</p>
 		<p class="two-factor-email-resend">
@@ -224,7 +317,10 @@ class Two_Factor_Email extends Two_Factor_Provider {
 			return false;
 		}
 
-		return $this->validate_token( $user->ID, $_REQUEST['two-factor-email-code'] );
+		// Ensure there are no spaces or line breaks around the code.
+		$code = trim( sanitize_text_field( $_REQUEST['two-factor-email-code'] ) ); // phpcs:ignore WordPress.Security.NonceVerification.Recommended, handled by the core method already.
+
+		return $this->validate_token( $user->ID, $code );
 	}
 
 	/**
@@ -251,11 +347,13 @@ class Two_Factor_Email extends Two_Factor_Provider {
 		?>
 		<div>
 			<?php
-			echo esc_html( sprintf(
+			echo esc_html(
+				sprintf(
 				/* translators: %s: email address */
-				__( 'Authentication codes will be sent to %s.', 'two-factor' ),
-				$email
-			) );
+					__( 'Authentication codes will be sent to %s.', 'two-factor' ),
+					$email
+				)
+			);
 			?>
 		</div>
 		<?php

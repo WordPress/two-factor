@@ -1,6 +1,7 @@
 {
 	"preset": "wordpress",
 	"excludeFiles": [
+		"Gruntfile.js",
 		"**/vendor/**",
 		"**/*.min.js",
 		"**/node_modules/**",
