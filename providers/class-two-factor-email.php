@@ -224,7 +224,7 @@ class Two_Factor_Email extends Two_Factor_Provider {
 		$token = $this->generate_token( $user->ID );
 
 		/* translators: %s: site name */
-		$subject = wp_strip_all_tags( sprintf( __( 'Your login confirmation code for %s', 'two-factor' ), get_bloginfo( 'name' ) ) );
+		$subject = wp_strip_all_tags( sprintf( __( 'Your login confirmation code for %s', 'two-factor' ), wp_specialchars_decode( get_option( 'blogname' ), ENT_QUOTES ) ) );
 		/* translators: %s: token */
 		$message = wp_strip_all_tags( sprintf( __( 'Enter %s to log in.', 'two-factor' ), $token ) );
 
