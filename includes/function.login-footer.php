@@ -54,7 +54,7 @@ function login_footer( $input_id = '' ) {
 		?>
 		<script type="text/javascript">
 		try{document.getElementById('<?php echo $input_id; ?>').focus();}catch(e){}
-		if(typeof wpOnload=='function')wpOnload();
+		if(typeof wpOnload==='function')wpOnload();
 		</script>
 		<?php
 	}
@@ -70,5 +70,18 @@ function login_footer( $input_id = '' ) {
 	<div class="clear"></div>
 	</body>
 	</html>
+	<?php
+}
+
+/**
+ * Outputs the JavaScript to handle the form shaking on the login page.
+ *
+ * @since 3.0.0
+ */
+function wp_shake_js() {
+	?>
+	<script type="text/javascript">
+	document.querySelector('form').classList.add('shake');
+	</script>
 	<?php
 }
