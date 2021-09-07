@@ -678,7 +678,7 @@ class Two_Factor_Core {
 					<?php endforeach; ?>
 				</ul>
 			</div>
-		<?php endif; ?>        
+		<?php endif; ?>
 		<style>
 		    /* @todo: migrate to an external stylesheet. */
 		    .backup-methods-wrap {
@@ -699,7 +699,14 @@ class Two_Factor_Core {
 			display: block;
 		    }
 		</style>
-		<?php login_footer(); ?>
+
+		<?php
+			if ( ! function_exists( 'login_footer' ) ) {
+				include_once TWO_FACTOR_DIR . 'includes/function.login-footer.php';
+			}
+
+			login_footer();
+		?>
 	<?php
 	}
 
