@@ -5,6 +5,8 @@
 /package.json
 /package-lock.json
 /npm-debug.log
+/docker-compose.yml
+/readme.md
 /phpcs.xml
 /phpunit.xml
 /tests
