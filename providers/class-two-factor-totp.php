@@ -55,6 +55,11 @@ class Two_Factor_Totp extends Two_Factor_Provider {
 
 		add_shortcode( 'two-factor-set-topt', array( $this, 'topt_shortcode' ) );
 
+		// Save options if shortcode form is submitted.
+		if ( isset( $_REQUEST['_nonce_user_two_factor_totp_options_shortcode'] ) ) {
+			$this->user_two_factor_options_update_shortcode( get_current_user_id() );
+		}
+
 		return parent::__construct();
 	}
 
@@ -119,6 +124,69 @@ class Two_Factor_Totp extends Two_Factor_Provider {
 		ob_end_clean();
 
 		return $content;
+	}
+
+
+	/**
+	 * Save the options after submitting the shortcode topt form.
+	 *
+	 * @param integer $user_id The user ID whose options are being updated.
+	 *
+	 * @return void
+	 */
+	public function user_two_factor_options_update_shortcode( $user_id ) {
+		$notices = array();
+		$errors  = array();
+		if ( isset( $_REQUEST['_nonce_user_two_factor_totp_options_shortcode'] ) ) {
+			if ( ! check_admin_referer( 'user_two_factor_totp_options_shortcode', '_nonce_user_two_factor_totp_options_shortcode' ) ) {
+				return;
+			}
+
+			// Validate and store a new secret key.
+			if ( ! empty( $_REQUEST['two-factor-totp-authcode'] ) && ! empty( $_REQUEST['two-factor-totp-key'] ) ) {
+				// Don't use filter_input() because we can't mock it during tests for now.
+				$authcode = filter_var( sanitize_text_field( wp_unslash( $_REQUEST['two-factor-totp-authcode'] ) ), FILTER_SANITIZE_NUMBER_INT );
+				$key      = sanitize_text_field( wp_unslash( $_REQUEST['two-factor-totp-key'] ) );
+
+				if ( $this->is_valid_key( $key ) ) {
+					if ( $this->is_valid_authcode( $key, $authcode ) ) {
+						if ( ! $this->set_user_totp_key( $user_id, $key ) ) {
+							$errors[] = __( 'Unable to save Two Factor Authentication code. Please re-scan the QR code and enter the code provided by your application.', 'two-factor' );
+						} else {
+
+							$enabled_providers = get_user_meta( $user_id, Two_Factor_Core::ENABLED_PROVIDERS_USER_META_KEY );
+							if ( $enabled_providers === false ) {
+								$enabled_providers = array();
+							}
+
+							$new_provider = get_class( $this );
+
+							// Enable totp if not yet enabled.
+							if ( ! in_array( $new_provider, $enabled_providers, true ) ) {
+								$enabled_providers[] = $new_provider;
+								update_user_meta( $user_id, Two_Factor_Core::ENABLED_PROVIDERS_USER_META_KEY, $enabled_providers );
+							}
+
+							// Set as primary.
+							update_user_meta( $user_id, Two_Factor_Core::PROVIDER_USER_META_KEY, $new_provider );
+
+						}
+					} else {
+						$errors[] = __( 'Invalid Two Factor Authentication code.', 'two-factor' );
+					}
+				} else {
+					$errors[] = __( 'Invalid Two Factor Authentication secret key.', 'two-factor' );
+				}
+			}
+
+			if ( ! empty( $errors ) ) {
+				$notices['error'] = $errors;
+			}
+
+			if ( ! empty( $notices ) ) {
+				update_user_meta( $user_id, self::NOTICES_META_KEY, $notices );
+			}
+		}
 	}
 
 	/**
