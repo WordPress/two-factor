@@ -53,7 +53,72 @@ class Two_Factor_Totp extends Two_Factor_Provider {
 		add_action( 'edit_user_profile_update', array( $this, 'user_two_factor_options_update' ) );
 		add_action( 'two_factor_user_settings_action', array( $this, 'user_settings_action' ), 10, 2 );
 
+		add_shortcode( 'two-factor-set-topt', array( $this, 'topt_shortcode' ) );
+
 		return parent::__construct();
+	}
+
+	/**
+	 * Output for the two-factor-set-topt shortcode
+	 *
+	 * @param array $atts Array of attributes.
+	 *
+	 * @return string
+	 */
+	public function topt_shortcode( $atts ) {
+		$user = wp_get_current_user();
+
+		if ( ! $user ) {
+			return esc_html__( 'Login to set up your Time-based One-Time Password.', 'two-factor' );
+		}
+
+		$key = $this->get_user_totp_key( $user->ID );
+
+		ob_start();
+		?>
+		<div id="two-factor-totp-options">
+		<?php
+		$this->admin_notices( $user->ID );
+
+		if ( empty( $key ) ) :
+			$key        = $this->generate_key();
+			$site_name  = get_bloginfo( 'name', 'display' );
+			$totp_title = apply_filters( 'two_factor_totp_title', $site_name . ':' . $user->user_login, $user );
+			?>
+			<form>
+			<?php
+				wp_nonce_field( 'user_two_factor_totp_options_shortcode', '_nonce_user_two_factor_totp_options_shortcode', false );
+			?>
+			<p>
+				<?php esc_html_e( 'Please scan the QR code or manually enter the key, then enter an authentication code from your app in order to complete setup.', 'two-factor' ); ?>
+			</p>
+			<p>
+				<img src="<?php echo esc_url( $this->get_google_qr_code( $totp_title, $key, $site_name ) ); ?>" id="two-factor-totp-qrcode" />
+			</p>
+			<p>
+				<code><?php echo esc_html( $key ); ?></code>
+			</p>
+			<p>
+				<input type="hidden" name="two-factor-totp-key" value="<?php echo esc_attr( $key ); ?>" />
+				<label for="two-factor-totp-authcode">
+					<?php esc_html_e( 'Authentication Code:', 'two-factor' ); ?>
+					<input type="tel" name="two-factor-totp-authcode" id="two-factor-totp-authcode" class="input" value="" size="20" pattern="[0-9]*" />
+				</label>
+				<input type="submit" class="button" name="two-factor-totp-submit" value="<?php esc_attr_e( 'Submit', 'two-factor' ); ?>" />
+			</p>
+			</form>
+		<?php else : ?>
+			<p class="success">
+				<?php esc_html_e( 'Secret key is configured and registered. It is not possible to view it again for security reasons.', 'two-factor' ); ?>
+			</p>
+		<?php endif; ?>
+		</div>
+		<?php
+
+		$content = ob_get_contents();
+		ob_end_clean();
+
+		return $content;
 	}
 
 	/**
