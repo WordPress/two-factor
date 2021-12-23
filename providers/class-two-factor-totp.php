@@ -64,7 +64,7 @@ class Two_Factor_Totp extends Two_Factor_Provider {
 	}
 
 	/**
-	 * Output for the two-factor-set-topt shortcode
+	 * Output for the two-factor-set-topt shortcode.
 	 *
 	 * @param array $atts Array of attributes.
 	 *
@@ -133,7 +133,7 @@ class Two_Factor_Totp extends Two_Factor_Provider {
 
 
 	/**
-	 * Save the options after submitting the shortcode topt form.
+	 * Save the options after submitting the shortcode totp form. Enables the totp provider and sets it as primary provider.
 	 *
 	 * @param integer $user_id The user ID whose options are being updated.
 	 *
