@@ -53,7 +53,7 @@ class Two_Factor_Totp extends Two_Factor_Provider {
 		add_action( 'edit_user_profile_update', array( $this, 'user_two_factor_options_update' ) );
 		add_action( 'two_factor_user_settings_action', array( $this, 'user_settings_action' ), 10, 2 );
 
-		add_shortcode( 'two-factor-set-topt', array( $this, 'topt_shortcode' ) );
+		add_shortcode( 'two-factor-set-totp', array( $this, 'topt_shortcode' ) );
 
 		// Save options if shortcode form is submitted.
 		if ( isset( $_REQUEST['_nonce_user_two_factor_totp_options_shortcode'] ) ) {
