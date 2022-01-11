@@ -187,7 +187,7 @@ class Two_Factor_Email extends Two_Factor_Provider {
 		$hashed_token = $this->get_user_token( $user_id );
 
 		// Bail if token is empty or it doesn't match.
-		if ( empty( $hashed_token ) || ( wp_hash( $token ) !== $hashed_token ) ) {
+		if ( empty( $hashed_token ) ||  ! hash_equals( wp_hash( $token ), $hashed_token ) ) {
 			return false;
 		}
 
