@@ -117,6 +117,7 @@ class Two_Factor_Core {
 			'Two_Factor_Email'        => TWO_FACTOR_DIR . 'providers/class-two-factor-email.php',
 			'Two_Factor_Totp'         => TWO_FACTOR_DIR . 'providers/class-two-factor-totp.php',
 			'Two_Factor_FIDO_U2F'     => TWO_FACTOR_DIR . 'providers/class-two-factor-fido-u2f.php',
+			'Two_Factor_WebAuthn'     => TWO_FACTOR_DIR . 'providers/class-two-factor-webauthn.php',
 			'Two_Factor_Backup_Codes' => TWO_FACTOR_DIR . 'providers/class-two-factor-backup-codes.php',
 			'Two_Factor_Dummy'        => TWO_FACTOR_DIR . 'providers/class-two-factor-dummy.php',
 		);
@@ -139,6 +140,18 @@ class Two_Factor_Core {
 				sprintf(
 				/* translators: %s: version number */
 					__( 'FIDO U2F is not available because you are using PHP %s. (Requires 5.3 or greater)', 'two-factor' ), // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
+					PHP_VERSION
+				)
+			);
+		}
+
+		// WebAuthn is PHP 7.2+.
+		if ( isset( $providers['Two_Factor_WebAuthn'] ) && version_compare( PHP_VERSION, '7.2.0', '<' ) ) {
+			unset( $providers['Two_Factor_WebAuthn'] );
+			trigger_error( // phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_trigger_error
+				sprintf(
+				/* translators: %s: version number */
+					__( 'WebAuthn is not available because you are using PHP %s. (Requires 7.2 or greater)', 'two-factor' ), // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
 					PHP_VERSION
 				)
 			);
