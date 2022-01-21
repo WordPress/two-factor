@@ -71,7 +71,7 @@ class WebAuthnKeyStore {
 			"SELECT * FROM $wpdb->usermeta WHERE user_id=%d AND meta_key=%s AND meta_value LIKE %s",
 			$user_id,
 			self::PUBKEY_USERMETA_KEY,
-			$wpdb->esc_like( '%' . $keyLike . '%' )
+			'%' . $wpdb->esc_like( $keyLike ) . '%'
 		) );
 		foreach ( $found as $key ) {
 			return maybe_unserialize( $key->meta_value );

@@ -94,7 +94,7 @@ class Two_Factor_WebAuthn extends Two_Factor_Provider {
 		add_action( 'wp_ajax_webauthn-delete-key', array( $this, 'ajax_delete_key' ) );
 		add_action( 'wp_ajax_webauthn-test-key', array( $this, 'ajax_test_key' ) );
 
-		add_action( 'two-factor-user-options-' . __CLASS__, array( $this, 'user_options' ) );
+		add_action( 'two_factor_user_options_' . __CLASS__, array( $this, 'user_options' ) );
 
 		parent::__construct();
 
@@ -265,7 +265,7 @@ class Two_Factor_WebAuthn extends Two_Factor_Provider {
 		$create_data = array(
 			'action'   => 'webauthn-register',
 			'payload'  => $challenge,
-			'user_id'  => $user->ID,
+			'userId'   => $user->ID,
 			'_wpnonce' => wp_create_nonce( 'webauthn-register' ),
 		);
 
@@ -577,7 +577,7 @@ class Two_Factor_WebAuthn extends Two_Factor_Provider {
 					array(
 						'action'   => 'webauthn-edit-key',
 						'payload'  => $pub_key->md5id,
-						'user_id'  => $user_id,
+						'userId'   => $user_id,
 						'_wpnonce' => wp_create_nonce( 'webauthn-edit-key' ),
 					)
 				)
@@ -610,7 +610,7 @@ class Two_Factor_WebAuthn extends Two_Factor_Provider {
 					array(
 						'action'   => 'webauthn-test-key',
 						'payload'  => $this->webauthn->prepareAuthenticate( array( $pub_key ) ),
-						'user_id'  => $user_id,
+						'userId'   => $user_id,
 						'_wpnonce' => wp_create_nonce( 'webauthn-test-key' ),
 					)
 				)
@@ -628,7 +628,7 @@ class Two_Factor_WebAuthn extends Two_Factor_Provider {
 					array(
 						'action'   => 'webauthn-delete-key',
 						'payload'  => $pub_key->md5id,
-						'user_id'  => $user_id,
+						'userId'   => $user_id,
 						'_wpnonce' => wp_create_nonce( 'webauthn-delete-key' ),
 					)
 				)

@@ -1,6 +1,6 @@
 ( function( $ ) {
 	/**
-	 *	Derived from https://github.com/davidearl/webauthn
+	 *	Borrowed from https://github.com/davidearl/webauthn
 	 */
 	function webauthnAuthenticate( pubKeyAuth, callback ) {
 
@@ -17,9 +17,9 @@
 		/* Ask the browser to prompt the user */
 		navigator.credentials.get( { publicKey: pk } )
 			.then( aAssertion => {
-				var ida, cd, cda, ad, sig, info;
+				let ida, cd, cda, ad, sig, info;
 
-				ida = []
+				ida = [];
 				( new Uint8Array( aAssertion.rawId ) ).forEach( function( v ) {
 					ida.push( v );
 				} );
@@ -53,30 +53,10 @@
 						signature: sig
 					}
 				};
+
 				callback( true, JSON.stringify( info ) );
 			})
 			.catch( err => {
-				/*
-				FF mac:
-				InvalidStateError: key not found
-				AbortError: user aborted or denied
-				NotAllowedError: ?
-					The request is not allowed by the user agent or the platform in the current context, possibly because the user denied permission.
-
-				Chrome mac:
-				NotAllowedError: user aborted or denied
-
-				Safari mac:
-				NotAllowedError: user aborted or denied
-
-				Edge win10:
-				UnknownError: wrong key...?
-				NotAllowedError: user aborted or denied
-
-				FF win:
-				NotAllowedError: user aborted or denied
-					DOMException: "The request is not allowed by the user agent or the platform in the current context, possibly because the user denied permission."
-				*/
 				if ( 'name' in err ) {
 					callback( false, err.name + ': ' + err.message );
 				} else {

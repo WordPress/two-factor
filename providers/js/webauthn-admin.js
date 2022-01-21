@@ -75,7 +75,7 @@
 			.then( aAssertion => {
 				let ida, cd, cda, ad, sig, info;
 
-				ida = []
+				ida = [];
 				( new Uint8Array( aAssertion.rawId ) ).forEach( function( v ) {
 					ida.push( v );
 				} );
@@ -160,7 +160,7 @@
 					data: {
 						action,
 						payload: info,
-						userId,
+						user_id: userId,
 						_wpnonce
 					},
 					success: callback
@@ -194,7 +194,7 @@
 		} );
 	};
 
-	const editKey = ( editLabel, opts ) => {
+	const editKey = ( editLabel, opts, callback = () => {} ) => {
 
 		const {
 			action,
@@ -219,11 +219,12 @@
 							md5id: payload,
 							label: newLabel
 						},
-						userId,
+						user_id: userId,
 						_wpnonce
 					},
 					response => {
 						$( editLabel ).removeClass( 'busy' );
+						callback( response );
 					}
 				);
 			} else if ( ! save ) {
@@ -306,6 +307,7 @@
 				_wpnonce
 			} = opts;
 
+
 			if ( 'webauthn-test-key' === action ) {
 				e.preventDefault();
 				$keyEl.find( '.notice' ).remove();
@@ -320,7 +322,7 @@
 					// Send to server
 					sendRequest( {
 						action,
-						userId,
+						user_id: userId,
 						payload: result.result,
 						_wpnonce
 					}, response => {
@@ -328,7 +330,7 @@
 							$btn.find( '[data-tested]' ).attr( 'data-tested', 'tested' );
 						} else {
 							$btn.find( '[data-tested]' ).attr( 'data-tested', 'fail' );
-							$keyEl.append( `<div class="notice notice-inline notice-error">${response.message}</div>` );
+							$keyEl.append( `<div class="notice notice-inline notice-error">${response.data[0].message}</div>` );
 						}
 						$btn.removeClass( 'busy' );
 					} );
@@ -352,7 +354,11 @@
 			if ( 'webauthn-edit-key' === opts.action ) {
 				if ( 'true' !== $( e.currentTarget ).prop( 'contenteditable' ) ) {
 					e.preventDefault();
-					editKey( e.currentTarget, opts );
+					editKey( e.currentTarget, opts, response => {
+						if ( ! response.success ) {
+							$keyEl.append( `<div class="notice notice-inline notice-error">${response.data[0].message}</div>` );
+						}
+					} );
 				}
 			}
 		} );
