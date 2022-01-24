@@ -59,10 +59,12 @@ class WebAuthnKeyStore {
 	 * Find specific key for user by
 	 *
 	 * @param int $user_id
-	 * @return string|bool
+	 * @param string $keyLike
+	 * @return array|bool
 	 */
-	public function find_key( $user_id, $keyLike = null ) {
+	public function find_key( $user_id, $keyLike ) {
 		global $wpdb;
+
 		if ( is_null( $keyLike ) ) {
 			return false;
 		}
@@ -111,7 +113,7 @@ class WebAuthnKeyStore {
 	 * Delete key for user
 	 *
 	 * @param int $user_id
-	 * @param string $keyLike The old Key to be updated
+	 * @param string $keyLike The Key to be deleted
 	 * @return bool
 	 */
 	public function delete_key( $user_id, $keyLike ) {
