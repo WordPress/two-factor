@@ -117,7 +117,13 @@ class Two_Factor_WebAuthn extends Two_Factor_Provider {
 	 */
 	public function get_app_id() {
 
-		$fqdn = wp_parse_url( network_site_url(), PHP_URL_HOST );
+		$url_parts = wp_parse_url( network_site_url() );
+
+		$app_id = $url_parts['host'];
+
+		if ( ! empty( $url_parts['port'] ) ) {
+			$app_id = sprintf( '%s:%d', $app_id, $url_parts['port'] );
+		}
 
 		/**
 		 * Filter the WebAuthn App ID.
@@ -125,9 +131,9 @@ class Two_Factor_WebAuthn extends Two_Factor_Provider {
 		 * In order for this to work, the App-ID has to be either the current
 		 * (sub-)domain or a suffix of it.
 		 *
-		 * @param string $fqdn Domain name acting as relying party ID.
+		 * @param string $app_id Domain name acting as relying party ID.
 		 */
-		return apply_filters( 'two_factor_webauthn_app_id', $fqdn );
+		return apply_filters( 'two_factor_webauthn_app_id', $app_id );
 
 	}
 
