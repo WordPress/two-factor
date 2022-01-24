@@ -244,7 +244,7 @@ class Two_Factor_Core {
 	 * @return boolean
 	 */
 	public static function is_valid_user_action( $user_id, $action ) {
-		$request_nonce = filter_input( INPUT_GET, self::USER_SETTINGS_ACTION_NONCE_QUERY_ARG, FILTER_SANITIZE_STRING );
+		$request_nonce = filter_input( INPUT_GET, self::USER_SETTINGS_ACTION_NONCE_QUERY_ARG, FILTER_CALLBACK, [ 'options' => 'sanitize_key' ] );
 
 		return wp_verify_nonce(
 			$request_nonce,
@@ -277,7 +277,7 @@ class Two_Factor_Core {
 	 * @return void
 	 */
 	public static function trigger_user_settings_action() {
-		$action  = filter_input( INPUT_GET, self::USER_SETTINGS_ACTION_QUERY_VAR, FILTER_SANITIZE_STRING );
+		$action  = filter_input( INPUT_GET, self::USER_SETTINGS_ACTION_QUERY_VAR, FILTER_CALLBACK, [ 'options' => 'sanitize_key' ] );
 		$user_id = self::current_user_being_edited();
 
 		if ( ! empty( $action ) && self::is_valid_user_action( $user_id, $action ) ) {
@@ -537,8 +537,8 @@ class Two_Factor_Core {
 	 */
 	public static function backup_2fa() {
 		$wp_auth_id = filter_input( INPUT_GET, 'wp-auth-id', FILTER_SANITIZE_NUMBER_INT );
-		$nonce      = filter_input( INPUT_GET, 'wp-auth-nonce', FILTER_SANITIZE_STRING );
-		$provider   = filter_input( INPUT_GET, 'provider', FILTER_SANITIZE_STRING );
+		$nonce      = filter_input( INPUT_GET, 'wp-auth-nonce', FILTER_CALLBACK, [ 'options' => 'sanitize_key' ] );
+		$provider   = filter_input( INPUT_GET, 'provider', FILTER_CALLBACK, [ 'options' => 'sanitize_text_field' ] );
 
 		if ( ! $wp_auth_id || ! $nonce || ! $provider ) {
 			return;
@@ -794,7 +794,7 @@ class Two_Factor_Core {
 	 */
 	public static function login_form_validate_2fa() {
 		$wp_auth_id = filter_input( INPUT_POST, 'wp-auth-id', FILTER_SANITIZE_NUMBER_INT );
-		$nonce      = filter_input( INPUT_POST, 'wp-auth-nonce', FILTER_SANITIZE_STRING );
+		$nonce      = filter_input( INPUT_POST, 'wp-auth-nonce', FILTER_CALLBACK, [ 'options' => 'sanitize_key' ] );
 
 		if ( ! $wp_auth_id || ! $nonce ) {
 			return;
@@ -810,7 +810,7 @@ class Two_Factor_Core {
 			exit;
 		}
 
-		$provider = filter_input( INPUT_POST, 'provider', FILTER_SANITIZE_STRING );
+		$provider = filter_input( INPUT_POST, 'provider', FILTER_CALLBACK, [ 'options' => 'sanitize_text_field' ] );
 		if ( $provider ) {
 			$providers = self::get_available_providers_for_user( $user );
 			if ( isset( $providers[ $provider ] ) ) {

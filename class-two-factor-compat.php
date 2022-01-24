@@ -35,7 +35,7 @@ class Two_Factor_Compat {
 	 * @return boolean
 	 */
 	public function jetpack_rememberme( $rememberme ) {
-		$action = filter_input( INPUT_GET, 'action', FILTER_SANITIZE_STRING );
+		$action = filter_input( INPUT_GET, 'action', FILTER_CALLBACK, [ 'options' => 'sanitize_key' ] );
 
 		if ( 'jetpack-sso' === $action && $this->jetpack_is_sso_active() ) {
 			return true;
