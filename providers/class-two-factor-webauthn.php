@@ -402,7 +402,7 @@ class Two_Factor_WebAuthn extends Two_Factor_Provider {
 			$key->last_used = false;
 			$key->tested    = false;
 
-			if ( false !== $this->key_store->find_key( $user_id, $key->md5id ) ) {
+			if ( false !== $this->key_store->key_exists( $key->md5id ) ) {
 				wp_send_json_error( new WP_Error( 'webauthn', esc_html__( 'Device already Exists', 'two-factor' ) ) );
 				exit();
 			}

@@ -79,6 +79,25 @@ class WebAuthnKeyStore {
 			return maybe_unserialize( $key->meta_value );
 		}
 		return false;
+	}
+
+	/**
+	 * Check whether a key exists
+	 *
+	 * @param string $keyLike
+	 * @return bool
+	 */
+	public function key_exists( $keyLike ) {
+
+		global $wpdb;
+
+		$num_keys = $wpdb->get_var( $wpdb->prepare(
+			"SELECT COUNT(*) FROM $wpdb->usermeta WHERE meta_key=%s AND meta_value LIKE %s",
+			self::PUBKEY_USERMETA_KEY,
+			'%' . $wpdb->esc_like( $keyLike ) . '%'
+		) );
+
+		return intval( $num_keys ) !== 0;
 
 	}
 
