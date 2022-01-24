@@ -118,12 +118,12 @@ class WebAuthnKeyStore {
 	 */
 	public function delete_key( $user_id, $keyLike ) {
 		global $wpdb;
-		return $wpdb->query( $wpdb->prepare(
-			"DELETE FROM $wpdb->usermeta WHERE user_id=%d AND meta_key=%s AND meta_value LIKE %s",
-			$user_id,
-			self::PUBKEY_USERMETA_KEY,
-			'%' . $keyLike . '%'
-		) ) !== 0;
+
+		if ( $key = $this->find_key( $user_id, $keyLike ) ) {
+			return delete_user_meta( $user_id, self::PUBKEY_USERMETA_KEY, $key );
+		}
+
+		return false;
 	}
 
 
