@@ -378,7 +378,7 @@ class Two_Factor_Force {
 	public static function global_force_2fa_by_role_field() {
 		$forced_roles          = self::get_forced_user_roles();
 		$is_universally_forced = self::get_universally_forced_option();
-		$roles                 = array_merge( [ 'super-admin' => [ 'name' => 'Super Administrator' ] ], get_editable_roles() );
+		$roles                 = array_merge( [ 'super-admin' => [ 'name' => __( 'Super Admin' ) ] ], get_editable_roles() );
 
 		?>
 		<input type="hidden" name="<?php echo esc_attr( sprintf( '%s[%s]', self::FORCED_ROLES_META_KEY, 'no-role-selected' ) ); ?>" />
