@@ -12,7 +12,7 @@ class Test_ClassTwoFactorForce extends WP_UnitTestCase {
 	 */
 	public function test_add_hooks() {
 		Two_Factor_Force::add_hooks();
-		
+
 		$this->assertGreaterThan(
 			0,
 			has_action(
@@ -171,6 +171,23 @@ class Test_ClassTwoFactorForce extends WP_UnitTestCase {
 	}
 
 	/**
+	 * @covers Two_Factor_Force::is_two_factor_forced
+	 */
+	public function test_is_two_factor_forced_super_admin() {
+		// Set role-based value to editors and adminstrators.
+		update_site_option( Two_Factor_Force::FORCED_ROLES_META_KEY, [ 'super-admin' ] );
+
+		$user = new WP_User( $this->factory->user->create( [ 'role' => 'administrator' ] ) );
+		wp_set_current_user( $user->ID );
+		// Make the user super admin
+		add_filter( 'pre_site_option_site_admins', function() use ( $user ) {
+			return [ $user->user_login ];
+		} );
+
+		$this->assertTrue( Two_Factor_Force::is_two_factor_forced( $user->ID ) );
+	}
+
+	/**
 	 * @covers Two_Factor_Force::get_universally_forced_option
 	 */
 	public function test_get_universally_forced_option_multisite() {
@@ -185,8 +202,8 @@ class Test_ClassTwoFactorForce extends WP_UnitTestCase {
 	 */
 	public function test_get_forced_user_roles_multisite() {
 		// Set role-based value to editors and adminstrators.
-		update_site_option( Two_Factor_Force::FORCED_ROLES_META_KEY, [ 'author', 'editor', 'administrator' ] );
+		update_site_option( Two_Factor_Force::FORCED_ROLES_META_KEY, [ 'author', 'editor', 'administrator', 'super-admin' ] );
 
-		$this->assertEquals( [ 'author', 'editor', 'administrator' ], Two_Factor_Force::get_forced_user_roles() );
+		$this->assertEquals( [ 'author', 'editor', 'administrator', 'super-admin' ], Two_Factor_Force::get_forced_user_roles() );
 	}
 }

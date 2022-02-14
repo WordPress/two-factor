@@ -280,7 +280,12 @@ class Two_Factor_Force {
 
 		// Check whether a user is in a user role that requires two-factor authentication.
 		$two_factor_forced_roles = self::get_forced_user_roles();
-		$required_roles          = array_filter( $user->roles, function( $role ) use ( $two_factor_forced_roles ) {
+		$user_roles              = $user->roles;
+		if ( is_super_admin( $user->ID ) ) {
+			array_push( $user_roles, 'super-admin' );
+		}
+
+		$required_roles          = array_filter( $user_roles, function( $role ) use ( $two_factor_forced_roles ) {
 			return in_array( $role, $two_factor_forced_roles, true );
 		}, ARRAY_FILTER_USE_BOTH );
 
@@ -373,12 +378,13 @@ class Two_Factor_Force {
 	public static function global_force_2fa_by_role_field() {
 		$forced_roles          = self::get_forced_user_roles();
 		$is_universally_forced = self::get_universally_forced_option();
+		$roles                 = array_merge( [ 'super-admin' => [ 'name' => 'Super Administrator' ] ], get_editable_roles() );
 
 		?>
 		<input type="hidden" name="<?php echo esc_attr( sprintf( '%s[%s]', self::FORCED_ROLES_META_KEY, 'no-role-selected' ) ); ?>" />
 		<?php
 
-		foreach ( get_editable_roles() as $slug => $role ) :
+		foreach ( $roles as $slug => $role ) :
 			?>
 			<label>
 				<input type='checkbox' name="<?php echo esc_attr( sprintf( '%s[%s]', self::FORCED_ROLES_META_KEY, $slug ) ); ?>" value="1" <?php checked( in_array( $slug, $forced_roles, true ) ); ?> <?php echo ( $is_universally_forced ) ? 'readonly' : ''; ?> />
