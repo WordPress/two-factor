@@ -424,11 +424,11 @@ class Two_Factor_Totp extends Two_Factor_Provider {
 	 */
 	public static function get_qr_code( $name, $key, $title = null ) {
 		// Encode to support spaces, question marks and other characters.
-		$name        = rawurlencode( $name );
-		$otpauth_uri = urlencode( 'otpauth://totp/' . $name . '?secret=' . $key );
+		$otpauth_uri = 'otpauth://totp/' . urlencode( $name ) . '?secret=' . urlencode( $key );
 		if ( isset( $title ) ) {
-			$otpauth_uri .= urlencode( '&issuer=' . rawurlencode( $title ) );
+			$otpauth_uri .= '&issuer=' . urlencode( $title );
 		}
+
 		return self::qr_code( $otpauth_uri );
 	}
 
