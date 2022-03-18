@@ -52,7 +52,6 @@ class Two_Factor_Totp extends Two_Factor_Provider {
 		add_action( 'personal_options_update', array( $this, 'user_two_factor_options_update' ) );
 		add_action( 'edit_user_profile_update', array( $this, 'user_two_factor_options_update' ) );
 		add_action( 'two_factor_user_settings_action', array( $this, 'user_settings_action' ), 10, 2 );
-		add_action( 'wp_ajax_two-factor_qr', array( $this, 'qr' ) );
 
 		return parent::__construct();
 	}
@@ -128,7 +127,7 @@ class Two_Factor_Totp extends Two_Factor_Provider {
 				<?php esc_html_e( 'Please scan the QR code or manually enter the key, then enter an authentication code from your app in order to complete setup.', 'two-factor' ); ?>
 			</p>
 			<p>
-				<img src="<?php echo esc_url( $this->get_qr_code( $totp_title, $key, $site_name ) ); ?>" id="two-factor-totp-qrcode" />
+				<?php echo $this->get_qr_code( $totp_title, $key, $site_name ); ?>
 			</p>
 			<p>
 				<code><?php echo esc_html( $key ); ?></code>
@@ -425,27 +424,20 @@ class Two_Factor_Totp extends Two_Factor_Provider {
 	 */
 	public static function get_qr_code( $name, $key, $title = null ) {
 		// Encode to support spaces, question marks and other characters.
-		$name       = rawurlencode( $name );
+		$name        = rawurlencode( $name );
 		$otpauth_uri = urlencode( 'otpauth://totp/' . $name . '?secret=' . $key );
 		if ( isset( $title ) ) {
 			$otpauth_uri .= urlencode( '&issuer=' . rawurlencode( $title ) );
 		}
-		return get_admin_url( null, 'admin-ajax.php?action=two-factor_qr&uri=' . $otpauth_uri );
+		return self::qr_code( $otpauth_uri );
 	}
 
-	/**
-	 * Display the QR code.
-	 */
-	public static function qr( ) {
-		$uri = $_GET['uri'];
-
+	public static function qr_code( $uri ) {
 		$renderer = new \TwoFactor\BaconQrCode\Renderer\Image\Svg();
-		$renderer->setHeight(300);
-		$renderer->setWidth(300);
-		$writer = new \TwoFactor\BaconQrCode\Writer($renderer);
-		header('Content-Type: image/svg+xml');
-		echo $writer->writeString($uri);
-		exit(0);
+		$renderer->setHeight( 300 );
+		$renderer->setWidth( 300 );
+		$writer = new \TwoFactor\BaconQrCode\Writer( $renderer );
+		return $writer->writeString( $uri );
 	}
 
 	/**
