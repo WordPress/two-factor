@@ -37,6 +37,7 @@ install:
 
 script:
   - source "$DEV_LIB_PATH/travis.script.sh"
+  - npm run build
 
 after_script:
   - source "$DEV_LIB_PATH/travis.after_script.sh"
