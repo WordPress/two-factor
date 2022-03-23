@@ -7,7 +7,7 @@ Enable Two-Factor Authentication using time-based one-time passwords (OTP, Googl
 **Contributors:** [georgestephanis](https://profiles.wordpress.org/georgestephanis), [valendesigns](https://profiles.wordpress.org/valendesigns), [stevenkword](https://profiles.wordpress.org/stevenkword), [extendwings](https://profiles.wordpress.org/extendwings), [sgrant](https://profiles.wordpress.org/sgrant), [aaroncampbell](https://profiles.wordpress.org/aaroncampbell), [johnbillion](https://profiles.wordpress.org/johnbillion), [stevegrunwell](https://profiles.wordpress.org/stevegrunwell), [netweb](https://profiles.wordpress.org/netweb), [kasparsd](https://profiles.wordpress.org/kasparsd), [alihusnainarshad](https://profiles.wordpress.org/alihusnainarshad), [passoniate](https://profiles.wordpress.org/passoniate)  
 **Tags:** [two factor](https://wordpress.org/plugins/tags/two-factor), [two step](https://wordpress.org/plugins/tags/two-step), [authentication](https://wordpress.org/plugins/tags/authentication), [login](https://wordpress.org/plugins/tags/login), [totp](https://wordpress.org/plugins/tags/totp), [fido u2f](https://wordpress.org/plugins/tags/fido-u2f), [u2f](https://wordpress.org/plugins/tags/u2f), [email](https://wordpress.org/plugins/tags/email), [backup codes](https://wordpress.org/plugins/tags/backup-codes), [2fa](https://wordpress.org/plugins/tags/2fa), [yubikey](https://wordpress.org/plugins/tags/yubikey)  
 **Requires at least:** 4.3  
-**Tested up to:** 5.8  
+**Tested up to:** 5.9  
 **Stable tag:** trunk (master)  
 **Requires PHP:** 5.6  
 
