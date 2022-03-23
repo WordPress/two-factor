@@ -1,6 +1,10 @@
 {
   "name": "two-factor",
   "title": "Two Factor",
+  "engineStrict": true,
+  "engines": {
+    "node": ">=16"
+  },
   "homepage": "https://github.com/wordpress/two-factor",
   "scripts": {
     "deploy": "grunt deploy",
