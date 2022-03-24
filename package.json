@@ -10,10 +10,9 @@
   "scripts": {
     "env": "wp-env",
     "deploy": "grunt deploy",
-    "build": "npm run readme && grunt build",
+    "build": "grunt build",
     "test": "npm-run-all test-*",
     "test-php": "wp-env run phpunit 'composer test --working-dir=/var/www/html/wp-content/plugins/two-factor'",
-    "readme": "./vendor/xwp/wp-dev-lib/scripts/generate-markdown-readme",
     "preinstall": "composer install"
   },
   "repository": {
