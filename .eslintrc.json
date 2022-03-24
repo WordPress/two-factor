@@ -1,3 +1,6 @@
 {
-  "extends": [ "plugin:@wordpress/eslint-plugin/es5" ]
+  "extends": [ "plugin:@wordpress/eslint-plugin/es5" ],
+  "rules": {
+    "comma-dangle": "off"
+  }
 }
