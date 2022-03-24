@@ -38,7 +38,6 @@
     "grunt-contrib-copy": "^1.0.0",
     "grunt-wp-deploy": "^2.1.2",
     "husky": "^0.14.3",
-    "jshint": "^2.13.1",
     "load-grunt-tasks": "^4.0.0",
     "npm-run-all": "^4.1.5",
     "parse-gitignore": "^0.5.1"
