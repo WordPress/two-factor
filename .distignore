@@ -7,8 +7,8 @@
 /npm-debug.log
 /docker-compose.yml
 /readme.md
-/phpcs.xml
-/phpunit.xml
+/phpcs.*
+/phpunit.*
 /tests
 /vendor
 /node_modules
