@@ -33,7 +33,10 @@ module.exports = function( grunt ) {
 				plugin_slug: 'two-factor',
 				build_dir: '<%= dist_dir %>',
 				assets_dir: 'assets',
+				skip_confirmation: process.env.DEPLOY_SKIP_CONFIRMATION,
 				svn_user: process.env.DEPLOY_SVN_USERNAME,
+				deploy_tag: process.env.DEPLOY_TAG,
+				deploy_trunk: process.env.DEPLOY_TRUNK,
 			}
 		},
 	} );
