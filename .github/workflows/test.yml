@@ -35,9 +35,6 @@ jobs:
       - name: Lint PHP
         run: npm run lint:php || true # Ignore for now.
 
-      - name: Lint PHP with WP ruleset ignored
-        run: npm run lint:php -- -- --standard=phpcs-temp.xml
-
       - name: Start the Docker testing environment
         run: npm run env start --xdebug=coverage
 

@@ -21,6 +21,10 @@ Here is how to get started:
 
 Then open [a pull request](https://help.github.com/articles/creating-a-pull-request-from-a-fork/) with the suggested changes.
 
+## Known Issues
+
+- PHP codebase doesn't pass the WordPress coding standard checks, see [#437](https://github.com/WordPress/two-factor/issues/437).
+
 ## Credits
 
 Created [by contributors](https://github.com/WordPress/two-factor/graphs/contributors) and released under [GPLv2 or later](LICENSE.md).
