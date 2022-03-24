@@ -1,4 +1,11 @@
 <?php
+/**
+ * WP config for PHP unit tests.
+ *
+ * @package two-factor
+ *
+ * phpcs:disable WordPress.PHP.DisallowShortTernary.Found
+ */
 
 // Use our local WordPress source code which can be adjusted through Composer.
 define( 'ABSPATH', dirname( __DIR__ ) . '/wordpress/' );
@@ -16,7 +23,7 @@ define( 'DB_HOST', getenv( 'WORDPRESS_DB_HOST' ) ?: 'localhost' );
 define( 'DB_CHARSET', 'utf8' );
 define( 'DB_COLLATE', '' );
 
-$table_prefix = getenv( 'WORDPRESS_TABLE_PREFIX' ) ?: 'wpphpunittests_';
+$table_prefix = getenv( 'WORDPRESS_TABLE_PREFIX' ) ?: 'wpphpunittests_'; // phpcs:disable WordPress.WP.GlobalVariablesOverride.Prohibited
 
 define( 'WP_TESTS_DOMAIN', 'example.org' );
 define( 'WP_TESTS_EMAIL', 'admin@example.org' );
