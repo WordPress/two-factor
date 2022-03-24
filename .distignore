@@ -1,4 +1,8 @@
 .*
+/tests/
+/vendor/
+/node_modules/
+/wordpress/
 /Gruntfile.js
 /composer.json
 /composer.lock
@@ -9,6 +13,3 @@
 /readme.md
 /phpcs*
 /phpunit*
-/tests
-/vendor
-/node_modules
