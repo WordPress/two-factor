@@ -1,5 +1,7 @@
 # Two-Factor
 
+[![Test](https://github.com/WordPress/two-factor/actions/workflows/test.yml/badge.svg)](https://github.com/WordPress/two-factor/actions/workflows/test.yml)
+
 Two-Factor plugin for WordPress. [View on WordPress.org →](https://wordpress.org/plugins/two-factor/)
 
 ## Usage
