@@ -2,10 +2,9 @@
 <ruleset name="WordPress Coding Standards">
 	<arg name="colors" />
 	<arg value="ps" />
-	<arg name="basepath" value="."/>
-	<arg name="parallel" value="50"/>
-	<arg name="extensions" value="php"/>
-	<arg name="severity" value="1"/>
+	<arg name="basepath" value="." />
+	<arg name="parallel" value="50" />
+	<arg name="extensions" value="php" />
 
 	<!-- Lint all PHP files by default. -->
 	<file>.</file>
