@@ -14,7 +14,8 @@
       "php": "5.6.20"
     },
     "allow-plugins": {
-      "roots/wordpress-core-installer": true
+      "roots/wordpress-core-installer": true,
+      "dealerdirect/phpcodesniffer-composer-installer": true
     }
   },
   "require": {
@@ -26,7 +27,9 @@
     "roots/wordpress": "^5.9",
     "wp-phpunit/wp-phpunit": "^5.9",
     "phpunit/phpunit": "^5",
-    "yoast/phpunit-polyfills": "^1.0"
+    "yoast/phpunit-polyfills": "^1.0",
+    "phpcompatibility/phpcompatibility-wp": "^2.1",
+    "dealerdirect/phpcodesniffer-composer-installer": "^0.7.2"
   },
   "scripts": {
     "lint": "phpcs",
