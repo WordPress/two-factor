@@ -1,0 +1,33 @@
+name: Test
+
+on: push
+
+jobs:
+
+  lint:
+    name: Lint and Test
+    runs-on: ubuntu-20.04
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+
+      - name: Setup Node
+        uses: actions/setup-node@v3
+        with:
+          cache: 'npm'
+          node-version-file: '.nvmrc'
+
+      - name: Install NPM dependencies
+        run: npm install
+
+      - name: Lint
+        run: npm run lint || true
+
+      - name: Start the Docker testing environment
+        run: npm run env start --xdebug=coverage
+
+      - name: Test
+        run: npm run test
+
+      - name: Build
+        run: npm run build
