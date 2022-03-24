@@ -30,6 +30,7 @@
   },
   "scripts": {
     "lint": "phpcs",
-    "test": "phpunit"
+    "test": "phpunit",
+    "format": "phpcbf"
   }
 }
