@@ -13,6 +13,7 @@
 	<config name="testVersion" value="5.6-"/><!-- Ensure all PHP code is compatible with PHP 5.6 and higher. -->
 
 	<rule ref="WordPress" />
+	<rule ref="WordPress-VIP-Go" />
 
 	<!-- disable nonce checks on tests -->
 	<rule ref="WordPress.Security.NonceVerification">
