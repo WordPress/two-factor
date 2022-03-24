@@ -26,8 +26,14 @@ jobs:
       - name: Install NPM dependencies
         run: npm install
 
-      - name: Lint
-        run: npm run lint || true
+      - name: Lint JS
+        run: npm run lint:js
+
+      - name: Lint CSS
+        run: npm run lint:css
+
+      - name: Lint PHP
+        run: npm run lint:php || true # Ignore for now.
 
       - name: Start the Docker testing environment
         run: npm run env start --xdebug=coverage
