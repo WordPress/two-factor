@@ -14,6 +14,8 @@
 	<arg name="parallel" value="50"/>
 	<arg name="extensions" value="php"/>
 	<arg name="severity" value="1"/>
+
+	<!-- Lint all PHP files by default. -->
 	<file>.</file>
 
 	<!-- disable nonce checks on tests -->
@@ -22,6 +24,8 @@
 		<exclude-pattern>tests/providers/*.php</exclude-pattern>
 	</rule>
 
+	<exclude-pattern>*/wordpress/*</exclude-pattern>
+	<exclude-pattern>*/dist/*</exclude-pattern>
 	<exclude-pattern>*/includes/*</exclude-pattern>
 	<exclude-pattern>*/node_modules/*</exclude-pattern>
 	<exclude-pattern>*/vendor/*</exclude-pattern>
