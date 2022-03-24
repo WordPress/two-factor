@@ -12,6 +12,10 @@
   "config": {
     "platform": {
       "php": "5.6.20"
+    },
+    "allow-plugins": {
+      "roots/wordpress-core-installer": true,
+      "dealerdirect/phpcodesniffer-composer-installer": true
     }
   },
   "require": {
@@ -20,6 +24,17 @@
   "require-dev": {
     "php-coveralls/php-coveralls": "^2.4",
     "wp-coding-standards/wpcs": "^2.3",
-    "xwp/wp-dev-lib": "^1.0"
+    "roots/wordpress": "^5.9",
+    "wp-phpunit/wp-phpunit": "^5.9",
+    "phpunit/phpunit": "^5",
+    "yoast/phpunit-polyfills": "^1.0",
+    "phpcompatibility/phpcompatibility-wp": "^2.1",
+    "dealerdirect/phpcodesniffer-composer-installer": "^0.7.2",
+    "automattic/vipwpcs": "^2.3"
+  },
+  "scripts": {
+    "lint": "phpcs",
+    "test": "phpunit",
+    "format": "phpcbf"
   }
 }

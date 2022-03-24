@@ -37,14 +37,7 @@ Here is a list of action and filter hooks provided by the plugin:
 
 == Get Involved ==
 
-Development happens [on GitHub](https://github.com/wordpress/two-factor/). Join the `#core-passwords` channel [on WordPress Slack](http://wordpress.slack.com) ([sign up here](http://chat.wordpress.org)).
-
-Here is how to get started:
-
-    $ git clone https://github.com/wordpress/two-factor.git
-    $ npm install
-
-Then open [a pull request](https://help.github.com/articles/creating-a-pull-request-from-a-fork/) with the suggested changes.
+Development happens [on GitHub](https://github.com/wordpress/two-factor/).
 
 == Changelog ==
 
