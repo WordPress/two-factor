@@ -90,7 +90,7 @@ var inlineEditKey;
 			// Make ajax request.
 			$.post( ajaxurl, params,
 				function( r ) {
-					var row, newID, optionValue;
+					var row, newID;
 					$( '#security-keys-section table.widefat .spinner' ).removeClass( 'is-active' );
 
 					if ( r ) {
@@ -101,10 +101,8 @@ var inlineEditKey;
 							$( '#edit-' + id ).before( r ).remove();
 
 							if ( newID ) {
-								optionValue = newID.replace( 'key-', '' );
 								row = $( '#' + newID );
 							} else {
-								optionValue = id;
 								row = $( inlineEditKey.what + id );
 							}
 
