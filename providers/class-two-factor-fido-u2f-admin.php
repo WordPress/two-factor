@@ -281,6 +281,7 @@ class Two_Factor_FIDO_U2F_Admin {
 			Two_Factor_FIDO_U2F::delete_security_key( $user_id, $slug );
 
 			wp_safe_redirect( remove_query_arg( 'new_app_pass', wp_get_referer() ) . '#security-keys-section' );
+			exit;
 		}
 	}
 
