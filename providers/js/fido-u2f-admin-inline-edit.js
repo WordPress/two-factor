@@ -1,4 +1,4 @@
-/* global inlineEditL10n, ajaxurl */
+/* global window, document, jQuery, inlineEditL10n, ajaxurl */
 var inlineEditKey;
 
 ( function( $ ) {
@@ -142,5 +142,4 @@ var inlineEditKey;
 	$( document ).ready( function() {
 		inlineEditKey.init();
 	} );
-
-} )( jQuery );
+}( jQuery ) );
