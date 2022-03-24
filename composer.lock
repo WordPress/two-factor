@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "23c4820fa5031f7be78f74ef84c217e3",
+    "content-hash": "5911d4d479bc7c0fd786a84b94c07a9d",
     "packages": [],
     "packages-dev": [
         {
@@ -3051,47 +3051,6 @@
                 "source": "https://github.com/wp-phpunit/wp-phpunit"
             },
             "time": "2022-02-22T20:53:17+00:00"
-        },
-        {
-            "name": "xwp/wp-dev-lib",
-            "version": "1.6.5",
-            "source": {
-                "type": "git",
-                "url": "https://github.com/xwp/wp-dev-lib.git",
-                "reference": "a62ccca94f9995f294e12d500c45856adff81e34"
-            },
-            "dist": {
-                "type": "zip",
-                "url": "https://api.github.com/repos/xwp/wp-dev-lib/zipball/a62ccca94f9995f294e12d500c45856adff81e34",
-                "reference": "a62ccca94f9995f294e12d500c45856adff81e34",
-                "shasum": ""
-            },
-            "type": "library",
-            "notification-url": "https://packagist.org/downloads/",
-            "license": [
-                "MIT"
-            ],
-            "authors": [
-                {
-                    "name": "XWP",
-                    "email": "technology@xwp.co",
-                    "homepage": "https://xwp.co"
-                }
-            ],
-            "description": "Common code used during development of WordPress plugins and themes",
-            "homepage": "https://github.com/xwp/wp-dev-lib",
-            "keywords": [
-                "development",
-                "plugins",
-                "themes",
-                "tools",
-                "wordpress"
-            ],
-            "support": {
-                "issues": "https://github.com/xwp/wp-dev-lib/issues",
-                "source": "https://github.com/xwp/wp-dev-lib"
-            },
-            "time": "2020-10-16T04:03:40+00:00"
         },
         {
             "name": "yoast/phpunit-polyfills",
