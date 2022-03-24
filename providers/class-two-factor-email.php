@@ -245,7 +245,7 @@ class Two_Factor_Email extends Two_Factor_Provider {
 		 */
 		$message = apply_filters( 'two_factor_token_email_message', $message, $token, $user->ID );
 
-		return wp_mail( $user->user_email, $subject, $message );
+		return wp_mail( $user->user_email, $subject, $message ); // phpcs:ignore WordPressVIPMinimum.Functions.RestrictedFunctions.wp_mail_wp_mail
 	}
 
 	/**
