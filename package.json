@@ -13,8 +13,11 @@
     "build": "grunt build",
     "lint": "npm-run-all lint:*",
     "lint:php": "composer lint",
+    "lint:css": "wp-scripts lint-style ./user-edit.css ./providers/css/",
+    "lint:js": "wp-scripts lint-js ./Gruntfile.js ./providers/js/",
     "format": "npm-run-all format:*",
     "format:php": "composer format",
+    "format:js": "npm run lint:js -- --fix",
     "test": "npm-run-all test:*",
     "test:php": "wp-env run phpunit 'composer test --working-dir=/var/www/html/wp-content/plugins/two-factor'",
     "preinstall": "composer install"
@@ -27,6 +30,8 @@
   "license": "GPL-2.0+",
   "devDependencies": {
     "@wordpress/env": "^4.4.0",
+    "@wordpress/eslint-plugin": "^11.1.0",
+    "@wordpress/scripts": "^22.3.0",
     "grunt": "^1.4.1",
     "grunt-cli": "^1.4.3",
     "grunt-contrib-clean": "^2.0.0",
