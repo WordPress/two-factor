@@ -1,0 +1,45 @@
+name: Deploy
+
+on:
+  push:
+    # TODO: Limit to master branch for trunk deployments and all tags.
+    branches:
+    tags:
+
+jobs:
+
+  deploy:
+    name: Deploy to WordPress.org
+    runs-on: ubuntu-20.04
+    needs: test
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+
+      - name: Setup Node
+        uses: actions/setup-node@v3
+        with:
+          cache: 'npm'
+          node-version-file: '.nvmrc'
+
+      - name: Setup PHP and Composer
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '5.6'
+          tools: composer:v2
+
+      - name: Install NPM dependencies
+        run: npm install
+
+      #- name: Authenticate with WordPress.org SVN
+      #  run: svn co --username ${{ secrets.DEPLOY_SVN_USERNAME }} --password "${{ secrets.DEPLOY_SVN_PASSWORD }}" https://plugins.svn.wordpress.org/two-factor/
+
+      - name: Deploy to WordPress.org SVN
+        env:
+          DEPLOY_SVN_USERNAME: ${{ secrets.DEPLOY_SVN_USERNAME }}
+          DEPLOY_TRUNK: ${{ contains( github.ref_name, 'master' ) }}
+          DEPLOY_TAG: ${{ contains( github.ref_type, 'tag' ) }}
+          DEPLOY_SKIP_CONFIRMATION: true
+        run: |
+          printenv
+          npm run deploy
