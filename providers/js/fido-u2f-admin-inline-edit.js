@@ -39,7 +39,12 @@ var inlineEditKey;
 
 		toggle: function( el ) {
 			var t = this;
-			'none' === $( t.what + t.getId( el ) ).css( 'display' ) ? t.revert() : t.edit( el );
+
+			if ( 'none' === $( t.what + t.getId( el ) ).css( 'display' ) ) {
+				t.revert();
+			} else {
+				t.edit( el );
+			}
 		},
 
 		edit: function( id ) {
@@ -51,7 +56,9 @@ var inlineEditKey;
 				id = t.getId( id );
 			}
 
-			editRow = $( '#inline-edit' ).clone( true ), rowData = $( '#inline_' + id );
+			editRow = $( '#inline-edit' ).clone( true );
+			rowData = $( '#inline_' + id );
+
 			$( 'td', editRow ).attr( 'colspan', $( 'th:visible, td:visible', '#security-keys-section .widefat thead' ).length );
 
 			$( t.what + id ).hide().after( editRow ).after( '<tr class="hidden"></tr>' );
