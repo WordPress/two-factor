@@ -1,6 +1,7 @@
 {
   "name": "two-factor",
   "title": "Two Factor",
+  "private": true,
   "engineStrict": true,
   "engines": {
     "node": ">=16"
