@@ -13,7 +13,7 @@
     "build": "grunt build",
     "lint": "npm-run-all lint:*",
     "lint:php": "composer lint",
-    "test": "npm-run-all test-*",
+    "test": "npm-run-all test:*",
     "test:php": "wp-env run phpunit 'composer test --working-dir=/var/www/html/wp-content/plugins/two-factor'",
     "preinstall": "composer install"
   },
