@@ -34,6 +34,7 @@ module.exports = function( grunt ) {
 				build_dir: '<%= dist_dir %>',
 				assets_dir: 'assets',
 				deploy_tag: false,
+				svn_user: process.env.DEPLOY_SVN_USERNAME,
 			},
 			trunk: {
 				deploy_trunk: true,
