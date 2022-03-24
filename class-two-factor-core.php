@@ -680,34 +680,34 @@ class Two_Factor_Core {
 			</div>
 		<?php endif; ?>
 		<style>
-		    /* @todo: migrate to an external stylesheet. */
-		    .backup-methods-wrap {
+			/* @todo: migrate to an external stylesheet. */
+			.backup-methods-wrap {
 			margin-top: 16px;
 			padding: 0 24px;
-		    }
-		    .backup-methods-wrap a {
+			}
+			.backup-methods-wrap a {
 			color: #999;
 			text-decoration: none;
-		    }
-		    ul.backup-methods {
+			}
+			ul.backup-methods {
 			display: none;
 			padding-left: 1.5em;
-		    }
-		    /* Prevent Jetpack from hiding our controls, see https://github.com/Automattic/jetpack/issues/3747 */
-		    .jetpack-sso-form-display #loginform > p,
-		    .jetpack-sso-form-display #loginform > div {
+			}
+			/* Prevent Jetpack from hiding our controls, see https://github.com/Automattic/jetpack/issues/3747 */
+			.jetpack-sso-form-display #loginform > p,
+			.jetpack-sso-form-display #loginform > div {
 			display: block;
-		    }
+			}
 		</style>
 
 		<?php
-			if ( ! function_exists( 'login_footer' ) ) {
-				include_once TWO_FACTOR_DIR . 'includes/function.login-footer.php';
-			}
+		if ( ! function_exists( 'login_footer' ) ) {
+			include_once TWO_FACTOR_DIR . 'includes/function.login-footer.php';
+		}
 
 			login_footer();
 		?>
-	<?php
+		<?php
 	}
 
 	/**
@@ -979,7 +979,7 @@ class Two_Factor_Core {
 										 *
 										 * @param WP_User $user The user.
 										 */
-										do_action_deprecated(  'two-factor-user-options-' . $class, array( $user ), '0.7.0', 'two_factor_user_options_' . $class );
+										do_action_deprecated( 'two-factor-user-options-' . $class, array( $user ), '0.7.0', 'two_factor_user_options_' . $class );
 										do_action( 'two_factor_user_options_' . $class, $user );
 									?>
 								</td>
