@@ -793,6 +793,9 @@ class Two_Factor_Core {
 	public static function verify_login_nonce( $user_id, $nonce ) {
 		$login_nonce = get_user_meta( $user_id, self::USER_META_NONCE_KEY, true );
 
+		// Require a fresh nonce for each request.
+		self::delete_login_nonce( $user_id );
+
 		if ( ! $login_nonce || empty( $login_nonce['key'] ) || empty( $login_nonce['expiration'] ) ) {
 			return false;
 		}
@@ -800,8 +803,6 @@ class Two_Factor_Core {
 		if ( hash_equals( $login_nonce['key'], self::hash_login_nonce( $nonce ) ) && time() < $login_nonce['expiration'] ) {
 			return true;
 		}
-
-		self::delete_login_nonce( $user_id );
 
 		return false;
 	}
@@ -864,8 +865,6 @@ class Two_Factor_Core {
 			self::login_html( $user, $login_nonce['key'], $_REQUEST['redirect_to'], esc_html__( 'ERROR: Invalid verification code.', 'two-factor' ), $provider );
 			exit;
 		}
-
-		self::delete_login_nonce( $user->ID );
 
 		$rememberme = false;
 		if ( isset( $_REQUEST['rememberme'] ) && $_REQUEST['rememberme'] ) {
