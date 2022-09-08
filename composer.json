@@ -24,8 +24,8 @@
   "require-dev": {
     "php-coveralls/php-coveralls": "^2.4",
     "wp-coding-standards/wpcs": "^2.3",
-    "roots/wordpress": "^5.9",
-    "wp-phpunit/wp-phpunit": "^5.9",
+    "roots/wordpress": "^6.0",
+    "wp-phpunit/wp-phpunit": "^6.0",
     "phpunit/phpunit": "^5",
     "yoast/phpunit-polyfills": "^1.0",
     "phpcompatibility/phpcompatibility-wp": "^2.1",
