@@ -792,7 +792,8 @@ class Two_Factor_Core {
 	 */
 	public static function verify_login_nonce( $user_id, $nonce ) {
 		$login_nonce = get_user_meta( $user_id, self::USER_META_NONCE_KEY, true );
-		if ( ! $login_nonce ) {
+
+		if ( ! $login_nonce || empty( $login_nonce['key'] ) || empty( $login_nonce['expiration'] ) ) {
 			return false;
 		}
 
