@@ -390,14 +390,33 @@ class Test_ClassTwoFactorCore extends WP_UnitTestCase {
 		$user_id = 123456;
 		$nonce = Two_Factor_Core::create_login_nonce( $user_id );
 
+		$this->assertNotEmpty( $nonce['key'], 'Nonce key is present' );
+		$this->assertNotEmpty( $nonce['expiration'], 'Nonce expiration is set' );
+
+		$this->assertGreaterThan( time(), $nonce['expiration'], 'Nonce expiration is in the future' );
+		$this->assertLessThan( time() + HOUR_IN_SECONDS + 1, $nonce['expiration'], 'Nonce expiration is not more than an hour' );
+
 		$this->assertTrue(
-			Two_Factor_Core::verify_login_nonce( $user_id, $nonce ),
+			Two_Factor_Core::verify_login_nonce( $user_id, $nonce['key'] ),
 			'Can verify login nonce'
 		);
 
 		$this->assertFalse(
-			Two_Factor_Core::verify_login_nonce( $user_id, 'test-nonce' ),
-			'Ignores invalid nonce'
+			Two_Factor_Core::verify_login_nonce( $user_id, '1234' ),
+			'Invalid nonce is invalid'
+		);
+
+		// Must create a new one since incorrect nonces deletes them.
+		$nonce = Two_Factor_Core::create_login_nonce( $user_id );
+
+		// Mark the nonce as expired.
+		$nonce_in_meta = get_user_meta( $user_id, Two_Factor_Core::USER_META_NONCE_KEY, true );
+		$nonce_in_meta['expiration'] = time() - 1;
+		update_user_meta( $user_id, Two_Factor_Core::USER_META_NONCE_KEY, $nonce_in_meta );
+
+		$this->assertFalse(
+			Two_Factor_Core::verify_login_nonce( $user_id, $nonce['key'] ),
+			'Expired nonce is invalid'
 		);
 	}
 
