@@ -383,4 +383,22 @@ class Test_ClassTwoFactorCore extends WP_UnitTestCase {
 		$session_manager->destroy_all();
 	}
 
+	/**
+	 * Check if nonce can be verified.
+	 */
+	public function test_can_verify_login_nonce() {
+		$user_id = 123456;
+		$nonce = Two_Factor_Core::create_login_nonce( $user_id );
+
+		$this->assertTrue(
+			Two_Factor_Core::verify_login_nonce( $user_id, $nonce ),
+			'Can verify login nonce'
+		);
+
+		$this->assertFalse(
+			Two_Factor_Core::verify_login_nonce( $user_id, 'test-nonce' ),
+			'Ignores invalid nonce'
+		);
+	}
+
 }
