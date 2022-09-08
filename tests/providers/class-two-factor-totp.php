@@ -299,7 +299,7 @@ class Tests_Two_Factor_Totp extends WP_UnitTestCase {
 
 		$encrypted = Two_Factor_Totp::encrypt( $key, $user->ID );
 		$this->assertEquals(
-			Two_Factor_Totp::ENCRYPTED_TOTP_PREFIX,
+			Two_Factor_Totp::ENCRYPTED_PREFIX,
 			substr( $encrypted, 0, 4 ),
 			'Encryption defaults to the latest version.'
 		);
