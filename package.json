@@ -29,7 +29,7 @@
   "author": "georgestephanis",
   "license": "GPL-2.0+",
   "devDependencies": {
-    "@wordpress/env": "^4.4.0",
+    "@wordpress/env": "^5.2.0",
     "@wordpress/eslint-plugin": "^11.1.0",
     "@wordpress/scripts": "^22.3.0",
     "grunt": "^1.5.3",
