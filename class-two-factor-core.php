@@ -797,7 +797,7 @@ class Two_Factor_Core {
 			return false;
 		}
 
-		if ( hash_equals( self::hash_login_nonce( $nonce ), $login_nonce['key'] ) && time() < $login_nonce['expiration'] ) {
+		if ( hash_equals( $login_nonce['key'], self::hash_login_nonce( $nonce ) ) && time() < $login_nonce['expiration'] ) {
 			return true;
 		}
 
