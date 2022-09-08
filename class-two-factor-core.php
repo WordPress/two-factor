@@ -550,7 +550,7 @@ class Two_Factor_Core {
 		}
 
 		if ( true !== self::verify_login_nonce( $user->ID, $nonce ) ) {
-			wp_safe_redirect( get_bloginfo( 'url' ) );
+			wp_safe_redirect( home_url() );
 			exit;
 		}
 
@@ -826,7 +826,7 @@ class Two_Factor_Core {
 		}
 
 		if ( true !== self::verify_login_nonce( $user->ID, $nonce ) ) {
-			wp_safe_redirect( get_bloginfo( 'url' ) );
+			wp_safe_redirect( home_url() );
 			exit;
 		}
 
