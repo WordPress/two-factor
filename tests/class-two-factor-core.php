@@ -388,7 +388,7 @@ class Test_ClassTwoFactorCore extends WP_UnitTestCase {
 	 */
 	public function test_can_verify_login_nonce() {
 		$user_id = 123456;
-		$nonce = Two_Factor_Core::create_login_nonce( $user_id );
+		$nonce   = Two_Factor_Core::create_login_nonce( $user_id );
 
 		$this->assertNotEmpty( $nonce['key'], 'Nonce key is present' );
 		$this->assertNotEmpty( $nonce['expiration'], 'Nonce expiration is set' );
@@ -410,7 +410,7 @@ class Test_ClassTwoFactorCore extends WP_UnitTestCase {
 		$nonce = Two_Factor_Core::create_login_nonce( $user_id );
 
 		// Mark the nonce as expired.
-		$nonce_in_meta = get_user_meta( $user_id, Two_Factor_Core::USER_META_NONCE_KEY, true );
+		$nonce_in_meta               = get_user_meta( $user_id, Two_Factor_Core::USER_META_NONCE_KEY, true );
 		$nonce_in_meta['expiration'] = time() - 1;
 		update_user_meta( $user_id, Two_Factor_Core::USER_META_NONCE_KEY, $nonce_in_meta );
 
@@ -425,7 +425,7 @@ class Test_ClassTwoFactorCore extends WP_UnitTestCase {
 	 */
 	public function test_login_nonce_can_be_used_only_once() {
 		$user_id = 123456;
-		$nonce = Two_Factor_Core::create_login_nonce( $user_id );
+		$nonce   = Two_Factor_Core::create_login_nonce( $user_id );
 
 		$this->assertFalse(
 			Two_Factor_Core::verify_login_nonce( $user_id, '1234' ),

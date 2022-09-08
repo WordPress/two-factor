@@ -759,7 +759,7 @@ class Two_Factor_Core {
 		}
 
 		// Store the nonce hashed to avoid leaking it via database access.
-		$login_nonce_stored = $login_nonce;
+		$login_nonce_stored        = $login_nonce;
 		$login_nonce_stored['key'] = self::hash_login_nonce( $login_nonce['key'] );
 
 		if ( ! update_user_meta( $user_id, self::USER_META_NONCE_KEY, $login_nonce_stored ) ) {
