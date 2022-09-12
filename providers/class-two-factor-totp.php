@@ -52,6 +52,7 @@ class Two_Factor_Totp extends Two_Factor_Provider {
 		add_action( 'personal_options_update', array( $this, 'user_two_factor_options_update' ) );
 		add_action( 'edit_user_profile_update', array( $this, 'user_two_factor_options_update' ) );
 		add_action( 'two_factor_user_settings_action', array( $this, 'user_settings_action' ), 10, 2 );
+		add_action( 'two_factor_recrypt_data', array( __CLASS__, 'recrypt_data' ) );
 
 		return parent::__construct();
 	}
@@ -112,13 +113,23 @@ class Two_Factor_Totp extends Two_Factor_Provider {
 
 		wp_nonce_field( 'user_two_factor_totp_options', '_nonce_user_two_factor_totp_options', false );
 
-		$key = $this->get_user_totp_key( $user->ID );
+		$key = null;
+		$decryption_issue = false;
+		try {
+			$key = $this->get_user_totp_key( $user->ID );
+		} catch ( RuntimeException $ex ) {
+			$decryption_issue = true;
+		}
+
 		$this->admin_notices( $user->ID );
 
 		?>
 		<div id="two-factor-totp-options">
 		<?php
-		if ( empty( $key ) ) :
+		if ( $decryption_issue ) :
+			// Possibly display a prompt here to enable entering the prior decryption key, if site admin?
+			printf( '<p>%s</p>', esc_html__( 'Error: Code-based authentication is temporarily unavailable.', 'two-factor' ) );
+		elseif ( empty( $key ) ) :
 			$key        = $this->generate_key();
 			$site_name  = get_bloginfo( 'name', 'display' );
 			$totp_title = apply_filters( 'two_factor_totp_title', $site_name . ':' . $user->user_login, $user );
@@ -295,10 +306,14 @@ class Two_Factor_Totp extends Two_Factor_Provider {
 	 */
 	public function validate_authentication( $user ) {
 		if ( ! empty( $_REQUEST['authcode'] ) ) {
-			return $this->is_valid_authcode(
-				$this->get_user_totp_key( $user->ID ),
-				sanitize_text_field( $_REQUEST['authcode'] )
-			);
+			try {
+				return $this->is_valid_authcode(
+					$this->get_user_totp_key( $user->ID ),
+					sanitize_text_field( $_REQUEST['authcode'] )
+				);
+			} catch ( RuntimeException $ex ) {
+				return false;
+			}
 		}
 
 		return false;
@@ -446,8 +461,13 @@ class Two_Factor_Totp extends Two_Factor_Provider {
 	 * @return boolean
 	 */
 	public function is_available_for_user( $user ) {
-		// Only available if the secret key has been saved for the user.
-		$key = $this->get_user_totp_key( $user->ID );
+		try {
+			// Only available if the secret key has been saved for the user.
+			$key = $this->get_user_totp_key( $user->ID );
+		} catch ( RuntimeException $ex ) {
+			// If the decryption failed and generated an exception -- return true as we don't want to disable two-factor accidentally?
+			return true;
+		}
 
 		return ! empty( $key );
 	}
@@ -458,6 +478,15 @@ class Two_Factor_Totp extends Two_Factor_Provider {
 	 * @param WP_User $user WP_User object of the logged-in user.
 	 */
 	public function authentication_page( $user ) {
+		try {
+			$this->get_user_totp_key( $user->ID );
+		} catch ( RuntimeException $ex ) {
+			// The totp key decryption caused an error: call for an admin.
+			// Possibly display a prompt here to enable entering the prior decryption key, if site admin?
+			printf( '<p>%s</p>', esc_html__( 'Error: Code-based authentication is temporarily unavailable.', 'two-factor' ) );
+			return;
+		}
+
 		require_once ABSPATH . '/wp-admin/includes/template.php';
 		?>
 		<p>
@@ -560,5 +589,46 @@ class Two_Factor_Totp extends Two_Factor_Provider {
 			return 0;
 		}
 		return ( $a < $b ) ? -1 : 1;
+	}
+
+	/**
+	 * Runner function to iterate through recrypting data. Uses a static
+	 * variable to avoid recursion.
+	 *
+	 * @param string $old_salt The old salt that had been used to derive the key.
+	 */
+	public static function recrypt_data( $old_salt ) {
+		global $wpdb;
+
+		static $once = false;
+		if ( ! $once ) {
+			$once = true;
+
+			// Handle upstream recrypt, and trigger action for other providers.
+			parent::recrypt_data( $old_salt );
+
+			// Do 
+			$sql = $wpdb->prepare( "SELECT `user_id`, `meta_value` FROM {$wpdb->usermeta} WHERE `meta_key` = %s", self::SECRET_META_KEY );
+			$data_to_recrypt = $wpdb->get_results( $sql );
+
+			if ( ! $data_to_recrypt ) {
+				return;
+			}
+
+			foreach ( $data_to_recrypt as $row ) {
+				try {
+					// The decrypt called by recrypt should throw a RuntimeException if the old salt doesn't work.
+					$new_encrypted = self::recrypt( $old_salt, $row->meta_value, $row->user_id );
+					update_user_meta(
+						$row->user_id,
+						self::SECRET_META_KEY,
+						$new_encrypted,
+						$row->meta_value
+					);
+				} catch ( RuntimeException $ex ) {
+					// oops?  maybe error_log it?
+				}
+			}
+		}
 	}
 }
