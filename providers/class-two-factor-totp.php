@@ -57,6 +57,35 @@ class Two_Factor_Totp extends Two_Factor_Provider {
 	}
 
 	/**
+	 * Timestamp returned by time()
+	 *
+	 * @var int $now
+	 */
+	private static $now;
+
+	/**
+	 * Override time() in the current object for testing.
+	 *
+	 * @return int
+	 */
+	private static function time() {
+		if ( empty( self::$now ) || null === self::$now ) {
+			return time();
+		}
+
+		return self::$now;
+	}
+
+	/**
+	 * Set up the internal state of time() invocations for deterministic generation.
+	 *
+	 * @param int $now Timestamp to use when overriding time().
+	 */
+	public static function __set_time( $now ) {
+		self::$now = $now;
+	}
+
+	/**
 	 * Ensures only one instance of this class exists in memory at any one time.
 	 */
 	public static function get_instance() {
@@ -303,10 +332,12 @@ class Two_Factor_Totp extends Two_Factor_Provider {
 	 *
 	 * @param string $key      The share secret key to use.
 	 * @param string $authcode The code to test.
+	 * @param string $hash      The hash used to calculate the code.
+	 * @param int    $time_step The size of the time step.
 	 *
 	 * @return bool Whether the code is valid within the time frame
 	 */
-	public static function is_valid_authcode( $key, $authcode ) {
+	public static function is_valid_authcode( $key, $authcode, $hash = self::DEFAULT_CRYPTO, $time_step = self::DEFAULT_TIME_STEP_SEC ) {
 		/**
 		 * Filter the maximum ticks to allow when checking valid codes.
 		 *
@@ -324,12 +355,18 @@ class Two_Factor_Totp extends Two_Factor_Provider {
 		$ticks = range( - $max_ticks, $max_ticks );
 		usort( $ticks, array( __CLASS__, 'abssort' ) );
 
-		$time = time() / self::DEFAULT_TIME_STEP_SEC;
+		$time = self::time() / self::DEFAULT_TIME_STEP_SEC;
+
+		$digits = strlen( $authcode );
 
 		foreach ( $ticks as $offset ) {
 			$log_time = $time + $offset;
-			if ( self::calc_totp( $key, $log_time ) === $authcode ) {
-				return true;
+			try {
+				if ( self::calc_totp( $key, $log_time, $digits, $hash, $time_step ) === $authcode ) {
+					return true;
+				}
+			} catch ( InvalidArgumentException $e ) {
+				return false;
 			}
 		}
 		return false;
@@ -380,6 +417,30 @@ class Two_Factor_Totp extends Two_Factor_Provider {
 	}
 
 	/**
+	 * Pad a short secret with bytes from the same until it's the correct length
+	 * for hashing.
+	 *
+	 * @param string $secret Secret key to pad.
+	 * @param int    $length Byte length of the desired padded secret.
+	 *
+	 * @throws InvalidArgumentException If the secret or length are invalid.
+	 *
+	 * @return string
+	 */
+	protected static function pad_secret( $secret, $length ) {
+		if ( empty( $secret ) ) {
+			throw new InvalidArgumentException( 'Secret must be non-empty!' );
+		}
+
+		$length = intval( $length );
+		if ( $length <= 0 ) {
+			throw new InvalidArgumentException( 'Padding length must be non-zero' );
+		}
+
+		return str_pad( $secret, $length, $secret, STR_PAD_RIGHT );
+	}
+
+	/**
 	 * Calculate a valid code given the shared secret key
 	 *
 	 * @param string $key        The shared secret key to use for calculating code.
@@ -388,20 +449,36 @@ class Two_Factor_Totp extends Two_Factor_Provider {
 	 * @param string $hash       The hash used to calculate the code.
 	 * @param int    $time_step  The size of the time step.
 	 *
+	 * @throws InvalidArgumentException If an invalid hash type is specified.
+	 *
 	 * @return string The totp code
 	 */
 	public static function calc_totp( $key, $step_count = false, $digits = self::DEFAULT_DIGIT_COUNT, $hash = self::DEFAULT_CRYPTO, $time_step = self::DEFAULT_TIME_STEP_SEC ) {
 		$secret = self::base32_decode( $key );
 
+		switch ( $hash ) {
+			case 'sha1':
+				$secret = self::pad_secret( $secret, 20 );
+				break;
+			case 'sha256':
+				$secret = self::pad_secret( $secret, 32 );
+				break;
+			case 'sha512':
+				$secret = self::pad_secret( $secret, 64 );
+				break;
+			default:
+				throw new InvalidArgumentException( 'Invalid hash type specified!' );
+		}
+
 		if ( false === $step_count ) {
-			$step_count = floor( time() / $time_step );
+			$step_count = floor( self::time() / $time_step );
 		}
 
 		$timestamp = self::pack64( $step_count );
 
 		$hash = hash_hmac( $hash, $timestamp, $secret, true );
 
-		$offset = ord( $hash[19] ) & 0xf;
+		$offset = ord( $hash[ strlen( $hash ) - 1 ] ) & 0xf;
 
 		$code = (
 				( ( ord( $hash[ $offset + 0 ] ) & 0x7f ) << 24 ) |
