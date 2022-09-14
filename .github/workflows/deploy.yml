@@ -2,9 +2,12 @@ name: Deploy
 
 on:
   push:
-    # TODO: Limit to master branch for trunk deployments and all tags.
-    branches: '**'
-    tags: '**'
+    branches:
+      - master
+      # TODO: Uses for testing this pull request only. Remove before merge!
+      - '**'
+  release:
+    types: [published]
 
 jobs:
 
@@ -40,6 +43,4 @@ jobs:
           DEPLOY_TRUNK: ${{ contains( github.ref_name, 'master' ) }}
           DEPLOY_TAG: ${{ contains( github.ref_type, 'tag' ) }}
           DEPLOY_SKIP_CONFIRMATION: true
-        run: |
-          printenv
-          npm run deploy
+        run: npm run deploy
