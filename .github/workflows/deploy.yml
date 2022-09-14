@@ -34,7 +34,7 @@ jobs:
         run: npm install
 
       - name: Authenticate with WordPress.org SVN
-        run: svn co --non-interactive --username "${{ secrets.DEPLOY_SVN_USERNAME }}" --password "${{ secrets.DEPLOY_SVN_PASSWORD }}" https://plugins.svn.wordpress.org/two-factor/ /tmp/two-factor-svn
+        run: svn info --non-interactive --username "${{ secrets.DEPLOY_SVN_USERNAME }}" --password "${{ secrets.DEPLOY_SVN_PASSWORD }}" https://plugins.svn.wordpress.org/two-factor/
 
       - name: Deploy to WordPress.org SVN
         env:
