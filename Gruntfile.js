@@ -35,10 +35,12 @@ module.exports = function( grunt ) {
 				assets_dir: 'assets',
 			},
 			wporg: {
-				skip_confirmation: process.env.DEPLOY_SKIP_CONFIRMATION,
-				svn_user: process.env.DEPLOY_SVN_USERNAME,
-				deploy_tag: process.env.DEPLOY_TAG,
-				deploy_trunk: process.env.DEPLOY_TRUNK,
+				options: {
+					skip_confirmation: process.env.DEPLOY_SKIP_CONFIRMATION,
+					svn_user: process.env.DEPLOY_SVN_USERNAME,
+					deploy_tag: process.env.DEPLOY_TAG,
+					deploy_trunk: process.env.DEPLOY_TRUNK,
+				},
 			},
 		},
 	} );
