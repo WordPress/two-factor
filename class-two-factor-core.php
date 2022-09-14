@@ -550,7 +550,7 @@ class Two_Factor_Core {
 		}
 
 		if ( true !== self::verify_login_nonce( $user->ID, $nonce ) ) {
-			wp_safe_redirect( get_bloginfo( 'url' ) );
+			wp_safe_redirect( home_url() );
 			exit;
 		}
 
@@ -729,6 +729,17 @@ class Two_Factor_Core {
 	}
 
 	/**
+	 * Get the hash of a nonce for storage and comparison.
+	 *
+	 * @param string $nonce Nonce value to be hashed.
+	 *
+	 * @return string
+	 */
+	protected static function hash_login_nonce( $nonce ) {
+		return wp_hash( $nonce, 'nonce' );
+	}
+
+	/**
 	 * Create the login nonce.
 	 *
 	 * @since 0.1-dev
@@ -737,15 +748,21 @@ class Two_Factor_Core {
 	 * @return array
 	 */
 	public static function create_login_nonce( $user_id ) {
-		$login_nonce = array();
+		$login_nonce = array(
+			'expiration' => time() + HOUR_IN_SECONDS,
+		);
+
 		try {
 			$login_nonce['key'] = bin2hex( random_bytes( 32 ) );
 		} catch ( Exception $ex ) {
 			$login_nonce['key'] = wp_hash( $user_id . wp_rand() . microtime(), 'nonce' );
 		}
-		$login_nonce['expiration'] = time() + HOUR_IN_SECONDS;
 
-		if ( ! update_user_meta( $user_id, self::USER_META_NONCE_KEY, $login_nonce ) ) {
+		// Store the nonce hashed to avoid leaking it via database access.
+		$login_nonce_stored        = $login_nonce;
+		$login_nonce_stored['key'] = self::hash_login_nonce( $login_nonce['key'] );
+
+		if ( ! update_user_meta( $user_id, self::USER_META_NONCE_KEY, $login_nonce_stored ) ) {
 			return false;
 		}
 
@@ -775,16 +792,19 @@ class Two_Factor_Core {
 	 */
 	public static function verify_login_nonce( $user_id, $nonce ) {
 		$login_nonce = get_user_meta( $user_id, self::USER_META_NONCE_KEY, true );
-		if ( ! $login_nonce ) {
+
+		if ( ! $login_nonce || empty( $login_nonce['key'] ) || empty( $login_nonce['expiration'] ) ) {
 			return false;
 		}
 
-		if ( $nonce !== $login_nonce['key'] || time() > $login_nonce['expiration'] ) {
-			self::delete_login_nonce( $user_id );
-			return false;
+		if ( hash_equals( $login_nonce['key'], self::hash_login_nonce( $nonce ) ) && time() < $login_nonce['expiration'] ) {
+			return true;
 		}
 
-		return true;
+		// Require a fresh nonce if verification fails.
+		self::delete_login_nonce( $user_id );
+
+		return false;
 	}
 
 	/**
@@ -806,7 +826,7 @@ class Two_Factor_Core {
 		}
 
 		if ( true !== self::verify_login_nonce( $user->ID, $nonce ) ) {
-			wp_safe_redirect( get_bloginfo( 'url' ) );
+			wp_safe_redirect( home_url() );
 			exit;
 		}
 

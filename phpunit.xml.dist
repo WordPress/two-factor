@@ -7,8 +7,8 @@
 	convertWarningsToExceptions="true"
 	>
 	<php>
-        <env name="WP_PHPUNIT__TESTS_CONFIG" value="tests/wp-config.php" />
-    </php>
+		<env name="WP_PHPUNIT__TESTS_CONFIG" value="tests/wp-config.php" />
+	</php>
 	<testsuites>
 		<testsuite name="All Tests">
 			<directory suffix=".php">tests</directory>
