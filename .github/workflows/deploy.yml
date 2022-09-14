@@ -34,14 +34,13 @@ jobs:
         run: npm install
 
       - name: Authenticate with WordPress.org SVN
-        if: ${{ secrets.DEPLOY_SVN_USERNAME }}
         run: svn co --non-interactive --username ${{ secrets.DEPLOY_SVN_USERNAME }} --password "${{ secrets.DEPLOY_SVN_PASSWORD }}" https://plugins.svn.wordpress.org/two-factor/ /tmp/two-factor-svn
 
       - name: Deploy to WordPress.org SVN
-        if: ${{ secrets.DEPLOY_SVN_USERNAME }}
         env:
           DEPLOY_SVN_USERNAME: ${{ secrets.DEPLOY_SVN_USERNAME }}
           DEPLOY_TRUNK: ${{ contains( github.ref_name, 'master' ) }}
           DEPLOY_TAG: ${{ contains( github.ref_type, 'tag' ) }}
           DEPLOY_SKIP_CONFIRMATION: true
+        if: env.DEPLOY_SVN_USERNAME
         run: npm run deploy
