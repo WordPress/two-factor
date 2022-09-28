@@ -1,9 +1,5 @@
 <?php
 
-if ( ! defined('ABSPATH') ) {
-	die('Bye!');
-}
-
 /**
  *	Simple CRUD for keys
  */

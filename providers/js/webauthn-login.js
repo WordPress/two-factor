@@ -9,7 +9,7 @@
 
 		pk.challenge = new Uint8Array( pubKeyAuth.challenge );
 		pk.allowCredentials = pk.allowCredentials.map( k => {
-			let ret = Object.assign( {}, k );
+			const ret = Object.assign( {}, k );
 			ret.id = new Uint8Array( k.id );
 			return ret;
 		} );

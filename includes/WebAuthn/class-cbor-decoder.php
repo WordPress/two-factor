@@ -1,9 +1,5 @@
 <?php
 
-if ( ! defined('ABSPATH') ) {
-	die('Bye!');
-}
-
 /**
  * CBOR decoder
  * adapted from 2tvenom/cborencode

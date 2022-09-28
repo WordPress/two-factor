@@ -5,7 +5,7 @@
 	 */
 	function webauthnRegister( key, callback ) {
 
-		let publicKey = Object.assign( {}, key.publicKey );
+		const publicKey = Object.assign( {}, key.publicKey );
 
 		publicKey.attestation = undefined;
 		publicKey.challenge = new Uint8Array( publicKey.challenge );
@@ -65,7 +65,7 @@
 
 		pk.challenge = new Uint8Array( pubKeyAuth.challenge );
 		pk.allowCredentials = pk.allowCredentials.map( k => {
-			let ret = Object.assign( {}, k );
+			const ret = Object.assign( {}, k );
 			ret.id = new Uint8Array( k.id );
 			return ret;
 		} );
@@ -265,15 +265,15 @@
 
 		$( e.target ).next( '.webauthn-error' ).remove();
 
-		let $btn = $( e.target ).addClass( 'busy' );
+		const $btn = $( e.target ).addClass( 'busy' );
 
 		const opts = JSON.parse( $( e.target ).attr( 'data-create-options' ) );
 
 		register( opts, response => {
 			$btn.removeClass( 'busy' );
 			if ( response.success ) {
-				let $keyItem = $( response.html ).appendTo( '#webauthn-keys' );
-				let $keyLabel = $keyItem.find( '.webauthn-label' );
+				const $keyItem = $( response.html ).appendTo( '#webauthn-keys' );
+				const $keyLabel = $keyItem.find( '.webauthn-label' );
 
 				editKey(
 					$keyLabel.get( 0 ),
