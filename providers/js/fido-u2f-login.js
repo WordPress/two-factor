@@ -1,4 +1,4 @@
-/* global u2f, u2fL10n */
+/* global window, u2f, u2fL10n, jQuery */
 ( function( $ ) {
 	if ( ! window.u2fL10n ) {
 		window.console.error( 'u2fL10n is not defined' );
@@ -13,4 +13,4 @@
 			$( '#loginform' ).submit();
 		}
 	} );
-} )( jQuery );
+}( jQuery ) );

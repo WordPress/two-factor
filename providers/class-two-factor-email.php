@@ -187,7 +187,7 @@ class Two_Factor_Email extends Two_Factor_Provider {
 		$hashed_token = $this->get_user_token( $user_id );
 
 		// Bail if token is empty or it doesn't match.
-		if ( empty( $hashed_token ) ||  ! hash_equals( wp_hash( $token ), $hashed_token ) ) {
+		if ( empty( $hashed_token ) || ! hash_equals( wp_hash( $token ), $hashed_token ) ) {
 			return false;
 		}
 
@@ -245,7 +245,7 @@ class Two_Factor_Email extends Two_Factor_Provider {
 		 */
 		$message = apply_filters( 'two_factor_token_email_message', $message, $token, $user->ID );
 
-		return wp_mail( $user->user_email, $subject, $message );
+		return wp_mail( $user->user_email, $subject, $message ); // phpcs:ignore WordPressVIPMinimum.Functions.RestrictedFunctions.wp_mail_wp_mail
 	}
 
 	/**

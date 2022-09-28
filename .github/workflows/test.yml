@@ -1,0 +1,45 @@
+name: Test
+
+on: push
+
+jobs:
+
+  lint:
+    name: Lint and Test
+    runs-on: ubuntu-20.04
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+
+      - name: Setup Node
+        uses: actions/setup-node@v3
+        with:
+          cache: 'npm'
+          node-version-file: '.nvmrc'
+
+      - name: Setup PHP and Composer
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '5.6'
+          tools: composer:v2
+
+      - name: Install NPM dependencies
+        run: npm install
+
+      - name: Lint JS
+        run: npm run lint:js
+
+      - name: Lint CSS
+        run: npm run lint:css
+
+      - name: Lint PHP
+        run: npm run lint:php || true # Ignore for now.
+
+      - name: Start the Docker testing environment
+        run: npm run env start --xdebug=coverage
+
+      - name: Test
+        run: npm run test
+
+      - name: Build
+        run: npm run build

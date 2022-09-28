@@ -1,4 +1,4 @@
-/* jshint es3:false, node:true, esversion: 6 */
+/* eslint-env node,es6 */
 
 const ignoreParse = require( 'parse-gitignore' );
 
@@ -54,5 +54,4 @@ module.exports = function( grunt ) {
 			'wp_deploy:trunk',
 		]
 	);
-
 };
