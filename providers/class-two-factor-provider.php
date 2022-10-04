@@ -93,7 +93,7 @@ abstract class Two_Factor_Provider {
 		$log_message = sprintf( esc_html__( 'The user with ID %1$d failed to login using the code "%2$s"', 'two-factor' ), $user->ID, esc_html( $code ) );
 
 		/**
-		 * This action is triggered when a Two Factor validation fails.
+		 * This filter is triggered to checke whether it's needed to log the authentication failure.
 		 *
 		 * @param boolean      $should_log  Whether or not the authentication failure should be logged.
 		 * @param WP_User      $user        WP_User object of the user trying to login.
