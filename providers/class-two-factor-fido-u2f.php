@@ -212,10 +212,16 @@ class Two_Factor_FIDO_U2F extends Two_Factor_Provider {
 
 			self::update_security_key( $user->ID, $reg );
 
-			return true;
+			$success = true;
 		} catch ( Exception $e ) {
-			return false;
+			$success = false;
 		}
+
+		if ( ! $success ) {
+			$this->log_failure( $user, $response );
+		}
+
+		return $success;
 	}
 
 	/**
