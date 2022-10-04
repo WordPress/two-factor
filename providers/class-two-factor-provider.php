@@ -78,16 +78,19 @@ abstract class Two_Factor_Provider {
 	 * @param WP_User      $user WP_User object of the user trying to login.
 	 * @param string|false $code The code used to authenticate, if available.
 	 *
+	 * @since 0.9.0
+	 *
 	 * @return void
 	 */
 	public function log_failure( $user, $code = false ) {
 		/**
 		 * This action is triggered when a Two Factor validation fails.
 		 *
-		 * @param WP_User      $user WP_User object of the user trying to login.
-		 * @param string|false $code The code used to authenticate, if available.
+		 * @param WP_User             $user WP_User object of the user trying to login.
+		 * @param string|false        $code The code used to authenticate, if available.
+		 * @param Two_Factor_Provider $this The Provider class used during the authentication.
 		 */
-		do_action( 'two_factor_user_login_failed', $user, $code );
+		do_action( 'two_factor_user_login_failed', $user, $code, $this );
 
 		/* translators: %1$d: the user's ID %2$s: the code used to authenticate */
 		$log_message = sprintf( esc_html__( 'The user with ID %1$d failed to login using the code "%2$s"', 'two-factor' ), $user->ID, esc_html( $code ) );
@@ -99,8 +102,9 @@ abstract class Two_Factor_Provider {
 		 * @param WP_User      $user        WP_User object of the user trying to login.
 		 * @param string|false $code        The code used to authenticate, if available.
 		 * @param string       $log_message The generated log message.
+		 * @param Two_Factor_Provider $this The Provider class used during the authentication.
 		 */
-		if ( apply_filters( 'two_factor_log_failure', true, $user, $code, $log_message ) ) {
+		if ( apply_filters( 'two_factor_log_failure', true, $user, $code, $log_message, $this ) ) {
 			error_log( $log_message );
 		}
 	}
