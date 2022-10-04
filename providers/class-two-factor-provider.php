@@ -73,6 +73,39 @@ abstract class Two_Factor_Provider {
 	abstract public function validate_authentication( $user );
 
 	/**
+	 * Logs the failed authentication.
+	 *
+	 * @param WP_User      $user WP_User object of the user trying to login.
+	 * @param string|false $code The code used to authenticate, if available.
+	 *
+	 * @return void
+	 */
+	public function log_failure( $user, $code = false ) {
+		/**
+		 * This action is triggered when a Two Factor validation fails.
+		 *
+		 * @param WP_User      $user WP_User object of the user trying to login.
+		 * @param string|false $code The code used to authenticate, if available.
+		 */
+		do_action( 'two_factor_user_login_failed', $user, $code );
+
+		/* translators: %1$d: the user's ID %2$s: the code used to authenticate */
+		$log_message = sprintf( esc_html__( 'The user with ID %1$d failed to login using the code "%2$s"', 'two-factor' ), $user->ID, esc_html( $code ) );
+
+		/**
+		 * This action is triggered when a Two Factor validation fails.
+		 *
+		 * @param boolean      $should_log  Whether or not the authentication failure should be logged.
+		 * @param WP_User      $user        WP_User object of the user trying to login.
+		 * @param string|false $code        The code used to authenticate, if available.
+		 * @param string       $log_message The generated log message.
+		 */
+		if ( apply_filters( 'two_factor_log_failure', true, $user, $code, $log_message ) ) {
+			error_log( $log_message );
+		}
+	}
+
+	/**
 	 * Whether this Two Factor provider is configured and available for the user specified.
 	 *
 	 * @param WP_User $user WP_User object of the logged-in user.

@@ -288,14 +288,19 @@ class Two_Factor_Totp extends Two_Factor_Provider {
 	 * @return bool Whether the user gave a valid code
 	 */
 	public function validate_authentication( $user ) {
+		$success = false;
 		if ( ! empty( $_REQUEST['authcode'] ) ) {
-			return $this->is_valid_authcode(
+			$success = $this->is_valid_authcode(
 				$this->get_user_totp_key( $user->ID ),
 				sanitize_text_field( $_REQUEST['authcode'] )
 			);
 		}
 
-		return false;
+		if ( ! $success ) {
+			$this->log_failure( $user, ! empty( $_REQUEST['authcode'] ) ? sanitize_text_field( $_REQUEST['authcode'] ) : false );
+		}
+
+		return $success;
 	}
 
 	/**
