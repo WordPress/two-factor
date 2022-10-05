@@ -328,7 +328,7 @@ class Two_Factor_Totp extends Two_Factor_Provider {
 
 		foreach ( $ticks as $offset ) {
 			$log_time = $time + $offset;
-			if ( self::calc_totp( $key, $log_time ) === $authcode ) {
+			if ( hash_equals(self::calc_totp( $key, $log_time ), $authcode ) ) {
 				return true;
 			}
 		}
