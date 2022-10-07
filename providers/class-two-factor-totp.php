@@ -340,7 +340,7 @@ class Two_Factor_Totp extends Two_Factor_Provider {
 
 		foreach ( $ticks as $offset ) {
 			$log_time = $time + $offset;
-			if ( self::calc_totp( $key, $log_time ) === $authcode ) {
+			if ( hash_equals(self::calc_totp( $key, $log_time ), $authcode ) ) {
 				return true;
 			}
 		}
@@ -373,7 +373,7 @@ class Two_Factor_Totp extends Two_Factor_Provider {
 		if ( PHP_INT_SIZE >= 8 ) {
 			// If we're on PHP 5.6.3+ we can use the new 64bit pack functionality.
 			if ( version_compare( PHP_VERSION, '5.6.3', '>=' ) && PHP_INT_SIZE >= 8 ) {
-				return pack( 'J', $value );
+				return pack( 'J', $value ); // phpcs:ignore PHPCompatibility.ParameterValues.NewPackFormat.NewFormatFound
 			}
 			$highmap = 0xffffffff << 32;
 			$higher  = ( $value & $highmap ) >> 32;
@@ -471,7 +471,7 @@ class Two_Factor_Totp extends Two_Factor_Provider {
 		</p>
 		<p>
 			<label for="authcode"><?php esc_html_e( 'Authentication Code:', 'two-factor' ); ?></label>
-			<input type="tel" autocomplete="off" name="authcode" id="authcode" class="input" value="" size="20" pattern="[0-9]*" />
+			<input type="tel" autocomplete="one-time-code" name="authcode" id="authcode" class="input" value="" size="20" pattern="[0-9]*" />
 		</p>
 		<script type="text/javascript">
 			setTimeout( function(){

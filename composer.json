@@ -10,16 +10,36 @@
     "issues": "https://github.com/WordPress/two-factor/issues"
   },
   "config": {
+    "sort-packages": true,
     "platform": {
       "php": "5.6.20"
+    },
+    "allow-plugins": {
+      "dealerdirect/phpcodesniffer-composer-installer": true,
+      "roots/wordpress-core-installer": true
     }
+  },
+  "extra": {
+    "wordpress-install-dir": "wordpress"
   },
   "require": {
     "php": ">=5.6"
   },
   "require-dev": {
-    "php-coveralls/php-coveralls": "^1.0",
-    "wp-coding-standards/wpcs": "^2.2.1",
-    "xwp/wp-dev-lib": "^1.0"
+    "automattic/vipwpcs": "^2.3",
+    "dealerdirect/phpcodesniffer-composer-installer": "^0.7.2",
+    "php-coveralls/php-coveralls": "^2.5",
+    "phpcompatibility/phpcompatibility-wp": "^2.1",
+    "phpunit/phpunit": "^5",
+    "roots/wordpress-core-installer": "^1.100",
+    "roots/wordpress-full": "^6.0",
+    "wp-coding-standards/wpcs": "^2.3",
+    "wp-phpunit/wp-phpunit": "^6.0",
+    "yoast/phpunit-polyfills": "^1.0"
+  },
+  "scripts": {
+    "lint": "phpcs",
+    "test": "phpunit",
+    "format": "phpcbf"
   }
 }
