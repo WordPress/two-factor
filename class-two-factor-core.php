@@ -830,7 +830,7 @@ class Two_Factor_Core {
 			exit;
 		}
 
-		$provider = filter_input( INPUT_POST, 'provider', FILTER_SANITIZE_STRING );
+		$provider = filter_input( INPUT_POST, 'provider', FILTER_CALLBACK, array( 'options' => 'sanitize_text_field' ) );
 		if ( $provider ) {
 			$providers = self::get_available_providers_for_user( $user );
 			if ( isset( $providers[ $provider ] ) ) {
