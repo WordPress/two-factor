@@ -24,7 +24,10 @@ jobs:
           tools: composer:v2
 
       - name: Install NPM dependencies
-        run: npm install
+        run: npm install --ignore-scripts
+
+      - name: Install PHP dependencies
+        run: composer install
 
       - name: Lint JS
         run: npm run lint:js
