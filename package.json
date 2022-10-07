@@ -29,16 +29,15 @@
   "author": "georgestephanis",
   "license": "GPL-2.0+",
   "devDependencies": {
-    "@wordpress/env": "^5.2.0",
-    "@wordpress/eslint-plugin": "^11.1.0",
-    "@wordpress/scripts": "^22.5.0",
+    "@wordpress/env": "^5.4.0",
+    "@wordpress/eslint-plugin": "^13.3.0",
+    "@wordpress/scripts": "^24.3.0",
     "grunt": "^1.5.3",
     "grunt-cli": "^1.4.3",
-    "grunt-contrib-clean": "^2.0.0",
+    "grunt-contrib-clean": "^2.0.1",
     "grunt-contrib-copy": "^1.0.0",
     "grunt-wp-deploy": "^2.1.2",
-    "husky": "^0.14.3",
-    "load-grunt-tasks": "^4.0.0",
+    "load-grunt-tasks": "^5.1.0",
     "npm-run-all": "^4.1.5",
     "parse-gitignore": "^0.5.1"
   }
