@@ -39,7 +39,7 @@
   },
   "scripts": {
     "lint": "phpcs",
-    "lint-php8": "phpcs -p --standard=PHPCompatibilityWP --runtime-set testVersion 8.2 --extensions=php --ignore='vendor/,wordpress/,node_modules/' .",
+    "lint-php8": "phpcs -p --standard=PHPCompatibilityWP --runtime-set testVersion 8.0- --extensions=php --ignore='vendor/,wordpress/,node_modules/' .",
     "test": "phpunit",
     "format": "phpcbf"
   }
