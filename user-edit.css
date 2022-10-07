@@ -36,8 +36,7 @@
 	background-color: #f9f9f9;
 }
 
-.two-factor-methods-table label {
+.two-factor-methods-table .two-factor-method-label {
 	display: block;
-	font-weight: bold;
-	margin-bottom: .5em;
+	font-weight: 700;
 }
