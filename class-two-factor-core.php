@@ -978,18 +978,18 @@ class Two_Factor_Core {
 							<tr>
 								<th class="col-enabled" scope="col"><?php esc_html_e( 'Enabled', 'two-factor' ); ?></th>
 								<th class="col-primary" scope="col"><?php esc_html_e( 'Primary', 'two-factor' ); ?></th>
-								<th class="col-name" scope="col"><?php esc_html_e( 'Name', 'two-factor' ); ?></th>
+								<th class="col-name" scope="col"><?php esc_html_e( 'Type', 'two-factor' ); ?></th>
 							</tr>
 						</thead>
 						<tbody>
 						<?php foreach ( self::get_providers() as $class => $object ) : ?>
 							<tr>
-								<th scope="row"><input type="checkbox" name="<?php echo esc_attr( self::ENABLED_PROVIDERS_USER_META_KEY ); ?>[]" value="<?php echo esc_attr( $class ); ?>" <?php checked( in_array( $class, $enabled_providers, true ) ); ?> /></th>
+								<th scope="row"><input id="enabled-<?php echo esc_attr( $class ); ?>" type="checkbox" name="<?php echo esc_attr( self::ENABLED_PROVIDERS_USER_META_KEY ); ?>[]" value="<?php echo esc_attr( $class ); ?>" <?php checked( in_array( $class, $enabled_providers, true ) ); ?> /></th>
 								<th scope="row"><input type="radio" name="<?php echo esc_attr( self::PROVIDER_USER_META_KEY ); ?>" value="<?php echo esc_attr( $class ); ?>" <?php checked( $class, $primary_provider_key ); ?> /></th>
 								<td>
-									<?php
-										$object->print_label();
+									<label for="enabled-<?php echo esc_attr( $class ); ?>"><?php $object->print_label(); ?></label>
 
+									<?php
 										/**
 										 * Fires after user options are shown.
 										 *
