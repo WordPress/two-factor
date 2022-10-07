@@ -1,4 +1,4 @@
-/* global inlineEditL10n, ajaxurl */
+/* global window, document, jQuery, inlineEditL10n, ajaxurl */
 var inlineEditKey;
 
 ( function( $ ) {
@@ -39,7 +39,12 @@ var inlineEditKey;
 
 		toggle: function( el ) {
 			var t = this;
-			'none' === $( t.what + t.getId( el ) ).css( 'display' ) ? t.revert() : t.edit( el );
+
+			if ( 'none' === $( t.what + t.getId( el ) ).css( 'display' ) ) {
+				t.revert();
+			} else {
+				t.edit( el );
+			}
 		},
 
 		edit: function( id ) {
@@ -51,7 +56,9 @@ var inlineEditKey;
 				id = t.getId( id );
 			}
 
-			editRow = $( '#inline-edit' ).clone( true ), rowData = $( '#inline_' + id );
+			editRow = $( '#inline-edit' ).clone( true );
+			rowData = $( '#inline_' + id );
+
 			$( 'td', editRow ).attr( 'colspan', $( 'th:visible, td:visible', '#security-keys-section .widefat thead' ).length );
 
 			$( t.what + id ).hide().after( editRow ).after( '<tr class="hidden"></tr>' );
@@ -90,7 +97,7 @@ var inlineEditKey;
 			// Make ajax request.
 			$.post( ajaxurl, params,
 				function( r ) {
-					var row, newID, optionValue;
+					var row, newID;
 					$( '#security-keys-section table.widefat .spinner' ).removeClass( 'is-active' );
 
 					if ( r ) {
@@ -101,10 +108,8 @@ var inlineEditKey;
 							$( '#edit-' + id ).before( r ).remove();
 
 							if ( newID ) {
-								optionValue = newID.replace( 'key-', '' );
 								row = $( '#' + newID );
 							} else {
-								optionValue = id;
 								row = $( inlineEditKey.what + id );
 							}
 
@@ -142,5 +147,4 @@ var inlineEditKey;
 	$( document ).ready( function() {
 		inlineEditKey.init();
 	} );
-
-} )( jQuery );
+}( jQuery ) );

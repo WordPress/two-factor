@@ -77,7 +77,7 @@ class Two_Factor_Backup_Codes extends Two_Factor_Provider {
 			<p>
 				<span>
 					<?php
-					wp_kses(
+					echo wp_kses(
 						sprintf(
 						/* translators: %s: URL for code regeneration */
 							__( 'Two-Factor: You are out of backup codes and need to <a href="%s">regenerate!</a>', 'two-factor' ),
@@ -304,8 +304,8 @@ class Two_Factor_Backup_Codes extends Two_Factor_Provider {
 	 * @return boolean
 	 */
 	public function validate_authentication( $user ) {
-		$backup_code = isset( $_POST['two-factor-backup-code'] ) ? sanitize_text_field( wp_unslash( $_POST['two-factor-backup-code'] ) ) : false;
-		return $this->validate_code( $user, filter_var( $backup_code, FILTER_SANITIZE_STRING ) );
+		$backup_code = isset( $_POST['two-factor-backup-code'] ) ? sanitize_text_field( wp_unslash( $_POST['two-factor-backup-code'] ) ) : '';
+		return $this->validate_code( $user, $backup_code );
 	}
 
 	/**

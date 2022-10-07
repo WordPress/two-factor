@@ -2,7 +2,7 @@
 Contributors: georgestephanis, valendesigns, stevenkword, extendwings, sgrant, aaroncampbell, johnbillion, stevegrunwell, netweb, kasparsd, alihusnainarshad, passoniate
 Tags: two factor, two step, authentication, login, totp, fido u2f, u2f, email, backup codes, 2fa, yubikey
 Requires at least: 4.3
-Tested up to: 5.5
+Tested up to: 6.0
 Requires PHP: 5.6
 Stable tag: trunk
 
@@ -37,14 +37,7 @@ Here is a list of action and filter hooks provided by the plugin:
 
 == Get Involved ==
 
-Development happens [on GitHub](https://github.com/wordpress/two-factor/). Join the `#core-passwords` channel [on WordPress Slack](http://wordpress.slack.com) ([sign up here](http://chat.wordpress.org)).
-
-Here is how to get started:
-
-    $ git clone https://github.com/wordpress/two-factor.git
-    $ npm install
-
-Then open [a pull request](https://help.github.com/articles/creating-a-pull-request-from-a-fork/) with the suggested changes.
+Development happens [on GitHub](https://github.com/wordpress/two-factor/).
 
 == Changelog ==
 

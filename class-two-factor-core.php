@@ -244,7 +244,7 @@ class Two_Factor_Core {
 	 * @return boolean
 	 */
 	public static function is_valid_user_action( $user_id, $action ) {
-		$request_nonce = filter_input( INPUT_GET, self::USER_SETTINGS_ACTION_NONCE_QUERY_ARG, FILTER_SANITIZE_STRING );
+		$request_nonce = filter_input( INPUT_GET, self::USER_SETTINGS_ACTION_NONCE_QUERY_ARG, FILTER_CALLBACK, array( 'options' => 'sanitize_key' ) );
 
 		return wp_verify_nonce(
 			$request_nonce,
@@ -277,7 +277,7 @@ class Two_Factor_Core {
 	 * @return void
 	 */
 	public static function trigger_user_settings_action() {
-		$action  = filter_input( INPUT_GET, self::USER_SETTINGS_ACTION_QUERY_VAR, FILTER_SANITIZE_STRING );
+		$action  = filter_input( INPUT_GET, self::USER_SETTINGS_ACTION_QUERY_VAR, FILTER_CALLBACK, array( 'options' => 'sanitize_key' ) );
 		$user_id = self::current_user_being_edited();
 
 		if ( ! empty( $action ) && self::is_valid_user_action( $user_id, $action ) ) {
@@ -537,8 +537,8 @@ class Two_Factor_Core {
 	 */
 	public static function backup_2fa() {
 		$wp_auth_id = filter_input( INPUT_GET, 'wp-auth-id', FILTER_SANITIZE_NUMBER_INT );
-		$nonce      = filter_input( INPUT_GET, 'wp-auth-nonce', FILTER_SANITIZE_STRING );
-		$provider   = filter_input( INPUT_GET, 'provider', FILTER_SANITIZE_STRING );
+		$nonce      = filter_input( INPUT_GET, 'wp-auth-nonce', FILTER_CALLBACK, array( 'options' => 'sanitize_key' ) );
+		$provider   = filter_input( INPUT_GET, 'provider', FILTER_CALLBACK, array( 'options' => 'sanitize_text_field' ) );
 
 		if ( ! $wp_auth_id || ! $nonce || ! $provider ) {
 			return;
@@ -550,7 +550,7 @@ class Two_Factor_Core {
 		}
 
 		if ( true !== self::verify_login_nonce( $user->ID, $nonce ) ) {
-			wp_safe_redirect( get_bloginfo( 'url' ) );
+			wp_safe_redirect( home_url() );
 			exit;
 		}
 
@@ -679,49 +679,34 @@ class Two_Factor_Core {
 				</ul>
 			</div>
 		<?php endif; ?>
-
-		<p id="backtoblog">
-			<a href="<?php echo esc_url( home_url( '/' ) ); ?>" title="<?php esc_attr_e( 'Are you lost?', 'two-factor' ); ?>">
-				<?php
-				echo esc_html(
-					sprintf(
-						// translators: %s: site name.
-						__( '&larr; Back to %s', 'two-factor' ),
-						get_bloginfo( 'title', 'display' )
-					)
-				);
-				?>
-			</a>
-		</p>
-		</div>
 		<style>
-		/* @todo: migrate to an external stylesheet. */
-		.backup-methods-wrap {
+			/* @todo: migrate to an external stylesheet. */
+			.backup-methods-wrap {
 			margin-top: 16px;
 			padding: 0 24px;
-		}
-		.backup-methods-wrap a {
+			}
+			.backup-methods-wrap a {
 			color: #999;
 			text-decoration: none;
-		}
-		ul.backup-methods {
+			}
+			ul.backup-methods {
 			display: none;
 			padding-left: 1.5em;
-		}
-		/* Prevent Jetpack from hiding our controls, see https://github.com/Automattic/jetpack/issues/3747 */
-		.jetpack-sso-form-display #loginform > p,
-		.jetpack-sso-form-display #loginform > div {
+			}
+			/* Prevent Jetpack from hiding our controls, see https://github.com/Automattic/jetpack/issues/3747 */
+			.jetpack-sso-form-display #loginform > p,
+			.jetpack-sso-form-display #loginform > div {
 			display: block;
-		}
+			}
 		</style>
 
 		<?php
-		/** This action is documented in wp-login.php */
-		do_action( 'login_footer' );
+		if ( ! function_exists( 'login_footer' ) ) {
+			include_once TWO_FACTOR_DIR . 'includes/function.login-footer.php';
+		}
+
+			login_footer();
 		?>
-		<div class="clear"></div>
-		</body>
-		</html>
 		<?php
 	}
 
@@ -744,6 +729,17 @@ class Two_Factor_Core {
 	}
 
 	/**
+	 * Get the hash of a nonce for storage and comparison.
+	 *
+	 * @param string $nonce Nonce value to be hashed.
+	 *
+	 * @return string
+	 */
+	protected static function hash_login_nonce( $nonce ) {
+		return wp_hash( $nonce, 'nonce' );
+	}
+
+	/**
 	 * Create the login nonce.
 	 *
 	 * @since 0.1-dev
@@ -752,15 +748,21 @@ class Two_Factor_Core {
 	 * @return array
 	 */
 	public static function create_login_nonce( $user_id ) {
-		$login_nonce = array();
+		$login_nonce = array(
+			'expiration' => time() + HOUR_IN_SECONDS,
+		);
+
 		try {
 			$login_nonce['key'] = bin2hex( random_bytes( 32 ) );
 		} catch ( Exception $ex ) {
 			$login_nonce['key'] = wp_hash( $user_id . wp_rand() . microtime(), 'nonce' );
 		}
-		$login_nonce['expiration'] = time() + HOUR_IN_SECONDS;
 
-		if ( ! update_user_meta( $user_id, self::USER_META_NONCE_KEY, $login_nonce ) ) {
+		// Store the nonce hashed to avoid leaking it via database access.
+		$login_nonce_stored        = $login_nonce;
+		$login_nonce_stored['key'] = self::hash_login_nonce( $login_nonce['key'] );
+
+		if ( ! update_user_meta( $user_id, self::USER_META_NONCE_KEY, $login_nonce_stored ) ) {
 			return false;
 		}
 
@@ -790,16 +792,19 @@ class Two_Factor_Core {
 	 */
 	public static function verify_login_nonce( $user_id, $nonce ) {
 		$login_nonce = get_user_meta( $user_id, self::USER_META_NONCE_KEY, true );
-		if ( ! $login_nonce ) {
+
+		if ( ! $login_nonce || empty( $login_nonce['key'] ) || empty( $login_nonce['expiration'] ) ) {
 			return false;
 		}
 
-		if ( $nonce !== $login_nonce['key'] || time() > $login_nonce['expiration'] ) {
-			self::delete_login_nonce( $user_id );
-			return false;
+		if ( hash_equals( $login_nonce['key'], self::hash_login_nonce( $nonce ) ) && time() < $login_nonce['expiration'] ) {
+			return true;
 		}
 
-		return true;
+		// Require a fresh nonce if verification fails.
+		self::delete_login_nonce( $user_id );
+
+		return false;
 	}
 
 	/**
@@ -809,7 +814,7 @@ class Two_Factor_Core {
 	 */
 	public static function login_form_validate_2fa() {
 		$wp_auth_id = filter_input( INPUT_POST, 'wp-auth-id', FILTER_SANITIZE_NUMBER_INT );
-		$nonce      = filter_input( INPUT_POST, 'wp-auth-nonce', FILTER_SANITIZE_STRING );
+		$nonce      = filter_input( INPUT_POST, 'wp-auth-nonce', FILTER_CALLBACK, array( 'options' => 'sanitize_key' ) );
 
 		if ( ! $wp_auth_id || ! $nonce ) {
 			return;
@@ -821,11 +826,11 @@ class Two_Factor_Core {
 		}
 
 		if ( true !== self::verify_login_nonce( $user->ID, $nonce ) ) {
-			wp_safe_redirect( get_bloginfo( 'url' ) );
+			wp_safe_redirect( home_url() );
 			exit;
 		}
 
-		$provider = filter_input( INPUT_POST, 'provider', FILTER_SANITIZE_STRING );
+		$provider = filter_input( INPUT_POST, 'provider', FILTER_CALLBACK, array( 'options' => 'sanitize_text_field' ) );
 		if ( $provider ) {
 			$providers = self::get_available_providers_for_user( $user );
 			if ( isset( $providers[ $provider ] ) ) {
@@ -994,7 +999,7 @@ class Two_Factor_Core {
 										 *
 										 * @param WP_User $user The user.
 										 */
-										do_action_deprecated(  'two-factor-user-options-' . $class, array( $user ), '0.7.0', 'two_factor_user_options_' . $class );
+										do_action_deprecated( 'two-factor-user-options-' . $class, array( $user ), '0.7.0', 'two_factor_user_options_' . $class );
 										do_action( 'two_factor_user_options_' . $class, $user );
 									?>
 								</td>

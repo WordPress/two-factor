@@ -328,7 +328,7 @@ class Two_Factor_Totp extends Two_Factor_Provider {
 
 		foreach ( $ticks as $offset ) {
 			$log_time = $time + $offset;
-			if ( self::calc_totp( $key, $log_time ) === $authcode ) {
+			if ( hash_equals(self::calc_totp( $key, $log_time ), $authcode ) ) {
 				return true;
 			}
 		}
@@ -361,7 +361,7 @@ class Two_Factor_Totp extends Two_Factor_Provider {
 		if ( PHP_INT_SIZE >= 8 ) {
 			// If we're on PHP 5.6.3+ we can use the new 64bit pack functionality.
 			if ( version_compare( PHP_VERSION, '5.6.3', '>=' ) && PHP_INT_SIZE >= 8 ) {
-				return pack( 'J', $value );
+				return pack( 'J', $value ); // phpcs:ignore PHPCompatibility.ParameterValues.NewPackFormat.NewFormatFound
 			}
 			$highmap = 0xffffffff << 32;
 			$higher  = ( $value & $highmap ) >> 32;
