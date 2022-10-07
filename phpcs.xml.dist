@@ -10,6 +10,7 @@
 	<file>.</file>
 
 	<!-- Ensure all PHP code is compatible with PHP 5.6 and higher. -->
+	<!-- Don't use PHPCompatibilityWP until it gets PHP8 compatability support. -->
 	<rule ref="PHPCompatibility" />
 	<config name="testVersion" value="5.6-"/>
 
