@@ -987,7 +987,7 @@ class Two_Factor_Core {
 								<th scope="row"><input id="enabled-<?php echo esc_attr( $class ); ?>" type="checkbox" name="<?php echo esc_attr( self::ENABLED_PROVIDERS_USER_META_KEY ); ?>[]" value="<?php echo esc_attr( $class ); ?>" <?php checked( in_array( $class, $enabled_providers, true ) ); ?> /></th>
 								<th scope="row"><input type="radio" name="<?php echo esc_attr( self::PROVIDER_USER_META_KEY ); ?>" value="<?php echo esc_attr( $class ); ?>" <?php checked( $class, $primary_provider_key ); ?> /></th>
 								<td>
-									<label class="two-factor-method-label" for="enabled-<?php echo esc_attr( $class ); ?>"><?php esc_html( $object->get_label() ); ?></label>
+									<label class="two-factor-method-label" for="enabled-<?php echo esc_attr( $class ); ?>"><?php echo esc_html( $object->get_label() ); ?></label>
 									<?php
 										/**
 										 * Fires after user options are shown.
