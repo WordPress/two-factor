@@ -10,7 +10,7 @@
 	<file>.</file>
 
 	<!-- Ensure all PHP code is compatible with PHP 5.6 and higher. -->
-	<rule ref="PHPCompatibilityWP" />
+	<rule ref="PHPCompatibility" />
 	<config name="testVersion" value="5.6-"/>
 
 	<rule ref="WordPress" />
