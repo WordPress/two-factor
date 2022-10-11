@@ -1,0 +1,13 @@
+watch:
+  directories:
+    - ./
+  exclude:
+    - assets
+  fileMask: '*.php'
+  ignoreDotFiles: true
+  ignoreVCS: true
+  ignoreVCSIgnored: true
+
+notifications:
+  passingTests: false
+  failingTests: false
