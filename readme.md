@@ -14,12 +14,18 @@ Please [report issues](https://github.com/WordPress/two-factor/issues) and [open
 
 Join the `#core-passwords` channel [on WordPress Slack](http://wordpress.slack.com) ([sign up here](http://chat.wordpress.org)).
 
-Here is how to get started:
+To use the provided development environment, you'll first need to install and launch Docker. Once it's running, the next steps are:
 
     $ git clone https://github.com/wordpress/two-factor.git
+    $ cd two-factor
+    $ composer install
     $ npm install
+    $ npm run build
+    $ npm run env start
 
-Then open [a pull request](https://help.github.com/articles/creating-a-pull-request-from-a-fork/) with the suggested changes.
+See `package.json` for other available scripts you might want to use during development, like linting and testing.
+
+When you're ready, open [a pull request](https://help.github.com/articles/creating-a-pull-request-from-a-fork/) with the suggested changes.
 
 ## Deployments
 
