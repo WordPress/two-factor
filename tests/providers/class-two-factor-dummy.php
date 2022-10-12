@@ -23,10 +23,10 @@ class Tests_Two_Factor_Dummy extends WP_UnitTestCase {
 	/**
 	 * Set up a test case.
 	 *
-	 * @see WP_UnitTestCase::setup()
+	 * @see WP_UnitTestCase_Base::set_up()
 	 */
-	public function setUp() {
-		parent::setUp();
+	public function set_up() {
+		parent::set_up();
 
 		$this->provider = Two_Factor_Dummy::get_instance();
 	}
@@ -49,7 +49,7 @@ class Tests_Two_Factor_Dummy extends WP_UnitTestCase {
 	 */
 	public function test_get_label() {
 
-		$this->assertContains( 'Dummy Method', $this->provider->get_label() );
+		$this->assertStringContainsString( 'Dummy Method', $this->provider->get_label() );
 
 	}
 
@@ -64,9 +64,9 @@ class Tests_Two_Factor_Dummy extends WP_UnitTestCase {
 		$this->provider->authentication_page( false );
 		$contents = ob_get_clean();
 
-		$this->assertContains( 'Are you really you?', $contents );
-		$this->assertContains( '<p class="submit">', $contents );
-		$this->assertContains( 'Yup', $contents );
+		$this->assertStringContainsString( 'Are you really you?', $contents );
+		$this->assertStringContainsString( '<p class="submit">', $contents );
+		$this->assertStringContainsString( 'Yup', $contents );
 
 	}
 

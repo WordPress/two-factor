@@ -23,10 +23,10 @@ class Tests_Two_Factor_Backup_Codes extends WP_UnitTestCase {
 	/**
 	 * Set up a test case.
 	 *
-	 * @see WP_UnitTestCase::setup()
+	 * @see WP_UnitTestCase_Base::set_up()
 	 */
-	public function setUp() {
-		parent::setUp();
+	public function set_up() {
+		parent::set_up();
 		$this->provider = Two_Factor_Backup_Codes::get_instance();
 	}
 
@@ -45,7 +45,7 @@ class Tests_Two_Factor_Backup_Codes extends WP_UnitTestCase {
 	 * @covers Two_Factor_Backup_Codes::get_label
 	 */
 	public function test_get_label() {
-		$this->assertContains( 'Backup Verification Codes', $this->provider->get_label() );
+		$this->assertStringContainsString( 'Backup Verification Codes', $this->provider->get_label() );
 	}
 
 	/**
@@ -58,7 +58,7 @@ class Tests_Two_Factor_Backup_Codes extends WP_UnitTestCase {
 		$this->provider->authentication_page( false );
 		$contents = ob_get_clean();
 
-		$this->assertContains( 'Enter a backup verification code.', $contents );
+		$this->assertStringContainsString( 'Enter a backup verification code.', $contents );
 	}
 
 	/**
@@ -67,7 +67,7 @@ class Tests_Two_Factor_Backup_Codes extends WP_UnitTestCase {
 	 * @covers Two_Factor_Backup_Codes::validate_authentication
 	 */
 	public function test_validate_authentication() {
-		$user                            = new WP_User( $this->factory->user->create() );
+		$user                            = new WP_User( self::factory()->user->create() );
 		$code                            = $this->provider->generate_codes( $user, array( 'number' => 1 ) );
 		$_POST['two-factor-backup-code'] = $code[0];
 
@@ -82,7 +82,7 @@ class Tests_Two_Factor_Backup_Codes extends WP_UnitTestCase {
 	 * @covers Two_Factor_Backup_Codes::is_available_for_user
 	 */
 	public function test_is_available_for_user_false() {
-		$user = new WP_User( $this->factory->user->create() );
+		$user = new WP_User( self::factory()->user->create() );
 
 		$this->assertFalse( $this->provider->is_available_for_user( $user ) );
 	}
@@ -93,7 +93,7 @@ class Tests_Two_Factor_Backup_Codes extends WP_UnitTestCase {
 	 * @covers Two_Factor_Backup_Codes::is_available_for_user
 	 */
 	public function test_is_available_for_user() {
-		$user  = new WP_User( $this->factory->user->create() );
+		$user  = new WP_User( self::factory()->user->create() );
 		$codes = $this->provider->generate_codes( $user );
 
 		$this->assertTrue( $this->provider->is_available_for_user( $user ) );
@@ -107,7 +107,7 @@ class Tests_Two_Factor_Backup_Codes extends WP_UnitTestCase {
 	 * @covers Two_Factor_Backup_Codes::codes_remaining_for_user
 	 */
 	public function test_generate_codes_and_validate_codes() {
-		$user  = new WP_User( $this->factory->user->create() );
+		$user  = new WP_User( self::factory()->user->create() );
 		$codes = $this->provider->generate_codes( $user );
 		foreach ( $codes as $code ) {
 			$this->assertTrue( $this->provider->validate_code( $user, $code ) );
@@ -122,7 +122,7 @@ class Tests_Two_Factor_Backup_Codes extends WP_UnitTestCase {
 	 * @covers Two_Factor_Backup_Codes::validate_code
 	 */
 	public function test_generate_code_and_validate_code_false_revalidate() {
-		$user     = new WP_User( $this->factory->user->create() );
+		$user     = new WP_User( self::factory()->user->create() );
 		$codes    = $this->provider->generate_codes( $user, array( 'number' => 1 ) );
 		$validate = $this->provider->validate_code( $user, $codes[0] );
 
@@ -136,10 +136,10 @@ class Tests_Two_Factor_Backup_Codes extends WP_UnitTestCase {
 	 * @covers Two_Factor_Backup_Codes::validate_code
 	 */
 	public function test_generate_code_and_validate_code_false_different_users() {
-		$user  = new WP_User( $this->factory->user->create() );
+		$user  = new WP_User( self::factory()->user->create() );
 		$codes = $this->provider->generate_codes( $user, array( 'number' => 1 ) );
 
-		$user2  = new WP_User( $this->factory->user->create() );
+		$user2  = new WP_User( self::factory()->user->create() );
 		$codes2 = $this->provider->generate_codes( $user2, array( 'number' => 1 ) );
 
 		$this->assertFalse( $this->provider->validate_code( $user2, $codes[0] ) );
@@ -151,17 +151,17 @@ class Tests_Two_Factor_Backup_Codes extends WP_UnitTestCase {
 	 * @covers Two_Factor_Backup_Codes::user_options
 	 */
 	public function test_user_options() {
-		$user  = new WP_User( $this->factory->user->create() );
+		$user  = new WP_User( self::factory()->user->create() );
 		$nonce = wp_create_nonce( 'two-factor-backup-codes-generate-json-' . $user->ID );
 
 		ob_start();
 		$this->provider->user_options( $user );
 		$buffer = ob_get_clean();
 
-		$this->assertContains( '<p id="two-factor-backup-codes">', $buffer );
-		$this->assertContains( '<div class="two-factor-backup-codes-wrapper" style="display:none;">', $buffer );
-		$this->assertContains( "user_id: '{$user->ID}'", $buffer );
-		$this->assertContains( "nonce: '{$nonce}'", $buffer );
+		$this->assertStringContainsString( '<p id="two-factor-backup-codes">', $buffer );
+		$this->assertStringContainsString( '<div class="two-factor-backup-codes-wrapper" style="display:none;">', $buffer );
+		$this->assertStringContainsString( "user_id: '{$user->ID}'", $buffer );
+		$this->assertStringContainsString( "nonce: '{$nonce}'", $buffer );
 	}
 
 	/**
@@ -172,7 +172,7 @@ class Tests_Two_Factor_Backup_Codes extends WP_UnitTestCase {
 	 * @covers Two_Factor_Backup_Codes::codes_remaining_for_user
 	 */
 	public function test_delete_code() {
-		$user = new WP_User( $this->factory->user->create() );
+		$user = new WP_User( self::factory()->user->create() );
 
 		$this->provider->generate_codes( $user, array( 'number' => 1 ) );
 		$this->assertEquals( 1, $this->provider->codes_remaining_for_user( $user ) );
