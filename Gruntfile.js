@@ -11,6 +11,16 @@ module.exports = function( grunt ) {
 		invert: true,
 	} );
 
+	/**
+	 * Check if CLI input appears to indicate a truthy value.
+	 *
+	 * @param {string} input Value to check.
+	 * @return {boolean} If value appears to be truthy.
+	 */
+	function isTruthy( input ) {
+		return ( '1' === input || 'true' === input );
+	}
+
 	grunt.initConfig( {
 		pkg: grunt.file.readJSON( 'package.json' ),
 
@@ -33,10 +43,15 @@ module.exports = function( grunt ) {
 				plugin_slug: 'two-factor',
 				build_dir: '<%= dist_dir %>',
 				assets_dir: 'assets',
-				deploy_tag: false,
 			},
-			trunk: {
-				deploy_trunk: true,
+			wporg: {
+				options: {
+					skip_confirmation: isTruthy( process.env.DEPLOY_SKIP_CONFIRMATION ),
+					svn_user: process.env.DEPLOY_SVN_USERNAME,
+					deploy_tag: isTruthy( process.env.DEPLOY_TAG ),
+					deploy_trunk: isTruthy( process.env.DEPLOY_TRUNK ),
+					assets_dir: ( isTruthy( process.env.DEPLOY_TAG ) || isTruthy( process.env.DEPLOY_TRUNK ) ) ? 'assets' : null,
+				},
 			},
 		},
 	} );
@@ -51,7 +66,7 @@ module.exports = function( grunt ) {
 	grunt.registerTask(
 		'deploy', [
 			'build',
-			'wp_deploy:trunk',
+			'wp_deploy',
 		]
 	);
 };
