@@ -23,10 +23,10 @@ class Tests_Two_Factor_Totp extends WP_UnitTestCase {
 	/**
 	 * Set up a test case.
 	 *
-	 * @see WP_UnitTestCase::setup()
+	 * @see WP_UnitTestCase_Base::set_up()
 	 */
-	public function setUp() {
-		parent::setUp();
+	public function set_up() {
+		parent::set_up();
 
 		$this->provider = Two_Factor_Totp::get_instance();
 	}
@@ -36,10 +36,10 @@ class Tests_Two_Factor_Totp extends WP_UnitTestCase {
 	 *
 	 * @see WP_UnitTestCase::tearDown()
 	 */
-	public function tearDown() {
+	public function tear_down() {
 		unset( $this->provider );
 
-		parent::tearDown();
+		parent::tear_down();
 	}
 
 	/**
@@ -57,7 +57,7 @@ class Tests_Two_Factor_Totp extends WP_UnitTestCase {
 	 * @covers Two_Factor_Totp::get_label
 	 */
 	public function test_get_label() {
-		$this->assertContains( 'Time Based One-Time Password (TOTP)', $this->provider->get_label() );
+		$this->assertStringContainsString( 'Time Based One-Time Password (TOTP)', $this->provider->get_label() );
 	}
 
 	/**
@@ -76,13 +76,13 @@ class Tests_Two_Factor_Totp extends WP_UnitTestCase {
 	 * @covers Two_Factor_Totp::is_available_for_user
 	 */
 	public function test_user_two_factor_options_generates_key() {
-		$user = new WP_User( $this->factory->user->create() );
+		$user = new WP_User( self::factory()->user->create() );
 
 		ob_start();
 		$this->provider->user_two_factor_options( $user );
 		$content = ob_get_clean();
 
-		$this->assertContains( __( 'Authentication Code:', 'two-factor' ), $content );
+		$this->assertStringContainsString( __( 'Authentication Code:', 'two-factor' ), $content );
 	}
 
 	/**
@@ -92,7 +92,7 @@ class Tests_Two_Factor_Totp extends WP_UnitTestCase {
 	 * @covers Two_Factor_Totp::is_available_for_user
 	 */
 	public function test_user_two_factor_options_update_set_key_no_authcode() {
-		$user = new WP_User( $this->factory->user->create() );
+		$user = new WP_User( self::factory()->user->create() );
 
 		$request_key              = '_nonce_user_two_factor_totp_options';
 		$nonce                    = wp_create_nonce( 'user_two_factor_totp_options' );
@@ -120,7 +120,7 @@ class Tests_Two_Factor_Totp extends WP_UnitTestCase {
 	 * @covers Two_Factor_Totp::is_available_for_user
 	 */
 	public function test_user_two_factor_options_update_set_key_bad_auth_code() {
-		$user = new WP_User( $this->factory->user->create() );
+		$user = new WP_User( self::factory()->user->create() );
 
 		$request_key              = '_nonce_user_two_factor_totp_options';
 		$nonce                    = wp_create_nonce( 'user_two_factor_totp_options' );
@@ -150,7 +150,7 @@ class Tests_Two_Factor_Totp extends WP_UnitTestCase {
 	 * @covers Two_Factor_Totp::is_available_for_user
 	 */
 	public function test_user_two_factor_options_update_set_key() {
-		$user = new WP_User( $this->factory->user->create() );
+		$user = new WP_User( self::factory()->user->create() );
 
 		$request_key              = '_nonce_user_two_factor_totp_options';
 		$nonce                    = wp_create_nonce( 'user_two_factor_totp_options' );
@@ -248,7 +248,7 @@ class Tests_Two_Factor_Totp extends WP_UnitTestCase {
 	 * @covers Two_Factor_Totp::delete_user_totp_key
 	 */
 	public function test_user_totp_key() {
-		$user = new WP_User( $this->factory->user->create() );
+		$user = new WP_User( self::factory()->user->create() );
 
 		$this->assertEquals(
 			'',
@@ -291,7 +291,7 @@ class Tests_Two_Factor_Totp extends WP_UnitTestCase {
 	 * @covers Two_Factor_Totp::user_two_factor_options_update
 	 */
 	public function test_user_can_delete_secret() {
-		$user = new WP_User( $this->factory->user->create() );
+		$user = new WP_User( self::factory()->user->create() );
 		$key  = $this->provider->generate_key();
 
 		// Configure secret for the user.

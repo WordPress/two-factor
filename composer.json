@@ -12,7 +12,7 @@
   "config": {
     "sort-packages": true,
     "platform": {
-      "php": "7.2"
+      "php": "7.4"
     },
     "allow-plugins": {
       "dealerdirect/phpcodesniffer-composer-installer": true,
@@ -33,7 +33,7 @@
     "php-coveralls/php-coveralls": "^2.5",
     "phpcompatibility/php-compatibility": "10.x-dev as 9.99.99",
     "phpcompatibility/phpcompatibility-wp": "dev-master",
-    "phpunit/phpunit": "^5",
+    "phpunit/phpunit": "^9.5",
     "roots/wordpress-core-installer": "^1.100",
     "roots/wordpress-full": "^6.0",
     "spatie/phpunit-watcher": "^1.23",
