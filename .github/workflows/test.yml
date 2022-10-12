@@ -46,6 +46,3 @@ jobs:
 
       - name: Build
         run: npm run build
-
-      - name: Lint PHP8 in Container
-        run: npm run composer lint-php8
