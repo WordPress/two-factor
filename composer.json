@@ -11,7 +11,6 @@
   },
   "config": {
     "sort-packages": true,
-    "process-timeout": 0,
     "platform": {
       "php": "7.2"
     },
@@ -46,7 +45,10 @@
     "lint": "phpcs",
     "lint-php8": "phpcs -p --standard=PHPCompatibilityWP --runtime-set testVersion 8.0- --extensions=php --ignore='vendor/,wordpress/,node_modules/' .",
     "test": "phpunit",
-    "test:watch": "phpunit-watcher watch",
+    "test:watch": [
+      "Composer\\Config::disableProcessTimeout",
+      "phpunit-watcher watch"
+    ],
     "format": "phpcbf"
   }
 }
