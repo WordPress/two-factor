@@ -184,18 +184,32 @@ class Tests_Two_Factor_Totp extends WP_UnitTestCase {
 		$string_base32 = 'IVLDKWCXG5KE6TBUKFEESS2CJFDVMRKVGIZUWQKGKJHEINRWJRMQ';
 
 		$this->assertEquals( $string_base32, $this->provider->base32_encode( $string ) );
+		$this->assertEquals( '', $this->provider->base32_encode( '' ) );
 	}
 
 	/**
 	 * Verify base32 decoding.
 	 *
-	 * @covers Two_Factor_Totp::base32_encode
+	 * @covers Two_Factor_Totp::base32_decode
 	 */
 	public function test_base32_decode() {
 		$string        = 'EV5XW7TOL4QHIKBIGVEU23KAFRND66LY';
 		$string_base32 = 'IVLDKWCXG5KE6TBUKFEESS2CJFDVMRKVGIZUWQKGKJHEINRWJRMQ';
 
 		$this->assertEquals( $string, $this->provider->base32_decode( $string_base32 ) );
+
+	}
+
+	/**
+	 * Test base32 decoding an invalid string.
+	 *
+	 * @covers Two_Factor_Totp::base32_decode
+	 */
+	public function test_base32_decode_exception() {
+		$string_base32 = 'IVLDKWCXG5KE6TBUKFEESS2CJFDVMRKVGIZUWQKGKJHEINRWJRMQ';
+
+		$this->expectExceptionMessage( 'Invalid characters in the base32 string.' );
+		$this->provider->base32_decode( $string_base32 . '@' );
 	}
 
 	/**
@@ -204,12 +218,26 @@ class Tests_Two_Factor_Totp extends WP_UnitTestCase {
 	 * @covers Two_Factor_Totp::is_valid_authcode
 	 * @covers Two_Factor_Totp::generate_key
 	 * @covers Two_Factor_Totp::calc_totp
+	 * @covers Two_Factor_Totp::pack64
+	 * @covers Two_Factor_Totp::base32_decode
+	 * @covers Two_Factor_Totp::abssort
 	 */
 	public function test_is_valid_authcode() {
 		$key      = $this->provider->generate_key();
 		$authcode = $this->provider->calc_totp( $key );
 
 		$this->assertTrue( $this->provider->is_valid_authcode( $key, $authcode ) );
+	}
+
+	/**
+	 * Verify authcode rejection.
+	 *
+	 * @covers Two_Factor_Totp::is_valid_authcode
+	 */
+	public function test_invalid_authcode_rejected() {
+		$key = $this->provider->generate_key();
+
+		$this->assertFalse( $this->provider->is_valid_authcode( $key, '012345' ) );
 	}
 
 	/**
