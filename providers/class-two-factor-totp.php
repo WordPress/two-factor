@@ -38,7 +38,7 @@ class Two_Factor_Totp extends Two_Factor_Provider {
 	const DEFAULT_TIME_STEP_ALLOWANCE = 4;
 
 	/**
-	 * Chracters used in base32 encoding.
+	 * Characters used in base32 encoding.
 	 *
 	 * @var string
 	 */
@@ -46,6 +46,8 @@ class Two_Factor_Totp extends Two_Factor_Provider {
 
 	/**
 	 * Class constructor. Sets up hooks, etc.
+	 *
+	 * @codeCoverageIgnore
 	 */
 	protected function __construct() {
 		add_action( 'two_factor_user_options_' . __CLASS__, array( $this, 'user_two_factor_options' ) );
@@ -58,6 +60,8 @@ class Two_Factor_Totp extends Two_Factor_Provider {
 
 	/**
 	 * Ensures only one instance of this class exists in memory at any one time.
+	 *
+	 * @codeCoverageIgnore
 	 */
 	public static function get_instance() {
 		static $instance;
@@ -81,6 +85,8 @@ class Two_Factor_Totp extends Two_Factor_Provider {
 	 * @param string  $action Action ID.
 	 *
 	 * @return void
+	 *
+	 * @codeCoverageIgnore
 	 */
 	public function user_settings_action( $user_id, $action ) {
 		if ( self::ACTION_SECRET_DELETE === $action ) {
@@ -94,6 +100,8 @@ class Two_Factor_Totp extends Two_Factor_Provider {
 	 * @param integer $user_id User ID.
 	 *
 	 * @return string
+	 *
+	 * @codeCoverageIgnore
 	 */
 	protected function get_token_delete_url_for_user( $user_id ) {
 		return Two_Factor_Core::get_user_update_action_url( $user_id, self::ACTION_SECRET_DELETE );
@@ -104,6 +112,8 @@ class Two_Factor_Totp extends Two_Factor_Provider {
 	 *
 	 * @param WP_User $user The current user being edited.
 	 * @return false
+	 *
+	 * @codeCoverageIgnore
 	 */
 	public function user_two_factor_options( $user ) {
 		if ( ! isset( $user->ID ) ) {
@@ -161,6 +171,8 @@ class Two_Factor_Totp extends Two_Factor_Provider {
 	 * @param integer $user_id The user ID whose options are being updated.
 	 *
 	 * @return void
+	 *
+	 * @codeCoverageIgnore
 	 */
 	public function user_two_factor_options_update( $user_id ) {
 		$notices = array();
@@ -255,6 +267,8 @@ class Two_Factor_Totp extends Two_Factor_Provider {
 	 * @param integer $user_id User ID.
 	 *
 	 * @return void
+	 *
+	 * @codeCoverageIgnore
 	 */
 	public function admin_notices( $user_id ) {
 		$notices = get_user_meta( $user_id, self::NOTICES_META_KEY, true );
@@ -286,6 +300,8 @@ class Two_Factor_Totp extends Two_Factor_Provider {
 	 * @param WP_User $user WP_User object of the logged-in user.
 	 *
 	 * @return bool Whether the user gave a valid code
+	 *
+	 * @codeCoverageIgnore
 	 */
 	public function validate_authentication( $user ) {
 		if ( ! empty( $_REQUEST['authcode'] ) ) {
@@ -421,6 +437,8 @@ class Two_Factor_Totp extends Two_Factor_Provider {
 	 * @param string $title The title to display in the Authentication app.
 	 *
 	 * @return string A URL to use as an img src to display the QR code
+	 *
+	 * @codeCoverageIgnore
 	 */
 	public static function get_google_qr_code( $name, $key, $title = null ) {
 		// Encode to support spaces, question marks and other characters.
@@ -450,6 +468,8 @@ class Two_Factor_Totp extends Two_Factor_Provider {
 	 * Prints the form that prompts the user to authenticate.
 	 *
 	 * @param WP_User $user WP_User object of the logged-in user.
+	 *
+	 * @codeCoverageIgnore
 	 */
 	public function authentication_page( $user ) {
 		require_once ABSPATH . '/wp-admin/includes/template.php';
