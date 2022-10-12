@@ -11,6 +11,8 @@ module.exports = function( grunt ) {
 		invert: true,
 	} );
 
+	console.log( 'tag:', process.env.DEPLOY_TAG, 'trunk:', process.env.DEPLOY_TRUNK, 'test', process.env.ENV_TEST_TRUE );
+
 	grunt.initConfig( {
 		pkg: grunt.file.readJSON( 'package.json' ),
 

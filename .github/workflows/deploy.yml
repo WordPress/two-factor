@@ -41,6 +41,7 @@ jobs:
           DEPLOY_SVN_USERNAME: ${{ secrets.SVN_USERNAME }}
           DEPLOY_TRUNK: ${{ contains( github.ref_name, 'master' ) }}
           DEPLOY_TAG: ${{ contains( github.ref_type, 'tag' ) }}
+          ENV_TEST_TRUE: ${{ contains( github.ref_type, 'branch' ) }}
           DEPLOY_SKIP_CONFIRMATION: true
         if: env.DEPLOY_SVN_USERNAME
         run: npm run deploy
