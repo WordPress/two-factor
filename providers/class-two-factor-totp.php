@@ -328,7 +328,7 @@ class Two_Factor_Totp extends Two_Factor_Provider {
 
 		foreach ( $ticks as $offset ) {
 			$log_time = $time + $offset;
-			if ( self::calc_totp( $key, $log_time ) === $authcode ) {
+			if ( hash_equals(self::calc_totp( $key, $log_time ), $authcode ) ) {
 				return true;
 			}
 		}
@@ -459,7 +459,7 @@ class Two_Factor_Totp extends Two_Factor_Provider {
 		</p>
 		<p>
 			<label for="authcode"><?php esc_html_e( 'Authentication Code:', 'two-factor' ); ?></label>
-			<input type="tel" autocomplete="off" name="authcode" id="authcode" class="input" value="" size="20" pattern="[0-9]*" />
+			<input type="tel" autocomplete="one-time-code" name="authcode" id="authcode" class="input" value="" size="20" pattern="[0-9]*" />
 		</p>
 		<script type="text/javascript">
 			setTimeout( function(){

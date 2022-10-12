@@ -244,7 +244,7 @@ class Two_Factor_Core {
 	 * @return boolean
 	 */
 	public static function is_valid_user_action( $user_id, $action ) {
-		$request_nonce = filter_input( INPUT_GET, self::USER_SETTINGS_ACTION_NONCE_QUERY_ARG, FILTER_SANITIZE_STRING );
+		$request_nonce = filter_input( INPUT_GET, self::USER_SETTINGS_ACTION_NONCE_QUERY_ARG, FILTER_CALLBACK, array( 'options' => 'sanitize_key' ) );
 
 		return wp_verify_nonce(
 			$request_nonce,
@@ -277,7 +277,7 @@ class Two_Factor_Core {
 	 * @return void
 	 */
 	public static function trigger_user_settings_action() {
-		$action  = filter_input( INPUT_GET, self::USER_SETTINGS_ACTION_QUERY_VAR, FILTER_SANITIZE_STRING );
+		$action  = filter_input( INPUT_GET, self::USER_SETTINGS_ACTION_QUERY_VAR, FILTER_CALLBACK, array( 'options' => 'sanitize_key' ) );
 		$user_id = self::current_user_being_edited();
 
 		if ( ! empty( $action ) && self::is_valid_user_action( $user_id, $action ) ) {
@@ -537,8 +537,8 @@ class Two_Factor_Core {
 	 */
 	public static function backup_2fa() {
 		$wp_auth_id = filter_input( INPUT_GET, 'wp-auth-id', FILTER_SANITIZE_NUMBER_INT );
-		$nonce      = filter_input( INPUT_GET, 'wp-auth-nonce', FILTER_SANITIZE_STRING );
-		$provider   = filter_input( INPUT_GET, 'provider', FILTER_SANITIZE_STRING );
+		$nonce      = filter_input( INPUT_GET, 'wp-auth-nonce', FILTER_CALLBACK, array( 'options' => 'sanitize_key' ) );
+		$provider   = filter_input( INPUT_GET, 'provider', FILTER_CALLBACK, array( 'options' => 'sanitize_text_field' ) );
 
 		if ( ! $wp_auth_id || ! $nonce || ! $provider ) {
 			return;
@@ -672,7 +672,7 @@ class Two_Factor_Core {
 						?>
 						<li>
 							<a href="<?php echo esc_url( $login_url ); ?>">
-								<?php $backup_provider->print_label(); ?>
+								<?php echo esc_html( $backup_provider->get_label() ); ?>
 							</a>
 						</li>
 					<?php endforeach; ?>
@@ -814,7 +814,7 @@ class Two_Factor_Core {
 	 */
 	public static function login_form_validate_2fa() {
 		$wp_auth_id = filter_input( INPUT_POST, 'wp-auth-id', FILTER_SANITIZE_NUMBER_INT );
-		$nonce      = filter_input( INPUT_POST, 'wp-auth-nonce', FILTER_SANITIZE_STRING );
+		$nonce      = filter_input( INPUT_POST, 'wp-auth-nonce', FILTER_CALLBACK, array( 'options' => 'sanitize_key' ) );
 
 		if ( ! $wp_auth_id || ! $nonce ) {
 			return;
@@ -830,7 +830,7 @@ class Two_Factor_Core {
 			exit;
 		}
 
-		$provider = filter_input( INPUT_POST, 'provider', FILTER_SANITIZE_STRING );
+		$provider = filter_input( INPUT_POST, 'provider', FILTER_CALLBACK, array( 'options' => 'sanitize_text_field' ) );
 		if ( $provider ) {
 			$providers = self::get_available_providers_for_user( $user );
 			if ( isset( $providers[ $provider ] ) ) {
@@ -978,18 +978,17 @@ class Two_Factor_Core {
 							<tr>
 								<th class="col-enabled" scope="col"><?php esc_html_e( 'Enabled', 'two-factor' ); ?></th>
 								<th class="col-primary" scope="col"><?php esc_html_e( 'Primary', 'two-factor' ); ?></th>
-								<th class="col-name" scope="col"><?php esc_html_e( 'Name', 'two-factor' ); ?></th>
+								<th class="col-name" scope="col"><?php esc_html_e( 'Type', 'two-factor' ); ?></th>
 							</tr>
 						</thead>
 						<tbody>
 						<?php foreach ( self::get_providers() as $class => $object ) : ?>
 							<tr>
-								<th scope="row"><input type="checkbox" name="<?php echo esc_attr( self::ENABLED_PROVIDERS_USER_META_KEY ); ?>[]" value="<?php echo esc_attr( $class ); ?>" <?php checked( in_array( $class, $enabled_providers, true ) ); ?> /></th>
+								<th scope="row"><input id="enabled-<?php echo esc_attr( $class ); ?>" type="checkbox" name="<?php echo esc_attr( self::ENABLED_PROVIDERS_USER_META_KEY ); ?>[]" value="<?php echo esc_attr( $class ); ?>" <?php checked( in_array( $class, $enabled_providers, true ) ); ?> /></th>
 								<th scope="row"><input type="radio" name="<?php echo esc_attr( self::PROVIDER_USER_META_KEY ); ?>" value="<?php echo esc_attr( $class ); ?>" <?php checked( $class, $primary_provider_key ); ?> /></th>
 								<td>
+									<label class="two-factor-method-label" for="enabled-<?php echo esc_attr( $class ); ?>"><?php echo esc_html( $object->get_label() ); ?></label>
 									<?php
-										$object->print_label();
-
 										/**
 										 * Fires after user options are shown.
 										 *

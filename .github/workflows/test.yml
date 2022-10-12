@@ -35,6 +35,9 @@ jobs:
       - name: Lint PHP
         run: npm run lint:php || true # Ignore for now.
 
+      - name: Lint PHP8
+        run: composer lint-php8
+
       - name: Start the Docker testing environment
         run: npm run env start --xdebug=coverage
 
