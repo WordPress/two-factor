@@ -1,12 +1,12 @@
 === Two-Factor ===
 Contributors: georgestephanis, valendesigns, stevenkword, extendwings, sgrant, aaroncampbell, johnbillion, stevegrunwell, netweb, kasparsd, alihusnainarshad, passoniate
-Tags: two factor, two step, authentication, login, totp, fido u2f, u2f, email, backup codes, 2fa, yubikey
+Tags: two factor, two step, authentication, login, totp, email, backup codes, 2fa, yubikey
 Requires at least: 4.3
 Tested up to: 6.0
 Requires PHP: 5.6
 Stable tag: 0.7.2
 
-Enable Two-Factor Authentication using time-based one-time passwords (OTP, Google Authenticator), Universal 2nd Factor (FIDO U2F, YubiKey), email and backup verification codes.
+Enable Two-Factor Authentication using time-based one-time passwords (OTP, Google Authenticator), email and backup verification codes.
 
 == Description ==
 
@@ -14,7 +14,6 @@ Use the "Two-Factor Options" section under "Users" → "Your Profile" to enable 
 
 - Email codes
 - Time Based One-Time Passwords (TOTP)
-- FIDO Universal 2nd Factor (U2F)
 - Backup Codes
 - Dummy Method (only for testing purposes)
 
@@ -32,7 +31,6 @@ Here is a list of action and filter hooks provided by the plugin:
 == Screenshots ==
 
 1. Two-factor options under User Profile.
-2. U2F Security Keys section under User Profile.
 3. Email Code Authentication during WordPress Login.
 
 == Get Involved ==
