@@ -749,7 +749,7 @@ class Two_Factor_Core {
 	 */
 	public static function create_login_nonce( $user_id ) {
 		$login_nonce = array(
-			'expiration' => time() + HOUR_IN_SECONDS,
+			'expiration' => time() + ( 10 * MINUTE_IN_SECONDS ),
 		);
 
 		try {

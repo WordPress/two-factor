@@ -390,7 +390,7 @@ class Test_ClassTwoFactorCore extends WP_UnitTestCase {
 		$this->assertNotEmpty( $nonce['expiration'], 'Nonce expiration is set' );
 
 		$this->assertGreaterThan( time(), $nonce['expiration'], 'Nonce expiration is in the future' );
-		$this->assertLessThan( time() + HOUR_IN_SECONDS + 1, $nonce['expiration'], 'Nonce expiration is not more than an hour' );
+		$this->assertLessThan( time() + ( 10 * MINUTE_IN_SECONDS ) + 1, $nonce['expiration'], 'Nonce expiration is not more than 10 minutes' );
 
 		$this->assertTrue(
 			Two_Factor_Core::verify_login_nonce( $user_id, $nonce['key'] ),
