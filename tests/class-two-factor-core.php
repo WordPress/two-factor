@@ -380,7 +380,43 @@ class Test_ClassTwoFactorCore extends WP_UnitTestCase {
 	}
 
 	/**
+	 * @covers Two_Factor_Core::create_login_nonce()
+	 * @covers Two_Factor_Core::hash_login_nonce()
+	 */
+	public function test_invalid_hash_input_fails() {
+		$nonce = Two_Factor_Core::create_login_nonce( NAN );
+
+		$this->assertFalse( $nonce );
+		$this->assertNotEmpty( json_last_error() );
+	}
+
+	/**
+	 * @covers Two_Factor_Core::create_login_nonce()
+	 * @covers Two_Factor_Core::hash_login_nonce()
+	 */
+	public function test_create_login_nonce() {
+		$user              = self::factory()->user->create_and_get();
+		$plain_nonce       = Two_Factor_Core::create_login_nonce( $user->ID );
+		$hashed_nonce      = get_user_meta( $user->ID, Two_Factor_Core::USER_META_NONCE_KEY, true );
+		$plain_key_length  = strlen( $plain_nonce['key'] );
+		$hashed_key_length = strlen( $hashed_nonce['key'] );
+
+		$this->assertSame( $user->ID, $plain_nonce['user_id'] );
+		$this->assertGreaterThan( time() + ( 9 * MINUTE_IN_SECONDS ), $plain_nonce['expiration'] );
+		$this->assertIsString( $plain_nonce['key'] );
+		$this->assertTrue( 64 === $plain_key_length || 32 === $plain_key_length );
+
+		$this->assertSame( $plain_nonce['expiration'], $hashed_nonce['expiration'] );
+		$this->assertIsString( $hashed_nonce['key'] );
+		$this->assertTrue( 32 === $hashed_key_length );
+		$this->assertNotEquals( $plain_nonce['key'], $hashed_nonce['key'] );
+	}
+
+	/**
 	 * Check if nonce can be verified.
+	 *
+	 * @covers Two_Factor_Core::create_login_nonce()
+	 * @covers Two_Factor_Core::verify_login_nonce()
 	 */
 	public function test_can_verify_login_nonce() {
 		$user_id = 123456;
