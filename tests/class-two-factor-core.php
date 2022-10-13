@@ -454,8 +454,10 @@ class Test_ClassTwoFactorCore extends WP_UnitTestCase {
 
 	/**
 	 * Invalid nonce deletes the valid nonce.
+	 *
+	 * @covers Two_Factor_Core::verify_login_nonce()
 	 */
-	public function test_login_nonce_can_be_used_only_once() {
+	public function test_invalid_nonce_deletes_valid_nonce() {
 		$user_id = 123456;
 		$nonce   = Two_Factor_Core::create_login_nonce( $user_id );
 
