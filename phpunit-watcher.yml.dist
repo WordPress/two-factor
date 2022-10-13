@@ -2,7 +2,12 @@ watch:
   directories:
     - ./
   exclude:
+    - .github
     - assets
+    - dist
+    - node_modules
+    - vendor
+    - wordpress
   fileMask: '*.php'
   ignoreDotFiles: true
   ignoreVCS: true
