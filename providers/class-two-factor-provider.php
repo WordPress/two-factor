@@ -93,7 +93,7 @@ abstract class Two_Factor_Provider {
 		do_action( 'two_factor_user_login_failed', $user, $code, $this );
 
 		/* translators: %1$d: the user's ID %2$s: the code used to authenticate */
-		$log_message = sprintf( esc_html__( 'The user with ID %1$d failed to login using the code "%2$s"', 'two-factor' ), $user->ID, esc_html( $code ) );
+		$log_message = sprintf( esc_html__( 'The user %1$s (ID: %2$d) failed to login using the code "%3$s"', 'two-factor' ), esc_html( $user->user_login ), $user->ID, esc_html( $code ) );
 
 		/**
 		 * This filter is triggered to checke whether it's needed to log the authentication failure.
