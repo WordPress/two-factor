@@ -21,6 +21,7 @@
     "format:css": "npm run lint:css -- --fix",
     "test": "npm-run-all test:*",
     "test:php": "npm run composer test",
+    "test-report-coverage": "wp-env run wordpress -- bash -c 'wp-content/plugins/two-factor/vendor/bin/phpunit --debug --configuration ./wp-content/plugins/two-factor/phpunit.xml.dist'",
     "composer": "wp-env run phpunit composer --working-dir=/var/www/html/wp-content/plugins/two-factor",
     "preinstall": "composer install"
   },
