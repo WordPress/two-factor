@@ -20,8 +20,6 @@ Use the "Two-Factor Options" section under "Users" → "Your Profile" to enable 
 
 For more history, see [this post](https://georgestephanis.wordpress.com/2013/08/14/two-cents-on-two-factor/).
 
-Please report any potential security issues to the [WordPress HackerOne](https://hackerone.com/wordpress) program.
-
 = Actions & Filters =
 
 Here is a list of action and filter hooks provided by the plugin:
@@ -39,7 +37,9 @@ Here is a list of action and filter hooks provided by the plugin:
 
 == Get Involved ==
 
-Development happens [on GitHub](https://github.com/wordpress/two-factor/).
+Please [report (non-security) issues](https://github.com/WordPress/two-factor/issues) and [open pull requests](https://github.com/WordPress/two-factor/pulls) on GitHub.
+
+Please report any potential security issues to the [WordPress HackerOne](https://hackerone.com/wordpress) program.
 
 == Changelog ==
 
