@@ -855,7 +855,7 @@ class Two_Factor_Core {
 
 		// Ask the provider to verify the second factor.
 		if ( true !== $provider->validate_authentication( $user ) ) {
-			do_action( 'wp_login_failed', $user->user_login, new WP_Error( 'two_factor_invalid', esc_html__( 'ERROR: Invalid verification code.', 'two-factor' ) ) );
+			do_action( 'wp_login_failed', $user->user_login, new WP_Error( 'two_factor_invalid', __( 'ERROR: Invalid verification code.', 'two-factor' ) ) );
 
 			$login_nonce = self::create_login_nonce( $user->ID );
 			if ( ! $login_nonce ) {
