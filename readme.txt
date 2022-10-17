@@ -20,6 +20,8 @@ Use the "Two-Factor Options" section under "Users" → "Your Profile" to enable 
 
 For more history, see [this post](https://georgestephanis.wordpress.com/2013/08/14/two-cents-on-two-factor/).
 
+Please report any potential security issues to the [WordPress HackerOne](https://hackerone.com/wordpress) program.
+
 = Actions & Filters =
 
 Here is a list of action and filter hooks provided by the plugin:
