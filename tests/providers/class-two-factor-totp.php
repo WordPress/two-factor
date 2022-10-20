@@ -315,6 +315,13 @@ class Tests_Two_Factor_Totp extends WP_UnitTestCase {
 	/**
 	 * Verify the encryption and decryption functions behave correctly
 	 *
+	 * @covers Two_Factor_Provider::encrypt()
+	 * @covers Two_Factor_Provider::get_version_header()
+	 * @covers Two_Factor_Provider::serialize_aad()
+	 * @covers Two_Factor_Provider::get_encryption_key()
+	 * @covers Two_Factor_Provider::decrypt()
+	 * @covers Two_Factor_Provider::get_version_id()
+	 *
 	 * @throws SodiumException Libsodium can fail.
 	 */
 	public function test_encrypt_decrypt() {

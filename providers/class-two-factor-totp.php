@@ -31,6 +31,13 @@ class Two_Factor_Totp extends Two_Factor_Provider {
 	 */
 	const ACTION_SECRET_DELETE = 'totp-delete';
 
+	/**
+	 * Name of the constant used as an encryption salt
+	 *
+	 * @var string
+	 */
+	const ENCRYPTION_SALT_NAME = 'TWO_FACTOR_TOTP_ENCRYPTION_SALT';
+
 	const DEFAULT_KEY_BIT_SIZE        = 160;
 	const DEFAULT_CRYPTO              = 'sha1';
 	const DEFAULT_DIGIT_COUNT         = 6;
@@ -50,6 +57,9 @@ class Two_Factor_Totp extends Two_Factor_Provider {
 	 * @codeCoverageIgnore
 	 */
 	protected function __construct() {
+		self::maybe_create_config_salt( self::ENCRYPTION_SALT_NAME );
+
+		//add_action( 'admin_enqueue_scripts', array( $this, 'enqueue_assets' ) );
 		add_action( 'two_factor_user_options_' . __CLASS__, array( $this, 'user_two_factor_options' ) );
 		add_action( 'personal_options_update', array( $this, 'user_two_factor_options_update' ) );
 		add_action( 'edit_user_profile_update', array( $this, 'user_two_factor_options_update' ) );
@@ -70,6 +80,31 @@ class Two_Factor_Totp extends Two_Factor_Provider {
 		}
 		return $instance;
 	}
+
+	/**
+	 * Enqueue assets.
+	 *
+	 * @param string $hook Current page.
+	 */
+	//public static function enqueue_assets( $hook ) {
+	//	/* remove this if don't end up adding the warning */
+	//
+	//	if ( ! in_array( $hook, array( 'user-edit.php', 'profile.php' ), true ) ) {
+	//		return;
+	//	}
+	//
+	//	$user_id = Two_Factor_Core::current_user_being_edited();
+	//	if ( ! $user_id ) {
+	//		return;
+	//	}
+	//
+	//	wp_enqueue_style(
+	//		'totp-admin',
+	//		plugins_url( 'css/totp-admin.css', __FILE__ ),
+	//		null,
+	//		TWO_FACTOR_VERSION
+	//	);
+	//}
 
 	/**
 	 * Returns the name of the provider.
@@ -298,6 +333,37 @@ class Two_Factor_Totp extends Two_Factor_Provider {
 				<?php
 			}
 		}
+
+		// `self::maybe_create_config_salt()` wasn't able to create it, so ask admins to do it manually.
+		//if ( ! defined( self::ENCRYPTION_SALT_NAME ) && current_user_can( 'install_plugins' ) ) {
+		//	//  might need to use manage_network in multisite. test
+		//
+		//	// todo wait, this'll create situation where _have_ to rotate keys, b/c previously fell back to using wp_salt()
+		//		// so would have to give them migration instructions
+		//		// better to just do nothing and let them use wpsalt()?
+		//		// but could be high correlation between sites that expect strong security and sites that have wp-config unwritable by php
+		//		// so that'd be using weaker security on those sites without the admins even knowing it
+		//	// maybe better to not fallback to wpsalt() and require the constant be configured?
+		//		// maybe disable provider if it doesn't exist?
+		//		// then show warning here and on plugins.php?
+		//	// actually, using the wpsalt() fallback is only weaker if they don't have SECURE_NONCE_SALT setup in wpconfig
+		//		// that's rare, especially among sites that care about security
+		//		// so probably fine to just silently fall back rather than bothering with all this
+		// moving this to a Site Health warning might give more room to explain, or maybe just rely on external article
+		//
+		//	$salt_value = wp_generate_password( 64, true, true );
+		//	// todo make DRY w/ base class unless it stays simple ^
+		//
+		//	printf(
+		//		'<div class="notice notice-warning inline">
+		//			<p>%s</p>
+		//			<pre><code>%s</code></pre>
+		//		</div>',
+		//
+		//		__( 'Could not create encryption key, please add this to your <code>wp-config.php</code>:', 'two-factor' ),
+		//		esc_html( trim( self::get_config_salt_definition( self::ENCRYPTION_SALT_NAME, $salt_value ) ) )
+		//	);
+		//}
 	}
 
 	/**

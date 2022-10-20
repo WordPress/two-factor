@@ -18,7 +18,8 @@ abstract class Two_Factor_Provider {
 	 * Prefix for encrypted secrets. Contains a version identifier.
 	 *
 	 * $t1$ -> v1 (RFC 6238, encrypted with XChaCha20-Poly1305, with a key derived from HMAC-SHA256
-	 *                  of SECURE_AUTH_SAL.)
+	 *      of the child class's `ENCRYPTION_SALT_NAME`. If that doesn't exist, the key falls back
+	 *      to `wp_salt( 'secure_auth' )`.
 	 *
 	 * @var string
 	 */
@@ -257,8 +258,102 @@ abstract class Two_Factor_Provider {
 	 */
 	private static function get_encryption_key( $version = self::ENCRYPTED_VERSION ) {
 		if ( 1 === $version ) {
-			return hash_hmac( 'sha256', wp_salt( 'secure_auth' ), 'two-factor-encryption', true );
+			$name = get_called_class()::ENCRYPTION_SALT_NAME;
+			$salt = defined( $name ) ? constant( $name ) : wp_salt( 'secure_auth' );
+
+			return hash_hmac( 'sha256', $salt, 'two-factor-encryption', true );
 		}
 		throw new RuntimeException( 'Incorrect version number: ' . $version );
+	}
+
+	/**
+	 * Get the path to `wp-config.php`.
+	 *
+	 * If merging to Core, move this to `wp-load.php` and use there for DRYness.
+	 *
+	 * @return string
+	 */
+	public static function get_config_path() {
+		$path = '';
+
+		if ( file_exists( ABSPATH . 'wp-config.php' ) ) {
+			$path = ABSPATH . 'wp-config.php';
+		} elseif ( file_exists( dirname( ABSPATH ) . '/wp-config.php' ) && ! file_exists( dirname( ABSPATH ) . '/wp-settings.php' ) ) {
+			// The config file resides one level above ABSPATH but is not part of another installation.
+			$path = dirname( ABSPATH ) . '/wp-config.php';
+		}
+
+		return $path;
+	}
+
+	/**
+	 * Attempt to create the given constant if it doesn't already exist.
+	 *
+	 * If created, it'll also be defined so it can be used in the current process.
+	 *
+	 * @param string $name
+	 *
+	 * @return bool `true` if already exists, `true` if created, `false` if could not be created.
+	 */
+	public static function maybe_create_config_salt( $name ) {
+		if ( defined( $name ) ) {
+			return true;
+		}
+
+		$result          = false;
+		$config_path     = self::get_config_path();
+		$config_contents = file_get_contents( $config_path );
+
+		// Need to check this in addition to `defined()` above, to avoid writing duplicates
+		// during edge cases where the config isn't included (like certain unit tests setups).
+		$already_exists = false !== stripos( $config_contents, $name );
+
+		if ( ! $already_exists && is_writable( $config_path ) ) {
+			// todo in test suite iswritable always returns true, even when file is chmod 444
+			// also todo, locally it still writes to conf file when chmod 444 - retest now that have changed some things
+
+			$salt_value   = wp_generate_password( 64, true, true );
+			// todo is wp_generate_pw strong enough here, or need to copy setup-config.php use of random_int() ?
+			// see https://core.trac.wordpress.org/ticket/35290 and others from blame
+			// doesn't wpgenpw also uses a cspring, and the same alphabet+length?
+
+			$new_constant = self::get_config_salt_definition( $name, $salt_value );
+
+			// Put it at the beginning for simplicity/reliability.
+			$config_contents = str_replace( '<?php', '<?php ' . $new_constant, $config_contents );
+			$written         = file_put_contents( $config_path, $config_contents );
+
+			if ( $written ) {
+				define( $name, $salt_value );
+
+				$result = true;
+			}
+		}
+
+		return $result;
+	}
+
+	/**
+	 * Get the definition of a new salt constant, for `wp-config.php`
+	 *
+	 * @param string $name       The name of the constant.
+	 * @param string $salt_value The value of the constant.
+	 *
+	 * @return string
+	 */
+	protected static function get_config_salt_definition( $name, $salt_value ) {
+		$new_constant = "\n
+			/*
+			 * Warning: Changing this value will break decryption for existing users, and prevent
+			 * them from logging in with this factor. If you change this you must create a constant
+			 * to facilitate migration:
+			 *
+			 * define( '{$name}_MIGRATE', 'place the old value here' );
+			 *
+			 * See {@TODO support article URL} for more information.
+			 */
+			define( '$name', '$salt_value' );\n";
+
+		return str_replace( "\t", '', $new_constant );
 	}
 }
