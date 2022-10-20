@@ -171,6 +171,9 @@ abstract class Two_Factor_Provider {
 		if ( strlen( $encrypted ) < 4 ) {
 			throw new RuntimeException( 'Message is too short to be encrypted' );
 		}
+
+		require_once ABSPATH . WPINC . '/random_compat/byte_safe_strings.php';
+
 		$prefix  = substr( $encrypted, 0, 4 );
 		$version = self::get_version_id( $prefix );
 		if ( 1 === $version ) {
