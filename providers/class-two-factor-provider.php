@@ -257,7 +257,7 @@ abstract class Two_Factor_Provider {
 	 */
 	final private static function get_encryption_key( $version = self::ENCRYPTED_VERSION ) {
 		if ( 1 === $version ) {
-			return hash_hmac( 'sha256', SECURE_AUTH_SALT, 'two-factor-encryption', true );
+			return hash_hmac( 'sha256', wp_salt( 'secure_auth' ), 'two-factor-encryption', true );
 		}
 		throw new RuntimeException( 'Incorrect version number: ' . $version );
 	}

@@ -318,12 +318,8 @@ class Tests_Two_Factor_Totp extends WP_UnitTestCase {
 	 * @throws SodiumException Libsodium can fail.
 	 */
 	public function test_encrypt_decrypt() {
-		$user = new WP_User( $this->factory->user->create() );
+		$user = new WP_User( self::factory()->user->create() );
 		$key  = $this->provider->generate_key();
-
-		if ( ! defined( 'SECURE_AUTH_SALT' ) ) {
-			define( 'SECURE_AUTH_SALT', random_bytes( 32 ) );
-		}
 
 		$encrypted = Two_Factor_Totp::encrypt( $key, $user->ID );
 		$this->assertEquals(
