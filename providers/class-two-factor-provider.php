@@ -222,7 +222,7 @@ abstract class Two_Factor_Provider {
 	 * @return string
 	 * @throws RuntimeException For incorrect versions.
 	 */
-	final private static function get_version_header( $number = self::ENCRYPTED_VERSION ) {
+	private static function get_version_header( $number = self::ENCRYPTED_VERSION ) {
 		switch ( $number ) {
 			case 1:
 				return '$t1$';
@@ -237,7 +237,7 @@ abstract class Two_Factor_Provider {
 	 * @return int
 	 * @throws RuntimeException For incorrect versions.
 	 */
-	final private static function get_version_id( $prefix = self::ENCRYPTED_PREFIX ) {
+	private static function get_version_id( $prefix = self::ENCRYPTED_PREFIX ) {
 		switch ( $prefix ) {
 			case '$t1$':
 				return 1;
@@ -255,7 +255,7 @@ abstract class Two_Factor_Provider {
 	 * @return string
 	 * @throws RuntimeException For incorrect versions.
 	 */
-	final private static function get_encryption_key( $version = self::ENCRYPTED_VERSION ) {
+	private static function get_encryption_key( $version = self::ENCRYPTED_VERSION ) {
 		if ( 1 === $version ) {
 			return hash_hmac( 'sha256', wp_salt( 'secure_auth' ), 'two-factor-encryption', true );
 		}
