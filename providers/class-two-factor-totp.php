@@ -137,9 +137,6 @@ class Two_Factor_Totp extends Two_Factor_Provider {
 				<?php esc_html_e( 'Please scan the QR code or manually enter the key, then enter an authentication code from your app in order to complete setup.', 'two-factor' ); ?>
 			</p>
 			<p>
-				<img src="<?php echo esc_url( $this->get_google_qr_code( $totp_title, $key, $site_name ) ); ?>" id="two-factor-totp-qrcode" />
-			</p>
-			<p>
 				<code><?php echo esc_html( $key ); ?></code>
 			</p>
 			<p>
@@ -427,27 +424,6 @@ class Two_Factor_Totp extends Two_Factor_Provider {
 			) % pow( 10, $digits );
 
 		return str_pad( $code, $digits, '0', STR_PAD_LEFT );
-	}
-
-	/**
-	 * Uses the Google Charts API to build a QR Code for use with an otpauth url
-	 *
-	 * @param string $name  The name to display in the Authentication app.
-	 * @param string $key   The secret key to share with the Authentication app.
-	 * @param string $title The title to display in the Authentication app.
-	 *
-	 * @return string A URL to use as an img src to display the QR code
-	 *
-	 * @codeCoverageIgnore
-	 */
-	public static function get_google_qr_code( $name, $key, $title = null ) {
-		// Encode to support spaces, question marks and other characters.
-		$name       = rawurlencode( $name );
-		$google_url = urlencode( 'otpauth://totp/' . $name . '?secret=' . $key );
-		if ( isset( $title ) ) {
-			$google_url .= urlencode( '&issuer=' . rawurlencode( $title ) );
-		}
-		return 'https://chart.googleapis.com/chart?chs=200x200&chld=M|0&cht=qr&chl=' . $google_url;
 	}
 
 	/**
