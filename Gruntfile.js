@@ -32,9 +32,19 @@ module.exports = function( grunt ) {
 
 		copy: {
 			dist: {
-				src: [ '**' ].concat( distignore ),
-				dest: '<%= dist_dir %>',
-				expand: true,
+				files: [
+					{
+						src: [ '**' ].concat( distignore ),
+						dest: '<%= dist_dir %>',
+						expand: true,
+					},
+					{
+						cwd: 'node_modules/',
+						src: 'qrcode-generator/qrcode.js',
+						dest: '<%= dist_dir %>/includes',
+						expand: true,
+					}
+				],
 			},
 		},
 
