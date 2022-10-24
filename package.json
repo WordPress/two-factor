@@ -30,6 +30,9 @@
   },
   "author": "georgestephanis",
   "license": "GPL-2.0+",
+  "dependencies": {
+    "qrcode-generator": "^1.4.4"
+  },
   "devDependencies": {
     "@wordpress/env": "^5.4.0",
     "@wordpress/eslint-plugin": "^13.3.0",
