@@ -64,6 +64,7 @@ class Two_Factor_Totp extends Two_Factor_Provider {
 		add_action( 'personal_options_update', array( $this, 'user_two_factor_options_update' ) );
 		add_action( 'edit_user_profile_update', array( $this, 'user_two_factor_options_update' ) );
 		add_action( 'two_factor_user_settings_action', array( $this, 'user_settings_action' ), 10, 2 );
+		add_filter( 'site_status_tests', array( $this, 'add_site_health_checks' ) );
 
 		return parent::__construct();
 	}
@@ -167,7 +168,22 @@ class Two_Factor_Totp extends Two_Factor_Provider {
 			$key        = $this->generate_key();
 			$site_name  = get_bloginfo( 'name', 'display' );
 			$totp_title = apply_filters( 'two_factor_totp_title', $site_name . ':' . $user->user_login, $user );
+			$show_salt_warning = ! defined( self::ENCRYPTION_SALT_NAME ) && current_user_can( 'install_plugins' );
+			// todo might need to use manage_network in multisite. test
+
 			?>
+
+			<?php if ( $show_salt_warning ) : ?>
+				<div class="notice notice-warning inline">
+					<p>
+						<?php printf(
+							__( 'The TOTP encryption salt does not exist in <code>wp-config.php</code>. Please see <a href="%s">Site Health tool</a> for details.', 'two-factor' ),
+							admin_url('site-health.php')
+						); ?>
+					</p>
+				</div>
+			<?php endif; ?>
+
 			<p>
 				<?php esc_html_e( 'Please scan the QR code or manually enter the key, then enter an authentication code from your app in order to complete setup.', 'two-factor' ); ?>
 			</p>
@@ -333,37 +349,6 @@ class Two_Factor_Totp extends Two_Factor_Provider {
 				<?php
 			}
 		}
-
-		// `self::maybe_create_config_salt()` wasn't able to create it, so ask admins to do it manually.
-		//if ( ! defined( self::ENCRYPTION_SALT_NAME ) && current_user_can( 'install_plugins' ) ) {
-		//	//  might need to use manage_network in multisite. test
-		//
-		//	// todo wait, this'll create situation where _have_ to rotate keys, b/c previously fell back to using wp_salt()
-		//		// so would have to give them migration instructions
-		//		// better to just do nothing and let them use wpsalt()?
-		//		// but could be high correlation between sites that expect strong security and sites that have wp-config unwritable by php
-		//		// so that'd be using weaker security on those sites without the admins even knowing it
-		//	// maybe better to not fallback to wpsalt() and require the constant be configured?
-		//		// maybe disable provider if it doesn't exist?
-		//		// then show warning here and on plugins.php?
-		//	// actually, using the wpsalt() fallback is only weaker if they don't have SECURE_NONCE_SALT setup in wpconfig
-		//		// that's rare, especially among sites that care about security
-		//		// so probably fine to just silently fall back rather than bothering with all this
-		// moving this to a Site Health warning might give more room to explain, or maybe just rely on external article
-		//
-		//	$salt_value = wp_generate_password( 64, true, true );
-		//	// todo make DRY w/ base class unless it stays simple ^
-		//
-		//	printf(
-		//		'<div class="notice notice-warning inline">
-		//			<p>%s</p>
-		//			<pre><code>%s</code></pre>
-		//		</div>',
-		//
-		//		__( 'Could not create encryption key, please add this to your <code>wp-config.php</code>:', 'two-factor' ),
-		//		esc_html( trim( self::get_config_salt_definition( self::ENCRYPTION_SALT_NAME, $salt_value ) ) )
-		//	);
-		//}
 	}
 
 	/**
@@ -646,5 +631,77 @@ class Two_Factor_Totp extends Two_Factor_Provider {
 			return 0;
 		}
 		return ( $a < $b ) ? -1 : 1;
+	}
+
+	/**
+	 * Add checks for the Site Health screen.
+	 *
+	 * @param array $tests
+	 *
+	 * @return array
+	 */
+	public function add_site_health_checks( $tests ) {
+		$tests['direct']['two_factor_totp_encryption_salt_exists'] = array(
+			'label' => 'Two Factor TOTP Encryption salt exists',
+			'test'  => array( $this, 'encryption_salt_exists_check' ),
+		);
+
+		return $tests;
+	}
+
+	/**
+	 * Checks that the encryption salt exists for Site Health.
+	 *
+	 * @return array
+	 */
+	public function encryption_salt_exists_check() {
+		$result = array(
+			'label'   => __( 'Two Factor TOTP Encryption salt exists', 'two-factor' ),
+			'status'  => 'good',
+			'test'    => 'two_factor_totp_encryption_salt_exists',
+			'actions' => '',
+
+			'badge' => array(
+				'label' => __( 'Security' ),
+				'color' => 'blue',
+			),
+
+			'description' => '<p>' . sprintf(
+				__( 'The %s constant exists in %s, which is necessary for strong TOTP authentication.', 'two-factor' ),
+				'<code>' . self::ENCRYPTION_SALT_NAME . '</code>',
+				'<code>wp-config.php</code>'
+			) . '</p>',
+		);
+
+		if ( ! defined( self::ENCRYPTION_SALT_NAME ) ) {
+			$result['label']  = __( "Two Factor TOTP Encryption salt doesn't exist", 'two-factor' );
+			$result['status'] = 'critical';
+
+			$salt_value   = wp_generate_password( 64, true, true );
+				// todo needs to match whatever's used in maybe_create_config_salt()
+
+			$result['description'] = sprintf(
+				'<p>%s</p> <pre><code>%s</code></pre> <p>%s</p>',
+				__( 'Could not automatically create encryption key, which weakens the security of TOTP authentication. Please add this to your <code>wp-config.php</code>:', 'two-factor' ),
+				esc_html( trim( self::get_config_salt_definition( self::ENCRYPTION_SALT_NAME, $salt_value ) ) ),
+				__( 'If users have already setup TOTP, then adding that will prevent them from logging in with TOTP. You can rotate the keys to fix this, or allow them to log in with their backup factor and re-setup TOTP. ', 'two-factor' ),
+				// todo need to give more info on rotating
+				// todo overflow-x: scroll, maybe need word break too?
+
+				// todo this creates a situation where _have_ to rotate keys, b/c previously fell back to using wp_salt()
+					// so would have to give them migration instructions
+					// better to just do nothing and let them use wpsalt()?
+					// but could be high correlation between sites that expect strong security and sites that have wp-config unwritable by php
+					// so that'd be using weaker security on those sites without the admins even knowing it
+				// maybe better to not fallback to wpsalt() and require the constant be configured?
+					// maybe disable provider if it doesn't exist?
+					// then show warning here and on plugins.php?
+				// actually, using the wpsalt() fallback is only weaker if they don't have SECURE_NONCE_SALT setup in wpconfig
+					// that's rare, especially among sites that care about security
+					// so probably fine to just silently fall back rather than bothering with all this
+			);
+		}
+
+		return $result;
 	}
 }
