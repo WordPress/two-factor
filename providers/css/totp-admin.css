@@ -1,0 +1,32 @@
+/* remove this if don't end up adding the warning */
+
+.two-factor-methods-table .notice {
+	//width: auto;
+	/*max-width: 100%;*/
+/*	overflow-x: scroll;*/
+	/*width: clamp( 300px, 60%, 400px );
+	max-width: clamp( 300px, 60%, 400px );*/
+	overflow: hidden;
+}
+
+.two-factor-methods-table .notice pre {
+	/*width: 100%;
+	max-width: 100%;
+	overflow-x: scroll;*/
+
+	background-color: #d7d7d7;
+	overflow: hidden;
+}
+
+.two-factor-methods-table .notice pre code {
+	/* todo get this to not overflow page */
+
+	/*display: block;*/
+	padding: 10px;
+	overflow: scroll;
+/*
+	width: clamp( 300px, 60%, 400px );
+	max-width: 400px;*/
+
+	background-color: transparent;
+}

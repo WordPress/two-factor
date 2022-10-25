@@ -31,6 +31,13 @@ class Two_Factor_Totp extends Two_Factor_Provider {
 	 */
 	const ACTION_SECRET_DELETE = 'totp-delete';
 
+	/**
+	 * Name of the constant used as an encryption salt
+	 *
+	 * @var string
+	 */
+	const ENCRYPTION_SALT_NAME = 'TWO_FACTOR_TOTP_ENCRYPTION_SALT';
+
 	const DEFAULT_KEY_BIT_SIZE        = 160;
 	const DEFAULT_CRYPTO              = 'sha1';
 	const DEFAULT_DIGIT_COUNT         = 6;
@@ -50,10 +57,14 @@ class Two_Factor_Totp extends Two_Factor_Provider {
 	 * @codeCoverageIgnore
 	 */
 	protected function __construct() {
+		self::maybe_create_config_salt( self::ENCRYPTION_SALT_NAME );
+
+		//add_action( 'admin_enqueue_scripts', array( $this, 'enqueue_assets' ) );
 		add_action( 'two_factor_user_options_' . __CLASS__, array( $this, 'user_two_factor_options' ) );
 		add_action( 'personal_options_update', array( $this, 'user_two_factor_options_update' ) );
 		add_action( 'edit_user_profile_update', array( $this, 'user_two_factor_options_update' ) );
 		add_action( 'two_factor_user_settings_action', array( $this, 'user_settings_action' ), 10, 2 );
+		add_filter( 'site_status_tests', array( $this, 'add_site_health_checks' ) );
 
 		return parent::__construct();
 	}
@@ -70,6 +81,31 @@ class Two_Factor_Totp extends Two_Factor_Provider {
 		}
 		return $instance;
 	}
+
+	/**
+	 * Enqueue assets.
+	 *
+	 * @param string $hook Current page.
+	 */
+	//public static function enqueue_assets( $hook ) {
+	//	/* remove this if don't end up adding the warning */
+	//
+	//	if ( ! in_array( $hook, array( 'user-edit.php', 'profile.php' ), true ) ) {
+	//		return;
+	//	}
+	//
+	//	$user_id = Two_Factor_Core::current_user_being_edited();
+	//	if ( ! $user_id ) {
+	//		return;
+	//	}
+	//
+	//	wp_enqueue_style(
+	//		'totp-admin',
+	//		plugins_url( 'css/totp-admin.css', __FILE__ ),
+	//		null,
+	//		TWO_FACTOR_VERSION
+	//	);
+	//}
 
 	/**
 	 * Returns the name of the provider.
@@ -132,7 +168,22 @@ class Two_Factor_Totp extends Two_Factor_Provider {
 			$key        = $this->generate_key();
 			$site_name  = get_bloginfo( 'name', 'display' );
 			$totp_title = apply_filters( 'two_factor_totp_title', $site_name . ':' . $user->user_login, $user );
+			$show_salt_warning = ! defined( self::ENCRYPTION_SALT_NAME ) && current_user_can( 'install_plugins' );
+			// todo might need to use manage_network in multisite. test
+
 			?>
+
+			<?php if ( $show_salt_warning ) : ?>
+				<div class="notice notice-warning inline">
+					<p>
+						<?php printf(
+							__( 'The TOTP encryption salt does not exist in <code>wp-config.php</code>. Please see <a href="%s">Site Health tool</a> for details.', 'two-factor' ),
+							admin_url('site-health.php')
+						); ?>
+					</p>
+				</div>
+			<?php endif; ?>
+
 			<p>
 				<?php esc_html_e( 'Please scan the QR code or manually enter the key, then enter an authentication code from your app in order to complete setup.', 'two-factor' ); ?>
 			</p>
@@ -218,7 +269,22 @@ class Two_Factor_Totp extends Two_Factor_Provider {
 	 * @return string
 	 */
 	public function get_user_totp_key( $user_id ) {
-		return (string) get_user_meta( $user_id, self::SECRET_META_KEY, true );
+		$user_meta_value = get_user_meta( $user_id, self::SECRET_META_KEY, true );
+		if ( ! self::is_encrypted( $user_meta_value ) ) {
+			$user_meta_value = self::encrypt( $user_meta_value, $user_id );
+			update_user_meta( $user_id, self::SECRET_META_KEY, $user_meta_value );
+		}
+
+		try {
+			$decrypted = self::decrypt( $user_meta_value, $user_id );
+		} catch ( RuntimeException $exception ) {
+			$decrypted = '';
+			// todo this is probably wrong.
+			// er maybe not
+			// means that the salt changed, and they need to rotate
+		}
+
+		return $decrypted;
 	}
 
 	/**
@@ -230,7 +296,8 @@ class Two_Factor_Totp extends Two_Factor_Provider {
 	 * @return boolean If the key was stored successfully.
 	 */
 	public function set_user_totp_key( $user_id, $key ) {
-		return update_user_meta( $user_id, self::SECRET_META_KEY, $key );
+		$encrypted = self::encrypt( $key, $user_id );
+		return update_user_meta( $user_id, self::SECRET_META_KEY, $encrypted );
 	}
 
 	/**
@@ -574,5 +641,77 @@ class Two_Factor_Totp extends Two_Factor_Provider {
 			return 0;
 		}
 		return ( $a < $b ) ? -1 : 1;
+	}
+
+	/**
+	 * Add checks for the Site Health screen.
+	 *
+	 * @param array $tests
+	 *
+	 * @return array
+	 */
+	public function add_site_health_checks( $tests ) {
+		$tests['direct']['two_factor_totp_encryption_salt_exists'] = array(
+			'label' => 'Two Factor TOTP Encryption salt exists',
+			'test'  => array( $this, 'encryption_salt_exists_check' ),
+		);
+
+		return $tests;
+	}
+
+	/**
+	 * Checks that the encryption salt exists for Site Health.
+	 *
+	 * @return array
+	 */
+	public function encryption_salt_exists_check() {
+		$result = array(
+			'label'   => __( 'Two Factor TOTP Encryption salt exists', 'two-factor' ),
+			'status'  => 'good',
+			'test'    => 'two_factor_totp_encryption_salt_exists',
+			'actions' => '',
+
+			'badge' => array(
+				'label' => __( 'Security' ),
+				'color' => 'blue',
+			),
+
+			'description' => '<p>' . sprintf(
+				__( 'The %s constant exists in %s, which is necessary for strong TOTP authentication.', 'two-factor' ),
+				'<code>' . self::ENCRYPTION_SALT_NAME . '</code>',
+				'<code>wp-config.php</code>'
+			) . '</p>',
+		);
+
+		if ( ! defined( self::ENCRYPTION_SALT_NAME ) ) {
+			$result['label']  = __( "Two Factor TOTP Encryption salt doesn't exist", 'two-factor' );
+			$result['status'] = 'critical';
+
+			$salt_value   = wp_generate_password( 64, true, true );
+				// todo needs to match whatever's used in maybe_create_config_salt()
+
+			$result['description'] = sprintf(
+				'<p>%s</p> <pre><code>%s</code></pre> <p>%s</p>',
+				__( 'Could not automatically create encryption key, which weakens the security of TOTP authentication. Please add this to your <code>wp-config.php</code>:', 'two-factor' ),
+				esc_html( trim( self::get_config_salt_definition( self::ENCRYPTION_SALT_NAME, $salt_value ) ) ),
+				__( 'If users have already setup TOTP, then adding that will prevent them from logging in with TOTP. You can rotate the keys to fix this, or allow them to log in with their backup factor and re-setup TOTP. ', 'two-factor' ),
+				// todo need to give more info on rotating
+				// todo overflow-x: scroll, maybe need word break too?
+
+				// todo this creates a situation where _have_ to rotate keys, b/c previously fell back to using wp_salt()
+					// so would have to give them migration instructions
+					// better to just do nothing and let them use wpsalt()?
+					// but could be high correlation between sites that expect strong security and sites that have wp-config unwritable by php
+					// so that'd be using weaker security on those sites without the admins even knowing it
+				// maybe better to not fallback to wpsalt() and require the constant be configured?
+					// maybe disable provider if it doesn't exist?
+					// then show warning here and on plugins.php?
+				// actually, using the wpsalt() fallback is only weaker if they don't have SECURE_NONCE_SALT setup in wpconfig
+					// that's rare, especially among sites that care about security
+					// so probably fine to just silently fall back rather than bothering with all this
+			);
+		}
+
+		return $result;
 	}
 }

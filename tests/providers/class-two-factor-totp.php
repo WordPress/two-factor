@@ -312,4 +312,35 @@ class Tests_Two_Factor_Totp extends WP_UnitTestCase {
 		);
 	}
 
+	/**
+	 * Verify the encryption and decryption functions behave correctly
+	 *
+	 * @covers Two_Factor_Provider::encrypt()
+	 * @covers Two_Factor_Provider::get_version_header()
+	 * @covers Two_Factor_Provider::serialize_aad()
+	 * @covers Two_Factor_Provider::get_encryption_key()
+	 * @covers Two_Factor_Provider::decrypt()
+	 * @covers Two_Factor_Provider::get_version_id()
+	 *
+	 * @throws SodiumException Libsodium can fail.
+	 */
+	public function test_encrypt_decrypt() {
+		$user = new WP_User( self::factory()->user->create() );
+		$key  = $this->provider->generate_key();
+
+		$encrypted = Two_Factor_Totp::encrypt( $key, $user->ID );
+		$this->assertEquals(
+			Two_Factor_Totp::ENCRYPTED_PREFIX,
+			substr( $encrypted, 0, 4 ),
+			'Encryption defaults to the latest version.'
+		);
+
+		$decrypted = Two_Factor_Totp::decrypt( $encrypted, $user->ID );
+		$this->assertSame(
+			$key,
+			$decrypted,
+			'Decrypted secret must be identical to plaintext'
+		);
+	}
+
 }
