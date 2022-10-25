@@ -274,7 +274,17 @@ class Two_Factor_Totp extends Two_Factor_Provider {
 			$user_meta_value = self::encrypt( $user_meta_value, $user_id );
 			update_user_meta( $user_id, self::SECRET_META_KEY, $user_meta_value );
 		}
-		return self::decrypt( $user_meta_value, $user_id );
+
+		try {
+			$decrypted = self::decrypt( $user_meta_value, $user_id );
+		} catch ( RuntimeException $exception ) {
+			$decrypted = '';
+			// todo this is probably wrong.
+			// er maybe not
+			// means that the salt changed, and they need to rotate
+		}
+
+		return $decrypted;
 	}
 
 	/**
