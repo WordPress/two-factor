@@ -50,6 +50,7 @@ class Two_Factor_Totp extends Two_Factor_Provider {
 	 * @codeCoverageIgnore
 	 */
 	protected function __construct() {
+		add_action( 'admin_enqueue_scripts', array( $this, 'enqueue_assets' ) );
 		add_action( 'two_factor_user_options_' . __CLASS__, array( $this, 'user_two_factor_options' ) );
 		add_action( 'personal_options_update', array( $this, 'user_two_factor_options_update' ) );
 		add_action( 'edit_user_profile_update', array( $this, 'user_two_factor_options_update' ) );
@@ -76,6 +77,25 @@ class Two_Factor_Totp extends Two_Factor_Provider {
 	 */
 	public function get_label() {
 		return _x( 'Time Based One-Time Password (TOTP)', 'Provider Label', 'two-factor' );
+	}
+
+	/**
+	 * Enqueue scripts
+	 */
+	public function enqueue_assets( $hook_suffix ) {
+		$environment_prefix = file_exists( TWO_FACTOR_DIR . '/dist' ) ? '/dist' : '';
+
+		wp_register_script(
+			'two-factor-qr-code-generator',
+			plugins_url( $environment_prefix . '/includes/qrcode-generator/qrcode.js', __DIR__ ),
+			array(),
+			TWO_FACTOR_VERSION,
+			true
+		);
+
+		if ( 'profile.php' === $hook_suffix ) {
+			wp_enqueue_script( 'two-factor-qr-code-generator' );
+		}
 	}
 
 	/**
@@ -131,11 +151,62 @@ class Two_Factor_Totp extends Two_Factor_Provider {
 		if ( empty( $key ) ) :
 			$key        = $this->generate_key();
 			$site_name  = get_bloginfo( 'name', 'display' );
+
+			// Must follow TOTP format for a "label":
+			// https://github.com/google/google-authenticator/wiki/Key-Uri-Format#label
+			// Do not URL encode, that will be done later.
 			$totp_title = apply_filters( 'two_factor_totp_title', $site_name . ':' . $user->user_login, $user );
+
+			$totp_url = add_query_arg(
+				array(
+					'secret' => rawurlencode( $key ),
+					'issuer' => rawurlencode( $site_name ),
+				),
+				'otpauth://totp/' . rawurlencode( $totp_title )
+			);
+
+			// Must follow TOTP format:
+			// https://github.com/google/google-authenticator/wiki/Key-Uri-Format
+			$totp_url = apply_filters( 'two_factor_totp_url', $totp_url, $user );
+			$totp_url = esc_url( $totp_url, array( 'otpauth' ) );
+
 			?>
+
 			<p>
 				<?php esc_html_e( 'Please scan the QR code or manually enter the key, then enter an authentication code from your app in order to complete setup.', 'two-factor' ); ?>
 			</p>
+			<p id="two-factor-qr-code">
+				<a href="<?php echo $totp_url; ?>">
+					Loading...
+					<img src="<?php echo admin_url('images/spinner.gif'); ?>" alt="" />
+				</a>
+			</p>
+
+			<style>
+				#two-factor-qr-code {
+					/* The size of the image will change based on the length of the URL inside it. */
+					min-width: 205px;
+					min-height: 205px;
+				}
+			</style>
+
+			<script>
+				window.addEventListener( 'DOMContentLoaded', function( event ) {
+					/*
+					 * 0 = Automatically select the version, to avoid going over the limit of URL
+					 *     length.
+					 * L = Least amount of error correction, because it's not needed when scanning
+					 *     on a monitor, and it lowers the image size.
+					 */
+					var qr = qrcode( 0, 'L' );
+
+					qr.addData( <?php echo wp_json_encode( $totp_url ); ?> );
+					qr.make();
+
+					document.querySelector( '#two-factor-qr-code a' ).innerHTML = qr.createSvgTag( 5 );
+				} );
+			</script>
+
 			<p>
 				<code><?php echo esc_html( $key ); ?></code>
 			</p>
