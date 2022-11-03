@@ -73,9 +73,10 @@ class Two_Factor_Core {
 		add_action( 'plugins_loaded', array( __CLASS__, 'load_textdomain' ) );
 		add_action( 'init', array( __CLASS__, 'get_providers' ) );
 		add_action( 'wp_login', array( __CLASS__, 'wp_login' ), 10, 2 );
-		add_action( 'clear_auth_cookie', array( __CLAS__, 'clear_auth_cookie' ) );
+		add_action( 'clear_auth_cookie', array( __CLASS__, 'clear_auth_cookie' ) );
 		add_action( 'set_auth_cookie', array( __CLASS__, 'set_auth_cookie' ), 10, 4 );
 		add_action( 'send_auth_cookies', array( __CLASS__, 'send_auth_cookies' ) );
+		add_action( 'login_form_show_2fa', array( __CLASS__, 'login_form_show_2fa' ) );
 		add_action( 'login_form_validate_2fa', array( __CLASS__, 'login_form_validate_2fa' ) );
 		add_action( 'login_form_backup_2fa', array( __CLASS__, 'backup_2fa' ) );
 		add_action( 'show_user_profile', array( __CLASS__, 'user_two_factor_options' ) );
@@ -461,6 +462,13 @@ class Two_Factor_Core {
 			self::is_user_using_two_factor( self::$last_auth_cookie_user )
 		) {
 			$send_cookies = false;
+
+			// If we're not on wp-login.php, redirect there. This is for when `wp_set_auth_cookie()` is called outside of wp-login.php.
+			if ( ! did_action( 'login_init' ) ) {
+				$user = get_userdata( self::$last_auth_cookie_user );
+				self::redirect_to_two_factor( $user );
+				exit;
+			}
 		}
 
 		return $send_cookies;
@@ -565,6 +573,61 @@ class Two_Factor_Core {
 
 		self::login_html( $user, $login_nonce['key'], $redirect_to );
 	}
+
+	/**
+	 * Display the Two Factor login.
+	 */
+	public static function login_form_show_2fa() {
+		$wp_auth_id  = filter_input( INPUT_GET, 'wp-auth-id', FILTER_SANITIZE_NUMBER_INT );
+		$nonce       = filter_input( INPUT_GET, 'wp-auth-nonce', FILTER_CALLBACK, array( 'options' => 'sanitize_key' ) );
+		$redirect_to = isset( $_REQUEST['redirect_to'] ) ? $_REQUEST['redirect_to'] : wp_get_referer();
+		$user        = get_user_by( 'id', $wp_auth_id );
+
+		if ( ! $wp_auth_id || ! $nonce ) {
+			return;
+		}
+
+		$user = get_userdata( $wp_auth_id );
+		if ( ! $user ) {
+			return;
+		}
+
+		if ( true !== self::verify_login_nonce( $user->ID, $nonce ) ) {
+			wp_safe_redirect( home_url() );
+			exit;
+		}
+
+
+		self::login_html( $user, $nonce, $redirect_to );
+		exit;
+	}
+
+	/**
+	 * Redirect the user to the two-factor authentication.
+	 */
+	public static function redirect_to_two_factor( $user ) {
+		if ( ! $user ) {
+			$user = wp_get_current_user();
+		}
+
+		$login_nonce = self::create_login_nonce( $user->ID );
+		if ( ! $login_nonce ) {
+			wp_die( esc_html__( 'Failed to create a login nonce.', 'two-factor' ) );
+		}
+
+		$redirect_to = isset( $_REQUEST['redirect_to'] ) ? $_REQUEST['redirect_to'] : admin_url();
+
+		wp_safe_redirect( self::login_url(
+			array(
+				'action'        => 'show_2fa',
+				'wp-auth-id'    => $user->ID,
+				'wp-auth-nonce' => $login_nonce['key'],
+				'redirect_to'   => $redirect_to,
+			)
+		) );
+		exit;
+	}
+
 
 	/**
 	 * Display the Backup code 2fa screen.
