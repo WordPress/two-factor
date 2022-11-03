@@ -90,7 +90,7 @@ class WebAuthnKeyStore {
 		$num_keys = $wpdb->get_var( $wpdb->prepare(
 			"SELECT COUNT(*) FROM $wpdb->usermeta WHERE meta_key=%s AND meta_value LIKE %s",
 			self::PUBKEY_USERMETA_KEY,
-			'%' . $wpdb->esc_like( $keyLike ) . '%'
+			'%' . $wpdb->esc_like( serialize( $keyLike ) ) . '%'
 		) );
 
 		return intval( $num_keys ) !== 0;
