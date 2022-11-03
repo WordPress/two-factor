@@ -601,7 +601,7 @@ class Two_Factor_Core {
 	public static function login_form_show_2fa() {
 		$wp_auth_id  = filter_input( INPUT_GET, 'wp-auth-id', FILTER_SANITIZE_NUMBER_INT );
 		$nonce       = filter_input( INPUT_GET, 'wp-auth-nonce', FILTER_CALLBACK, array( 'options' => 'sanitize_key' ) );
-		$redirect_to = isset( $_REQUEST['redirect_to'] ) ? $_REQUEST['redirect_to'] : wp_get_referer();
+		$redirect_to = ! empty( $_REQUEST['redirect_to'] ) ? $_REQUEST['redirect_to'] : wp_get_referer();
 		$user        = get_user_by( 'id', $wp_auth_id );
 
 		if ( ! $wp_auth_id || ! $nonce ) {
@@ -617,7 +617,6 @@ class Two_Factor_Core {
 			wp_safe_redirect( home_url() );
 			exit;
 		}
-
 
 		self::login_html( $user, $nonce, $redirect_to );
 		exit;
@@ -636,7 +635,7 @@ class Two_Factor_Core {
 			wp_die( esc_html__( 'Failed to create a login nonce.', 'two-factor' ) );
 		}
 
-		$redirect_to = isset( $_REQUEST['redirect_to'] ) ? $_REQUEST['redirect_to'] : admin_url();
+		$redirect_to = isset( $_REQUEST['redirect_to'] ) ? $_REQUEST['redirect_to'] : '';
 
 		wp_safe_redirect( self::login_url(
 			array(
