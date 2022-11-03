@@ -458,8 +458,7 @@ class Two_Factor_Core {
 		if (
 			$send_cookies &&
 			self::$last_auth_cookie_user &&
-			self::is_user_using_two_factor( self::$last_auth_cookie_user ) &&
-			! apply_filters( 'two_factor_authentication_succeeded', false )
+			self::is_user_using_two_factor( self::$last_auth_cookie_user )
 		) {
 			$send_cookies = false;
 		}
@@ -934,8 +933,8 @@ class Two_Factor_Core {
 			$rememberme = true;
 		}
 
-		// TODO.
-		add_filter( 'two_factor_authentication_succeeded', '__return_true' );
+		// Allow authentication cookies to be set for this user.
+		remove_action( 'send_auth_cookies', array( __CLASS__, 'send_auth_cookies' ) );
 
 		wp_set_auth_cookie( $user->ID, $rememberme );
 
