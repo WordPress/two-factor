@@ -171,7 +171,7 @@ class WebAuthnHandler {
 		);
     	$allows = array();
 		$userKeys = array_filter( $userKeys, function( $userKey ) use( $appid ) {
-			return $userKey->app_id !== $appid;
+			return $userKey->app_id === $appid;
 		} );
 
 		foreach ( $userKeys as $key) {
@@ -197,9 +197,18 @@ class WebAuthnHandler {
 		$publickey->timeout = 60000;
 		$publickey->allowCredentials = $allows;
 		$publickey->userVerification = 'discouraged';
-		$publickey->extensions = (object) array();
-		// $publickey->extensions->txAuthSimple = 'Execute order 66';
-		$publickey->rpId = str_replace('https://', '', $this->appid );
+
+		if ( false !== strpos($appid,'https://') ) {
+			// legacy AppIDs with full URL
+			$publickey->extensions = (object) array(
+				'appid' => $appid,
+			);
+		} else {
+			// propper AppID
+			$publickey->extensions = (object) array();
+			// $publickey->extensions->txAuthSimple = 'Execute order 66';
+			$publickey->rpId = str_replace('https://', '', $appid );
+		}
 
 		return $publickey;
 	}
