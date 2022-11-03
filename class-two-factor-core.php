@@ -58,6 +58,11 @@ class Two_Factor_Core {
 	private static $password_auth_tokens = array();
 
 	/**
+	 * Keep track of who wp_set_auth_cookie() is running for.
+	 */
+	private static $last_auth_cookie_user = false;
+
+	/**
 	 * Set up filters and actions.
 	 *
 	 * @param object $compat A compaitbility later for plugins.
@@ -68,6 +73,8 @@ class Two_Factor_Core {
 		add_action( 'plugins_loaded', array( __CLASS__, 'load_textdomain' ) );
 		add_action( 'init', array( __CLASS__, 'get_providers' ) );
 		add_action( 'wp_login', array( __CLASS__, 'wp_login' ), 10, 2 );
+		add_action( 'set_auth_cookie', array( __CLASS__, 'set_auth_cookie' ), 10, 4 );
+		add_action( 'send_auth_cookies', array( __CLASS__, 'send_auth_cookies' ) );
 		add_action( 'login_form_validate_2fa', array( __CLASS__, 'login_form_validate_2fa' ) );
 		add_action( 'login_form_backup_2fa', array( __CLASS__, 'backup_2fa' ) );
 		add_action( 'show_user_profile', array( __CLASS__, 'user_two_factor_options' ) );
@@ -433,11 +440,33 @@ class Two_Factor_Core {
 		// Invalidate the current login session to prevent from being re-used.
 		self::destroy_current_session_for_user( $user );
 
-		// Also clear the cookies which are no longer valid.
+		// Clear any cookies which are no longer valid.
 		wp_clear_auth_cookie();
 
 		self::show_two_factor_login( $user );
 		exit;
+	}
+
+	// Don't send auth cookies in the first place.
+	public static function send_auth_cookies( $send_cookies ) {
+		if (
+			$send_cookies &&
+			self::$last_auth_cookie_user &&
+			self::is_user_using_two_factor( self::$last_auth_cookie_user ) &&
+			! apply_filters( 'two_factor_authentication_succeeded', false )
+		) {
+			$send_cookies = false;
+
+			// Reset the tracked user.
+			self::$last_auth_cookie_user = false;
+		}
+
+		return $send_cookies;
+	}
+
+	// Keep track of the last user the cookies were generated for.
+	public static function set_auth_cookie( $auth_cookie, $expire, $expiration, $user_id ) {
+		self::$last_auth_cookie_user = $user_id;
 	}
 
 	/**
@@ -896,6 +925,9 @@ class Two_Factor_Core {
 		if ( isset( $_REQUEST['rememberme'] ) && $_REQUEST['rememberme'] ) {
 			$rememberme = true;
 		}
+
+		// TODO.
+		add_filter( 'two_factor_authentication_succeeded', '__return_true' );
 
 		wp_set_auth_cookie( $user->ID, $rememberme );
 
