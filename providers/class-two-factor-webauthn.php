@@ -253,7 +253,7 @@ class Two_Factor_WebAuthn extends Two_Factor_Provider {
 	 */
 	public function is_available_for_user( $user ) {
 		// only works for currently logged in user.
-		return function_exists( 'openssl_verify' ) && count( $this->key_store->get_keys( $user->ID ) );
+		return (bool) count( $this->key_store->get_keys( $user->ID ) );
 	}
 
 	/**
@@ -279,7 +279,7 @@ class Two_Factor_WebAuthn extends Two_Factor_Provider {
 
 		?>
 		<p>
-			<?php esc_html_e( 'You can configure hardware authenticators like an USB token or your current device with the button below.', 'two-factor' ); ?>
+			<?php esc_html_e( 'Requires an HTTPS connection. You can configure hardware authenticators like an USB token or your current device with the button below.', 'two-factor' ); ?>
 		</p>
 
 		<div class="webauthn-supported webauth-register">
@@ -624,7 +624,7 @@ class Two_Factor_WebAuthn extends Two_Factor_Provider {
 			$pub_key->tested ? 'tested' : 'untested'
 		);
 		$out .= sprintf(
-			'<a href="#" class="webauthn-action webauthn-action-link -delete" title="%1$s" data-action="%2$s">
+			'<a href="#" class="webauthn-action webauthn-action-link -delete webauthn-supported" title="%1$s" data-action="%2$s">
 				<span class="dashicons dashicons-trash"></span>
 				<span class="screen-reader-text">%1$s</span>
 			</a>',

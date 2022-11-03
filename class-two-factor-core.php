@@ -146,15 +146,23 @@ class Two_Factor_Core {
 		}
 
 		// WebAuthn is PHP 7.2+.
-		if ( isset( $providers['Two_Factor_WebAuthn'] ) && version_compare( PHP_VERSION, '7.2.0', '<' ) ) {
-			unset( $providers['Two_Factor_WebAuthn'] );
-			trigger_error( // phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_trigger_error
-				sprintf(
-				/* translators: %s: version number */
-					__( 'WebAuthn is not available because you are using PHP %s. (Requires 7.2 or greater)', 'two-factor' ), // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
-					PHP_VERSION
-				)
-			);
+		if ( isset( $providers['Two_Factor_WebAuthn'] ) ) {
+			if ( version_compare( PHP_VERSION, '7.2.0', '<' ) ) {
+				unset( $providers['Two_Factor_WebAuthn'] );
+				trigger_error( // phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_trigger_error
+					sprintf(
+						/* translators: %s: version number */
+						__( 'WebAuthn is not available because you are using PHP %s. (Requires 7.2 or greater)', 'two-factor' ), // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
+						PHP_VERSION
+					)
+				);
+			}
+			if ( ! function_exists( 'openssl_verify' ) ) {
+				unset( $providers['Two_Factor_WebAuthn'] );
+				trigger_error( // phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_trigger_error
+					__( 'WebAuthn requires the OpenSSL PHP-Extension', 'two-factor' ), // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
+				);
+			}
 		}
 
 		/**
