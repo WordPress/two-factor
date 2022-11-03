@@ -456,7 +456,7 @@ class Two_Factor_Core {
 	 *
 	 * @param bool $send_cookies Whether to send the authentication cookies.
 	 * @param int  $user_id      The User ID having cookies sent for. WordPress 6.2+.
-	 * @return Filtered `$send_cookies`.
+	 * @return bool Filtered `$send_cookies`.
 	 */
 	public static function send_auth_cookies( $send_cookies, $user_id = null ) {
 		if ( ! $send_cookies ) {
