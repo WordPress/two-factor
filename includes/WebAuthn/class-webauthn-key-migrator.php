@@ -25,7 +25,7 @@ class WebAuthnKeyMigrator {
 			'created'   => $u2f_key['added'],
 			'last_used' => $u2f_key['last_used'],
 			'tested'    => false,
-			'app_id'    => Two_Factor_FIDO_U2F::get_u2f_app_id(), // has trailing https://
+			'app_id'    => Two_Factor_FIDO_U2F::get_u2f_app_id(), // legacy IDs have trailing https://
 		);
 
 		$keystore = WebAuthnKeyStore::instance();
@@ -76,49 +76,46 @@ class WebAuthnKeyMigrator {
 		$y      = substr( $binary, 33, 32 );
 
 		$der = self::sequence(
-            self::sequence(
-                self::oid( "\x2A\x86\x48\xCE\x3D\x02\x01" ) . // OID 1.2.840.10045.2.1 ecPublicKey
-                self::oid( "\x2A\x86\x48\xCE\x3D\x03\x01\x07" )
-            ) .
-            self::bitString( base64_decode(strtr($key, '-_', '+/'), true) )
-        );
+		self::sequence(
+			self::oid( "\x2A\x86\x48\xCE\x3D\x02\x01" ) . // OID 1.2.840.10045.2.1 ecPublicKey
+			self::oid( "\x2A\x86\x48\xCE\x3D\x03\x01\x07" )
+			) .
+			self::bitString( base64_decode(strtr($key, '-_', '+/'), true) )
+		);
 
 		return '-----BEGIN PUBLIC KEY-----' . "\n"
 			. chunk_split(base64_encode($der), 64, "\n")
 			. '-----END PUBLIC KEY-----' . "\n";
 	}
 
-	private static function length(int $len): string
-    {
-        if ($len < 128) {
-            return \chr($len);
-        }
+	/**
+	 *	Adapted from https://github.com/madwizard-org/webauthn-server/blob/master/src/Crypto/Der.php
+	 */
+	private static function length(int $len): string {
+		if ($len < 128) {
+			return \chr($len);
+		}
 
-        $lenBytes = '';
-        while ($len > 0) {
-            $lenBytes = \chr($len % 256) . $lenBytes;
-            $len = \intdiv($len, 256);
-        }
-        return \chr(0x80 | \strlen($lenBytes)) . $lenBytes;
-    }
+		$lenBytes = '';
+		while ($len > 0) {
+			$lenBytes = \chr($len % 256) . $lenBytes;
+			$len = \intdiv($len, 256);
+		}
+		return \chr(0x80 | \strlen($lenBytes)) . $lenBytes;
+	}
 
-    public static function sequence(string $contents): string
-    {
-        return "\x30" . self::length(\strlen($contents)) . $contents;
-    }
+	public static function sequence(string $contents): string {
+		return "\x30" . self::length(\strlen($contents)) . $contents;
+	}
 
-    public static function oid(string $encoded): string
-    {
-        return "\x06" . self::length(\strlen($encoded)) . $encoded;
-    }
-
-
-    public static function bitString(string $bytes): string
-    {
-        $len = \strlen($bytes) + 1;
-
-        return "\x03" . self::length($len) . "\x00" . $bytes;
-    }
+	public static function oid(string $encoded): string {
+		return "\x06" . self::length(\strlen($encoded)) . $encoded;
+	}
 
 
+	public static function bitString(string $bytes): string {
+		$len = \strlen($bytes) + 1;
+
+		return "\x03" . self::length($len) . "\x00" . $bytes;
+	}
 }
