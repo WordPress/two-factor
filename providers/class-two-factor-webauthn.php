@@ -405,7 +405,7 @@ class Two_Factor_WebAuthn extends Two_Factor_Provider {
 				exit();
 			}
 
-			$this->key_store->save_key( $user_id, $key );
+			$this->key_store->create_key( $user_id, $key );
 
 		} catch ( Exception $err ) {
 			wp_send_json(

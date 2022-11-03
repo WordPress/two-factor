@@ -61,10 +61,6 @@ class WebAuthnKeyStore {
 	public function find_key( $user_id, $keyLike ) {
 		global $wpdb;
 
-		if ( is_null( $keyLike ) ) {
-			return false;
-		}
-
 		$found = $wpdb->get_results( $wpdb->prepare(
 			"SELECT * FROM $wpdb->usermeta WHERE user_id=%d AND meta_key=%s AND meta_value LIKE %s",
 			$user_id,
@@ -104,7 +100,10 @@ class WebAuthnKeyStore {
 	 * @param string $key
 	 * @return bool
 	 */
-	private function create_key( $user_id, $key ) {
+	public function create_key( $user_id, $key ) {
+		if ( $this->find_key( $user_id, $key->md5id ) ) {
+			return false;
+		}
 		return add_user_meta( $user_id, self::PUBKEY_USERMETA_KEY, $key );
 	}
 
@@ -116,11 +115,8 @@ class WebAuthnKeyStore {
 	 * @param string $keyLike The old Key to be updated
 	 * @return bool
 	 */
-	public function save_key( $user_id, $key, $keyLike = null ) {
+	public function save_key( $user_id, $key, $keyLike ) {
 		$oldKey = $this->find_key( $user_id, $keyLike );
-		if ( false === $oldKey ) {
-			return $this->create_key( $user_id, $key );
-		}
 		return update_user_meta( $user_id, self::PUBKEY_USERMETA_KEY, $key, $oldKey );
 	}
 
