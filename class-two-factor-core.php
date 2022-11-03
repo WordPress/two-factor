@@ -73,6 +73,7 @@ class Two_Factor_Core {
 		add_action( 'plugins_loaded', array( __CLASS__, 'load_textdomain' ) );
 		add_action( 'init', array( __CLASS__, 'get_providers' ) );
 		add_action( 'wp_login', array( __CLASS__, 'wp_login' ), 10, 2 );
+		add_action( 'clear_auth_cookie', array( __CLAS__, 'clear_auth_cookie' ) );
 		add_action( 'set_auth_cookie', array( __CLASS__, 'set_auth_cookie' ), 10, 4 );
 		add_action( 'send_auth_cookies', array( __CLASS__, 'send_auth_cookies' ) );
 		add_action( 'login_form_validate_2fa', array( __CLASS__, 'login_form_validate_2fa' ) );
@@ -449,6 +450,11 @@ class Two_Factor_Core {
 
 	// Don't send auth cookies in the first place.
 	public static function send_auth_cookies( $send_cookies ) {
+		if ( ! $send_cookies ) {
+			return $send_cookies;
+		}
+
+		// Don't send auth cookies for an authenticated user, unless they've passed the two-factor check.
 		if (
 			$send_cookies &&
 			self::$last_auth_cookie_user &&
@@ -456,17 +462,19 @@ class Two_Factor_Core {
 			! apply_filters( 'two_factor_authentication_succeeded', false )
 		) {
 			$send_cookies = false;
-
-			// Reset the tracked user.
-			self::$last_auth_cookie_user = false;
 		}
 
 		return $send_cookies;
 	}
 
-	// Keep track of the last user the cookies were generated for.
+	// Keep track of the last user the cookies were generated for, called from wp_set_auth_cookie().
 	public static function set_auth_cookie( $auth_cookie, $expire, $expiration, $user_id ) {
 		self::$last_auth_cookie_user = $user_id;
+	}
+
+	// Clear the tracked user, called from wp_clear_auth_cookie()
+	public static function clear_auth_cookie() {
+		self::$last_auth_cookie_user = 0;
 	}
 
 	/**
