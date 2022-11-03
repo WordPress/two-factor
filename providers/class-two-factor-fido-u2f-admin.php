@@ -36,6 +36,8 @@ class Two_Factor_FIDO_U2F_Admin {
 		add_action( 'edit_user_profile_update', array( __CLASS__, 'catch_submission' ), 0 );
 		add_action( 'load-profile.php', array( __CLASS__, 'catch_delete_security_key' ) );
 		add_action( 'load-user-edit.php', array( __CLASS__, 'catch_delete_security_key' ) );
+		add_action( 'load-profile.php', array( __CLASS__, 'catch_migrate_security_key' ) );
+		add_action( 'load-user-edit.php', array( __CLASS__, 'catch_migrate_security_key' ) );
 		add_action( 'wp_ajax_inline-save-key', array( __CLASS__, 'wp_ajax_inline_save' ) );
 	}
 
@@ -285,6 +287,39 @@ class Two_Factor_FIDO_U2F_Admin {
 		}
 	}
 
+
+	/**
+	 * Catch the delete security key request.
+	 *
+	 * This executes during the `load-profile.php` & `load-user-edit.php` actions.
+	 *
+	 * @since 0.1-dev
+	 *
+	 * @access public
+	 * @static
+	 */
+	public static function catch_migrate_security_key() {
+		$user_id = Two_Factor_Core::current_user_being_edited();
+
+		if ( ! empty( $user_id ) && ! empty( $_REQUEST['migrate_security_key'] ) ) {
+
+			$u2f_key_slug = $_REQUEST['migrate_security_key'];
+
+			check_admin_referer( "migrate_security_key-{$u2f_key_slug}", '_nonce_migrate_security_key' );
+
+			require_once TWO_FACTOR_DIR . 'includes/WebAuthn/class-webauthn-key-migrator.php';
+
+			$redirect = remove_query_arg( ['migrate_security_key', '_nonce_migrate_security_key' ], wp_get_referer() );
+
+			if ( false === $webauthn_key = WebAuthnKeyMigrator::migrate_key_for_user( $user_id, $u2f_key_slug ) ) {
+				$redirect = add_query_arg( 'u2f_migrate_error', '1', $redirect );
+			}
+			wp_safe_redirect( $redirect );
+			exit;
+		}
+	}
+
+
 	/**
 	 * Generate a link to rename a specified security key.
 	 *
@@ -316,6 +351,26 @@ class Two_Factor_FIDO_U2F_Admin {
 		$delete_link = wp_nonce_url( $delete_link, "delete_security_key-{$item->keyHandle}", '_nonce_delete_security_key' );
 		return sprintf( '<a href="%1$s">%2$s</a>', esc_url( $delete_link ), esc_html__( 'Delete', 'two-factor' ) );
 	}
+
+	/**
+	 * Generate a link to delete a migrate security key.
+	 *
+	 * @since 0.8
+	 *
+	 * @access public
+	 * @static
+	 *
+	 * @param array $item The current item.
+	 * @return string
+	 */
+	public static function migrate_link( $item ) {
+		$migrate_link = add_query_arg( 'migrate_security_key', $item->keyHandle ); // phpcs:ignore WordPress.NamingConventions.ValidVariableName.UsedPropertyNotSnakeCase
+		$migrate_link = remove_query_arg( 'u2f_migrate_error', $migrate_link );
+		$migrate_link = wp_nonce_url( $migrate_link, "migrate_security_key-{$item->keyHandle}", '_nonce_migrate_security_key' );
+		return sprintf( '<a href="%1$s">%2$s</a>', esc_url( $migrate_link ), esc_html__( 'Migrate', 'two-factor' ) );
+	}
+
+
 
 	/**
 	 * Ajax handler for quick edit saving for a security key.

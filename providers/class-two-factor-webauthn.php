@@ -105,8 +105,6 @@ class Two_Factor_WebAuthn extends Two_Factor_Provider {
 	 * Enqueue assets for login form.
 	 */
 	public function login_enqueue_assets() {
-		wp_enqueue_script( 'webauthn-login' );
-		wp_enqueue_style( 'webauthn-login' );
 	}
 
 	/**
@@ -119,11 +117,11 @@ class Two_Factor_WebAuthn extends Two_Factor_Provider {
 
 		$url_parts = wp_parse_url( network_site_url() );
 
+		// No port, no protocol, just the hostname.
+		// Everthing else will fail at the regsistration
+		// @see https://stackoverflow.com/a/70487895/1983694
 		$app_id = $url_parts['host'];
 
-		if ( ! empty( $url_parts['port'] ) ) {
-			$app_id = sprintf( '%s:%d', $app_id, $url_parts['port'] );
-		}
 
 		/**
 		 * Filter the WebAuthn App ID.
@@ -156,6 +154,7 @@ class Two_Factor_WebAuthn extends Two_Factor_Provider {
 	public function authentication_page( $user ) {
 
 		wp_enqueue_style( 'webauthn-login' );
+		wp_enqueue_script( 'webauthn-login' );
 
 		require_once ABSPATH . '/wp-admin/includes/template.php';
 
@@ -172,7 +171,17 @@ class Two_Factor_WebAuthn extends Two_Factor_Provider {
 
 			$keys = $this->key_store->get_keys( $user->ID );
 
-			$auth_opts = $this->webauthn->prepareAuthenticate( $keys );
+			$app_ids = array();
+
+			foreach ( $keys as $key ) {
+				$app_ids[] = $key->app_id;
+			}
+			$app_ids = array_unique( $app_ids );
+			$auth_opts = array();
+
+			foreach ( $app_ids as $app_id ) {
+				$auth_opts[] = $this->webauthn->prepareAuthenticate( $keys, $app_id );
+			}
 
 			update_user_meta( $user->ID, self::LOGIN_USERMETA, 1 );
 		} catch ( Exception $e ) {
@@ -187,7 +196,7 @@ class Two_Factor_WebAuthn extends Two_Factor_Provider {
 			'webauthnL10n',
 			array(
 				'action'   => 'webauthn-login',
-				'payload'  => $auth_opts,
+				'apps'     => $auth_opts,
 				'_wpnonce' => wp_create_nonce( 'webauthn-login' ),
 			)
 		);
@@ -399,6 +408,7 @@ class Two_Factor_WebAuthn extends Two_Factor_Provider {
 			$key->created   = time();
 			$key->last_used = false;
 			$key->tested    = false;
+			$key->app_id    = $this->get_app_id();
 
 			if ( false !== $this->key_store->key_exists( $key->md5id ) ) {
 				wp_send_json_error( new WP_Error( 'webauthn', esc_html__( 'Device already Exists', 'two-factor' ) ) );
@@ -412,6 +422,7 @@ class Two_Factor_WebAuthn extends Two_Factor_Provider {
 				array(
 					'success' => false,
 					'error'   => $err->getMessage(),
+					'trace'   => $err->getTraceAsString(),
 				)
 			);
 			return;
@@ -613,7 +624,7 @@ class Two_Factor_WebAuthn extends Two_Factor_Provider {
 				wp_json_encode(
 					array(
 						'action'   => 'webauthn-test-key',
-						'payload'  => $this->webauthn->prepareAuthenticate( array( $pub_key ) ),
+						'payload'  => $this->webauthn->prepareAuthenticate( array( $pub_key ), $pub_key->app_id ),
 						'userId'   => $user_id,
 						'_wpnonce' => wp_create_nonce( 'webauthn-test-key' ),
 					)

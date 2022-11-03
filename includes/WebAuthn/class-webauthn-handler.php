@@ -22,13 +22,13 @@ class WebAuthnHandler {
 	const RS256 = -257; // Windows Hello support
 
 	/**
-	* construct object on which to operate
-	*
-	* @param string $appid a string identifying your app, typically the domain of your website which people
-	*                      are using the key to log in to. If you have the URL (ie including the
-	*                      https:// on the front) to hand, give that;
-	*                      if it's not https, well what are you doing using this code?
-	*/
+	 * construct object on which to operate
+	 *
+	 * @param string $appid a string identifying your app, typically the domain of your website which people
+	 *                      are using the key to log in to. If you have the URL (ie including the
+	 *                      https:// on the front) to hand, give that;
+	 *                      if it's not https, well what are you doing using this code?
+	 */
 	public function __construct($appid)
 	{
 		if (! is_string($appid)) {
@@ -66,8 +66,7 @@ class WebAuthnHandler {
 	*               this computer, but with any available authentication device, e.g. known to Windows Hello)
 	* @return string pass this JSON string back to the browser
 	*/
-	public function prepareRegister($username, $userid, $crossPlatform = FALSE)
-	{
+	public function prepareRegister($username, $userid, $crossPlatform = false) {
 		$result = (object) array();
 		$rbchallenge = self::randomBytes(16);
 		$result->challenge = self::stringToArray($rbchallenge);
@@ -158,15 +157,23 @@ class WebAuthnHandler {
 	* generates a new key string for the physical key, fingerprint
 	* reader or whatever to respond to on login
 	* @param array $userKeys the existing webauthn field for the user from your database
+	* @param string $appid
 	* @return boolean|object Object to pass to javascript webauthnAuthenticate or false on faliue
 	*/
-	public function prepareAuthenticate( array $userKeys = array() )
+	public function prepareAuthenticate( array $userKeys = array(), $appid = null )
 	{
+		if ( is_null( $appid ) ) {
+			$appid = $this->appid;
+		}
 		$allowKeyDefaults = array(
 			'transports' =>  array( 'usb','nfc','ble','internal' ),
 			'type' => 'public-key',
 		);
     	$allows = array();
+		$userKeys = array_filter( $userKeys, function( $userKey ) use( $appid ) {
+			return $userKey->app_id !== $appid;
+		} );
+
 		foreach ( $userKeys as $key) {
 			if ( $this->isValidKey( $key ) ) {
 				$allows[] = (object) ( array(
@@ -233,7 +240,7 @@ class WebAuthnHandler {
 		$ao->flags = ord( substr( $bs, 32, 1 ) );
 		$ao->counter = substr( $bs, 33, 4 );
 
-		$hashId = hash( 'sha256', $this->appid, true );
+		$hashId = hash( 'sha256', $key->app_id, true );
 
 		if ( $hashId !== $ao->rpIdHash ) {
 			$this->last_error[ $this->last_call ] = 'key-response-decode-hash-mismatch';
@@ -266,14 +273,13 @@ class WebAuthnHandler {
 			return $key;
 		} else if ( 0 === $verify_result ) {
 			$this->last_error[ $this->last_call ] = 'key-not-verfied';
-			return false;
+		} else if ( false === $verify_result ) {
+			$this->last_error[ $this->last_call ] = openssl_error_string();
 		}
-
-		$this->last_error[ $this->last_call ] = openssl_error_string();
 
 		return false;
 
-    }
+	}
 
 	/**
 	 *	Parse and validate Attestation object
@@ -473,26 +479,31 @@ class WebAuthnHandler {
 		if ( $info->response->clientData->type != 'webauthn.get') {
 			$this->last_error[ $this->last_call ] = "info-wrong-type";
 			return false;
-        }
+		}
 
 
 		/* cross-check challenge */
-        if ( $info->response->clientData->challenge
+		if ( $info->response->clientData->challenge
 					!==
 			rtrim( strtr( base64_encode( self::arrayToString( $info->originalChallenge ) ), '+/', '-_'), '=')
 		) {
 			$this->last_error[ $this->last_call ] = 'info-challenge-mismatch';
 			return false;
-        }
+		}
 
 		/* cross check origin */
-        $origin = parse_url( $info->response->clientData->origin );
+        $origin_host = parse_url( $info->response->clientData->origin, PHP_URL_HOST );
+		if ( strpos( $this->appid, 'https://' ) !== false ) {
+			$app_host = parse_url( $this->appid,  PHP_URL_HOST );
+		} else {
+			$app_host = $this->appid;
+		}
 
-        if ( strpos( $origin['host'], $this->appid ) !== ( strlen( $origin['host'] ) - strlen( $this->appid ) ) ) {
+		if ( strpos( $origin_host, $app_host ) !== ( strlen( $origin_host ) - strlen( $app_host ) ) ) {
 
 			$this->last_error[ $this->last_call ] = 'info-origin-mismatch';
 			return false;
-        }
+		}
 
 
 		return true;

@@ -80,8 +80,7 @@
 					ida.push( v );
 				} );
 
-				cd = JSON.parse( String.fromCharCode.apply( null,
-															  new Uint8Array( aAssertion.response.clientDataJSON ) ) );
+				cd = JSON.parse( String.fromCharCode.apply( null, new Uint8Array( aAssertion.response.clientDataJSON ) ) );
 
 				cda = [];
 				( new Uint8Array( aAssertion.response.clientDataJSON ) ).forEach( function( v ) {

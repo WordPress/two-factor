@@ -67,23 +67,31 @@
 
 	const login = ( opts, callback ) => {
 
-		const { action, payload, _wpnonce } = opts;
+		const { action, apps, _wpnonce } = opts;
+		let app
 
-		webauthnAuthenticate( payload, ( success, info ) => {
-			if ( success ) {
-				callback( { success:true, result: info } );
-			} else {
-				callback( { success:false, message: info } );
-			}
-		});
+		while ( apps.length ) {
+			app = apps.unshift()
+			webauthnAuthenticate( app, ( success, info ) => {
+				if ( success ) {
+					callback( { success:true, result: info } );
+				} else {
+					callback( { success:false, message: info } );
+				}
+			});
+		}
 	};
 
 	/**
 	 *	Some Password Managers (like nextcloud passwords) seem to abort the
 	 *	key browser dialog.
-	 *	We have to retry a couple of times to
+	 *	We have to retry a few times
 	 */
 	const auth = () => {
+		// return if we are not
+		if ( ! $( '.webauthn-retry' ).length ) {
+			return;
+		}
 		$( '.webauthn-retry' ).removeClass( 'visible' );
 		login( window.webauthnL10n, response => {
 			if ( response.success ) {
