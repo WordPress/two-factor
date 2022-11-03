@@ -387,8 +387,6 @@ class Two_Factor_WebAuthn extends Two_Factor_Provider {
 			wp_send_json_error( new WP_Error( 'webauthn', __( 'Not allowed to add key', 'two-factor' ) ) );
 		}
 
-		$keys = $this->key_store->get_keys( $user_id );
-
 		try {
 			$key = $this->webauthn->register( $credential, '' );
 
