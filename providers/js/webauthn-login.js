@@ -1,4 +1,5 @@
 ( function( $ ) {
+	let counter = 0
 	/**
 	 *	Borrowed from https://github.com/davidearl/webauthn
 	 */
@@ -67,19 +68,15 @@
 
 	const login = ( opts, callback ) => {
 
-		const { action, apps, _wpnonce } = opts;
-		let app
+		const { action, payload, _wpnonce } = opts;
 
-		while ( apps.length ) {
-			app = apps.unshift()
-			webauthnAuthenticate( app, ( success, info ) => {
-				if ( success ) {
-					callback( { success:true, result: info } );
-				} else {
-					callback( { success:false, message: info } );
-				}
-			});
-		}
+		webauthnAuthenticate( payload, ( success, info ) => {
+			if ( success ) {
+				callback( { success:true, result: info } );
+			} else {
+				callback( { success:false, message: info } );
+			}
+		});
 	};
 
 	/**
@@ -93,12 +90,16 @@
 			return;
 		}
 		$( '.webauthn-retry' ).removeClass( 'visible' );
-		login( window.webauthnL10n, response => {
+
+		const { action, apps, _wpnonce } = window.webauthnL10n;
+		const payload = apps[ counter % apps.length ]
+
+		login( { action, payload, _wpnonce }, response => {
 			if ( response.success ) {
 				$( '#webauthn_response' ).val( response.result );
 				$( '#loginform' ).submit();
 			} else {
-
+				counter++
 				// Show retry-button
 				$( '.webauthn-retry' ).addClass( 'visible' );
 			}
