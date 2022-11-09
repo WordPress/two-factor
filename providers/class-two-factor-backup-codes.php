@@ -256,7 +256,7 @@ class Two_Factor_Backup_Codes extends Two_Factor_Provider {
 			/* translators: %s: count */
 			'count' => esc_html( sprintf( _n( '%s unused code remaining.', '%s unused codes remaining.', $count, 'two-factor' ), $count ) ),
 			/* translators: %s: the site's domain */
-			'title' => esc_html__( 'Two-Factor Backup Codes for %s', 'two-factor' ),
+			'title' => __( 'Two-Factor Backup Codes for %s', 'two-factor' ), // not escaped as it's used within a downloaded file.
 		);
 
 		// Send the response.
