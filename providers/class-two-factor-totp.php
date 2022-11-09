@@ -178,7 +178,7 @@ class Two_Factor_Totp extends Two_Factor_Provider {
 			<p id="two-factor-qr-code">
 				<a href="<?php echo $totp_url; ?>">
 					Loading...
-					<img src="<?php echo admin_url('images/spinner.gif'); ?>" alt="" />
+					<img src="<?php echo esc_url( admin_url( 'images/spinner.gif' ) ); ?>" alt="" />
 				</a>
 			</p>
 
