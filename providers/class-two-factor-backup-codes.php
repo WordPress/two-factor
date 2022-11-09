@@ -177,15 +177,23 @@ class Two_Factor_Backup_Codes extends Two_Factor_Provider {
 							// Update counter.
 							$( '.two-factor-backup-codes-count' ).html( response.data.i18n.count );
 
-							// Build the download link.
-							var txt_data = 'data:application/text;charset=utf-8,' + '\n';
-							txt_data += response.data.i18n.title.replace( /%s/g, document.domain ) + '\n\n';
+							// Build the downloaded file contents.
+							var txt_data = response.data.i18n.title.replace( /%s/g, document.domain ) + '\n\n';
 
 							for ( i = 0; i < response.data.codes.length; i++ ) {
 								txt_data += i + 1 + '. ' + response.data.codes[ i ] + '\n';
 							}
 
-							$( '#two-factor-backup-codes-download-link' ).attr( 'href', encodeURI( txt_data ) );
+							txt_data = encodeURIComponent( txt_data );
+							// encodeURIComponent() Does not encode -_.!~*'()
+							txt_data = txt_data.replace(/[!'()~*]/g, function(c) {
+								return '%' + c.charCodeAt(0).toString(16);
+							} );
+
+							// Build the download link
+							txt_data = 'data:application/text;charset=utf-8,' + txt_data
+
+							$( '#two-factor-backup-codes-download-link' ).attr( 'href', txt_data );
 						}
 					} );
 				} );
