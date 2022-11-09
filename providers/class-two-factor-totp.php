@@ -92,10 +92,6 @@ class Two_Factor_Totp extends Two_Factor_Provider {
 			TWO_FACTOR_VERSION,
 			true
 		);
-
-		if ( 'profile.php' === $hook_suffix ) {
-			wp_enqueue_script( 'two-factor-qr-code-generator' );
-		}
 	}
 
 	/**
@@ -149,6 +145,8 @@ class Two_Factor_Totp extends Two_Factor_Provider {
 		<div id="two-factor-totp-options">
 		<?php
 		if ( empty( $key ) ) :
+			wp_enqueue_script( 'two-factor-qr-code-generator' );
+
 			$key        = $this->generate_key();
 			$site_name  = get_bloginfo( 'name', 'display' );
 
