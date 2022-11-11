@@ -37,11 +37,9 @@ class Tests_Two_Factor_Backup_Codes_AJAX extends WP_Ajax_UnitTestCase {
 	 * @covers Two_Factor_Backup_Codes::validate_code
 	 */
 	public function test_generate_code_and_validate_in_download_file() {
-		$user = new WP_User( self::factory()->user->create() );
+		$this->_setRole( 'administrator' );
 
-		// Become that user.
-		wp_set_current_user( $user->ID );
-
+		$user             = wp_get_current_user();
 		$_POST['user_id'] = $user->ID;
 		$_POST['nonce']   = wp_create_nonce( 'two-factor-backup-codes-generate-json-' . $user->ID );
 
