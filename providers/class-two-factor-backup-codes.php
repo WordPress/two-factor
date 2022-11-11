@@ -176,24 +176,7 @@ class Two_Factor_Backup_Codes extends Two_Factor_Provider {
 
 							// Update counter.
 							$( '.two-factor-backup-codes-count' ).html( response.data.i18n.count );
-
-							// Build the downloaded file contents.
-							var txt_data = response.data.i18n.title + '\n\n';
-
-							for ( i = 0; i < response.data.codes.length; i++ ) {
-								txt_data += i + 1 + '. ' + response.data.codes[ i ] + '\n';
-							}
-
-							txt_data = encodeURIComponent( txt_data );
-							// encodeURIComponent() Does not encode -_.!~*'()
-							txt_data = txt_data.replace(/[!'()~*]/g, function(c) {
-								return '%' + c.charCodeAt(0).toString(16);
-							} );
-
-							// Build the download link
-							txt_data = 'data:application/text;charset=utf-8,' + txt_data
-
-							$( '#two-factor-backup-codes-download-link' ).attr( 'href', txt_data );
+							$( '#two-factor-backup-codes-download-link' ).attr( 'href', response.data.download_link );
 						}
 					} );
 				} );
@@ -252,21 +235,33 @@ class Two_Factor_Backup_Codes extends Two_Factor_Provider {
 		// Setup the return data.
 		$codes = $this->generate_codes( $user );
 		$count = self::codes_remaining_for_user( $user );
+		$title = sprintf(
+			/* translators: %s: the site's domain */
+			__( 'Two-Factor Backup Codes for %s', 'two-factor' ),
+			home_url( '/' )
+		);
+
+		// Generate download content.
+		$download_link = 'data:application/text;charset=utf-8,';
+		$download_link .= rawurlencode( "{$title}\n\n" );
+
+		$i = 1;
+		foreach ( $codes as $code ) {
+			$download_link .= rawurlencode( "{$i}. {$code}\n" );
+			$i++;
+		}
+
 		$i18n  = array(
 			/* translators: %s: count */
 			'count' => esc_html( sprintf( _n( '%s unused code remaining.', '%s unused codes remaining.', $count, 'two-factor' ), $count ) ),
-			'title' => sprintf(
-				/* translators: %s: the site's domain */
-				__( 'Two-Factor Backup Codes for %s', 'two-factor' ),
-				home_url( '/' )
-			)
 		);
 
 		// Send the response.
 		wp_send_json_success(
 			array(
-				'codes' => $codes,
-				'i18n'  => $i18n,
+				'codes'         => $codes,
+				'download_link' => $download_link,
+				'i18n'          => $i18n,
 			)
 		);
 	}
