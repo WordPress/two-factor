@@ -178,7 +178,7 @@ class Two_Factor_Backup_Codes extends Two_Factor_Provider {
 							$( '.two-factor-backup-codes-count' ).html( response.data.i18n.count );
 
 							// Build the downloaded file contents.
-							var txt_data = response.data.i18n.title.replace( /%s/g, document.domain ) + '\n\n';
+							var txt_data = response.data.i18n.title + '\n\n';
 
 							for ( i = 0; i < response.data.codes.length; i++ ) {
 								txt_data += i + 1 + '. ' + response.data.codes[ i ] + '\n';
@@ -255,8 +255,11 @@ class Two_Factor_Backup_Codes extends Two_Factor_Provider {
 		$i18n  = array(
 			/* translators: %s: count */
 			'count' => esc_html( sprintf( _n( '%s unused code remaining.', '%s unused codes remaining.', $count, 'two-factor' ), $count ) ),
-			/* translators: %s: the site's domain */
-			'title' => __( 'Two-Factor Backup Codes for %s', 'two-factor' ), // not escaped as it's used within a downloaded file.
+			'title' => sprintf(
+				/* translators: %s: the site's domain */
+				__( 'Two-Factor Backup Codes for %s', 'two-factor' ),
+				home_url( '/' )
+			)
 		);
 
 		// Send the response.
