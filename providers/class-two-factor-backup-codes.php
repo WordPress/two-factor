@@ -229,7 +229,12 @@ class Two_Factor_Backup_Codes extends Two_Factor_Provider {
 	 * @since 0.1-dev
 	 */
 	public function ajax_generate_json() {
-		$user = get_user_by( 'id', filter_input( INPUT_POST, 'user_id', FILTER_SANITIZE_NUMBER_INT ) );
+		$user_id = 0;
+		if ( ! empty( $_POST['user_id'] ) ) {
+			$user_id = absint( $_POST['user_id'] );
+		}
+
+		$user = get_user_by( 'id', $user_id );
 		check_ajax_referer( 'two-factor-backup-codes-generate-json-' . $user->ID, 'nonce' );
 
 		// Setup the return data.
