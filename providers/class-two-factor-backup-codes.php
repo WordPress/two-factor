@@ -243,11 +243,11 @@ class Two_Factor_Backup_Codes extends Two_Factor_Provider {
 
 		// Generate download content.
 		$download_link = 'data:application/text;charset=utf-8,';
-		$download_link .= rawurlencode( "{$title}\n\n" );
+		$download_link .= rawurlencode( "{$title}\r\n\r\n" );
 
 		$i = 1;
 		foreach ( $codes as $code ) {
-			$download_link .= rawurlencode( "{$i}. {$code}\n" );
+			$download_link .= rawurlencode( "{$i}. {$code}\r\n" );
 			$i++;
 		}
 
