@@ -30,10 +30,10 @@ class Tests_Two_Factor_FIDO_U2F extends WP_UnitTestCase {
 	/**
 	 * Set up a test case.
 	 *
-	 * @see WP_UnitTestCase::setup()
+	 * @see WP_UnitTestCase_Base::set_up()
 	 */
-	public function setUp() {
-		parent::setUp();
+	public function set_up() {
+		parent::set_up();
 
 		try {
 			require_once 'includes/Yubico/U2F.php';
@@ -50,7 +50,7 @@ class Tests_Two_Factor_FIDO_U2F extends WP_UnitTestCase {
 	 * Verify the label value.
 	 */
 	public function test_get_label() {
-		$this->assertContains( 'FIDO U2F Security Keys', $this->provider->get_label() );
+		$this->assertStringContainsString( 'FIDO U2F Security Keys', $this->provider->get_label() );
 	}
 
 	/**
@@ -66,8 +66,8 @@ class Tests_Two_Factor_FIDO_U2F extends WP_UnitTestCase {
 		$delete_method = new ReflectionMethod( $this->provider, 'delete_security_key' );
 		$delete_method->setAccessible( true );
 
-		$user_id = $this->factory->user->create();
-		$this->assertInternalType( 'int', $add_method->invoke( $this->provider, $user_id, $reg ) );
+		$user_id = self::factory()->user->create();
+		$this->assertIsInt( $add_method->invoke( $this->provider, $user_id, $reg ) );
 
 		$delete_method->invoke( $this->provider, $user_id );
 	}
@@ -83,8 +83,8 @@ class Tests_Two_Factor_FIDO_U2F extends WP_UnitTestCase {
 		$delete_method = new ReflectionMethod( $this->provider, 'delete_security_key' );
 		$delete_method->setAccessible( true );
 
-		$user_id = $this->factory->user->create();
-		$this->assertInternalType( 'int', $add_method->invoke( $this->provider, $user_id, $reg ) );
+		$user_id = self::factory()->user->create();
+		$this->assertIsInt( $add_method->invoke( $this->provider, $user_id, $reg ) );
 
 		$delete_method->invoke( $this->provider, $user_id );
 	}
@@ -102,7 +102,7 @@ class Tests_Two_Factor_FIDO_U2F extends WP_UnitTestCase {
 		$delete_method = new ReflectionMethod( $this->provider, 'delete_security_key' );
 		$delete_method->setAccessible( true );
 
-		$user_id = $this->factory->user->create();
+		$user_id = self::factory()->user->create();
 
 		$add_method->invoke( $this->provider, $user_id, $reg );
 		$actual = $get_method->invoke( $this->provider, $user_id );
@@ -132,7 +132,7 @@ class Tests_Two_Factor_FIDO_U2F extends WP_UnitTestCase {
 		$delete_method = new ReflectionMethod( $this->provider, 'delete_security_key' );
 		$delete_method->setAccessible( true );
 
-		$user_id = $this->factory->user->create();
+		$user_id = self::factory()->user->create();
 		$add_method->invoke( $this->provider, $user_id, $regs[0] );
 
 		$data = $this->u2f->doAuthenticate( $reqs, $regs, $resp );
@@ -166,11 +166,11 @@ class Tests_Two_Factor_FIDO_U2F extends WP_UnitTestCase {
 		$delete_method = new ReflectionMethod( $this->provider, 'delete_security_key' );
 		$delete_method->setAccessible( true );
 
-		$user_id = $this->factory->user->create();
+		$user_id = self::factory()->user->create();
 
 		$data = $this->u2f->doAuthenticate( $reqs, $regs, $resp );
 
-		$this->assertInternalType( 'int', $update_method->invoke( $this->provider, $user_id, $data ) );
+		$this->assertIsInt( $update_method->invoke( $this->provider, $user_id, $data ) );
 
 		$meta = $get_method->invoke( $this->provider, $user_id );
 		$this->assertEquals( $data->keyHandle, $meta[0]->keyHandle ); // phpcs:ignore WordPress.NamingConventions.ValidVariableName.UsedPropertyNotSnakeCase
@@ -191,7 +191,7 @@ class Tests_Two_Factor_FIDO_U2F extends WP_UnitTestCase {
 		$delete_method = new ReflectionMethod( $this->provider, 'delete_security_key' );
 		$delete_method->setAccessible( true );
 
-		$user_id = $this->factory->user->create();
+		$user_id = self::factory()->user->create();
 		$delete_method->invoke( $this->provider, $user_id );
 
 		$this->assertEquals( array(), $get_method->invoke( $this->provider, $user_id ) );
@@ -212,7 +212,7 @@ class Tests_Two_Factor_FIDO_U2F extends WP_UnitTestCase {
 		$delete_method = new ReflectionMethod( $this->provider, 'delete_security_key' );
 		$delete_method->setAccessible( true );
 
-		$user_id = $this->factory->user->create();
+		$user_id = self::factory()->user->create();
 		$add_method->invoke( $this->provider, $user_id, $reg );
 		$delete_method->invoke( $this->provider, $user_id );
 

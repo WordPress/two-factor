@@ -731,12 +731,20 @@ class Two_Factor_Core {
 	/**
 	 * Get the hash of a nonce for storage and comparison.
 	 *
-	 * @param string $nonce Nonce value to be hashed.
+	 * @param array $nonce Nonce array to be hashed. ⚠️ This must contain user ID and expiration,
+	 *                     to guarantee the nonce only works for the intended user during the
+	 *                     intended time window.
 	 *
-	 * @return string
+	 * @return string|false
 	 */
 	protected static function hash_login_nonce( $nonce ) {
-		return wp_hash( $nonce, 'nonce' );
+		$message = wp_json_encode( $nonce );
+
+		if ( ! $message ) {
+			return false;
+		}
+
+		return wp_hash( $message, 'nonce' );
 	}
 
 	/**
@@ -745,11 +753,12 @@ class Two_Factor_Core {
 	 * @since 0.1-dev
 	 *
 	 * @param int $user_id User ID.
-	 * @return array
+	 * @return array|false
 	 */
 	public static function create_login_nonce( $user_id ) {
 		$login_nonce = array(
-			'expiration' => time() + HOUR_IN_SECONDS,
+			'user_id'    => $user_id,
+			'expiration' => time() + ( 10 * MINUTE_IN_SECONDS ),
 		);
 
 		try {
@@ -759,14 +768,20 @@ class Two_Factor_Core {
 		}
 
 		// Store the nonce hashed to avoid leaking it via database access.
-		$login_nonce_stored        = $login_nonce;
-		$login_nonce_stored['key'] = self::hash_login_nonce( $login_nonce['key'] );
+		$hashed_key = self::hash_login_nonce( $login_nonce );
 
-		if ( ! update_user_meta( $user_id, self::USER_META_NONCE_KEY, $login_nonce_stored ) ) {
-			return false;
+		if ( $hashed_key ) {
+			$login_nonce_stored = array(
+				'expiration' => $login_nonce['expiration'],
+				'key'        => $hashed_key,
+			);
+
+			if ( update_user_meta( $user_id, self::USER_META_NONCE_KEY, $login_nonce_stored ) ) {
+				return $login_nonce;
+			}
 		}
 
-		return $login_nonce;
+		return false;
 	}
 
 	/**
@@ -797,7 +812,16 @@ class Two_Factor_Core {
 			return false;
 		}
 
-		if ( hash_equals( $login_nonce['key'], self::hash_login_nonce( $nonce ) ) && time() < $login_nonce['expiration'] ) {
+		$unverified_nonce = array(
+			'user_id'    => $user_id,
+			'expiration' => $login_nonce['expiration'],
+			'key'        => $nonce,
+		);
+
+		$unverified_hash = self::hash_login_nonce( $unverified_nonce );
+		$hashes_match    = $unverified_hash && hash_equals( $login_nonce['key'], $unverified_hash );
+
+		if ( $hashes_match && time() < $login_nonce['expiration'] ) {
 			return true;
 		}
 
@@ -855,7 +879,7 @@ class Two_Factor_Core {
 
 		// Ask the provider to verify the second factor.
 		if ( true !== $provider->validate_authentication( $user ) ) {
-			do_action( 'wp_login_failed', $user->user_login );
+			do_action( 'wp_login_failed', $user->user_login, new WP_Error( 'two_factor_invalid', __( 'ERROR: Invalid verification code.', 'two-factor' ) ) );
 
 			$login_nonce = self::create_login_nonce( $user->ID );
 			if ( ! $login_nonce ) {

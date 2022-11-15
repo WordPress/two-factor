@@ -38,7 +38,7 @@ class Two_Factor_Totp extends Two_Factor_Provider {
 	const DEFAULT_TIME_STEP_ALLOWANCE = 4;
 
 	/**
-	 * Chracters used in base32 encoding.
+	 * Characters used in base32 encoding.
 	 *
 	 * @var string
 	 */
@@ -46,8 +46,11 @@ class Two_Factor_Totp extends Two_Factor_Provider {
 
 	/**
 	 * Class constructor. Sets up hooks, etc.
+	 *
+	 * @codeCoverageIgnore
 	 */
 	protected function __construct() {
+		add_action( 'admin_enqueue_scripts', array( $this, 'enqueue_assets' ) );
 		add_action( 'two_factor_user_options_' . __CLASS__, array( $this, 'user_two_factor_options' ) );
 		add_action( 'personal_options_update', array( $this, 'user_two_factor_options_update' ) );
 		add_action( 'edit_user_profile_update', array( $this, 'user_two_factor_options_update' ) );
@@ -58,6 +61,8 @@ class Two_Factor_Totp extends Two_Factor_Provider {
 
 	/**
 	 * Ensures only one instance of this class exists in memory at any one time.
+	 *
+	 * @codeCoverageIgnore
 	 */
 	public static function get_instance() {
 		static $instance;
@@ -75,12 +80,29 @@ class Two_Factor_Totp extends Two_Factor_Provider {
 	}
 
 	/**
+	 * Enqueue scripts
+	 */
+	public function enqueue_assets( $hook_suffix ) {
+		$environment_prefix = file_exists( TWO_FACTOR_DIR . '/dist' ) ? '/dist' : '';
+
+		wp_register_script(
+			'two-factor-qr-code-generator',
+			plugins_url( $environment_prefix . '/includes/qrcode-generator/qrcode.js', __DIR__ ),
+			array(),
+			TWO_FACTOR_VERSION,
+			true
+		);
+	}
+
+	/**
 	 * Trigger our custom user settings actions.
 	 *
 	 * @param integer $user_id User ID.
 	 * @param string  $action Action ID.
 	 *
 	 * @return void
+	 *
+	 * @codeCoverageIgnore
 	 */
 	public function user_settings_action( $user_id, $action ) {
 		if ( self::ACTION_SECRET_DELETE === $action ) {
@@ -94,6 +116,8 @@ class Two_Factor_Totp extends Two_Factor_Provider {
 	 * @param integer $user_id User ID.
 	 *
 	 * @return string
+	 *
+	 * @codeCoverageIgnore
 	 */
 	protected function get_token_delete_url_for_user( $user_id ) {
 		return Two_Factor_Core::get_user_update_action_url( $user_id, self::ACTION_SECRET_DELETE );
@@ -104,6 +128,8 @@ class Two_Factor_Totp extends Two_Factor_Provider {
 	 *
 	 * @param WP_User $user The current user being edited.
 	 * @return false
+	 *
+	 * @codeCoverageIgnore
 	 */
 	public function user_two_factor_options( $user ) {
 		if ( ! isset( $user->ID ) ) {
@@ -119,16 +145,66 @@ class Two_Factor_Totp extends Two_Factor_Provider {
 		<div id="two-factor-totp-options">
 		<?php
 		if ( empty( $key ) ) :
+			wp_enqueue_script( 'two-factor-qr-code-generator' );
+
 			$key        = $this->generate_key();
 			$site_name  = get_bloginfo( 'name', 'display' );
+
+			// Must follow TOTP format for a "label":
+			// https://github.com/google/google-authenticator/wiki/Key-Uri-Format#label
+			// Do not URL encode, that will be done later.
 			$totp_title = apply_filters( 'two_factor_totp_title', $site_name . ':' . $user->user_login, $user );
+
+			$totp_url = add_query_arg(
+				array(
+					'secret' => rawurlencode( $key ),
+					'issuer' => rawurlencode( $site_name ),
+				),
+				'otpauth://totp/' . rawurlencode( $totp_title )
+			);
+
+			// Must follow TOTP format:
+			// https://github.com/google/google-authenticator/wiki/Key-Uri-Format
+			$totp_url = apply_filters( 'two_factor_totp_url', $totp_url, $user );
+			$totp_url = esc_url( $totp_url, array( 'otpauth' ) );
+
 			?>
+
 			<p>
 				<?php esc_html_e( 'Please scan the QR code or manually enter the key, then enter an authentication code from your app in order to complete setup.', 'two-factor' ); ?>
 			</p>
-			<p>
-				<img src="<?php echo esc_url( $this->get_google_qr_code( $totp_title, $key, $site_name ) ); ?>" id="two-factor-totp-qrcode" />
+			<p id="two-factor-qr-code">
+				<a href="<?php echo $totp_url; ?>">
+					Loading...
+					<img src="<?php echo esc_url( admin_url( 'images/spinner.gif' ) ); ?>" alt="" />
+				</a>
 			</p>
+
+			<style>
+				#two-factor-qr-code {
+					/* The size of the image will change based on the length of the URL inside it. */
+					min-width: 205px;
+					min-height: 205px;
+				}
+			</style>
+
+			<script>
+				window.addEventListener( 'DOMContentLoaded', function( event ) {
+					/*
+					 * 0 = Automatically select the version, to avoid going over the limit of URL
+					 *     length.
+					 * L = Least amount of error correction, because it's not needed when scanning
+					 *     on a monitor, and it lowers the image size.
+					 */
+					var qr = qrcode( 0, 'L' );
+
+					qr.addData( <?php echo wp_json_encode( $totp_url ); ?> );
+					qr.make();
+
+					document.querySelector( '#two-factor-qr-code a' ).innerHTML = qr.createSvgTag( 5 );
+				} );
+			</script>
+
 			<p>
 				<code><?php echo esc_html( $key ); ?></code>
 			</p>
@@ -161,6 +237,8 @@ class Two_Factor_Totp extends Two_Factor_Provider {
 	 * @param integer $user_id The user ID whose options are being updated.
 	 *
 	 * @return void
+	 *
+	 * @codeCoverageIgnore
 	 */
 	public function user_two_factor_options_update( $user_id ) {
 		$notices = array();
@@ -255,6 +333,8 @@ class Two_Factor_Totp extends Two_Factor_Provider {
 	 * @param integer $user_id User ID.
 	 *
 	 * @return void
+	 *
+	 * @codeCoverageIgnore
 	 */
 	public function admin_notices( $user_id ) {
 		$notices = get_user_meta( $user_id, self::NOTICES_META_KEY, true );
@@ -286,6 +366,8 @@ class Two_Factor_Totp extends Two_Factor_Provider {
 	 * @param WP_User $user WP_User object of the logged-in user.
 	 *
 	 * @return bool Whether the user gave a valid code
+	 *
+	 * @codeCoverageIgnore
 	 */
 	public function validate_authentication( $user ) {
 		if ( ! empty( $_REQUEST['authcode'] ) ) {
@@ -414,25 +496,6 @@ class Two_Factor_Totp extends Two_Factor_Provider {
 	}
 
 	/**
-	 * Uses the Google Charts API to build a QR Code for use with an otpauth url
-	 *
-	 * @param string $name  The name to display in the Authentication app.
-	 * @param string $key   The secret key to share with the Authentication app.
-	 * @param string $title The title to display in the Authentication app.
-	 *
-	 * @return string A URL to use as an img src to display the QR code
-	 */
-	public static function get_google_qr_code( $name, $key, $title = null ) {
-		// Encode to support spaces, question marks and other characters.
-		$name       = rawurlencode( $name );
-		$google_url = urlencode( 'otpauth://totp/' . $name . '?secret=' . $key );
-		if ( isset( $title ) ) {
-			$google_url .= urlencode( '&issuer=' . rawurlencode( $title ) );
-		}
-		return 'https://chart.googleapis.com/chart?chs=200x200&chld=M|0&cht=qr&chl=' . $google_url;
-	}
-
-	/**
 	 * Whether this Two Factor provider is configured and available for the user specified.
 	 *
 	 * @param WP_User $user WP_User object of the logged-in user.
@@ -450,6 +513,8 @@ class Two_Factor_Totp extends Two_Factor_Provider {
 	 * Prints the form that prompts the user to authenticate.
 	 *
 	 * @param WP_User $user WP_User object of the logged-in user.
+	 *
+	 * @codeCoverageIgnore
 	 */
 	public function authentication_page( $user ) {
 		require_once ABSPATH . '/wp-admin/includes/template.php';

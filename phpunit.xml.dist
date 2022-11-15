@@ -14,15 +14,15 @@
 			<directory suffix=".php">tests</directory>
 		</testsuite>
 	</testsuites>
-	<filter>
-		<whitelist processUncoveredFilesFromWhitelist="false">
+	<coverage processUncoveredFiles="false">
+		<include>
 			<directory suffix=".php">providers</directory>
 			<file>class-two-factor-compat.php</file>
 			<file>class-two-factor-core.php</file>
 			<file>two-factor.php</file>
-		</whitelist>
-	</filter>
-	<logging>
-		<log type="coverage-clover" target="tests/logs/clover.xml" />
-	</logging>
+		</include>
+		<report>
+			<clover outputFile="tests/logs/clover.xml" />
+		</report>
+	</coverage>
 </phpunit>

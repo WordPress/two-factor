@@ -14,7 +14,7 @@
 class Test_ClassTwoFactorCore extends WP_UnitTestCase {
 
 	/**
-	 * Original User ID set in setup.
+	 * Original User ID set in set_up().
 	 *
 	 * @var int
 	 */
@@ -23,23 +23,19 @@ class Test_ClassTwoFactorCore extends WP_UnitTestCase {
 	/**
 	 * Set up error handling before test suite.
 	 *
-	 * @see WP_UnitTestCase::setUpBeforeClass()
+	 * @see WP_UnitTestCase_Base::set_up_before_class()
 	 */
-	public static function setUpBeforeClass() {
-		parent::setUpBeforeClass();
-
+	public static function wpSetUpBeforeClass() {
 		set_error_handler( array( 'Test_ClassTwoFactorCore', 'error_handler' ) ); // phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_set_error_handler
 	}
 
 	/**
 	 * Clean up error settings after test suite.
 	 *
-	 * @see WP_UnitTestCase::setUpBeforeClass()
+	 * @see WP_UnitTestCase_Base::tear_down_after_class()
 	 */
-	public static function tearDownAfterClass() {
+	public static function wpTearDownAfterClass() {
 		restore_error_handler();
-
-		parent::tearDownAfterClass();
 	}
 
 	/**
@@ -68,7 +64,7 @@ class Test_ClassTwoFactorCore extends WP_UnitTestCase {
 	 * @return WP_User
 	 */
 	public function get_dummy_user( $meta_key = array( 'Two_Factor_Dummy' => 'Two_Factor_Dummy' ) ) {
-		$user              = new WP_User( $this->factory->user->create() );
+		$user              = new WP_User( self::factory()->user->create() );
 		$this->old_user_id = get_current_user_id();
 		wp_set_current_user( $user->ID );
 
@@ -163,7 +159,7 @@ class Test_ClassTwoFactorCore extends WP_UnitTestCase {
 	 * @covers Two_Factor_Core::get_enabled_providers_for_user
 	 */
 	public function test_get_enabled_providers_for_user_logged_in() {
-		$user        = new WP_User( $this->factory->user->create() );
+		$user        = new WP_User( self::factory()->user->create() );
 		$old_user_id = get_current_user_id();
 		wp_set_current_user( $user->ID );
 
@@ -221,7 +217,7 @@ class Test_ClassTwoFactorCore extends WP_UnitTestCase {
 	 * @covers Two_Factor_Core::get_available_providers_for_user
 	 */
 	public function test_get_available_providers_for_user_logged_in() {
-		$user        = new WP_User( $this->factory->user->create() );
+		$user        = new WP_User( self::factory()->user->create() );
 		$old_user_id = get_current_user_id();
 		wp_set_current_user( $user->ID );
 
@@ -254,9 +250,9 @@ class Test_ClassTwoFactorCore extends WP_UnitTestCase {
 	 * @covers Two_Factor_Core::login_url
 	 */
 	public function test_login_url() {
-		$this->assertContains( 'wp-login.php', Two_Factor_Core::login_url() );
+		$this->assertStringContainsString( 'wp-login.php', Two_Factor_Core::login_url() );
 
-		$this->assertContains(
+		$this->assertStringContainsString(
 			'paramencoded=%2F%3D1',
 			Two_Factor_Core::login_url(
 				array(
@@ -272,7 +268,7 @@ class Test_ClassTwoFactorCore extends WP_UnitTestCase {
 	 * @covers Two_Factor_Core::is_user_api_login_enabled
 	 */
 	public function test_user_api_login_is_disabled_by_default() {
-		$user_id = $this->factory->user->create();
+		$user_id = self::factory()->user->create();
 
 		$this->assertFalse( Two_Factor_Core::is_user_api_login_enabled( $user_id ) );
 	}
@@ -283,8 +279,8 @@ class Test_ClassTwoFactorCore extends WP_UnitTestCase {
 	 * @covers Two_Factor_Core::is_user_api_login_enabled
 	 */
 	public function test_user_api_login_can_be_enabled_via_filter() {
-		$user_id_default = $this->factory->user->create();
-		$user_id_enabled = $this->factory->user->create();
+		$user_id_default = self::factory()->user->create();
+		$user_id_enabled = self::factory()->user->create();
 
 		add_filter(
 			'two_factor_user_api_login_enable',
@@ -324,7 +320,7 @@ class Test_ClassTwoFactorCore extends WP_UnitTestCase {
 	 * @covers Two_Factor_Core::filter_authenticate
 	 */
 	public function test_filter_authenticate() {
-		$user_default     = new WP_User( $this->factory->user->create() );
+		$user_default     = new WP_User( self::factory()->user->create() );
 		$user_2fa_enabled = $this->get_dummy_user(); // User with a dummy two-factor method enabled.
 
 		// TODO: Get Two_Factor_Core away from static methods to allow mocking this.
@@ -348,7 +344,7 @@ class Test_ClassTwoFactorCore extends WP_UnitTestCase {
 	 * @covers Two_Factor_Core::collect_auth_cookie_tokens
 	 */
 	public function test_can_distroy_auth_sessions() {
-		$user_id = $this->factory->user->create(
+		$user_id = self::factory()->user->create(
 			array(
 				'user_login' => 'username',
 				'user_pass'  => 'password',
@@ -384,7 +380,43 @@ class Test_ClassTwoFactorCore extends WP_UnitTestCase {
 	}
 
 	/**
+	 * @covers Two_Factor_Core::create_login_nonce()
+	 * @covers Two_Factor_Core::hash_login_nonce()
+	 */
+	public function test_invalid_hash_input_fails() {
+		$nonce = Two_Factor_Core::create_login_nonce( NAN );
+
+		$this->assertFalse( $nonce );
+		$this->assertNotEmpty( json_last_error() );
+	}
+
+	/**
+	 * @covers Two_Factor_Core::create_login_nonce()
+	 * @covers Two_Factor_Core::hash_login_nonce()
+	 */
+	public function test_create_login_nonce() {
+		$user              = self::factory()->user->create_and_get();
+		$plain_nonce       = Two_Factor_Core::create_login_nonce( $user->ID );
+		$hashed_nonce      = get_user_meta( $user->ID, Two_Factor_Core::USER_META_NONCE_KEY, true );
+		$plain_key_length  = strlen( $plain_nonce['key'] );
+		$hashed_key_length = strlen( $hashed_nonce['key'] );
+
+		$this->assertSame( $user->ID, $plain_nonce['user_id'] );
+		$this->assertGreaterThan( time() + ( 9 * MINUTE_IN_SECONDS ), $plain_nonce['expiration'] );
+		$this->assertIsString( $plain_nonce['key'] );
+		$this->assertTrue( 64 === $plain_key_length || 32 === $plain_key_length );
+
+		$this->assertSame( $plain_nonce['expiration'], $hashed_nonce['expiration'] );
+		$this->assertIsString( $hashed_nonce['key'] );
+		$this->assertTrue( 32 === $hashed_key_length );
+		$this->assertNotEquals( $plain_nonce['key'], $hashed_nonce['key'] );
+	}
+
+	/**
 	 * Check if nonce can be verified.
+	 *
+	 * @covers Two_Factor_Core::create_login_nonce()
+	 * @covers Two_Factor_Core::verify_login_nonce()
 	 */
 	public function test_can_verify_login_nonce() {
 		$user_id = 123456;
@@ -394,7 +426,7 @@ class Test_ClassTwoFactorCore extends WP_UnitTestCase {
 		$this->assertNotEmpty( $nonce['expiration'], 'Nonce expiration is set' );
 
 		$this->assertGreaterThan( time(), $nonce['expiration'], 'Nonce expiration is in the future' );
-		$this->assertLessThan( time() + HOUR_IN_SECONDS + 1, $nonce['expiration'], 'Nonce expiration is not more than an hour' );
+		$this->assertLessThan( time() + ( 10 * MINUTE_IN_SECONDS ) + 1, $nonce['expiration'], 'Nonce expiration is not more than 10 minutes' );
 
 		$this->assertTrue(
 			Two_Factor_Core::verify_login_nonce( $user_id, $nonce['key'] ),
@@ -422,8 +454,10 @@ class Test_ClassTwoFactorCore extends WP_UnitTestCase {
 
 	/**
 	 * Invalid nonce deletes the valid nonce.
+	 *
+	 * @covers Two_Factor_Core::verify_login_nonce()
 	 */
-	public function test_login_nonce_can_be_used_only_once() {
+	public function test_invalid_nonce_deletes_valid_nonce() {
 		$user_id = 123456;
 		$nonce   = Two_Factor_Core::create_login_nonce( $user_id );
 

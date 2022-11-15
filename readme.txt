@@ -4,7 +4,7 @@ Tags: two factor, two step, authentication, login, totp, fido u2f, u2f, email, b
 Requires at least: 4.3
 Tested up to: 6.0
 Requires PHP: 5.6
-Stable tag: 0.7.2
+Stable tag: 0.7.3
 
 Enable Two-Factor Authentication using time-based one-time passwords (OTP, Google Authenticator), Universal 2nd Factor (FIDO U2F, YubiKey), email and backup verification codes.
 
@@ -37,7 +37,9 @@ Here is a list of action and filter hooks provided by the plugin:
 
 == Get Involved ==
 
-Development happens [on GitHub](https://github.com/wordpress/two-factor/).
+Please [report (non-security) issues](https://github.com/WordPress/two-factor/issues) and [open pull requests](https://github.com/WordPress/two-factor/pulls) on GitHub.
+
+Please report any potential security issues to the [WordPress HackerOne](https://hackerone.com/wordpress) program.
 
 == Changelog ==
 
