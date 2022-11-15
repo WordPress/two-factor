@@ -47,7 +47,7 @@ jobs:
       - name: Report Test Coverage
         env:
           COVERALLS_REPO_TOKEN: ${{ secrets.COVERALLS_REPO_TOKEN }}
-        run: npm run test-report-coverage
+        run: npm run test:report-coverage
 
       - name: Build
         run: npm run build

@@ -45,7 +45,7 @@
     "lint": "phpcs",
     "lint-php8": "phpcs -p --standard=PHPCompatibilityWP --runtime-set testVersion 8.0- --extensions=php --ignore='vendor/,wordpress/,node_modules/' .",
     "test": "phpunit",
-    "test:coverage": "php-coveralls -v",
+    "test:report-coverage": "php-coveralls -v",
     "test:watch": [
       "Composer\\Config::disableProcessTimeout",
       "phpunit-watcher watch"
