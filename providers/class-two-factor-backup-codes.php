@@ -247,7 +247,7 @@ class Two_Factor_Backup_Codes extends Two_Factor_Provider {
 		);
 
 		// Generate download content.
-		$download_link = 'data:application/text;charset=utf-8,';
+		$download_link  = 'data:application/text;charset=utf-8,';
 		$download_link .= rawurlencode( "{$title}\r\n\r\n" );
 
 		$i = 1;
@@ -256,7 +256,7 @@ class Two_Factor_Backup_Codes extends Two_Factor_Provider {
 			$i++;
 		}
 
-		$i18n  = array(
+		$i18n = array(
 			/* translators: %s: count */
 			'count' => esc_html( sprintf( _n( '%s unused code remaining.', '%s unused codes remaining.', $count, 'two-factor' ), $count ) ),
 		);
