@@ -104,7 +104,7 @@ class Tests_Two_Factor_Backup_Codes_AJAX extends WP_Ajax_UnitTestCase {
 		$this->assertTrue( $response->success );
 		$this->assertNotEmpty( $response->data->codes );
 
-		$this->assertTrue( $this->provider->validate_code( $user, $response->data->codes[0] ) );
 		$this->assertFalse( $this->provider->validate_code( $current_user, $response->data->codes[0] ) );
+		$this->assertTrue( $this->provider->validate_code( $user, $response->data->codes[0] ) );
 	}
 }
