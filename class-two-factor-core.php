@@ -497,7 +497,7 @@ class Two_Factor_Core {
 	}
 
 	/**
-	 * Keep track of the last user a cookie was generated for.
+	 * Reset the last user a cookie was generated for.
 	 *
 	 * When clearing cookies, there is not user context.
 	 */
