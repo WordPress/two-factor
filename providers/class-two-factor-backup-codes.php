@@ -176,16 +176,7 @@ class Two_Factor_Backup_Codes extends Two_Factor_Provider {
 
 							// Update counter.
 							$( '.two-factor-backup-codes-count' ).html( response.data.i18n.count );
-
-							// Build the download link.
-							var txt_data = 'data:application/text;charset=utf-8,' + '\n';
-							txt_data += response.data.i18n.title.replace( /%s/g, document.domain ) + '\n\n';
-
-							for ( i = 0; i < response.data.codes.length; i++ ) {
-								txt_data += i + 1 + '. ' + response.data.codes[ i ] + '\n';
-							}
-
-							$( '#two-factor-backup-codes-download-link' ).attr( 'href', encodeURI( txt_data ) );
+							$( '#two-factor-backup-codes-download-link' ).attr( 'href', response.data.download_link );
 						}
 					} );
 				} );
@@ -238,24 +229,44 @@ class Two_Factor_Backup_Codes extends Two_Factor_Provider {
 	 * @since 0.1-dev
 	 */
 	public function ajax_generate_json() {
-		$user = get_user_by( 'id', filter_input( INPUT_POST, 'user_id', FILTER_SANITIZE_NUMBER_INT ) );
+		$user_id = 0;
+		if ( ! empty( $_POST['user_id'] ) ) {
+			$user_id = absint( $_POST['user_id'] );
+		}
+
+		$user = get_user_by( 'id', $user_id );
 		check_ajax_referer( 'two-factor-backup-codes-generate-json-' . $user->ID, 'nonce' );
 
 		// Setup the return data.
 		$codes = $this->generate_codes( $user );
 		$count = self::codes_remaining_for_user( $user );
-		$i18n  = array(
+		$title = sprintf(
+			/* translators: %s: the site's domain */
+			__( 'Two-Factor Backup Codes for %s', 'two-factor' ),
+			home_url( '/' )
+		);
+
+		// Generate download content.
+		$download_link  = 'data:application/text;charset=utf-8,';
+		$download_link .= rawurlencode( "{$title}\r\n\r\n" );
+
+		$i = 1;
+		foreach ( $codes as $code ) {
+			$download_link .= rawurlencode( "{$i}. {$code}\r\n" );
+			$i++;
+		}
+
+		$i18n = array(
 			/* translators: %s: count */
 			'count' => esc_html( sprintf( _n( '%s unused code remaining.', '%s unused codes remaining.', $count, 'two-factor' ), $count ) ),
-			/* translators: %s: the site's domain */
-			'title' => esc_html__( 'Two-Factor Backup Codes for %s', 'two-factor' ),
 		);
 
 		// Send the response.
 		wp_send_json_success(
 			array(
-				'codes' => $codes,
-				'i18n'  => $i18n,
+				'codes'         => $codes,
+				'download_link' => $download_link,
+				'i18n'          => $i18n,
 			)
 		);
 	}
