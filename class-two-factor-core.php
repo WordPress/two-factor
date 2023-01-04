@@ -90,7 +90,7 @@ class Two_Factor_Core {
 		// Run only after the core wp_authenticate_username_password() check.
 		add_filter( 'authenticate', array( __CLASS__, 'filter_authenticate' ), 50 );
 
-		// Run as late as possible to disable sending authentication cookies.
+		// Run as late as possible to prevent other plugins from unintentionally bypassing.
 		add_filter( 'authenticate', array( __CLASS__, 'filter_authenticate_block_cookies' ), PHP_INT_MAX );
 
 		add_action( 'admin_init', array( __CLASS__, 'trigger_user_settings_action' ) );
