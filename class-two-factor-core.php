@@ -486,6 +486,8 @@ class Two_Factor_Core {
 	/**
 	 * Prevent login cookies being set on login for Two Factor users.
 	 *
+	 * This makes it so that Core never sends the auth cookies. `login_form_validate_2fa()` will send them manually once the 2nd factor has been verified.
+	 *
 	 * @param  WP_User|WP_Error $user Valid WP_User only if the previous filters
 	 *                                have verified and confirmed the
 	 *                                authentication credentials.
