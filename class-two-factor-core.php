@@ -495,6 +495,10 @@ class Two_Factor_Core {
 	 * @return WP_User|WP_Error
 	 */
 	public static function filter_authenticate_block_cookies( $user ) {
+		/*
+		 * NOTE: The `login_init` action is checked for here to ensure we're within the regular login flow,
+		 * rather than through an unsupported 3rd-party login process which this plugin doesn't support.
+		 */
 		if ( $user instanceof WP_User && self::is_user_using_two_factor( $user->ID ) && did_action( 'login_init' ) ) {
 			add_filter( 'send_auth_cookies', '__return_false', PHP_INT_MAX );
 		}
@@ -919,6 +923,11 @@ class Two_Factor_Core {
 			$rememberme = true;
 		}
 
+		/*
+		 * NOTE: This filter removal is not normally required, this is included for protection against
+		 * a plugin/two factor provider which runs the `authenticate` filter during it's validation.
+		 * Such a plugin would cause self::filter_authenticate_block_cookies() to run and add this filter.
+		 */
 		remove_filter( 'send_auth_cookies', '__return_false', PHP_INT_MAX );
 		wp_set_auth_cookie( $user->ID, $rememberme );
 
