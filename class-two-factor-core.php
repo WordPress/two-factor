@@ -90,6 +90,9 @@ class Two_Factor_Core {
 		// Run only after the core wp_authenticate_username_password() check.
 		add_filter( 'authenticate', array( __CLASS__, 'filter_authenticate' ), 50 );
 
+		// Run as late as possible to prevent other plugins from unintentionally bypassing.
+		add_filter( 'authenticate', array( __CLASS__, 'filter_authenticate_block_cookies' ), PHP_INT_MAX );
+
 		add_action( 'admin_init', array( __CLASS__, 'trigger_user_settings_action' ) );
 		add_filter( 'two_factor_providers', array( __CLASS__, 'enable_dummy_method_for_debug' ) );
 
@@ -480,6 +483,29 @@ class Two_Factor_Core {
 		return $user;
 	}
 
+	/**
+	 * Prevent login cookies being set on login for Two Factor users.
+	 *
+	 * This makes it so that Core never sends the auth cookies. `login_form_validate_2fa()` will send them manually once the 2nd factor has been verified.
+	 *
+	 * @param  WP_User|WP_Error $user Valid WP_User only if the previous filters
+	 *                                have verified and confirmed the
+	 *                                authentication credentials.
+	 *
+	 * @return WP_User|WP_Error
+	 */
+	public static function filter_authenticate_block_cookies( $user ) {
+		/*
+		 * NOTE: The `login_init` action is checked for here to ensure we're within the regular login flow,
+		 * rather than through an unsupported 3rd-party login process which this plugin doesn't support.
+		 */
+		if ( $user instanceof WP_User && self::is_user_using_two_factor( $user->ID ) && did_action( 'login_init' ) ) {
+			add_filter( 'send_auth_cookies', '__return_false', PHP_INT_MAX );
+		}
+
+		return $user;
+	}
+	
 	/**
 	 * If the current user can login via API requests such as XML-RPC and REST.
 	 *
@@ -897,6 +923,12 @@ class Two_Factor_Core {
 			$rememberme = true;
 		}
 
+		/*
+		 * NOTE: This filter removal is not normally required, this is included for protection against
+		 * a plugin/two factor provider which runs the `authenticate` filter during it's validation.
+		 * Such a plugin would cause self::filter_authenticate_block_cookies() to run and add this filter.
+		 */
+		remove_filter( 'send_auth_cookies', '__return_false', PHP_INT_MAX );
 		wp_set_auth_cookie( $user->ID, $rememberme );
 
 		do_action( 'two_factor_user_authenticated', $user );
