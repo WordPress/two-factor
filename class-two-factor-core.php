@@ -620,13 +620,13 @@ class Two_Factor_Core {
 			echo '<div id="login_notice" class="message"><strong>';
 			printf(
 				_n(
-					'WARNING: Your account has attempted to login without providing a valid two factor token. The last failed login occured at %2$s. If this wasn\'t you, you should reset your password.',
-					'WARNING: Your account has attempted to login %1$s times without providing a valid two factor token. The last failed login occured at %2$s. If this wasn\'t you, you should reset your password.',
+					'WARNING: Your account has attempted to login without providing a valid two factor token. The last failed login occured %2$s ago. If this wasn\'t you, you should reset your password.',
+					'WARNING: Your account has attempted to login %1$s times without providing a valid two factor token. The last failed login occured %2$s ago. If this wasn\'t you, you should reset your password.',
 					$failed_login_count,
 					'two-factor'
 				),
 				number_format_i18n( $failed_login_count ),
-				date_i18n( 'r', $last_failed_two_factor_login ) // TODO: better date format
+				human_time_diff( $last_failed_two_factor_login, time() )
 			);
 			echo '</strong></div>';
 		}
