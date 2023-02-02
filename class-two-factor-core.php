@@ -608,6 +608,31 @@ class Two_Factor_Core {
 	}
 
 	/**
+	 * Displays a message informing the user that their account has had failed login attempts.
+	 *
+	 * @param WP_User $user WP_User object of the logged-in user.
+	 */
+	public static function maybe_show_last_login_failure_notice( $user ) {
+		$last_failed_two_factor_login = (int) get_user_meta( $user->ID, self::USER_RATE_LIMIT_KEY, true );
+		$failed_login_count           = (int) get_user_meta( $user->ID, self::USER_FAILED_LOGIN_ATTEMPTS, true );
+
+		if ( $last_failed_two_factor_login ) {
+			echo '<div id="login_notice" class="message"><strong>';
+			printf(
+				_n(
+					'WARNING: Your account has attempted to login without providing a valid two factor token. The last failed login occured at %2$s. If this wasn\'t you, you should reset your password.',
+					'WARNING: Your account has attempted to login %1$s times without providing a valid two factor token. The last failed login occured at %2$s. If this wasn\'t you, you should reset your password.',
+					$failed_login_count,
+					'two-factor'
+				),
+				number_format_i18n( $failed_login_count ),
+				date_i18n( 'r', $last_failed_two_factor_login ) // TODO: better date format
+			);
+			echo '</strong></div>';
+		}
+	}
+
+	/**
 	 * Generates the html form for the second step of the authentication process.
 	 *
 	 * @since 0.1-dev
@@ -643,24 +668,7 @@ class Two_Factor_Core {
 		if ( ! empty( $error_msg ) ) {
 			echo '<div id="login_error"><strong>' . esc_html( $error_msg ) . '</strong><br /></div>';
 		} else {
-			$last_failed_two_factor_login = (int) get_user_meta( $user->ID, self::USER_RATE_LIMIT_KEY, true );
-			$failed_login_count           = (int) get_user_meta( $user->ID, self::USER_FAILED_LOGIN_ATTEMPTS, true );
-
-			if ( $last_failed_two_factor_login ) {
-				echo '<div id="login_notice" class="message"><strong>';
-				printf(
-					_n(
-
-						'WARNING: Your account has attempted to login without providing a valid two factor token. The last failed login occured at %2$s. If this wasn\'t you, you should reset your password.',
-						'WARNING: Your account has attempted to login %1$s times without providing a valid two factor token. The last failed login occured at %2$s. If this wasn\'t you, you should reset your password.',
-						$failed_login_count,
-						'two-factor'
-					),
-					number_format_i18n( $failed_login_count ),
-					date_i18n( 'r', $last_failed_two_factor_login ) // TODO: better date format
-				);
-				echo '</strong></div>';
-			}
+			self::maybe_show_last_login_failure_notice( $user );
 		}
 		?>
 
