@@ -40,14 +40,14 @@ class Two_Factor_Core {
 	 *
 	 * @type string
 	 */
-	const USER_RATE_LIMIT_KEY = '_two_factor_failure';
+	const USER_RATE_LIMIT_KEY = '_two_factor_last_login_failure';
 
 	/**
 	 * The user meta key to store the number of failed login attempts.
 	 *
 	 * @var string
 	 */
-	const USER_FAILED_LOGIN_ATTEMPTS = '_two_factor_failed_login_attempts';
+	const USER_FAILED_LOGIN_ATTEMPTS_KEY = '_two_factor_failed_login_attempts';
 
 	/**
 	 * URL query paramater used for our custom actions.
@@ -614,7 +614,7 @@ class Two_Factor_Core {
 	 */
 	public static function maybe_show_last_login_failure_notice( $user ) {
 		$last_failed_two_factor_login = (int) get_user_meta( $user->ID, self::USER_RATE_LIMIT_KEY, true );
-		$failed_login_count           = (int) get_user_meta( $user->ID, self::USER_FAILED_LOGIN_ATTEMPTS, true );
+		$failed_login_count           = (int) get_user_meta( $user->ID, self::USER_FAILED_LOGIN_ATTEMPTS_KEY, true );
 
 		if ( $last_failed_two_factor_login ) {
 			echo '<div id="login_notice" class="message"><strong>';
@@ -915,7 +915,7 @@ class Two_Factor_Core {
 		 */
 		$rate_limit  = apply_filters( 'two_factor_rate_limit', 5 );
 
-		$user_failed_logins = get_user_meta( $user->ID, self::USER_FAILED_LOGIN_ATTEMPTS, true );
+		$user_failed_logins = get_user_meta( $user->ID, self::USER_FAILED_LOGIN_ATTEMPTS_KEY, true );
 		if ( $user_failed_logins ) {
 			$rate_limit = pow( 2, $user_failed_logins ) * $rate_limit;
 
@@ -1039,7 +1039,7 @@ class Two_Factor_Core {
 			update_user_meta( $user->ID, self::USER_RATE_LIMIT_KEY, time() );
 
 			// Store the number of failed login attempts.
-			update_user_meta( $user->ID, self::USER_FAILED_LOGIN_ATTEMPTS, 1 + (int) get_user_meta( $user->ID, self::USER_FAILED_LOGIN_ATTEMPTS, true ) );
+			update_user_meta( $user->ID, self::USER_FAILED_LOGIN_ATTEMPTS_KEY, 1 + (int) get_user_meta( $user->ID, self::USER_FAILED_LOGIN_ATTEMPTS_KEY, true ) );
 
 			$login_nonce = self::create_login_nonce( $user->ID );
 			if ( ! $login_nonce ) {
