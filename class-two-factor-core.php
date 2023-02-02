@@ -635,6 +635,16 @@ class Two_Factor_Core {
 
 		if ( ! empty( $error_msg ) ) {
 			echo '<div id="login_error"><strong>' . esc_html( $error_msg ) . '</strong><br /></div>';
+		} else {
+			$last_failed_two_factor_login = get_user_meta( $user->ID, self::USER_RATE_LIMIT_KEY, true );
+			if ( $last_failed_two_factor_login && $last_failed_two_factor_login < time() - 5 * MINUTE_IN_SECONDS ) {
+				echo '<div id="login_notice" class="message"><strong>';
+				printf(
+					esc_html__( 'WARNING: Your account attempted to login at %s and failed to provide a valid two factor response. If this was you, you can ignore this message, otherwise you should reset your password after logging in.' ),
+					date_i18n( 'r', $last_failed_two_factor_login ) // TODO: better date format
+				);
+				echo '</strong></div>';
+			}
 		}
 		?>
 
