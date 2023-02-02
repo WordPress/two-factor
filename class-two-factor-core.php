@@ -43,6 +43,13 @@ class Two_Factor_Core {
 	const USER_RATE_LIMIT_KEY = '_two_factor_failure';
 
 	/**
+	 * The user meta key to store the number of failed login attempts.
+	 *
+	 * @var string
+	 */
+	const USER_FAILED_LOGIN_ATTEMPTS = '_two_factor_failed_login_attempts';
+
+	/**
 	 * URL query paramater used for our custom actions.
 	 *
 	 * @var string
@@ -636,11 +643,20 @@ class Two_Factor_Core {
 		if ( ! empty( $error_msg ) ) {
 			echo '<div id="login_error"><strong>' . esc_html( $error_msg ) . '</strong><br /></div>';
 		} else {
-			$last_failed_two_factor_login = get_user_meta( $user->ID, self::USER_RATE_LIMIT_KEY, true );
-			if ( $last_failed_two_factor_login && $last_failed_two_factor_login < time() - 5 * MINUTE_IN_SECONDS ) {
+			$last_failed_two_factor_login = (int) get_user_meta( $user->ID, self::USER_RATE_LIMIT_KEY, true );
+			$failed_login_count           = (int) get_user_meta( $user->ID, self::USER_FAILED_LOGIN_ATTEMPTS, true );
+
+			if ( $last_failed_two_factor_login ) {
 				echo '<div id="login_notice" class="message"><strong>';
 				printf(
-					esc_html__( 'WARNING: Your account attempted to login at %s and failed to provide a valid two factor response. If this was you, you can ignore this message, otherwise you should reset your password after logging in.' ),
+					_n(
+
+						'WARNING: Your account has attempted to login without providing a valid two factor token. The last failed login occured at %2$s. If this wasn\'t you, you should reset your password.',
+						'WARNING: Your account has attempted to login %1$s times without providing a valid two factor token. The last failed login occured at %2$s. If this wasn\'t you, you should reset your password.',
+						$failed_login_count,
+						'two-factor'
+					),
+					number_format_i18n( $failed_login_count ),
 					date_i18n( 'r', $last_failed_two_factor_login ) // TODO: better date format
 				);
 				echo '</strong></div>';
@@ -875,6 +891,40 @@ class Two_Factor_Core {
 	}
 
 	/**
+	 * Determine the minimum wait between two factor attempts for a user.
+	 *
+	 * This implements an increasing backoff, requiring an attacker to wait longer
+	 * each time to attempt to brute-force the login.
+	 *
+	 * @param WP_User $user The user being operated upon.
+	 * @return int Time delay in seconds between login attempts.
+	 */
+	public static function get_user_time_delay( $user ) {
+		/**
+		 * Filter the minimum time duration between two factor attempts.
+		 *
+		 * @param int     $rate_limit The number of seconds between two factor attempts.
+		 */
+		$rate_limit  = apply_filters( 'two_factor_rate_limit', 5 );
+
+		$user_failed_logins = get_user_meta( $user->ID, self::USER_FAILED_LOGIN_ATTEMPTS, true );
+		if ( $user_failed_logins ) {
+			$rate_limit = pow( 2, $user_failed_logins ) * $rate_limit;
+
+			// Limit to 1 hour maximum time delay.
+			$rate_limit = min( HOUR_IN_SECONDS, $rate_limit );
+		}
+
+		/**
+		 * Filters the per-user time duration between two factor login attempts.
+		 *
+		 * @param int     $rate_limit The number of seconds between two factor attempts.
+		 * @param WP_User $user       The user attempting to login.
+		 */
+		return apply_filters( 'two_factor_user_rate_limit', $rate_limit, $user );
+	}
+
+	/**
 	 * Enforce a time delay between user two factor login attempts.
 	 *
 	 * @since 0.1-dev
@@ -883,13 +933,7 @@ class Two_Factor_Core {
 	 * @return bool True if rate limit is okay, false if not.
 	 */
 	public static function check_user_rate_limit( $user ) {
-		/**
-		 * Filter the minimum time duration between two factor attempts.
-		 *
-		 * @param int     $rate_limit The number of seconds between two factor attempts.
-		 * @param WP_User $user       The user attempting to login.
-		 */
-		$rate_limit  = apply_filters( 'two_factor_rate_limit', 5, $user );
+		$rate_limit  = self::get_user_time_delay( $user );
 		$last_failed = get_user_meta( $user->ID, self::USER_RATE_LIMIT_KEY, true );
 
 		$rate_limited = false;
@@ -957,7 +1001,16 @@ class Two_Factor_Core {
 
 		// Rate limit two factor authentication attempts.
 		if ( true !== self::check_user_rate_limit( $user ) ) {
-			$error = new WP_Error( 'two_factor_too_fast', __( 'ERROR: Whoa there, wait a few seconds before trying again, ok?', 'two-factor' ) );
+			$time_delay = self::get_user_time_delay( $user );
+			$last_login = get_user_meta( $user->ID, self::USER_RATE_LIMIT_KEY, true );
+
+			$error = new WP_Error(
+				'two_factor_too_fast',
+				sprintf(
+					__( 'ERROR: Whoa there, slow down! You can try again in %s.', 'two-factor' ),
+					human_time_diff( $last_login + $time_delay )
+				)
+			);
 
 			do_action( 'wp_login_failed', $user->user_login, $error );
 
@@ -974,7 +1027,11 @@ class Two_Factor_Core {
 		if ( true !== $provider->validate_authentication( $user ) ) {
 			do_action( 'wp_login_failed', $user->user_login, new WP_Error( 'two_factor_invalid', __( 'ERROR: Invalid verification code.', 'two-factor' ) ) );
 
+			// Store the last time a failed login occured.
 			update_user_meta( $user->ID, self::USER_RATE_LIMIT_KEY, time() );
+
+			// Store the number of failed login attempts.
+			update_user_meta( $user->ID, self::USER_FAILED_LOGIN_ATTEMPTS, 1 + (int) get_user_meta( $user->ID, self::USER_FAILED_LOGIN_ATTEMPTS, true ) );
 
 			$login_nonce = self::create_login_nonce( $user->ID );
 			if ( ! $login_nonce ) {
@@ -987,6 +1044,7 @@ class Two_Factor_Core {
 
 		self::delete_login_nonce( $user->ID );
 		delete_user_meta( $user->ID, self::USER_RATE_LIMIT_KEY );
+		delete_user_meta( $user->ID, self::USER_FAILED_LOGIN_ATTEMPTS_KEY );
 
 		$rememberme = false;
 		if ( isset( $_REQUEST['rememberme'] ) && $_REQUEST['rememberme'] ) {
