@@ -36,6 +36,13 @@ class Two_Factor_Core {
 	const USER_META_NONCE_KEY = '_two_factor_nonce';
 
 	/**
+	 * The user meta key to store the last failed timestamp.
+	 *
+	 * @type string
+	 */
+	const USER_RATE_LIMIT_KEY = '_two_factor_failure';
+
+	/**
 	 * URL query paramater used for our custom actions.
 	 *
 	 * @var string
@@ -858,6 +865,41 @@ class Two_Factor_Core {
 	}
 
 	/**
+	 * Enforce a time delay between user two factor login attempts.
+	 *
+	 * @since 0.1-dev
+	 *
+	 * @param WP_User $user The User.
+	 * @return bool True if rate limit is okay, false if not.
+	 */
+	public static function check_user_rate_limit( $user ) {
+		/**
+		 * Filter the minimum time duration between two factor attempts.
+		 *
+		 * @param int     $rate_limit The number of seconds between two factor attempts.
+		 * @param WP_User $user       The user attempting to login.
+		 */
+		$rate_limit  = apply_filters( 'two_factor_rate_limit', 5, $user );
+		$last_failed = get_user_meta( $user->ID, self::USER_RATE_LIMIT_KEY, true );
+
+		$rate_limited = false;
+		if ( $last_failed && $last_failed + $rate_limit > time() ) {
+			$rate_limited = true;
+		}
+
+		/**
+		 * Filter whether this login attempt is rate limited or not.
+		 *
+		 * This allows for dedicated plugins to rate limit two factor login attempts
+		 * based on their own rules.
+		 *
+		 * @param bool     $rate_limited Whether the user login is rate limited.
+		 * @param WP_User $user          The user attempting to login.
+		 */
+		return ! apply_filters( 'two_factor_is_user_rate_limited', $rate_limited, $user );
+	}
+
+	/**
 	 * Login form validation.
 	 *
 	 * @since 0.1-dev
@@ -903,9 +945,26 @@ class Two_Factor_Core {
 			exit;
 		}
 
+		// Rate limit two factor authentication attempts.
+		if ( true !== self::check_user_rate_limit( $user ) ) {
+			$error = new WP_Error( 'two_factor_too_fast', __( 'ERROR: Whoa there, wait a few seconds before trying again, ok?', 'two-factor' ) );
+
+			do_action( 'wp_login_failed', $user->user_login, $error );
+
+			$login_nonce = self::create_login_nonce( $user->ID );
+			if ( ! $login_nonce ) {
+				wp_die( esc_html__( 'Failed to create a login nonce.', 'two-factor' ) );
+			}
+
+			self::login_html( $user, $login_nonce['key'], $_REQUEST['redirect_to'], esc_html( $error->get_error_message() ), $provider );
+			exit;
+		}
+
 		// Ask the provider to verify the second factor.
 		if ( true !== $provider->validate_authentication( $user ) ) {
 			do_action( 'wp_login_failed', $user->user_login, new WP_Error( 'two_factor_invalid', __( 'ERROR: Invalid verification code.', 'two-factor' ) ) );
+
+			update_user_meta( $user->ID, self::USER_RATE_LIMIT_KEY, time() );
 
 			$login_nonce = self::create_login_nonce( $user->ID );
 			if ( ! $login_nonce ) {
@@ -917,6 +976,7 @@ class Two_Factor_Core {
 		}
 
 		self::delete_login_nonce( $user->ID );
+		delete_user_meta( $user->ID, self::USER_RATE_LIMIT_KEY );
 
 		$rememberme = false;
 		if ( isset( $_REQUEST['rememberme'] ) && $_REQUEST['rememberme'] ) {
