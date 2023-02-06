@@ -48,11 +48,47 @@ class Two_Factor_Backup_Codes extends Two_Factor_Provider {
 	 * @since 0.1-dev
 	 */
 	protected function __construct() {
+		add_action( 'rest_api_init', array( $this, 'register_rest_routes' ) );
 		add_action( 'two_factor_user_options_' . __CLASS__, array( $this, 'user_options' ) );
 		add_action( 'admin_notices', array( $this, 'admin_notices' ) );
-		add_action( 'wp_ajax_two_factor_backup_codes_generate', array( $this, 'ajax_generate_json' ) );
 
 		return parent::__construct();
+	}
+
+	/**
+	 * Register the rest-api endpoints required for this provider.
+	 */
+	public function register_rest_routes() {
+		register_rest_route(
+			Two_Factor_Core::REST_NAMESPACE,
+			'/generate-backup-codes',
+			array(
+				'methods'             => WP_REST_Server::CREATABLE,
+				'callback'            => array( $this, 'rest_generate_codes' ),
+				'permission_callback' => function( $request ) {
+					return current_user_can( 'edit_user', $request['user_id'] );
+				},
+				'args'                => array(
+					'user_id' => array(
+						'required' => true,
+						'type'     => 'number',
+					),
+					'number' => array(
+						'type'    => 'number',
+						'default' => self::NUMBER_OF_CODES,
+					),
+					'append' => array(
+						'type'    => 'boolean',
+						'default' => false,
+					),
+					'enable_provider' => array(
+						'required' => false,
+						'type'     => 'boolean',
+						'default'  => false,
+					),
+				),
+			)
+		);
 	}
 
 	/**
@@ -125,8 +161,7 @@ class Two_Factor_Backup_Codes extends Two_Factor_Provider {
 	 * @param WP_User $user WP_User object of the logged-in user.
 	 */
 	public function user_options( $user ) {
-		$ajax_nonce = wp_create_nonce( 'two-factor-backup-codes-generate-json-' . $user->ID );
-		$count      = self::codes_remaining_for_user( $user );
+		$count = self::codes_remaining_for_user( $user );
 		?>
 		<p id="two-factor-backup-codes">
 			<button type="button" class="button button-two-factor-backup-codes-generate button-secondary hide-if-no-js">
@@ -154,30 +189,26 @@ class Two_Factor_Backup_Codes extends Two_Factor_Provider {
 		<script type="text/javascript">
 			( function( $ ) {
 				$( '.button-two-factor-backup-codes-generate' ).click( function() {
-					$.ajax( {
+					wp.apiRequest( {
 						method: 'POST',
-						url: ajaxurl,
+						path: <?php echo wp_json_encode( Two_Factor_Core::REST_NAMESPACE . '/generate-backup-codes' ); ?>,
 						data: {
-							action: 'two_factor_backup_codes_generate',
-							user_id: '<?php echo esc_js( $user->ID ); ?>',
-							nonce: '<?php echo esc_js( $ajax_nonce ); ?>'
-						},
-						dataType: 'JSON',
-						success: function( response ) {
-							var $codesList = $( '.two-factor-backup-codes-unused-codes' );
-
-							$( '.two-factor-backup-codes-wrapper' ).show();
-							$codesList.html( '' );
-
-							// Append the codes.
-							for ( i = 0; i < response.data.codes.length; i++ ) {
-								$codesList.append( '<li>' + response.data.codes[ i ] + '</li>' );
-							}
-
-							// Update counter.
-							$( '.two-factor-backup-codes-count' ).html( response.data.i18n.count );
-							$( '#two-factor-backup-codes-download-link' ).attr( 'href', response.data.download_link );
+							user_id: <?php echo wp_json_encode( $user->ID ); ?>
 						}
+					} ).then( function( response ) {
+						var $codesList = $( '.two-factor-backup-codes-unused-codes' );
+
+						$( '.two-factor-backup-codes-wrapper' ).show();
+						$codesList.html( '' );
+
+						// Append the codes.
+						for ( i = 0; i < response.codes.length; i++ ) {
+							$codesList.append( '<li>' + response.codes[ i ] + '</li>' );
+						}
+
+						// Update counter.
+						$( '.two-factor-backup-codes-count' ).html( response.i18n.count );
+						$( '#two-factor-backup-codes-download-link' ).attr( 'href', response.download_link );
 					} );
 				} );
 			} )( jQuery );
@@ -224,21 +255,21 @@ class Two_Factor_Backup_Codes extends Two_Factor_Provider {
 	}
 
 	/**
-	 * Generates a JSON object of backup codes.
+	 * Generates Backup Codes for returning through the WordPress Rest API.
 	 *
-	 * @since 0.1-dev
+	 * @since 0.8.0
 	 */
-	public function ajax_generate_json() {
-		$user_id = 0;
-		if ( ! empty( $_POST['user_id'] ) ) {
-			$user_id = absint( $_POST['user_id'] );
-		}
+	public function rest_generate_codes( $request ) {
+		$user_id = $request['user_id'];
+		$user    = get_user_by( 'id', $user_id );
 
-		$user = get_user_by( 'id', $user_id );
-		check_ajax_referer( 'two-factor-backup-codes-generate-json-' . $user->ID, 'nonce' );
+		$args =  array(
+			'number' => $request['number'],
+			'method' => wp_validate_boolean( $request['append'] ) ? 'append' : 'replace',
+		);
 
 		// Setup the return data.
-		$codes = $this->generate_codes( $user );
+		$codes = $this->generate_codes( $user, $args );
 		$count = self::codes_remaining_for_user( $user );
 		$title = sprintf(
 			/* translators: %s: the site's domain */
@@ -261,13 +292,15 @@ class Two_Factor_Backup_Codes extends Two_Factor_Provider {
 			'count' => esc_html( sprintf( _n( '%s unused code remaining.', '%s unused codes remaining.', $count, 'two-factor' ), $count ) ),
 		);
 
-		// Send the response.
-		wp_send_json_success(
-			array(
-				'codes'         => $codes,
-				'download_link' => $download_link,
-				'i18n'          => $i18n,
-			)
+		if ( $request->get_param( 'enable_provider' ) && ! Two_Factor_Core::enable_provider_for_user( $user_id, 'Two_Factor_Backup_Codes' ) ) {
+			return new WP_Error( 'db_error', __( 'Unable to enable Backup Codes provider for this user.', 'two-factor' ), array( 'status' => 500 ) );
+		}
+
+		return array(
+			'codes'         => $codes,
+			'download_link' => $download_link,
+			'remaining'     => $count,
+			'i18n'          => $i18n,
 		);
 	}
 
