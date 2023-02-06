@@ -50,6 +50,13 @@ class Two_Factor_Core {
 	const USER_SETTINGS_ACTION_NONCE_QUERY_ARG = '_two_factor_action_nonce';
 
 	/**
+	 * Namespace for plugin rest api endpoints.
+	 *
+	 * @var string
+	 */
+	const REST_NAMESPACE = 'two-factor/1.0';
+
+	/**
 	 * Keep track of all the password-based authentication sessions that
 	 * need to invalidated before the second factor authentication.
 	 *
@@ -1074,6 +1081,41 @@ class Two_Factor_Core {
 		 * @since 0.1-dev
 		 */
 		do_action( 'show_user_security_settings', $user );
+	}
+
+	/**
+	 * Enable a provider for a user.
+	 *
+	 * @param int    $user_id      The ID of the user.
+	 * @param string $new_provider The name of the provider class.
+	 *
+	 * @return bool True if the provider was enabled, false otherwise.
+	 */
+	public static function enable_provider_for_user( $user_id, $new_provider ) {
+		$available_providers = self::get_providers();
+
+		if ( ! array_key_exists( $new_provider, $available_providers ) ) {
+			return false;
+		}
+
+		$user              = get_userdata( $user_id );
+		$enabled_providers = self::get_enabled_providers_for_user( $user );
+
+		if ( in_array( $new_provider, $enabled_providers ) ) {
+			return true;
+		}
+
+		$enabled_providers[] = $new_provider;
+		$enabled             = update_user_meta( $user_id, self::ENABLED_PROVIDERS_USER_META_KEY, $enabled_providers );
+
+		// Primary provider must be enabled.
+		$has_primary = is_object( self::get_primary_provider_for_user( $user_id ) );
+
+		if ( ! $has_primary ) {
+			$has_primary = update_user_meta( $user_id, self::PROVIDER_USER_META_KEY, $new_provider );
+		}
+
+		return $enabled && $has_primary;
 	}
 
 	/**
