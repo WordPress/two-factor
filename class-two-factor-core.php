@@ -918,16 +918,22 @@ class Two_Factor_Core {
 		/**
 		 * Filter the minimum time duration between two factor attempts.
 		 *
-		 * @param int     $rate_limit The number of seconds between two factor attempts.
+		 * @param int $rate_limit The number of seconds between two factor attempts.
 		 */
-		$rate_limit  = apply_filters( 'two_factor_rate_limit', 1 );
+		$rate_limit = apply_filters( 'two_factor_rate_limit', 1 );
 
 		$user_failed_logins = get_user_meta( $user->ID, self::USER_FAILED_LOGIN_ATTEMPTS_KEY, true );
 		if ( $user_failed_logins ) {
 			$rate_limit = pow( 2, $user_failed_logins ) * $rate_limit;
 
-			// Limit to 1 hour maximum time delay.
-			$rate_limit = min( HOUR_IN_SECONDS, $rate_limit );
+			/**
+			 * Filter the maximum time duration a user may be locked out from retrying two factor authentications.
+			 *
+			 * @param int $max_rate_limit The maximum number of seconds a user might be locked out for. Default 15 minutes.
+			 */
+			$max_rate_limit = apply_filters( 'two_factor_max_rate_limit', 15 * MINUTE_IN_SECONDS );
+
+			$rate_limit = min( $max_rate_limit, $rate_limit );
 		}
 
 		/**
