@@ -491,7 +491,7 @@ class Test_ClassTwoFactorCore extends WP_UnitTestCase {
 		update_user_meta( $user->ID, Two_Factor_Core::USER_FAILED_LOGIN_ATTEMPTS_KEY, 5 );
 		$this->assertEquals( pow( 2, 5 ) * $rate_limit, Two_Factor_Core::get_user_time_delay( $user ) );
 
-		// Simulate 100 failed login attempts, validate that the lockout is < $max_rate_limit
+		// Simulate 100 failed login attempts, validate that the lockout is not greater than $max_rate_limit
 		update_user_meta( $user->ID, Two_Factor_Core::USER_FAILED_LOGIN_ATTEMPTS_KEY, 100 );
 		$this->assertEquals( $max_rate_limit, Two_Factor_Core::get_user_time_delay( $user ) );
 	}
