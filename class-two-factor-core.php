@@ -913,7 +913,7 @@ class Two_Factor_Core {
 		 *
 		 * @param int     $rate_limit The number of seconds between two factor attempts.
 		 */
-		$rate_limit  = apply_filters( 'two_factor_rate_limit', 5 );
+		$rate_limit  = apply_filters( 'two_factor_rate_limit', 1 );
 
 		$user_failed_logins = get_user_meta( $user->ID, self::USER_FAILED_LOGIN_ATTEMPTS_KEY, true );
 		if ( $user_failed_logins ) {
@@ -933,9 +933,9 @@ class Two_Factor_Core {
 	}
 
 	/**
-	 * Enforce a time delay between user two factor login attempts.
+	 * Determine if a time delay between user two factor login attempts should be triggered.
 	 *
-	 * @since 0.1-dev
+	 * @since 0.8.0
 	 *
 	 * @param WP_User $user The User.
 	 * @return bool True if rate limit is okay, false if not.
