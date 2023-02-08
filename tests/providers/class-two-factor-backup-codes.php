@@ -27,6 +27,7 @@ class Tests_Two_Factor_Backup_Codes extends WP_UnitTestCase {
 	 */
 	public function set_up() {
 		parent::set_up();
+
 		$this->provider = Two_Factor_Backup_Codes::get_instance();
 	}
 
@@ -152,7 +153,6 @@ class Tests_Two_Factor_Backup_Codes extends WP_UnitTestCase {
 	 */
 	public function test_user_options() {
 		$user  = new WP_User( self::factory()->user->create() );
-		$nonce = wp_create_nonce( 'two-factor-backup-codes-generate-json-' . $user->ID );
 
 		ob_start();
 		$this->provider->user_options( $user );
@@ -160,8 +160,7 @@ class Tests_Two_Factor_Backup_Codes extends WP_UnitTestCase {
 
 		$this->assertStringContainsString( '<p id="two-factor-backup-codes">', $buffer );
 		$this->assertStringContainsString( '<div class="two-factor-backup-codes-wrapper" style="display:none;">', $buffer );
-		$this->assertStringContainsString( "user_id: '{$user->ID}'", $buffer );
-		$this->assertStringContainsString( "nonce: '{$nonce}'", $buffer );
+		$this->assertStringContainsString( "user_id: {$user->ID}", $buffer );
 	}
 
 	/**
@@ -190,5 +189,4 @@ class Tests_Two_Factor_Backup_Codes extends WP_UnitTestCase {
 		$this->provider->delete_code( $user, $backup_codes[0] );
 		$this->assertEquals( 1, $this->provider->codes_remaining_for_user( $user ) );
 	}
-
 }
