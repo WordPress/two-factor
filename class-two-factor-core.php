@@ -947,7 +947,7 @@ class Two_Factor_Core {
 	 * @param WP_User $user The User.
 	 * @return bool True if rate limit is okay, false if not.
 	 */
-	public static function check_user_rate_limit( $user ) {
+	public static function is_user_rate_limited( $user ) {
 		$rate_limit  = self::get_user_time_delay( $user );
 		$last_failed = get_user_meta( $user->ID, self::USER_RATE_LIMIT_KEY, true );
 
@@ -965,7 +965,7 @@ class Two_Factor_Core {
 		 * @param bool     $rate_limited Whether the user login is rate limited.
 		 * @param WP_User $user          The user attempting to login.
 		 */
-		return ! apply_filters( 'two_factor_is_user_rate_limited', $rate_limited, $user );
+		return apply_filters( 'two_factor_is_user_rate_limited', $rate_limited, $user );
 	}
 
 	/**
@@ -1015,7 +1015,7 @@ class Two_Factor_Core {
 		}
 
 		// Rate limit two factor authentication attempts.
-		if ( true !== self::check_user_rate_limit( $user ) ) {
+		if ( true === self::is_user_rate_limited( $user ) ) {
 			$time_delay = self::get_user_time_delay( $user );
 			$last_login = get_user_meta( $user->ID, self::USER_RATE_LIMIT_KEY, true );
 
