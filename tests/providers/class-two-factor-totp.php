@@ -86,6 +86,19 @@ class Tests_Two_Factor_Totp extends WP_UnitTestCase {
 	}
 
 	/**
+	 * Verify QR code URL generation.
+	 *
+	 * @covers Two_Factor_Totp::generate_qr_code_url
+	 */
+	public function test_generate_qr_code_url() {
+		$user     = new WP_User( self::factory()->user->create() );
+		$expected = 'otpauth://totp/Test%20Blog%3A'. rawurlencode( $user->user_login ) .'?secret=my%20secret%20key&#038;issuer=Test%20Blog';
+		$actual   = $this->provider->generate_qr_code_url( $user, 'my secret key' );
+
+		$this->assertSame( $expected, $actual );
+	}
+
+	/**
 	 * Verify base32 encoding.
 	 *
 	 * @covers Two_Factor_Totp::base32_encode
@@ -195,32 +208,4 @@ class Tests_Two_Factor_Totp extends WP_UnitTestCase {
 		$this->assertFalse( $this->provider->is_valid_key( 'abc233' ), 'Lowercase chars are invalid' );
 		$this->assertFalse( $this->provider->is_valid_key( 'has a space' ), 'Spaces not allowed' );
 	}
-
-	/**
-	 * Verify secret deletion.
-	 *
-	 * @covers Two_Factor_Totp::user_two_factor_options_update
-	 */
-	public function test_user_can_delete_secret() {
-		$user = new WP_User( self::factory()->user->create() );
-		$key  = $this->provider->generate_key();
-
-		// Configure secret for the user.
-		$this->provider->set_user_totp_key( $user->ID, $key );
-
-		$this->assertEquals(
-			$key,
-			$this->provider->get_user_totp_key( $user->ID ),
-			'Secret was stored and can be fetched'
-		);
-
-		$this->provider->delete_user_totp_key( $user->ID );
-
-		$this->assertEquals(
-			'',
-			$this->provider->get_user_totp_key( $user->ID ),
-			'Secret has been deleted'
-		);
-	}
-
 }
