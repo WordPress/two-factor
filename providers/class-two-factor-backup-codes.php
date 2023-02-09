@@ -77,14 +77,6 @@ class Two_Factor_Backup_Codes extends Two_Factor_Provider {
 						'required' => true,
 						'type'     => 'number',
 					),
-					'number' => array(
-						'type'    => 'number',
-						'default' => self::NUMBER_OF_CODES,
-					),
-					'append' => array(
-						'type'    => 'boolean',
-						'default' => false,
-					),
 					'enable_provider' => array(
 						'required' => false,
 						'type'     => 'boolean',
@@ -269,9 +261,10 @@ class Two_Factor_Backup_Codes extends Two_Factor_Provider {
 		$user_id = $request['user_id'];
 		$user    = get_user_by( 'id', $user_id );
 
+		// Hardcode these, the user shouldn't be able to choose them.
 		$args =  array(
-			'number' => $request['number'],
-			'method' => wp_validate_boolean( $request['append'] ) ? 'append' : 'replace',
+			'number' => self::NUMBER_OF_CODES,
+			'method' => 'replace',
 		);
 
 		// Setup the return data.
