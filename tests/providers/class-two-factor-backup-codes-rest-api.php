@@ -56,7 +56,7 @@ class Tests_Two_Factor_Backup_Codes_REST_API extends WP_Test_REST_TestCase {
 	}
 
 	/**
-	 * Verify that the downloaded file contains the requested number of codes.
+	 * Verify that the downloaded file contains the default number of codes.
 	 *
 	 * @covers Two_Factor_Backup_Codes::rest_generate_codes
 	 */
@@ -67,7 +67,6 @@ class Tests_Two_Factor_Backup_Codes_REST_API extends WP_Test_REST_TestCase {
 		$request->set_body_params(
 			array(
 				'user_id' => self::$admin_id,
-				'number'  => 5,
 			)
 		);
 
@@ -77,69 +76,9 @@ class Tests_Two_Factor_Backup_Codes_REST_API extends WP_Test_REST_TestCase {
 		$this->assertEquals( 200, $response->get_status() );
 		$this->assertNotEmpty( $data['download_link'] );
 		$this->assertNotEmpty( $data['codes'] );
-		$this->assertCount( 5, $data['codes'] );
+		$this->assertCount( 10, $data['codes'] );
 		$this->assertTrue( self::$provider->validate_code( wp_get_current_user(), $data['codes'][0] ) );
 		$this->assertStringContainsString( $data['codes'][0], $data['download_link'] );
-	}
-
-	/**
-	 * Verify that overwriting, and appending works.
-	 *
-	 * @covers Two_Factor_Backup_Codes::rest_generate_codes
-	 */
-	public function test_generate_code_append() {
-		wp_set_current_user( self::$admin_id );
-
-		$request  = new WP_REST_Request( 'POST', '/' . Two_Factor_Core::REST_NAMESPACE . '/generate-backup-codes' );
-		$request->set_body_params(
-			array(
-				'user_id' => self::$admin_id,
-				'number'  => 5,
-			)
-		);
-
-		$response  = rest_do_request( $request );
-		$discarded = $response->get_data();
-
-		$this->assertEquals( 200, $response->get_status() );
-		$this->assertEquals( 5, $discarded['remaining'] );
-
-		$request = new WP_REST_Request( 'POST', '/' . Two_Factor_Core::REST_NAMESPACE . '/generate-backup-codes' );
-		$request->set_body_params(
-			array(
-				'user_id' => self::$admin_id,
-				'number'  => 5,
-			)
-		);
-
-		$response = rest_do_request( $request );
-		$first    = $response->get_data();
-
-		$this->assertEquals( 200, $response->get_status() );
-		$this->assertNotEmpty( $first['codes'] );
-		$this->assertEquals( 5, $first['remaining'] );
-
-		$request = new WP_REST_Request( 'POST', '/' . Two_Factor_Core::REST_NAMESPACE . '/generate-backup-codes' );
-		$request->set_body_params(
-			array(
-				'user_id' => self::$admin_id,
-				'number'  => 1,
-				'append'  => true,
-			)
-		);
-
-		$response = rest_do_request( $request );
-		$second   = $response->get_data();
-
-		$this->assertEquals( 200, $response->get_status() );
-		$this->assertNotEmpty( $second['codes'] );
-		$this->assertEquals( 6, $second['remaining'] );
-
-		$this->assertEquals( $second['remaining'], self::$provider->codes_remaining_for_user( wp_get_current_user() ) );
-
-		$this->assertFalse( self::$provider->validate_code( wp_get_current_user(), $discarded['codes'][0] ) );
-		$this->assertTrue( self::$provider->validate_code( wp_get_current_user(), $first['codes'][0] ) );
-		$this->assertTrue( self::$provider->validate_code( wp_get_current_user(), $second['codes'][0] ) );
 	}
 
 	/**

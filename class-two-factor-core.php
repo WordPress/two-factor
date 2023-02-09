@@ -512,7 +512,7 @@ class Two_Factor_Core {
 
 		return $user;
 	}
-	
+
 	/**
 	 * If the current user can login via API requests such as XML-RPC and REST.
 	 *
