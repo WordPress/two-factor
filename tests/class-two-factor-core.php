@@ -522,4 +522,44 @@ class Test_ClassTwoFactorCore extends WP_UnitTestCase {
 		update_user_meta( $user->ID, Two_Factor_Core::USER_RATE_LIMIT_KEY, time() - HOUR_IN_SECONDS );
 		$this->assertFalse( Two_Factor_Core::is_user_rate_limited( $user ) );
 	}
+
+	/**
+	 * Test that the "invalid login attempts have occurred" login notice works as expected.
+	 *
+	 * @covers Two_Factor_Core::maybe_show_last_login_failure_notice()
+	 */
+	public function test_maybe_show_last_login_failure_notice() {
+		$user = $this->get_dummy_user();
+
+		// User has never logged in, validate they're not rate limited.
+		ob_start();
+		Two_Factor_Core::maybe_show_last_login_failure_notice( $user );
+		$contents = ob_get_clean();
+
+		$this->assertEmpty( $contents );
+
+		// A failed login attempts 5 seconds ago.
+		// Should throw a notice, even though it's the current user, it will only be displayed if there's no other 2FA errors.
+		update_user_meta( $user->ID, Two_Factor_Core::USER_FAILED_LOGIN_ATTEMPTS_KEY, 1 );
+		update_user_meta( $user->ID, Two_Factor_Core::USER_RATE_LIMIT_KEY, time() - 5 );
+		ob_start();
+		Two_Factor_Core::maybe_show_last_login_failure_notice( $user );
+		$contents = ob_get_clean();
+
+		$this->assertNotEmpty( $contents );
+		$this->assertStringNotContainsString( '1 times', $contents );
+		$this->assertStringContainsString( 'login without providing a valid two factor token', $contents );
+
+		// 5 failed login attempts 5 hours ago - User should be informed.
+		$five_hours_ago = time() - 5 * HOUR_IN_SECONDS;
+		update_user_meta( $user->ID, Two_Factor_Core::USER_FAILED_LOGIN_ATTEMPTS_KEY, 5 );
+		update_user_meta( $user->ID, Two_Factor_Core::USER_RATE_LIMIT_KEY, $five_hours_ago );
+		ob_start();
+		Two_Factor_Core::maybe_show_last_login_failure_notice( $user );
+		$contents = ob_get_clean();
+
+		$this->assertNotEmpty( $contents );
+		$this->assertStringContainsString( '5 times', $contents );
+		$this->assertStringContainsString( human_time_diff( $five_hours_ago ), $contents );
+	}
 }
