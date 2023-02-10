@@ -10,6 +10,7 @@
  *
  * @package Two_Factor
  * @group providers
+ * @group email
  */
 class Tests_Two_Factor_Email extends WP_UnitTestCase {
 

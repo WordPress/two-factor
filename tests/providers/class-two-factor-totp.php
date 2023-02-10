@@ -10,6 +10,7 @@
  *
  * @package Two_Factor
  * @group providers
+ * @group totp
  */
 class Tests_Two_Factor_Totp extends WP_UnitTestCase {
 

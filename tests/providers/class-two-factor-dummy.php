@@ -10,6 +10,7 @@
  *
  * @package Two_Factor
  * @group providers
+ * @group dummy
  */
 class Tests_Two_Factor_Dummy extends WP_UnitTestCase {
 

@@ -10,6 +10,7 @@
  *
  * @package Two_Factor
  * @group providers
+ * @group backup-codes
  */
 class Tests_Two_Factor_Backup_Codes extends WP_UnitTestCase {
 

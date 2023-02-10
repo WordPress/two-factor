@@ -10,6 +10,7 @@
  *
  * @package Two_Factor
  * @group providers
+ * @group u2f
  */
 class Tests_Two_Factor_FIDO_U2F extends WP_UnitTestCase {
 

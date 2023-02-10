@@ -10,6 +10,7 @@
  *
  * @package Two_Factor
  * @group providers
+ * @group backup-codes
  */
 class Tests_Two_Factor_Backup_Codes_REST_API extends WP_Test_REST_TestCase {
 
