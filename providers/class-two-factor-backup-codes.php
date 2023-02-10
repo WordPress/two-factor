@@ -46,6 +46,8 @@ class Two_Factor_Backup_Codes extends Two_Factor_Provider {
 	 * Class constructor.
 	 *
 	 * @since 0.1-dev
+	 *
+	 * @codeCoverageIgnore
 	 */
 	protected function __construct() {
 		add_action( 'rest_api_init', array( $this, 'register_rest_routes' ) );
@@ -57,6 +59,8 @@ class Two_Factor_Backup_Codes extends Two_Factor_Provider {
 
 	/**
 	 * Register the rest-api endpoints required for this provider.
+	 *
+	 * @codeCoverageIgnore
 	 */
 	public function register_rest_routes() {
 		register_rest_route(
@@ -95,6 +99,8 @@ class Two_Factor_Backup_Codes extends Two_Factor_Provider {
 	 * Displays an admin notice when backup codes have run out.
 	 *
 	 * @since 0.1-dev
+	 *
+	 * @codeCoverageIgnore
 	 */
 	public function admin_notices() {
 		$user = wp_get_current_user();

@@ -59,6 +59,8 @@ class Two_Factor_Totp extends Two_Factor_Provider {
 
 	/**
 	 * Register the rest-api endpoints required for this provider.
+	 *
+	 * @codeCoverageIgnore
 	 */
 	public function register_rest_routes() {
 		register_rest_route(
@@ -119,6 +121,8 @@ class Two_Factor_Totp extends Two_Factor_Provider {
 
 	/**
 	 * Enqueue scripts
+	 *
+	 * @codeCoverageIgnore
 	 */
 	public function enqueue_assets( $hook_suffix ) {
 		$environment_prefix = file_exists( TWO_FACTOR_DIR . '/dist' ) ? '/dist' : '';

@@ -3,5 +3,6 @@
 /npm-debug.log
 /vendor/
 /dist/
+/tests/.phpunit.result.cache
 /tests/logs/
 /wordpress/

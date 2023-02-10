@@ -169,7 +169,7 @@ class Tests_Two_Factor_Backup_Codes_REST_API extends WP_Test_REST_TestCase {
 	/**
 	 * Verify that an admin can create Backup codes for another user.
 	 *
-	 * @covers Two_Factor_Backup_Codes::ajax_generate_json
+	 * @covers Two_Factor_Backup_Codes::rest_generate_codes
 	 */
 	public function test_generate_codes_for_other_users() {
 		wp_set_current_user( self::$admin_id );
