@@ -278,4 +278,29 @@ class Tests_Two_Factor_Totp extends WP_UnitTestCase {
 		$this->assertFalse( $this->provider->validate_code_for_user( $user, $oldcode ) );
 
 	}
+
+	/**
+	 * Validate that the time returned for a tick is correct.
+	 *
+	 * @covers Two_Factor_Totp::get_authcode_valid_ticktime
+	 */
+	function test_get_authcode_valid_ticktime() {
+		$user = new WP_User( self::factory()->user->create() );
+		$key  = $this->provider->generate_key();
+
+		// Configure secret for the user.
+		$this->provider->set_user_totp_key( $user->ID, $key );
+
+		$max_grace_period = Two_Factor_Totp::DEFAULT_TIME_STEP_ALLOWANCE;
+
+		foreach ( range( - $max_grace_period, $max_grace_period ) as $tick ) {
+			$tick_time = floor( time() / Two_Factor_Totp::DEFAULT_TIME_STEP_SEC ) + $tick;
+			$expected  = $tick_time * Two_Factor_Totp::DEFAULT_TIME_STEP_SEC;
+			$code      = $this->provider->calc_totp( $key, $tick_time );
+
+			$this->assertEquals( $expected, Two_Factor_Totp::get_authcode_valid_ticktime( $key, $code ) );
+		}
+
+		$this->assertFalse( Two_Factor_Totp::get_authcode_valid_ticktime( $key, '000000' ) );
+	}
 }
