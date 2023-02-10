@@ -523,7 +523,7 @@ class Two_Factor_Totp extends Two_Factor_Provider {
 		$ticks = range( - $max_ticks, $max_ticks );
 		usort( $ticks, array( __CLASS__, 'abssort' ) );
 
-		$time = time() / self::DEFAULT_TIME_STEP_SEC;
+		$time = floor( time() / self::DEFAULT_TIME_STEP_SEC );
 
 		foreach ( $ticks as $offset ) {
 			$log_time = $time + $offset;
