@@ -1028,7 +1028,7 @@ class Two_Factor_Core {
 			$error = new WP_Error(
 				'two_factor_too_fast',
 				sprintf(
-					__( 'ERROR: Whoa there, slow down! You can try again in %s.', 'two-factor' ),
+					__( 'ERROR: Too many invalid verification codes, you can try again in %s. This limit protects your account against automated attacks.', 'two-factor' ),
 					human_time_diff( $last_login + $time_delay )
 				)
 			);
