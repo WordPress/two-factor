@@ -285,12 +285,7 @@ class Tests_Two_Factor_Totp extends WP_UnitTestCase {
 	 * @covers Two_Factor_Totp::get_authcode_valid_ticktime
 	 */
 	function test_get_authcode_valid_ticktime() {
-		$user = new WP_User( self::factory()->user->create() );
-		$key  = $this->provider->generate_key();
-
-		// Configure secret for the user.
-		$this->provider->set_user_totp_key( $user->ID, $key );
-
+		$key              = $this->provider->generate_key();
 		$max_grace_period = Two_Factor_Totp::DEFAULT_TIME_STEP_ALLOWANCE;
 
 		foreach ( range( - $max_grace_period, $max_grace_period ) as $tick ) {
