@@ -227,7 +227,7 @@ class Tests_Two_Factor_Totp extends WP_UnitTestCase {
 
 		$authcode = $this->provider->calc_totp( $key );
 
-		// Validate that no key doesn't suceed.
+		// Validate that a missing key results in failure.
 		unset( $_REQUEST['authcode'] );
 		$this->assertFalse( $this->provider->validate_authentication( $user ) );
 
