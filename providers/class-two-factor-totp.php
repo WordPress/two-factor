@@ -455,7 +455,7 @@ class Two_Factor_Totp extends Two_Factor_Provider {
 	}
 
 	/**
-	 * Validates a authentication code for a given user, preventing re-use and older TOTP keys.
+	 * Validates an authentication code for a given user, preventing re-use and older TOTP keys.
 	 *
 	 * @param WP_User $user WP_User object of the logged-in user.
 	 * @param int     $code The TOTP token to validate.
