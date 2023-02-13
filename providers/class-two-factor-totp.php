@@ -11,11 +11,18 @@
 class Two_Factor_Totp extends Two_Factor_Provider {
 
 	/**
-	 * The user meta token key.
+	 * The user meta key for the TOTP Secret key.
 	 *
 	 * @var string
 	 */
 	const SECRET_META_KEY = '_two_factor_totp_key';
+
+	/**
+	 * The user meta key for the last successful TOTP token timestamp logged in with.
+	 *
+	 * @var string
+	 */
+	const LAST_SUCCESSFUL_LOGIN_META_KEY = '_two_factor_totp_last_successful_login';
 
 	const DEFAULT_KEY_BIT_SIZE        = 160;
 	const DEFAULT_CRYPTO              = 'sha1';
@@ -408,6 +415,7 @@ class Two_Factor_Totp extends Two_Factor_Provider {
 	 * @return boolean If the key was deleted successfully.
 	 */
 	public function delete_user_totp_key( $user_id ) {
+		delete_user_meta( $user_id, self::LAST_SUCCESSFUL_LOGIN_META_KEY );
 		return delete_user_meta( $user_id, self::SECRET_META_KEY );
 	}
 
@@ -434,29 +442,70 @@ class Two_Factor_Totp extends Two_Factor_Provider {
 	 * @param WP_User $user WP_User object of the logged-in user.
 	 *
 	 * @return bool Whether the user gave a valid code
-	 *
-	 * @codeCoverageIgnore
 	 */
 	public function validate_authentication( $user ) {
-		if ( ! empty( $_REQUEST['authcode'] ) ) {
-			return $this->is_valid_authcode(
-				$this->get_user_totp_key( $user->ID ),
-				sanitize_text_field( $_REQUEST['authcode'] )
-			);
+		if ( empty( $_REQUEST['authcode'] ) ) {
+			return false;
 		}
 
-		return false;
+		return $this->validate_code_for_user(
+			$user,
+			sanitize_text_field( $_REQUEST['authcode'] )
+		);
 	}
 
 	/**
-	 * Checks if a given code is valid for a given key, allowing for a certain amount of time drift
+	 * Validates an authentication code for a given user, preventing re-use and older TOTP keys.
+	 *
+	 * @param WP_User $user WP_User object of the logged-in user.
+	 * @param int     $code The TOTP token to validate.
+	 *
+	 * @return bool Whether the code is valid for the user and a newer code has not been used.
+	 */
+	public function validate_code_for_user( $user, $code ) {
+		$valid_timestamp = $this->get_authcode_valid_ticktime(
+			$this->get_user_totp_key( $user->ID ),
+			$code
+		);
+
+		if ( ! $valid_timestamp ) {
+			return false;
+		}
+
+		$last_totp_login = (int) get_user_meta( $user->ID, self::LAST_SUCCESSFUL_LOGIN_META_KEY, true );
+
+		// The TOTP authentication is not valid, if we've seen the same or newer code.
+		if ( $last_totp_login && $last_totp_login >= $valid_timestamp ) {
+			return false;
+		}
+
+		update_user_meta( $user->ID, self::LAST_SUCCESSFUL_LOGIN_META_KEY, $valid_timestamp );
+
+		return true;
+	}
+
+
+	/**
+	 * Checks if a given code is valid for a given key, allowing for a certain amount of time drift.
 	 *
 	 * @param string $key      The share secret key to use.
 	 * @param string $authcode The code to test.
 	 *
-	 * @return bool Whether the code is valid within the time frame
+	 * @return bool Whether the code is valid within the time frame.
 	 */
 	public static function is_valid_authcode( $key, $authcode ) {
+		return (bool) self::get_authcode_valid_ticktime( $key, $authcode );
+	}
+
+	/**
+	 * Checks if a given code is valid for a given key, allowing for a certain amount of time drift.
+	 *
+	 * @param string $key      The share secret key to use.
+	 * @param string $authcode The code to test.
+	 *
+	 * @return false|int Returns the timestamp of the authcode on success, False otherwise.
+	 */
+	public static function get_authcode_valid_ticktime( $key, $authcode ) {
 		/**
 		 * Filter the maximum ticks to allow when checking valid codes.
 		 *
@@ -474,14 +523,16 @@ class Two_Factor_Totp extends Two_Factor_Provider {
 		$ticks = range( - $max_ticks, $max_ticks );
 		usort( $ticks, array( __CLASS__, 'abssort' ) );
 
-		$time = time() / self::DEFAULT_TIME_STEP_SEC;
+		$time = floor( time() / self::DEFAULT_TIME_STEP_SEC );
 
 		foreach ( $ticks as $offset ) {
 			$log_time = $time + $offset;
-			if ( hash_equals(self::calc_totp( $key, $log_time ), $authcode ) ) {
-				return true;
+			if ( hash_equals( self::calc_totp( $key, $log_time ), $authcode ) ) {
+				// Return the tick timestamp.
+				return $log_time * self::DEFAULT_TIME_STEP_SEC;
 			}
 		}
+
 		return false;
 	}
 

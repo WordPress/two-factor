@@ -141,6 +141,7 @@ class Tests_Two_Factor_Totp extends WP_UnitTestCase {
 	 * Verify authcode validation.
 	 *
 	 * @covers Two_Factor_Totp::is_valid_authcode
+	 * @covers Two_Factor_Totp::get_authcode_valid_ticktime
 	 * @covers Two_Factor_Totp::generate_key
 	 * @covers Two_Factor_Totp::calc_totp
 	 * @covers Two_Factor_Totp::pack64
@@ -158,6 +159,7 @@ class Tests_Two_Factor_Totp extends WP_UnitTestCase {
 	 * Verify authcode rejection.
 	 *
 	 * @covers Two_Factor_Totp::is_valid_authcode
+	 * @covers Two_Factor_Totp::get_authcode_valid_ticktime
 	 */
 	public function test_invalid_authcode_rejected() {
 		$key = $this->provider->generate_key();
@@ -208,5 +210,93 @@ class Tests_Two_Factor_Totp extends WP_UnitTestCase {
 		$this->assertFalse( $this->provider->is_valid_key( '' ), 'Empty string is invalid' );
 		$this->assertFalse( $this->provider->is_valid_key( 'abc233' ), 'Lowercase chars are invalid' );
 		$this->assertFalse( $this->provider->is_valid_key( 'has a space' ), 'Spaces not allowed' );
+	}
+
+	/**
+	 * Test that the validation function works.
+	 *
+	 * @covers Two_Factor_Totp::validate_authentication
+	 * @covers Two_Factor_Totp::validate_code_for_user
+	 * @covers Two_Factor_Totp::get_authcode_valid_ticktime
+	 */
+	function test_validate_authentication() {
+		$user = new WP_User( self::factory()->user->create() );
+		$key  = $this->provider->generate_key();
+
+		// Configure secret for the user.
+		$this->provider->set_user_totp_key( $user->ID, $key );
+
+		$authcode = $this->provider->calc_totp( $key );
+
+		// Validate that a missing key results in failure.
+		unset( $_REQUEST['authcode'] );
+		$this->assertFalse( $this->provider->validate_authentication( $user ) );
+
+		// Validate that an invalid key doesn't succeed.
+		$_REQUEST['authcode'] = '123456'; // Okay, that's valid once in a blue moon.
+		$this->assertFalse( $this->provider->validate_authentication( $user ) );
+
+		// Validate that the login would succeed using the current authcode.
+		$_REQUEST['authcode'] = $authcode;
+		$this->assertTrue( $this->provider->validate_authentication( $user ) );
+
+		// Validate that a second attempt with the same authcode will fail.
+		$this->assertFalse( $this->provider->validate_authentication( $user ) );
+	}
+
+	/**
+	 * Test that the validation function works.
+	 *
+	 * @covers Two_Factor_Totp::validate_code_for_user
+	 * @covers Two_Factor_Totp::get_authcode_valid_ticktime
+	 */
+	function test_validate_code_for_user() {
+		$user = new WP_User( self::factory()->user->create() );
+		$key  = $this->provider->generate_key();
+
+		// Configure secret for the user.
+		$this->provider->set_user_totp_key( $user->ID, $key );
+
+		$oldcode  = $this->provider->calc_totp( $key, floor( time() / Two_Factor_Totp::DEFAULT_TIME_STEP_SEC ) - 2 );
+		$prevcode = $this->provider->calc_totp( $key, floor( time() / Two_Factor_Totp::DEFAULT_TIME_STEP_SEC ) - 1 );
+		$authcode = $this->provider->calc_totp( $key );
+		$nextcode = $this->provider->calc_totp( $key, floor( time() / Two_Factor_Totp::DEFAULT_TIME_STEP_SEC ) + 1 );
+
+		// Validate that the login would succeed using the previous authcode.
+		$this->assertTrue( $this->provider->validate_code_for_user( $user, $prevcode ) );
+
+		// Validate that the login would succeed using the current authcode.
+		$this->assertTrue( $this->provider->validate_code_for_user( $user, $authcode ) );
+
+		// Validate that a second attempt with the same authcode will fail.
+		$this->assertFalse( $this->provider->validate_code_for_user( $user, $authcode ) );
+
+		// Validate that the future authcode will succeed (but not more than once)
+		$this->assertTrue( $this->provider->validate_code_for_user( $user, $nextcode ) );
+		$this->assertFalse( $this->provider->validate_code_for_user( $user, $nextcode ) );
+
+		// Validate that the older unused authcode will not succeed.
+		$this->assertFalse( $this->provider->validate_code_for_user( $user, $oldcode ) );
+
+	}
+
+	/**
+	 * Validate that the time returned for a tick is correct.
+	 *
+	 * @covers Two_Factor_Totp::get_authcode_valid_ticktime
+	 */
+	function test_get_authcode_valid_ticktime() {
+		$key              = $this->provider->generate_key();
+		$max_grace_period = Two_Factor_Totp::DEFAULT_TIME_STEP_ALLOWANCE;
+
+		foreach ( range( - $max_grace_period, $max_grace_period ) as $tick ) {
+			$tick_time = floor( time() / Two_Factor_Totp::DEFAULT_TIME_STEP_SEC ) + $tick;
+			$expected  = $tick_time * Two_Factor_Totp::DEFAULT_TIME_STEP_SEC;
+			$code      = $this->provider->calc_totp( $key, $tick_time );
+
+			$this->assertEquals( $expected, Two_Factor_Totp::get_authcode_valid_ticktime( $key, $code ) );
+		}
+
+		$this->assertFalse( Two_Factor_Totp::get_authcode_valid_ticktime( $key, '000000' ) );
 	}
 }
