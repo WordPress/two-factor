@@ -472,4 +472,94 @@ class Test_ClassTwoFactorCore extends WP_UnitTestCase {
 		);
 	}
 
+	/**
+	 * Test that the lockout time delay for two factor attempts is respected.
+	 *
+	 * @covers Two_Factor_Core::get_user_time_delay()
+	 */
+	public function test_get_user_time_delay() {
+		$user = $this->get_dummy_user();
+
+		// Default values, sans filters.
+		$rate_limit     = 1;
+		$max_rate_limit = 15 * MINUTE_IN_SECONDS;
+
+		// User has never logged in, validate the minimum time delay is in play.
+		$this->assertEquals( $rate_limit, Two_Factor_Core::get_user_time_delay( $user ) );
+
+		// Simulate 5 failed login attempts, and validate that the lockout is as expected.
+		update_user_meta( $user->ID, Two_Factor_Core::USER_FAILED_LOGIN_ATTEMPTS_KEY, 5 );
+		$this->assertEquals( pow( 2, 5 ) * $rate_limit, Two_Factor_Core::get_user_time_delay( $user ) );
+
+		// Simulate 100 failed login attempts, validate that the lockout is not greater than $max_rate_limit
+		update_user_meta( $user->ID, Two_Factor_Core::USER_FAILED_LOGIN_ATTEMPTS_KEY, 100 );
+		$this->assertEquals( $max_rate_limit, Two_Factor_Core::get_user_time_delay( $user ) );
+	}
+
+	/**
+	 * Test that the user rate limit functions return as expected.
+	 *
+	 * @covers Two_Factor_Core::is_user_rate_limited()
+	 */
+	public function test_is_user_rate_limited() {
+		$user = $this->get_dummy_user();
+
+		// User has never logged in, validate they're not rate limited.
+		$this->assertFalse( Two_Factor_Core::is_user_rate_limited( $user ) );
+
+		// Failed login attempt at time(), user should be rate limited.
+		update_user_meta( $user->ID, Two_Factor_Core::USER_FAILED_LOGIN_ATTEMPTS_KEY, 1 );
+		update_user_meta( $user->ID, Two_Factor_Core::USER_RATE_LIMIT_KEY, time() );
+		$this->assertTrue( Two_Factor_Core::is_user_rate_limited( $user ) );
+
+		// 8 failed logins a minite ago, user should be rate limited.
+		update_user_meta( $user->ID, Two_Factor_Core::USER_FAILED_LOGIN_ATTEMPTS_KEY, 8 );
+		update_user_meta( $user->ID, Two_Factor_Core::USER_RATE_LIMIT_KEY, time() - MINUTE_IN_SECONDS );
+		$this->assertTrue( Two_Factor_Core::is_user_rate_limited( $user ) );
+
+		// 8 failed logins an hour ago, user should not be rate limited.
+		update_user_meta( $user->ID, Two_Factor_Core::USER_FAILED_LOGIN_ATTEMPTS_KEY, 8 );
+		update_user_meta( $user->ID, Two_Factor_Core::USER_RATE_LIMIT_KEY, time() - HOUR_IN_SECONDS );
+		$this->assertFalse( Two_Factor_Core::is_user_rate_limited( $user ) );
+	}
+
+	/**
+	 * Test that the "invalid login attempts have occurred" login notice works as expected.
+	 *
+	 * @covers Two_Factor_Core::maybe_show_last_login_failure_notice()
+	 */
+	public function test_maybe_show_last_login_failure_notice() {
+		$user = $this->get_dummy_user();
+
+		// User has never logged in, validate they're not rate limited.
+		ob_start();
+		Two_Factor_Core::maybe_show_last_login_failure_notice( $user );
+		$contents = ob_get_clean();
+
+		$this->assertEmpty( $contents );
+
+		// A failed login attempts 5 seconds ago.
+		// Should throw a notice, even though it's the current user, it will only be displayed if there's no other 2FA errors.
+		update_user_meta( $user->ID, Two_Factor_Core::USER_FAILED_LOGIN_ATTEMPTS_KEY, 1 );
+		update_user_meta( $user->ID, Two_Factor_Core::USER_RATE_LIMIT_KEY, time() - 5 );
+		ob_start();
+		Two_Factor_Core::maybe_show_last_login_failure_notice( $user );
+		$contents = ob_get_clean();
+
+		$this->assertNotEmpty( $contents );
+		$this->assertStringNotContainsString( '1 times', $contents );
+		$this->assertStringContainsString( 'login without providing a valid two factor token', $contents );
+
+		// 5 failed login attempts 5 hours ago - User should be informed.
+		$five_hours_ago = time() - 5 * HOUR_IN_SECONDS;
+		update_user_meta( $user->ID, Two_Factor_Core::USER_FAILED_LOGIN_ATTEMPTS_KEY, 5 );
+		update_user_meta( $user->ID, Two_Factor_Core::USER_RATE_LIMIT_KEY, $five_hours_ago );
+		ob_start();
+		Two_Factor_Core::maybe_show_last_login_failure_notice( $user );
+		$contents = ob_get_clean();
+
+		$this->assertNotEmpty( $contents );
+		$this->assertStringContainsString( '5 times', $contents );
+		$this->assertStringContainsString( human_time_diff( $five_hours_ago ), $contents );
+	}
 }
