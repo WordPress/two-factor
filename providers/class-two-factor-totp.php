@@ -465,7 +465,7 @@ class Two_Factor_Totp extends Two_Factor_Provider {
 	public function validate_code_for_user( $user, $code ) {
 		$valid_timestamp = $this->get_authcode_valid_ticktime(
 			$this->get_user_totp_key( $user->ID ),
-			$code,
+			$code
 		);
 
 		if ( ! $valid_timestamp ) {
