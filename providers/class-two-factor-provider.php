@@ -33,14 +33,18 @@ abstract class Two_Factor_Provider {
 	abstract public function get_label();
 
 	/**
-	 * Returns the singular name of the provider.
+	 * Returns the "continue with" text provider for the login screen.
 	 *
 	 * @since 0.8.0
 	 *
 	 * @return string
 	 */
-	public function get_singular_label() {
-		return $this->get_label();
+	public function get_continue_with_label() {
+		return sprintf(
+			/* translators: the two factor provider name */
+			__( 'Continue with %s', 'two-factor' ),
+			$this->get_label()
+		);
 	}
 
 	/**

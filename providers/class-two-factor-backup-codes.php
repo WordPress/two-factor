@@ -136,12 +136,12 @@ class Two_Factor_Backup_Codes extends Two_Factor_Provider {
 	}
 
 	/**
-	 * Returns the singular name of the provider.
+	 * Returns the "continue with" text provider for the login screen.
 	 *
 	 * @since 0.8
 	 */
-	public function get_singular_label() {
-		return _x( 'Backup Code', 'Provider Label', 'two-factor' );
+	public function get_continue_with_label() {
+		return __( 'Continue with a Backup Code', 'two-factor' );
 	}
 
 	/**

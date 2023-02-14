@@ -750,85 +750,54 @@ class Two_Factor_Core {
 
 				<?php $provider->authentication_page( $user ); ?>
 		</form>
-
-		<?php
-		if ( 1 === count( $backup_providers ) ) :
-			$backup_classname = key( $backup_providers );
-			$backup_provider  = $backup_providers[ $backup_classname ];
-			$login_url        = self::login_url(
-				array(
-					'action'        => 'validate_2fa',
-					'provider'      => $backup_classname,
-					'wp-auth-id'    => $user->ID,
-					'wp-auth-nonce' => $login_nonce,
-					'redirect_to'   => $redirect_to,
-					'rememberme'    => $rememberme,
-				)
-			);
-			?>
+		<?php if ( $backup_providers ) : ?>
 			<div class="backup-methods-wrap">
-				<p class="backup-methods">
-					<a href="<?php echo esc_url( $login_url ); ?>">
-						<?php
-						echo esc_html(
-							sprintf(
-								// translators: %s: Two-factor method name.
-								__( 'Or, continue with %s &rarr;', 'two-factor' ),
-								$backup_provider->get_singular_label()
-							)
-						);
-						?>
-					</a>
-				</p>
-			</div>
-			<?php elseif ( 1 < count( $backup_providers ) ) : ?>
-			<div class="backup-methods-wrap">
-				<p class="backup-methods">
-					<a href="javascript:;" onclick="document.querySelector('ul.backup-methods').style.display = 'block';">
-						<?php esc_html_e( 'Or, continue with…', 'two-factor' ); ?>
-					</a>
-				</p>
-				<ul class="backup-methods">
-					<?php
-					foreach ( $backup_providers as $backup_classname => $backup_provider ) :
-						$login_url = self::login_url(
-							array(
-								'action'        => 'validate_2fa',
-								'provider'      => $backup_classname,
-								'wp-auth-id'    => $user->ID,
-								'wp-auth-nonce' => $login_nonce,
-								'redirect_to'   => $redirect_to,
-								'rememberme'    => $rememberme,
-							)
-						);
-						?>
-						<li>
-							<a href="<?php echo esc_url( $login_url ); ?>">
-								<?php echo esc_html( $backup_provider->get_singular_label() ); ?>
-							</a>
-						</li>
-					<?php endforeach; ?>
-				</ul>
+				<?php
+				foreach ( $backup_providers as $backup_classname => $backup_provider ) :
+					$login_url = self::login_url(
+						array(
+							'action'        => 'validate_2fa',
+							'provider'      => $backup_classname,
+							'wp-auth-id'    => $user->ID,
+							'wp-auth-nonce' => $login_nonce,
+							'redirect_to'   => $redirect_to,
+							'rememberme'    => $rememberme,
+						)
+					);
+					?>
+					<p class="backup-methods">
+						<a class="button button-secondary" href="<?php echo esc_url( $login_url ); ?>">
+							<?php echo esc_html( $backup_provider->get_continue_with_label() ); ?>
+						</a>
+					</p>
+				<?php endforeach; ?>
 			</div>
 		<?php endif; ?>
+
 		<style>
 			/* @todo: migrate to an external stylesheet. */
 			.backup-methods-wrap {
-			margin-top: 16px;
-			padding: 0 24px;
+				margin-top: 16px;
+				padding: 0 24px;
 			}
-			.backup-methods-wrap a {
-			color: #999;
-			text-decoration: none;
+			.backup-methods-wrap p {
+				margin-bottom: 16px;
 			}
-			ul.backup-methods {
-			display: none;
-			padding-left: 1.5em;
+			.backup-methods-wrap a.button {
+				color: #777;
+				border-color: #777;
+				text-align: center;
+				text-decoration: none;
+				width: 100%;
+			}
+			.backup-methods-wrap a.button:hover {
+				color: #555;
+				border-color: #555;
 			}
 			/* Prevent Jetpack from hiding our controls, see https://github.com/Automattic/jetpack/issues/3747 */
 			.jetpack-sso-form-display #loginform > p,
 			.jetpack-sso-form-display #loginform > div {
-			display: block;
+				display: block;
 			}
 			#login form p.two-factor-prompt {
 			margin-bottom: 1em;
