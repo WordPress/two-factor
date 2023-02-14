@@ -177,12 +177,20 @@ class Tests_Two_Factor_Email extends WP_UnitTestCase {
 	}
 
 	/**
-	 * Verify that email validation with no user returns false.
+	 * Verify that email validation fails if user or token are missing.
 	 *
 	 * @covers Two_Factor_Email::validate_authentication
 	 */
-	public function test_validate_authentication_no_user_is_false() {
-		$this->assertFalse( $this->provider->validate_authentication( false ) );
+	public function test_validate_authentication_fails_with_missing_input() {
+		$logged_out_user = new WP_User();
+		$valid_user      = new WP_User( self::factory()->user->create() );
+
+		// User but no code.
+		$this->assertFalse( $this->provider->validate_authentication( $valid_user ) );
+
+		// Code but no user.
+		$_REQUEST['two-factor-email-code'] = $this->provider->generate_token( $valid_user->ID );
+		$this->assertFalse( $this->provider->validate_authentication( $logged_out_user ) );
 	}
 
 	/**
