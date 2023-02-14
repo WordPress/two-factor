@@ -33,6 +33,17 @@ abstract class Two_Factor_Provider {
 	abstract public function get_label();
 
 	/**
+	 * Returns the singular name of the provider.
+	 *
+	 * @since 0.8.0
+	 *
+	 * @return string
+	 */
+	public function get_singular_label() {
+		return $this->get_label();
+	}
+
+	/**
 	 * Prints the name of the provider.
 	 *
 	 * @since 0.1-dev

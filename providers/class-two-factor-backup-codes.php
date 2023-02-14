@@ -132,7 +132,16 @@ class Two_Factor_Backup_Codes extends Two_Factor_Provider {
 	 * @since 0.1-dev
 	 */
 	public function get_label() {
-		return _x( 'Backup Verification Codes (Single Use)', 'Provider Label', 'two-factor' );
+		return _x( 'Backup Codes', 'Provider Label', 'two-factor' );
+	}
+
+	/**
+	 * Returns the singular name of the provider.
+	 *
+	 * @since 0.8
+	 */
+	public function get_singular_label() {
+		return _x( 'Backup Code', 'Provider Label', 'two-factor' );
 	}
 
 	/**
@@ -162,24 +171,26 @@ class Two_Factor_Backup_Codes extends Two_Factor_Provider {
 		$count = self::codes_remaining_for_user( $user );
 		?>
 		<p id="two-factor-backup-codes">
-			<button type="button" class="button button-two-factor-backup-codes-generate button-secondary hide-if-no-js">
-				<?php esc_html_e( 'Generate Verification Codes', 'two-factor' ); ?>
-			</button>
-			<span class="two-factor-backup-codes-count">
+			<p class="two-factor-backup-codes-count">
 			<?php
 				echo esc_html(
 					sprintf(
-					/* translators: %s: count */
-						_n( '%s unused code remaining.', '%s unused codes remaining.', $count, 'two-factor' ),
+						/* translators: %s: count */
+						_n( '%s unused code remaining, each backup code can only be used once.', '%s unused codes remaining, each backup code can only be used once.', $count, 'two-factor' ),
 						$count
 					)
 				);
 			?>
-				</span>
+			</p>
+			<p>
+				<button type="button" class="button button-two-factor-backup-codes-generate button-secondary hide-if-no-js">
+					<?php esc_html_e( 'Generate new verification codes', 'two-factor' ); ?>
+				</button>
+			</p>
 		</p>
 		<div class="two-factor-backup-codes-wrapper" style="display:none;">
 			<ol class="two-factor-backup-codes-unused-codes"></ol>
-			<p class="description"><?php esc_html_e( 'Write these down!  Once you navigate away from this page, you will not be able to view these codes again.', 'two-factor' ); ?></p>
+			<p class="description"><?php esc_html_e( 'Write these down! Once you navigate away from this page, you will not be able to view these codes again.', 'two-factor' ); ?></p>
 			<p>
 				<a class="button button-two-factor-backup-codes-download button-secondary hide-if-no-js" href="javascript:void(0);" id="two-factor-backup-codes-download-link" download="two-factor-backup-codes.txt"><?php esc_html_e( 'Download Codes', 'two-factor' ); ?></a>
 			<p>
@@ -288,7 +299,7 @@ class Two_Factor_Backup_Codes extends Two_Factor_Provider {
 
 		$i18n = array(
 			/* translators: %s: count */
-			'count' => esc_html( sprintf( _n( '%s unused code remaining.', '%s unused codes remaining.', $count, 'two-factor' ), $count ) ),
+			'count' => esc_html( sprintf( _n( '%s unused code remaining, each backup code can only be used once.', '%s unused codes remaining, each backup code can only be used once.', $count, 'two-factor' ), $count ) ),
 		);
 
 		if ( $request->get_param( 'enable_provider' ) && ! Two_Factor_Core::enable_provider_for_user( $user_id, 'Two_Factor_Backup_Codes' ) ) {

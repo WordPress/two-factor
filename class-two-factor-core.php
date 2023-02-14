@@ -770,8 +770,8 @@ class Two_Factor_Core {
 						echo esc_html(
 							sprintf(
 								// translators: %s: Two-factor method name.
-								__( 'Or, use your backup method: %s &rarr;', 'two-factor' ),
-								$backup_provider->get_label()
+								__( 'Or, continue with %s &rarr;', 'two-factor' ),
+								$backup_provider->get_singular_label()
 							)
 						);
 						?>
@@ -782,7 +782,7 @@ class Two_Factor_Core {
 			<div class="backup-methods-wrap">
 				<p class="backup-methods">
 					<a href="javascript:;" onclick="document.querySelector('ul.backup-methods').style.display = 'block';">
-						<?php esc_html_e( 'Or, use a backup method…', 'two-factor' ); ?>
+						<?php esc_html_e( 'Or, continue with…', 'two-factor' ); ?>
 					</a>
 				</p>
 				<ul class="backup-methods">
@@ -801,7 +801,7 @@ class Two_Factor_Core {
 						?>
 						<li>
 							<a href="<?php echo esc_url( $login_url ); ?>">
-								<?php echo esc_html( $backup_provider->get_label() ); ?>
+								<?php echo esc_html( $backup_provider->get_singular_label() ); ?>
 							</a>
 						</li>
 					<?php endforeach; ?>

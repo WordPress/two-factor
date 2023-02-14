@@ -123,7 +123,7 @@ class Two_Factor_Totp extends Two_Factor_Provider {
 	 * Returns the name of the provider.
 	 */
 	public function get_label() {
-		return _x( 'Time Based One-Time Password (TOTP)', 'Provider Label', 'two-factor' );
+		return _x( 'Authenticator app', 'Provider Label', 'two-factor' );
 	}
 
 	/**
@@ -382,16 +382,15 @@ class Two_Factor_Totp extends Two_Factor_Provider {
 
 		<?php else : ?>
 			<p class="success">
-				<?php esc_html_e( 'Secret key is configured and registered. It is not possible to view it again for security reasons.', 'two-factor' ); ?>
+				<?php esc_html_e( 'An Authenticator app is currently configured. You will need to re-scan the QR code on all devices if reset.', 'two-factor' ); ?>
 			</p>
 			<p>
-				<a class="button reset-totp-key" href="#"><?php esc_html_e( 'Reset Key', 'two-factor' ); ?></a>
-				<em class="description">
-					<?php esc_html_e( 'You will have to re-scan the QR code on all devices as the previous codes will stop working.', 'two-factor' ); ?>
-				</em>
+				<button type="button" class="button button-secondary reset-totp-key hide-if-no-js">
+					<?php esc_html_e( 'Reset Authenticator app', 'two-factor' ); ?>
+				</button>
 				<script>
 					( function( $ ) {
-						$( 'a.reset-totp-key' ).click( function( e ) {
+						$( '.button.reset-totp-key' ).click( function( e ) {
 							e.preventDefault();
 
 							wp.apiRequest( {
