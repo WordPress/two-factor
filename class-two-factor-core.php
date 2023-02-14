@@ -725,6 +725,9 @@ class Two_Factor_Core {
 			include_once TWO_FACTOR_DIR . 'includes/function.login-header.php';
 		}
 
+		// Disable the language switcher.
+		add_filter( 'login_display_language_dropdown', '__return_false' );
+
 		login_header();
 
 		if ( ! empty( $error_msg ) ) {
