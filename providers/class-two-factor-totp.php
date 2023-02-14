@@ -176,7 +176,7 @@ class Two_Factor_Totp extends Two_Factor_Provider {
 		$user    = get_user_by( 'id', $user_id );
 
 		$key  = $request['key'];
-		$code = $request['code'];
+		$code = trim( str_replace( ' ', '', $request['code'] ) );
 
 		if ( ! $this->is_valid_key( $key ) ) {
 			return new WP_Error( 'invalid_key', __( 'Invalid Two Factor Authentication secret key.', 'two-factor' ), array( 'status' => 400 ) );
@@ -314,7 +314,11 @@ class Two_Factor_Totp extends Two_Factor_Provider {
 				<input type="hidden" id="two-factor-totp-key" name="two-factor-totp-key" value="<?php echo esc_attr( $key ); ?>" />
 				<label for="two-factor-totp-authcode">
 					<?php esc_html_e( 'Authentication Code:', 'two-factor' ); ?>
-					<input type="tel" name="two-factor-totp-authcode" id="two-factor-totp-authcode" class="input" value="" size="20" pattern="[0-9]*" />
+					<?php
+						/* translators: Example auth code. */
+						$placeholder = sprintf( __( 'eg. %s', 'two-factor' ), '123456' );
+					?>
+					<input type="tel" name="two-factor-totp-authcode" id="two-factor-totp-authcode" class="input" value="" size="20" pattern="[0-9 ]*" placeholder="<?php echo esc_attr( $placeholder ); ?>" />
 				</label>
 				<input type="submit" class="button totp-submit" name="two-factor-totp-submit" value="<?php esc_attr_e( 'Submit', 'two-factor' ); ?>" />
 			</p>
