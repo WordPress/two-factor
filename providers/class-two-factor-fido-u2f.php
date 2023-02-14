@@ -125,7 +125,7 @@ class Two_Factor_FIDO_U2F extends Two_Factor_Provider {
 	 * @since 0.8
 	 */
 	public function get_continue_with_label() {
-		return __( 'Continue with your Security Key', 'two-factor' );
+		return __( 'Continue with your security key', 'two-factor' );
 	}
 
 	/**

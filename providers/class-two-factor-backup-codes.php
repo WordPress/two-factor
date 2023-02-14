@@ -141,7 +141,7 @@ class Two_Factor_Backup_Codes extends Two_Factor_Provider {
 	 * @since 0.8
 	 */
 	public function get_continue_with_label() {
-		return __( 'Continue with a Backup Code', 'two-factor' );
+		return __( 'Continue with a backup code', 'two-factor' );
 	}
 
 	/**
@@ -338,9 +338,9 @@ class Two_Factor_Backup_Codes extends Two_Factor_Provider {
 	public function authentication_page( $user ) {
 		require_once ABSPATH . '/wp-admin/includes/template.php';
 		?>
-		<p class="two-factor-prompt"><?php esc_html_e( 'Enter a backup verification code.', 'two-factor' ); ?></p>
+		<p class="two-factor-prompt"><?php esc_html_e( 'Enter a backup code.', 'two-factor' ); ?></p><br/>
 		<p>
-			<label for="authcode"><?php esc_html_e( 'Verification Code:', 'two-factor' ); ?></label>
+			<label for="authcode"><?php esc_html_e( 'Backup Code:', 'two-factor' ); ?></label>
 			<input type="text" inputmode="numeric" name="two-factor-backup-code" id="authcode" class="input authcode" value="" size="20" pattern="[0-9 ]*" placeholder="1234 5678" data-digits="8" />
 		</p>
 		<?php

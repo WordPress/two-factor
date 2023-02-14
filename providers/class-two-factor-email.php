@@ -74,7 +74,7 @@ class Two_Factor_Email extends Two_Factor_Provider {
 	 * @since 0.8
 	 */
 	public function get_continue_with_label() {
-		return __( 'Continue with an Emailed code', 'two-factor' );
+		return __( 'Continue with an emailed code', 'two-factor' );
 	}
 
 	/**
