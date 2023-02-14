@@ -333,7 +333,7 @@ class Two_Factor_Backup_Codes extends Two_Factor_Provider {
 		<p class="two-factor-prompt"><?php esc_html_e( 'Enter a backup verification code.', 'two-factor' ); ?></p>
 		<p>
 			<label for="authcode"><?php esc_html_e( 'Verification Code:', 'two-factor' ); ?></label>
-			<input type="tel" name="two-factor-backup-code" id="authcode" class="input" value="" size="20" pattern="[0-9]*" placeholder="<?php echo esc_attr( $placeholder ); ?>" />
+			<input type="tel" name="two-factor-backup-code" id="authcode" class="input" value="" size="20" pattern="[0-9 ]*" placeholder="<?php echo esc_attr( $placeholder ); ?>" />
 		</p>
 		<?php
 		submit_button( __( 'Submit', 'two-factor' ) );
@@ -350,7 +350,12 @@ class Two_Factor_Backup_Codes extends Two_Factor_Provider {
 	 * @return boolean
 	 */
 	public function validate_authentication( $user ) {
-		$backup_code = isset( $_POST['two-factor-backup-code'] ) ? sanitize_text_field( wp_unslash( $_POST['two-factor-backup-code'] ) ) : '';
+		if ( empty( $_REQUEST['two-factor-backup-code'] ) ) {
+			return false;
+		}
+
+		$backup_code = trim( str_replace( ' ', '', sanitize_text_field( wp_unslash( $_REQUEST['two-factor-backup-code'] ) ) ) ); // phpcs:ignore WordPress.Security.NonceVerification.Recommended, handled by the core method already.
+
 		return $this->validate_code( $user, $backup_code );
 	}
 

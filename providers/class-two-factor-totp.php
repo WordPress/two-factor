@@ -448,10 +448,9 @@ class Two_Factor_Totp extends Two_Factor_Provider {
 			return false;
 		}
 
-		return $this->validate_code_for_user(
-			$user,
-			sanitize_text_field( $_REQUEST['authcode'] )
-		);
+		$code = trim( str_replace( ' ', '', sanitize_text_field( wp_unslash( $_REQUEST['authcode'] ) ) ) ); // phpcs:ignore WordPress.Security.NonceVerification.Recommended, handled by the core method already.
+
+		return $this->validate_code_for_user( $user, $code );
 	}
 
 	/**
@@ -646,7 +645,7 @@ class Two_Factor_Totp extends Two_Factor_Provider {
 		</p>
 		<p>
 			<label for="authcode"><?php esc_html_e( 'Authentication Code:', 'two-factor' ); ?></label>
-			<input type="tel" autocomplete="one-time-code" name="authcode" id="authcode" class="input" value="" size="20" pattern="[0-9]*" placeholder="<?php echo esc_attr( $placeholder ); ?>"  />
+			<input type="tel" autocomplete="one-time-code" name="authcode" id="authcode" class="input" value="" size="20" pattern="[0-9 ]*" placeholder="<?php echo esc_attr( $placeholder ); ?>"  />
 		</p>
 		<script type="text/javascript">
 			setTimeout( function(){
