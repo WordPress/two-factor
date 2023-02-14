@@ -326,11 +326,14 @@ class Two_Factor_Backup_Codes extends Two_Factor_Provider {
 	 */
 	public function authentication_page( $user ) {
 		require_once ABSPATH . '/wp-admin/includes/template.php';
+
+		/* translators: Example auth code. */
+		$placeholder = sprintf( __( 'eg. %s', 'two-factor' ), '12345678' );
 		?>
 		<p class="two-factor-prompt"><?php esc_html_e( 'Enter a backup verification code.', 'two-factor' ); ?></p>
 		<p>
 			<label for="authcode"><?php esc_html_e( 'Verification Code:', 'two-factor' ); ?></label>
-			<input type="tel" name="two-factor-backup-code" id="authcode" class="input" value="" size="20" pattern="[0-9]*" />
+			<input type="tel" name="two-factor-backup-code" id="authcode" class="input" value="" size="20" pattern="[0-9]*" placeholder="<?php echo esc_attr( $placeholder ); ?>" />
 		</p>
 		<?php
 		submit_button( __( 'Submit', 'two-factor' ) );
