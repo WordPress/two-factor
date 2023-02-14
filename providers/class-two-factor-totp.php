@@ -448,7 +448,7 @@ class Two_Factor_Totp extends Two_Factor_Provider {
 			return false;
 		}
 
-		$code = trim( str_replace( ' ', '', sanitize_text_field( wp_unslash( $_REQUEST['authcode'] ) ) ) ); // phpcs:ignore WordPress.Security.NonceVerification.Recommended, handled by the core method already.
+		$code = trim( str_replace( ' ', '', wp_unslash( $_REQUEST['authcode'] ) ) ); // phpcs:ignore WordPress.Security.NonceVerification.Recommended, handled by the core method already.
 
 		return $this->validate_code_for_user( $user, $code );
 	}
