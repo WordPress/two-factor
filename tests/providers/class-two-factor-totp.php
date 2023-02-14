@@ -58,7 +58,7 @@ class Tests_Two_Factor_Totp extends WP_UnitTestCase {
 	 * @covers Two_Factor_Totp::get_label
 	 */
 	public function test_get_label() {
-		$this->assertStringContainsString( 'Time Based One-Time Password (TOTP)', $this->provider->get_label() );
+		$this->assertStringContainsString( 'Authenticator app', $this->provider->get_label() );
 	}
 
 	/**
