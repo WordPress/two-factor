@@ -772,6 +772,9 @@ class Two_Factor_Core {
 			.jetpack-sso-form-display #loginform > div {
 			display: block;
 			}
+			#login form p.two-factor-prompt {
+			margin-bottom: 1em;
+			}
 		</style>
 
 		<?php
