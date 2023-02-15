@@ -176,7 +176,7 @@ class Two_Factor_Totp extends Two_Factor_Provider {
 		$user    = get_user_by( 'id', $user_id );
 
 		$key  = $request['key'];
-		$code = preg_replace( '/\s+/', '', $request['code'] ) );
+		$code = preg_replace( '/\s+/', '', $request['code'] );
 
 		if ( ! $this->is_valid_key( $key ) ) {
 			return new WP_Error( 'invalid_key', __( 'Invalid Two Factor Authentication secret key.', 'two-factor' ), array( 'status' => 400 ) );
