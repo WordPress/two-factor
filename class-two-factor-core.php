@@ -775,6 +775,12 @@ class Two_Factor_Core {
 			#login form p.two-factor-prompt {
 			margin-bottom: 1em;
 			}
+			.input.authcode {
+				letter-spacing: .3em;
+			}
+			.input.authcode::placeholder {
+				opacity: 0.5;
+			}
 		</style>
 
 		<?php
