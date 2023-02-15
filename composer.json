@@ -44,10 +44,10 @@
   "scripts": {
     "lint": "phpcs",
     "lint-php8": "phpcs -p --standard=PHPCompatibilityWP --runtime-set testVersion 8.0- --extensions=php --ignore='vendor/,wordpress/,node_modules/' .",
-    "test": "phpunit",
+    "test": "php -d xdebug.mode=coverage vendor/bin/phpunit",
     "test:watch": [
       "Composer\\Config::disableProcessTimeout",
-      "phpunit-watcher watch"
+      "phpunit-watcher watch --no-coverage"
     ],
     "format": "phpcbf"
   }
