@@ -89,7 +89,7 @@ abstract class Two_Factor_Provider {
 	 * @param string|array $chars Valid auth code characters.
 	 * @return string
 	 */
-	public static function get_code( $length = 8, $chars = '1234567890' ) {
+	public function get_code( $length = 8, $chars = '1234567890' ) {
 		$code = '';
 		if ( is_array( $chars ) ) {
 			$chars = implode( '', $chars );
