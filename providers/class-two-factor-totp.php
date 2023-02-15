@@ -448,11 +448,10 @@ class Two_Factor_Totp extends Two_Factor_Provider {
 	 * @return bool Whether the user gave a valid code
 	 */
 	public function validate_authentication( $user ) {
-		if ( empty( $_REQUEST['authcode'] ) ) {
+		$code = $this->sanitize_code_from_request( 'authcode', self::DEFAULT_DIGIT_COUNT );
+		if ( ! $code ) {
 			return false;
 		}
-
-		$code = trim( str_replace( ' ', '', wp_unslash( $_REQUEST['authcode'] ) ) ); // phpcs:ignore WordPress.Security.NonceVerification.Recommended, handled by the core method already.
 
 		return $this->validate_code_for_user( $user, $code );
 	}

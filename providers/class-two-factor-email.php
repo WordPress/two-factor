@@ -313,12 +313,10 @@ class Two_Factor_Email extends Two_Factor_Provider {
 	 * @return boolean
 	 */
 	public function validate_authentication( $user ) {
-		if ( ! isset( $user->ID ) || ! isset( $_REQUEST['two-factor-email-code'] ) ) {
+		$code = $this->sanitize_code_from_request( 'two-factor-email-code' );
+		if ( ! isset( $user->ID ) || ! $code ) {
 			return false;
 		}
-
-		// Ensure there are no spaces or line breaks around the code.
-		$code = trim( str_replace( ' ', '', wp_unslash( $_REQUEST['two-factor-email-code'] ) ) ); // phpcs:ignore WordPress.Security.NonceVerification.Recommended, handled by the core method already.
 
 		return $this->validate_token( $user->ID, $code );
 	}

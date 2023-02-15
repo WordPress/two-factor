@@ -347,11 +347,10 @@ class Two_Factor_Backup_Codes extends Two_Factor_Provider {
 	 * @return boolean
 	 */
 	public function validate_authentication( $user ) {
-		if ( empty( $_REQUEST['two-factor-backup-code'] ) ) {
+		$backup_code = $this->sanitize_code_from_request( 'two-factor-backup-code' );
+		if ( ! $backup_code ) {
 			return false;
 		}
-
-		$backup_code = trim( str_replace( ' ', '', wp_unslash( $_REQUEST['two-factor-backup-code'] ) ) ); // phpcs:ignore WordPress.Security.NonceVerification.Recommended, handled by the core method already.
 
 		return $this->validate_code( $user, $backup_code );
 	}
