@@ -782,7 +782,20 @@ class Two_Factor_Core {
 				opacity: 0.5;
 			}
 		</style>
-
+		<script>
+			(function() {
+				// Enforce numeric-only input for numeric inputmode elements.
+				var inputEl = document.querySelector( 'input.authcode[inputmode="numeric"]' );
+				if ( inputEl ) {
+					inputEl.addEventListener(
+						'input',
+						function() {
+							this.value = this.value.replace( /[^0-9 ]/g, '' );
+						}
+					);
+				}
+			})();
+		</script>
 		<?php
 		if ( ! function_exists( 'login_footer' ) ) {
 			include_once TWO_FACTOR_DIR . 'includes/function.login-footer.php';
