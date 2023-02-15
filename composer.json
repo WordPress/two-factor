@@ -35,7 +35,7 @@
     "phpcompatibility/phpcompatibility-wp": "dev-master",
     "phpunit/phpunit": "^9.5",
     "roots/wordpress-core-installer": "^1.100",
-    "roots/wordpress-full": "^6.0",
+    "roots/wordpress-full": "~6.0",
     "spatie/phpunit-watcher": "^1.23",
     "wp-coding-standards/wpcs": "^2.3",
     "wp-phpunit/wp-phpunit": "^6.0",
