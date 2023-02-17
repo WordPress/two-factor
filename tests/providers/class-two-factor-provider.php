@@ -26,7 +26,10 @@ class Tests_Two_Factor_Provider extends WP_UnitTestCase {
 		$this->assertEquals( 'AAAAAAAA', $code );
 		
 		$code = Two_Factor_Provider::get_code( 30, array( 'A', 'B', 'C' ) );
-		$this->assertSame( 1, preg_match( '/^[ABC]*$/', $code ) );
+		$this->assertSame( 1, preg_match( '/^[ABC]{30}$/', $code ) );
+
+		$code = Two_Factor_Provider::get_code( 30, 'DEF' );
+		$this->assertSame( 1, preg_match( '/^[DEF]{30}$/', $code ) );
 
 		$code = Two_Factor_Provider::get_code( 8 );
 		$this->assertEquals( 8, strlen( $code ) );
