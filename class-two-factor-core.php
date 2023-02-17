@@ -804,6 +804,14 @@ class Two_Factor_Core {
 							}
 
 							this.value = value;
+
+							// Auto-submit if it's the expected length.
+							if ( expectedLength && value.replace( / /g, '' ).length == expectedLength ) {
+								if ( undefined !== form.requestSubmit ) {
+									form.requestSubmit();
+									form.submit.disabled = "disabled";
+								}
+							}
 						}
 					);
 				}
