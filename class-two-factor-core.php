@@ -614,6 +614,8 @@ class Two_Factor_Core {
 
 		$result = false;
 		if ( $_POST ) {
+			// TODO: Can't just call `process_provider( Dummy_Provider )` as it'll return truthful straight away.
+			//       The provider doesn't require any POST params or the such.
 			$result = self::process_provider( $provider, $user, 'revalidate' );
 		}
 
