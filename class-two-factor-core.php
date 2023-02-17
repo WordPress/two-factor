@@ -594,6 +594,14 @@ class Two_Factor_Core {
 		$user      = wp_get_current_user();
 		$providers = self::get_available_providers_for_user( $user );
 
+		// Default to the currently logged in provider.
+		if ( ! $provider ) {
+			$session = WP_Session_Tokens::get_instance( $user->ID )->get( wp_get_session_token() );
+			if ( ! empty( $session['two-factor-provider'] )	) {
+				$provider = $session['two-factor-provider'];
+			}
+		}
+
 		if ( $provider && isset( $providers[ $provider ] ) ) {
 			$provider = $providers[ $provider ];
 		} else {
