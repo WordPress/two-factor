@@ -90,6 +90,7 @@ class Two_Factor_Core {
 		add_action( 'init', array( __CLASS__, 'get_providers' ) );
 		add_action( 'wp_login', array( __CLASS__, 'wp_login' ), 10, 2 );
 		add_action( 'login_form_validate_2fa', array( __CLASS__, 'login_form_validate_2fa' ) );
+		add_action( 'login_form_revalidate_2fa', array( __CLASS__, 'login_form_revalidate_2fa' ) );
 		add_action( 'show_user_profile', array( __CLASS__, 'user_two_factor_options' ) );
 		add_action( 'edit_user_profile', array( __CLASS__, 'user_two_factor_options' ) );
 		add_action( 'personal_options_update', array( __CLASS__, 'user_two_factor_options_update' ) );
@@ -574,6 +575,33 @@ class Two_Factor_Core {
 		$redirect_to = isset( $_REQUEST['redirect_to'] ) ? $_REQUEST['redirect_to'] : admin_url();
 
 		self::login_html( $user, $login_nonce['key'], $redirect_to );
+	}
+
+	/**
+	 * Display the "Revalidate Two Factor" page.
+	 *
+	 * @since 0.8.0
+	 */
+	public static function login_form_revalidate_2fa() {
+		$provider    = filter_input( INPUT_GET, 'provider', FILTER_CALLBACK, array( 'options' => 'sanitize_text_field' ) );
+		$redirect_to = filter_input( INPUT_GET, 'redirect_to', FILTER_SANITIZE_URL );
+
+		if ( ! is_user_logged_in() ) {
+			wp_safe_redirect( home_url() );
+			exit;
+		}
+
+		$user      = wp_get_current_user();
+		$providers = self::get_available_providers_for_user( $user );
+		$provider  = isset( $providers[ $provider ] ) ? $providers[ $provider ] : array_shift( $providers );
+
+		if ( ! $providers || ! $provider ) {
+			wp_die( esc_html__( 'Cheatin&#8217; uh?', 'two-factor' ), 403 );
+		}
+
+		self::login_html( $user, '', $redirect_to, '', $provider, 'revalidate_2fa' );
+
+		exit;
 	}
 
 	/**
