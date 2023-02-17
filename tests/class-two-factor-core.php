@@ -569,7 +569,7 @@ class Test_ClassTwoFactorCore extends WP_UnitTestCase {
 	public function test_no_reset_notice_when_no_errors() {
 		$errors = new WP_Error();
 		Two_Factor_Core::maybe_show_reset_password_notice( $errors );
-		$this->assertEmpty( $errors->get_error_messages() );
+		$this->assertCount( 0, $errors->get_error_codes() );
 	}
 
 	/**
@@ -578,6 +578,7 @@ class Test_ClassTwoFactorCore extends WP_UnitTestCase {
 	public function test_no_reset_notice_when_different_error() {
 		$errors = new WP_Error( 'foo_bar', 'Foo Bar' );
 		Two_Factor_Core::maybe_show_reset_password_notice( $errors );
+		$this->assertCount( 1, $errors->get_error_codes() );
 		$this->assertSame( 'foo_bar', $errors->get_error_code() );
 	}
 
@@ -660,7 +661,7 @@ class Test_ClassTwoFactorCore extends WP_UnitTestCase {
 		// Simulate entered password but failed 2FA too many times.
 		Two_Factor_Core::create_login_nonce( $user->ID );
 		update_user_meta( $user->ID, Two_Factor_Core::USER_RATE_LIMIT_KEY, time() );
-		update_user_meta( $user->ID, Two_Factor_Core::USER_FAILED_LOGIN_ATTEMPTS_KEY, 31 );
+		update_user_meta( $user->ID, Two_Factor_Core::USER_FAILED_LOGIN_ATTEMPTS_KEY, 30 );
 
 		Two_Factor_Core::reset_compromised_password( $user );
 		$user = get_user_by( 'id', $user->ID );

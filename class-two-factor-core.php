@@ -651,8 +651,8 @@ class Two_Factor_Core {
 	/**
 	 * Show the password reset notice if the user's password was reset.
 	 *
-	 * This is needed because they may not have received the email notification that was sent in
-	 * `send_password_reset_email()`.
+	 * They were also sent an email notification in `send_password_reset_email()`, but email sent from a typical
+	 * web server is not reliable enough to trust completely.
 	 *
 	 * @param WP_Error $errors
 	 */
@@ -1186,7 +1186,7 @@ class Two_Factor_Core {
 		/**
 		 * Filters the maximum number of failed attempts on a 2nd factor before the user's
 		 * password will be reset. After a reasonable number of attempts, it's safe to assume
-		 * that the password been compromised and an attacker is trying to brute force the 2nd
+		 * that the password has been compromised and an attacker is trying to brute force the 2nd
 		 * factor.
 		 *
 		 * ⚠️ `get_user_time_delay()` mitigates brute force attempts, but many 2nd factors --
@@ -1204,13 +1204,9 @@ class Two_Factor_Core {
 	/**
 	 * Reset a compromised password.
 	 *
-	 * After a reasonable number of 2nd-factor attempts, it's safe to assume that the password been compromised
-	 * and an attacker is trying to brute force the 2nd factor. `is_user_rate_limited()` mitigates brute force
-	 * attempts, but many 2nd factors -- like TOTP and backup codes -- are very weak on their own, so it's not
-	 * safe to give attackers unlimited attempts.
-	 *
 	 * If we know that the the password is compromised, we have the responsibility to reset it and inform the
-	 * user. That will guarantee that attackers can't brute force it (unless they compromise the new password).
+	 * user. `get_user_time_delay()` mitigates brute force attempts, but this acts as an extra layer of defense
+	 * which guarantees that attackers can't brute force it (unless they compromise the new password).
 	 *
 	 * @param WP_User $user The user who failed to login
 	 */
@@ -1244,7 +1240,7 @@ class Two_Factor_Core {
 		$notify_admin = apply_filters( 'two_factor_notify_admin_user_password_reset', true );
 		$admin_email  = get_option( 'admin_email' );
 
-		if ( $user->user_email !== $admin_email && $notify_admin ) {
+		if ( $notify_admin && $admin_email !== $user->user_email ) {
 			self::notify_admin_user_password_reset( $user );
 		}
 	}
