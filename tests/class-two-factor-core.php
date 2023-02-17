@@ -113,13 +113,6 @@ class Test_ClassTwoFactorCore extends WP_UnitTestCase {
 				array( 'Two_Factor_Core', 'login_form_validate_2fa' )
 			)
 		);
-		$this->assertGreaterThan(
-			0,
-			has_action(
-				'login_form_backup_2fa',
-				array( 'Two_Factor_Core', 'backup_2fa' )
-			)
-		);
 	}
 
 	/**
