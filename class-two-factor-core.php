@@ -90,7 +90,6 @@ class Two_Factor_Core {
 		add_action( 'init', array( __CLASS__, 'get_providers' ) );
 		add_action( 'wp_login', array( __CLASS__, 'wp_login' ), 10, 2 );
 		add_action( 'login_form_validate_2fa', array( __CLASS__, 'login_form_validate_2fa' ) );
-		add_action( 'login_form_backup_2fa', array( __CLASS__, 'backup_2fa' ) );
 		add_action( 'show_user_profile', array( __CLASS__, 'user_two_factor_options' ) );
 		add_action( 'edit_user_profile', array( __CLASS__, 'user_two_factor_options' ) );
 		add_action( 'personal_options_update', array( __CLASS__, 'user_two_factor_options_update' ) );
@@ -578,43 +577,6 @@ class Two_Factor_Core {
 	}
 
 	/**
-	 * Display the Backup code 2fa screen.
-	 *
-	 * @since 0.1-dev
-	 */
-	public static function backup_2fa() {
-		$wp_auth_id = filter_input( INPUT_GET, 'wp-auth-id', FILTER_SANITIZE_NUMBER_INT );
-		$nonce      = filter_input( INPUT_GET, 'wp-auth-nonce', FILTER_CALLBACK, array( 'options' => 'sanitize_key' ) );
-		$provider   = filter_input( INPUT_GET, 'provider', FILTER_CALLBACK, array( 'options' => 'sanitize_text_field' ) );
-
-		if ( ! $wp_auth_id || ! $nonce || ! $provider ) {
-			return;
-		}
-
-		$user = get_userdata( $wp_auth_id );
-		if ( ! $user ) {
-			return;
-		}
-
-		if ( true !== self::verify_login_nonce( $user->ID, $nonce ) ) {
-			wp_safe_redirect( home_url() );
-			exit;
-		}
-
-		$providers = self::get_available_providers_for_user( $user );
-		if ( isset( $providers[ $provider ] ) ) {
-			$provider = $providers[ $provider ];
-		} else {
-			wp_die( esc_html__( 'Cheatin&#8217; uh?', 'two-factor' ), 403 );
-		}
-
-		$redirect_to = filter_input( INPUT_GET, 'redirect_to', FILTER_SANITIZE_URL );
-		self::login_html( $user, $nonce, $redirect_to, '', $provider );
-
-		exit;
-	}
-
-	/**
 	 * Displays a message informing the user that their account has had failed login attempts.
 	 *
 	 * @param WP_User $user WP_User object of the logged-in user.
@@ -650,7 +612,7 @@ class Two_Factor_Core {
 	 * @param string        $error_msg Optional. Login error message.
 	 * @param string|object $provider An override to the provider.
 	 */
-	public static function login_html( $user, $login_nonce, $redirect_to, $error_msg = '', $provider = null ) {
+	public static function login_html( $user, $login_nonce, $redirect_to, $error_msg = '', $provider = null, $action = 'validate_2fa' ) {
 		if ( empty( $provider ) ) {
 			$provider = self::get_primary_provider_for_user( $user->ID );
 		} elseif ( is_string( $provider ) && method_exists( $provider, 'get_instance' ) ) {
@@ -679,7 +641,7 @@ class Two_Factor_Core {
 		}
 		?>
 
-		<form name="validate_2fa_form" id="loginform" action="<?php echo esc_url( self::login_url( array( 'action' => 'validate_2fa' ), 'login_post' ) ); ?>" method="post" autocomplete="off">
+		<form name="validate_2fa_form" id="loginform" action="<?php echo esc_url( self::login_url( array( 'action' => $action ), 'login_post' ) ); ?>" method="post" autocomplete="off">
 				<input type="hidden" name="provider"      id="provider"      value="<?php echo esc_attr( $provider_class ); ?>" />
 				<input type="hidden" name="wp-auth-id"    id="wp-auth-id"    value="<?php echo esc_attr( $user->ID ); ?>" />
 				<input type="hidden" name="wp-auth-nonce" id="wp-auth-nonce" value="<?php echo esc_attr( $login_nonce ); ?>" />
@@ -699,7 +661,7 @@ class Two_Factor_Core {
 			$backup_provider  = $backup_providers[ $backup_classname ];
 			$login_url        = self::login_url(
 				array(
-					'action'        => 'backup_2fa',
+					'action'        => $action,
 					'provider'      => $backup_classname,
 					'wp-auth-id'    => $user->ID,
 					'wp-auth-nonce' => $login_nonce,
@@ -735,7 +697,7 @@ class Two_Factor_Core {
 					foreach ( $backup_providers as $backup_classname => $backup_provider ) :
 						$login_url = self::login_url(
 							array(
-								'action'        => 'backup_2fa',
+								'action'        => $action,
 								'provider'      => $backup_classname,
 								'wp-auth-id'    => $user->ID,
 								'wp-auth-nonce' => $login_nonce,
