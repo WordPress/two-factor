@@ -1075,6 +1075,19 @@ class Two_Factor_Core {
 			$rememberme = true;
 		}
 
+		// Create a new User session
+		$expiration = time() + apply_filters( 'auth_cookie_expiration', ( $rememberme ? 14 : 2 ) * DAY_IN_SECONDS, $user->ID, $rememberme );
+		$manager    = WP_Session_Tokens::get_instance( $user->ID );
+		$token      = $manager->create( $expiration );
+		$session    = $manager->get( $token );
+
+		// Append the Two Factor session data
+		$session['two-factor-login']    = time();
+		$session['two-factor-provider'] = get_class( $provider );
+
+		// Save it in the session and create the cookie with it.
+		$manager->update( $token, $session );
+
 		/*
 		 * NOTE: This filter removal is not normally required, this is included for protection against
 		 * a plugin/two factor provider which runs the `authenticate` filter during it's validation.
@@ -1082,25 +1095,9 @@ class Two_Factor_Core {
 		 */
 		remove_filter( 'send_auth_cookies', '__return_false', PHP_INT_MAX );
 
-		// Attach two-factor status to the session.
-		add_filter( 'attach_session_information',
-			function( $session, $user_id ) use( $user, $provider ) {
-				if ( $user_id !== $user->ID ) {
-					return $session;
-				}
+		wp_set_auth_cookie( $user->ID, $rememberme, '', $token );
 
-				$session['two-factor-timestamp'] = time();
-				$session['two-factor-provider']  = get_class( $provider );
-
-				return $session;
-			},
-			10,
-			2
-		);
-
-		wp_set_auth_cookie( $user->ID, $rememberme );
-
-		do_action( 'two_factor_user_authenticated', $user );
+		do_action( 'two_factor_user_authenticated', $user, $provider, $token );
 
 		// Must be global because that's how login_header() uses it.
 		global $interim_login;
