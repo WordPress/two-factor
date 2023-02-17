@@ -369,10 +369,13 @@ class Two_Factor_Backup_Codes extends Two_Factor_Provider {
 			foreach ( $backup_codes as $code_index => $code_hashed ) {
 				if ( wp_check_password( $code, $code_hashed, $user->ID ) ) {
 					$this->delete_code( $user, $code_hashed );
+					Two_Factor_Core::broadcast( 'backup_code_used', compact( 'user' ) );
 					return true;
 				}
 			}
 		}
+
+		Two_Factor_Core::broadcast( 'backup_code_invalid', compact( 'user' ) );
 		return false;
 	}
 
