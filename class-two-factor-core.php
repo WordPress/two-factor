@@ -584,22 +584,22 @@ class Two_Factor_Core {
 	 */
 	public static function login_form_revalidate_2fa() {
 		$provider    = filter_input( INPUT_GET, 'provider', FILTER_CALLBACK, array( 'options' => 'sanitize_text_field' ) );
-		$redirect_to = filter_input( INPUT_GET, 'redirect_to', FILTER_SANITIZE_URL );
+		$redirect_to = filter_input( INPUT_GET, 'redirect_to', FILTER_SANITIZE_URL ) ?: '';
 
 		if ( ! is_user_logged_in() ) {
 			wp_safe_redirect( home_url() );
 			exit;
 		}
 
-		$user      = wp_get_current_user();
-		$providers = self::get_available_providers_for_user( $user );
+		$user            = wp_get_current_user();
+		$session_token   = wp_get_session_token();
+		$session_manager = WP_Session_Tokens::get_instance( $user->ID );
+		$session         = $session_manager->get( $session_token );
+		$providers       = self::get_available_providers_for_user( $user );
 
 		// Default to the currently logged in provider.
-		if ( ! $provider ) {
-			$session = WP_Session_Tokens::get_instance( $user->ID )->get( wp_get_session_token() );
-			if ( ! empty( $session['two-factor-provider'] )	) {
-				$provider = $session['two-factor-provider'];
-			}
+		if ( ! $provider && ! empty( $session['two-factor-provider'] )	) {
+			$provider = $session['two-factor-provider'];
 		}
 
 		if ( $provider && isset( $providers[ $provider ] ) ) {
@@ -612,7 +612,49 @@ class Two_Factor_Core {
 			wp_die( esc_html__( 'Cheatin&#8217; uh?', 'two-factor' ), 403 );
 		}
 
-		self::login_html( $user, '', $redirect_to, '', $provider, 'revalidate_2fa' );
+		$result = false;
+		if ( $_POST ) {
+			$result = self::process_provider( $provider, $user, 'revalidate' );
+		}
+
+		if ( true !== $result ) {
+			$error = '';
+			if ( is_wp_error( $result ) ) {
+				do_action( 'wp_login_failed', $user->user_login, $result );
+
+				$error = $result->get_error_message();
+			}
+
+			self::login_html( $user, '', $redirect_to, $error, $provider, 'revalidate_2fa' );
+			exit;
+		}
+
+		$session['two-factor-provider'] = get_class( $provider );
+		$session['two-factor-login']    = time();
+
+		$session_manager->update( $session_token, $session );
+
+		// Must be global because that's how login_header() uses it.
+		global $interim_login;
+		$interim_login = isset( $_REQUEST['interim-login'] ); // phpcs:ignore WordPress.WP.GlobalVariablesOverride.Prohibited,WordPress.Security.NonceVerification.Recommended
+
+		if ( $interim_login ) {
+			$message       = '<p class="message">' . __( 'You have re-authenticated successfully.', 'two-factor' ) . '</p>';
+			$interim_login = 'success'; // phpcs:ignore WordPress.WP.GlobalVariablesOverride.Prohibited
+			login_header( '', $message );
+			?>
+			</div>
+			<?php
+			/** This action is documented in wp-login.php */
+			do_action( 'login_footer' );
+			?>
+			</body></html>
+			<?php
+			exit;
+		}
+
+		$redirect_to = apply_filters( 'login_redirect', $redirect_to, $redirect_to, $user );
+		wp_safe_redirect( $redirect_to );
 
 		exit;
 	}
@@ -1017,13 +1059,11 @@ class Two_Factor_Core {
 
 		$result = self::process_provider( $provider, $user );
 		if ( true !== $result ) {
+			$error = '';
 			if ( is_wp_error( $result ) ) {
 				do_action( 'wp_login_failed', $user->user_login, $result );
 
 				$error = $result->get_error_message();
-			} elseif ( ! $result ) {
-				// pre_process_authentication must have triggered and sent something.
-				$error = '';
 			}
 
 			$login_nonce = self::create_login_nonce( $user->ID );
@@ -1031,7 +1071,7 @@ class Two_Factor_Core {
 				wp_die( esc_html__( 'Failed to create a login nonce.', 'two-factor' ) );
 			}
 
-			self::login_html( $user, $login_nonce['key'], $_REQUEST['redirect_to'], $error, $provider );
+			self::login_html( $user, $login_nonce['key'], $_REQUEST['redirect_to'], $error, $provider, 'validate_2fa' );
 			exit;
 		}
 
