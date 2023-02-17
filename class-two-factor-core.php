@@ -785,12 +785,25 @@ class Two_Factor_Core {
 		<script>
 			(function() {
 				// Enforce numeric-only input for numeric inputmode elements.
-				var inputEl = document.querySelector( 'input.authcode[inputmode="numeric"]' );
+				const form = document.querySelector( '#loginform' ),
+					inputEl = document.querySelector( 'input.authcode[inputmode="numeric"]' ),
+					expectedLength = inputEl?.dataset.digits || 0;
+
 				if ( inputEl ) {
+					let spaceInserted = false;
 					inputEl.addEventListener(
 						'input',
 						function() {
-							this.value = this.value.replace( /[^0-9 ]/g, '' );
+							let value = this.value.replace( /[^0-9 ]/g, '' ).trimStart();
+
+							if ( ! spaceInserted && expectedLength && value.length === Math.floor( expectedLength / 2 ) ) {
+								value += ' ';
+								spaceInserted = true;
+							} else if ( spaceInserted && ! this.value ) {
+								spaceInserted = false;
+							}
+
+							this.value = value;
 						}
 					);
 				}
