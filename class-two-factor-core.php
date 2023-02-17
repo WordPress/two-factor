@@ -1185,6 +1185,31 @@ class Two_Factor_Core {
 			$primary_provider_key = null;
 		}
 
+		$session = WP_Session_Tokens::get_instance( $user->ID )->get( wp_get_session_token() );
+
+		if ( ! empty( $session['two-factor-login'] ) ) {
+			printf(
+				'<div class="notice notice-info"><p>%s</p></div>',
+				sprintf(
+					'You are currently logged in with a session from %s. <br>' .
+						'Your 2FA token was last confirmed at %s.<br>' .
+						'Your 2FA method for login was %s.',
+					'<code>' . date( 'r', $session['login'] ) . '</code>',
+					'<code>' . date( 'r', $session['two-factor-login'] ) . '</code>' . ( absint( $session['login'] - $session['two-factor-login'] ) < 5 ? ' (At login time)' : ' (' . human_time_diff( $session['login'], $session['two-factor-login'] ) . ' after login)'),
+					'<code>' . esc_html( $session['two-factor-provider'] ) . '</code>'
+				)
+			);
+		} else {
+			printf(
+				'<div class="notice notice-warning"><p>%s</p></div>',
+				sprintf(
+					'You are currently logged in with a session from %s. <br>' .
+						'<strong>You are NOT using a Two Factor session.</strong>',
+					'<code>' . date( 'r', $session['login'] ) . '</code>'
+				)
+			);
+		}
+
 		wp_nonce_field( 'user_two_factor_options', '_nonce_user_two_factor_options', false );
 
 		?>
