@@ -593,9 +593,14 @@ class Two_Factor_Core {
 
 		$user      = wp_get_current_user();
 		$providers = self::get_available_providers_for_user( $user );
-		$provider  = isset( $providers[ $provider ] ) ? $providers[ $provider ] : array_shift( $providers );
 
-		if ( ! $providers || ! $provider ) {
+		if ( $provider && isset( $providers[ $provider ] ) ) {
+			$provider = $providers[ $provider ];
+		} else {
+			$provider = self::get_primary_provider_for_user( $user->ID );
+		}
+
+		if ( ! $provider  ) {
 			wp_die( esc_html__( 'Cheatin&#8217; uh?', 'two-factor' ), 403 );
 		}
 
