@@ -1204,6 +1204,23 @@ class Two_Factor_Core {
 		 * Such a plugin would cause self::filter_authenticate_block_cookies() to run and add this filter.
 		 */
 		remove_filter( 'send_auth_cookies', '__return_false', PHP_INT_MAX );
+
+		// Attach two-factor status to the session.
+		add_filter( 'attach_session_information',
+			function( $session, $user_id ) use( $user, $provider ) {
+				if ( $user_id !== $user->ID ) {
+					return $session;
+				}
+
+				$session['two-factor-timestamp'] = time();
+				$session['two-factor-provider']  = get_class( $provider );
+
+				return $session;
+			},
+			10,
+			2
+		);
+
 		wp_set_auth_cookie( $user->ID, $rememberme );
 
 		do_action( 'two_factor_user_authenticated', $user );
