@@ -1002,57 +1002,23 @@ class Two_Factor_Core {
 			$provider = self::get_primary_provider_for_user( $user->ID );
 		}
 
-		// Allow the provider to re-send codes, etc.
-		if ( true === $provider->pre_process_authentication( $user ) ) {
-			$login_nonce = self::create_login_nonce( $user->ID );
-			if ( ! $login_nonce ) {
-				wp_die( esc_html__( 'Failed to create a login nonce.', 'two-factor' ) );
+		$result = self::process_provider( $provider, $user );
+		if ( true !== $result ) {
+			if ( is_wp_error( $result ) ) {
+				do_action( 'wp_login_failed', $user->user_login, $result );
+
+				$error = $result->get_error_message();
+			} elseif ( ! $result ) {
+				// pre_process_authentication must have triggered and sent something.
+				$error = '';
 			}
-
-			self::login_html( $user, $login_nonce['key'], $_REQUEST['redirect_to'], '', $provider );
-			exit;
-		}
-
-		// Rate limit two factor authentication attempts.
-		if ( true === self::is_user_rate_limited( $user ) ) {
-			$time_delay = self::get_user_time_delay( $user );
-			$last_login = get_user_meta( $user->ID, self::USER_RATE_LIMIT_KEY, true );
-
-			$error = new WP_Error(
-				'two_factor_too_fast',
-				sprintf(
-					__( 'ERROR: Too many invalid verification codes, you can try again in %s. This limit protects your account against automated attacks.', 'two-factor' ),
-					human_time_diff( $last_login + $time_delay )
-				)
-			);
-
-			do_action( 'wp_login_failed', $user->user_login, $error );
 
 			$login_nonce = self::create_login_nonce( $user->ID );
 			if ( ! $login_nonce ) {
 				wp_die( esc_html__( 'Failed to create a login nonce.', 'two-factor' ) );
 			}
 
-			self::login_html( $user, $login_nonce['key'], $_REQUEST['redirect_to'], esc_html( $error->get_error_message() ), $provider );
-			exit;
-		}
-
-		// Ask the provider to verify the second factor.
-		if ( true !== $provider->validate_authentication( $user ) ) {
-			do_action( 'wp_login_failed', $user->user_login, new WP_Error( 'two_factor_invalid', __( 'ERROR: Invalid verification code.', 'two-factor' ) ) );
-
-			// Store the last time a failed login occured.
-			update_user_meta( $user->ID, self::USER_RATE_LIMIT_KEY, time() );
-
-			// Store the number of failed login attempts.
-			update_user_meta( $user->ID, self::USER_FAILED_LOGIN_ATTEMPTS_KEY, 1 + (int) get_user_meta( $user->ID, self::USER_FAILED_LOGIN_ATTEMPTS_KEY, true ) );
-
-			$login_nonce = self::create_login_nonce( $user->ID );
-			if ( ! $login_nonce ) {
-				wp_die( esc_html__( 'Failed to create a login nonce.', 'two-factor' ) );
-			}
-
-			self::login_html( $user, $login_nonce['key'], $_REQUEST['redirect_to'], esc_html__( 'ERROR: Invalid verification code.', 'two-factor' ), $provider );
+			self::login_html( $user, $login_nonce['key'], $_REQUEST['redirect_to'], $error, $provider );
 			exit;
 		}
 
@@ -1118,6 +1084,51 @@ class Two_Factor_Core {
 		wp_safe_redirect( $redirect_to );
 
 		exit;
+	}
+
+	/**
+	 * Process the 2FA provider authentication.
+	 *
+	 * @param object  $provider The Two Factor Provider.
+	 * @param WP_User $user     The user being authenticated.
+	 * @return false|WP_Error|true WP_Error when an error occurs, true when the user is authenticated, false otherwise.
+	 */
+	public static function process_provider( $provider, $user ) {
+
+		// Allow the provider to re-send codes, etc.
+		if ( true === $provider->pre_process_authentication( $user ) ) {
+			return false;
+		}
+
+		// Rate limit two factor authentication attempts.
+		if ( true === self::is_user_rate_limited( $user ) ) {
+			$time_delay = self::get_user_time_delay( $user );
+			$last_login = get_user_meta( $user->ID, self::USER_RATE_LIMIT_KEY, true );
+
+			return new WP_Error(
+				'two_factor_too_fast',
+				sprintf(
+					__( 'ERROR: Too many invalid verification codes, you can try again in %s. This limit protects your account against automated attacks.', 'two-factor' ),
+					human_time_diff( $last_login + $time_delay )
+				)
+			);
+		}
+
+		// Ask the provider to verify the second factor.
+		if ( true !== $provider->validate_authentication( $user ) ) {
+			// Store the last time a failed login occured.
+			update_user_meta( $user->ID, self::USER_RATE_LIMIT_KEY, time() );
+
+			// Store the number of failed login attempts.
+			update_user_meta( $user->ID, self::USER_FAILED_LOGIN_ATTEMPTS_KEY, 1 + (int) get_user_meta( $user->ID, self::USER_FAILED_LOGIN_ATTEMPTS_KEY, true ) );
+
+			return new WP_Error(
+				'two_factor_invalid',
+				__( 'ERROR: Invalid verification code.', 'two-factor' )
+			);
+		}
+
+		return true;
 	}
 
 	/**
