@@ -670,7 +670,7 @@ class Two_Factor_Core {
 				<?php if ( $interim_login ) { ?>
 					<input type="hidden" name="interim-login" value="1" />
 				<?php } else { ?>
-					<input type="hidden" name="redirect_to" value="<?php echo esc_attr( $redirect_to ); ?>" />
+					<input type="hidden" name="redirect_to" value="<?php echo sanitize_url( $redirect_to ); ?>" />
 				<?php } ?>
 				<input type="hidden" name="rememberme"    id="rememberme"    value="<?php echo esc_attr( $rememberme ); ?>" />
 
@@ -679,7 +679,7 @@ class Two_Factor_Core {
 
 		<?php
 		$backup_link_args = array(
-			'action'        => $action,
+			'action' => $action,
 		);
 		if ( $rememberme ) {
 			$backup_link_args['rememberme'] = $rememberme;
@@ -1107,7 +1107,7 @@ class Two_Factor_Core {
 	 */
 	public static function login_form_revalidate_2fa() {
 		$provider    = ! empty( $_REQUEST['provider'] )    ? sanitize_text_field( wp_unslash( $_REQUEST['provider'] ) ) : false;
-		$redirect_to = ! empty( $_REQUEST['redirect_to'] ) ? wp_unslash( $_REQUEST['redirect_to'] )                     : false;
+		$redirect_to = ! empty( $_REQUEST['redirect_to'] ) ? wp_unslash( $_REQUEST['redirect_to'] )                     : admin_url();
 
 		if ( ! is_user_logged_in() ) {
 			wp_safe_redirect( home_url() );
