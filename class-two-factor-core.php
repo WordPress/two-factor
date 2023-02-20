@@ -979,10 +979,8 @@ class Two_Factor_Core {
 			wp_die( esc_html__( 'Cheatin&#8217; uh?', 'two-factor' ), 403 );
 		}
 
-		$result = false;
-		if ( true !== $provider->pre_process_authentication( $user ) ) {
-			$result = self::process_provider( $provider, $user, 'revalidate' );
-		}
+		// Run the provider processing.
+		$result = self::process_provider( $provider, $user );
 
 		if ( true !== $result ) {
 			$error = '';
@@ -1100,10 +1098,8 @@ class Two_Factor_Core {
 			wp_die( esc_html__( 'Cheatin&#8217; uh?', 'two-factor' ), 403 );
 		}
 
-		$result = false;
-		if ( true !== $provider->pre_process_authentication( $user ) ) {
-			$result = self::process_provider( $provider, $user, 'revalidate' );
-		}
+		// Run the provider processing.
+		$result = self::process_provider( $provider, $user, 'revalidate' );
 
 		if ( true !== $result ) {
 			$error = '';
@@ -1152,9 +1148,15 @@ class Two_Factor_Core {
 	 *
 	 * @param object  $provider The Two Factor Provider.
 	 * @param WP_User $user     The user being authenticated.
-	 * @return false|WP_Error|true WP_Error when an error occurs, true when the user is authenticated, false maybe otherwise.
+	 * @return false|WP_Error|true WP_Error when an error occurs, true when the user is authenticated, false if no action occured.
 	 */
 	public static function process_provider( $provider, $user ) {
+
+		// Allow the provider to re-send codes, etc.
+		if ( true === $provider->pre_process_authentication( $user ) ) {
+			return false;
+		}
+
 		// Rate limit two factor authentication attempts.
 		if ( true === self::is_user_rate_limited( $user ) ) {
 			$time_delay = self::get_user_time_delay( $user );
