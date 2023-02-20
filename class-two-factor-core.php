@@ -1351,6 +1351,14 @@ class Two_Factor_Core {
 			}
 		}
 
+		// This is specific to the current session, not the displayed user.
+		$show_2fa_options = self::current_user_can_update_two_factor_options();
+
+		printf(
+			'<fieldset id="two-factor-options" %s>',
+			$show_2fa_options ? '' : 'disabled="disabled"',
+		);
+
 		wp_nonce_field( 'user_two_factor_options', '_nonce_user_two_factor_options', false );
 		?>
 		<input type="hidden" name="<?php echo esc_attr( self::ENABLED_PROVIDERS_USER_META_KEY ); ?>[]" value="<?php /* Dummy input so $_POST value is passed when no providers are enabled. */ ?>" />
@@ -1396,6 +1404,7 @@ class Two_Factor_Core {
 				</td>
 			</tr>
 		</table>
+		</fieldset>
 		<?php
 
 		/**
