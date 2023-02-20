@@ -984,11 +984,11 @@ class Two_Factor_Core {
 	/**
 	 * Determine if the current user session can update Two-Factor settings.
 	 *
-	 * @param int $valid_ticks The number of 'ticks' that are valid. Saving options should be twice the display.
+	 * @param string $context The context in use, 'display' or 'save'. Save has twice the grace time.
 	 *
 	 * @return bool
 	 */
-	public static function current_user_can_update_two_factor_options( $valid_ticks = 1 ) {
+	public static function current_user_can_update_two_factor_options( $context = 'display' ) {
 		$user_id               = get_current_user_id();
 		$is_two_factor_session = self::is_current_user_session_two_factor();
 
@@ -1004,7 +1004,10 @@ class Two_Factor_Core {
 
 		$two_factor_revalidate_time = 10 * MINUTE_IN_SECONDS;
 		/** TODO: Add filter */
-		$two_factor_revalidate_time *= $valid_ticks;
+
+		if ( $context === 'save' ) {
+			$two_factor_revalidate_time *= 2;
+		}
 
 		// If the user last-2fa'd within the last 15 minutes, allow.
 		$seconds_ago = time() - $is_two_factor_session;
@@ -1349,10 +1352,9 @@ class Two_Factor_Core {
 		}
 
 		wp_nonce_field( 'user_two_factor_options', '_nonce_user_two_factor_options', false );
-
 		?>
 		<input type="hidden" name="<?php echo esc_attr( self::ENABLED_PROVIDERS_USER_META_KEY ); ?>[]" value="<?php /* Dummy input so $_POST value is passed when no providers are enabled. */ ?>" />
-		<table class="form-table" id="two-factor-options">
+		<table class="form-table">
 			<tr>
 				<th>
 					<?php esc_html_e( 'Two-Factor Options', 'two-factor' ); ?>
@@ -1395,6 +1397,7 @@ class Two_Factor_Core {
 			</tr>
 		</table>
 		<?php
+
 		/**
 		 * Fires after the Two Factor methods table.
 		 *
@@ -1455,6 +1458,10 @@ class Two_Factor_Core {
 
 			if ( ! isset( $_POST[ self::ENABLED_PROVIDERS_USER_META_KEY ] ) ||
 					! is_array( $_POST[ self::ENABLED_PROVIDERS_USER_META_KEY ] ) ) {
+				return;
+			}
+
+			if ( ! self::current_user_can_update_two_factor_options( 'save' ) ) {
 				return;
 			}
 
