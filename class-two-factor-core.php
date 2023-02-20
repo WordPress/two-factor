@@ -661,23 +661,32 @@ class Two_Factor_Core {
 		</form>
 
 		<?php
+		$backup_link_args = array(
+			'action'        => $action,
+		);
+		if ( $rememberme ) {
+			$backup_link_args['rememberme'] = $rememberme;
+		}
+		if ( $login_nonce ) {
+			$backup_link_args['wp-auth-id']    = $user->ID;
+			$backup_link_args['wp-auth-nonce'] = $login_nonce;
+		}
+		if ( $redirect_to ) {
+			$backup_link_args['redirect_to'] = $redirect_to;
+		}
+		if ( $interim_login ) {
+			$backup_link_args['interim-login'] = 1;
+		}
+
 		if ( 1 === count( $backup_providers ) ) :
 			$backup_classname = key( $backup_providers );
 			$backup_provider  = $backup_providers[ $backup_classname ];
-			$login_url        = self::login_url(
-				array(
-					'action'        => $action,
-					'provider'      => $backup_classname,
-					'wp-auth-id'    => $user->ID,
-					'wp-auth-nonce' => $login_nonce,
-					'redirect_to'   => $redirect_to,
-					'rememberme'    => $rememberme,
-				)
-			);
+
+			$backup_link_args['provider'] = $backup_classname;
 			?>
 			<div class="backup-methods-wrap">
 				<p class="backup-methods">
-					<a href="<?php echo esc_url( $login_url ); ?>">
+					<a href="<?php echo esc_url( self::login_url( $backup_link_args ) ); ?>">
 						<?php
 						echo esc_html(
 							sprintf(
@@ -700,19 +709,10 @@ class Two_Factor_Core {
 				<ul class="backup-methods">
 					<?php
 					foreach ( $backup_providers as $backup_classname => $backup_provider ) :
-						$login_url = self::login_url(
-							array(
-								'action'        => $action,
-								'provider'      => $backup_classname,
-								'wp-auth-id'    => $user->ID,
-								'wp-auth-nonce' => $login_nonce,
-								'redirect_to'   => $redirect_to,
-								'rememberme'    => $rememberme,
-							)
-						);
+						$backup_link_args['provider'] = $backup_classname;
 						?>
 						<li>
-							<a href="<?php echo esc_url( $login_url ); ?>">
+							<a href="<?php echo esc_url( self::login_url( $backup_link_args ) ); ?>">
 								<?php echo esc_html( $backup_provider->get_label() ); ?>
 							</a>
 						</li>
