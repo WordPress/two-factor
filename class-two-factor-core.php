@@ -260,6 +260,23 @@ class Two_Factor_Core {
 	}
 
 	/**
+	 * Get the two-factor revalidate URL.
+	 *
+	 * @param bool $interim If the URL should load the interim login iframe modal.
+	 * @return string
+	 */
+	protected static function get_user_two_factor_revalidate_url( $interim = false ) {
+		$args = array(
+			'action' => 'revalidate_2fa',
+		);
+		if ( $interim ) {
+			$args['interim-login'] = 1;
+		}
+
+		return self::login_url( $args );
+	}
+
+	/**
 	 * Check if a user action is valid.
 	 *
 	 * @param integer $user_id User ID.
