@@ -1218,18 +1218,16 @@ class Two_Factor_Core {
 			$rememberme = true;
 		}
 
-		// Create a new User session
-		$expiration = time() + apply_filters( 'auth_cookie_expiration', ( $rememberme ? 14 : 2 ) * DAY_IN_SECONDS, $user->ID, $rememberme );
-		$manager    = WP_Session_Tokens::get_instance( $user->ID );
-		$token      = $manager->create( $expiration );
-		$session    = $manager->get( $token );
+		$session_information_callback = function( $session, $user_id ) use( $provider, $user ) {
+			if ( $user->ID === $user_id ) {
+				$session['two-factor-login']    = time();
+				$session['two-factor-provider'] = get_class( $provider );
+			}
 
-		// Append the Two Factor session data
-		$session['two-factor-login']    = time();
-		$session['two-factor-provider'] = get_class( $provider );
+			return $session;
+		};
 
-		// Save it in the session and create the cookie with it.
-		$manager->update( $token, $session );
+		add_filter( 'attach_session_information', $session_information_callback, 10, 2 );
 
 		/*
 		 * NOTE: This filter removal is not normally required, this is included for protection against
@@ -1238,9 +1236,11 @@ class Two_Factor_Core {
 		 */
 		remove_filter( 'send_auth_cookies', '__return_false', PHP_INT_MAX );
 
-		wp_set_auth_cookie( $user->ID, $rememberme, '', $token );
+		wp_set_auth_cookie( $user->ID, $rememberme );
 
-		do_action( 'two_factor_user_authenticated', $user, $provider, $token );
+		do_action( 'two_factor_user_authenticated', $user, $provider );
+
+		remove_filter( 'attach_session_information', $session_information_callback );
 
 		// Must be global because that's how login_header() uses it.
 		global $interim_login;
