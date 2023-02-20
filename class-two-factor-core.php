@@ -612,10 +612,13 @@ class Two_Factor_Core {
 			wp_die( esc_html__( 'Cheatin&#8217; uh?', 'two-factor' ), 403 );
 		}
 
+		// TODO: Can't just call `process_provider( Dummy_Provider )` as it'll return truthful straight away.
+		//       The provider doesn't require any POST params or the such.
 		$result = false;
-		if ( $_POST ) {
-			// TODO: Can't just call `process_provider( Dummy_Provider )` as it'll return truthful straight away.
-			//       The provider doesn't require any POST params or the such.
+		if (
+			true !== $provider->pre_process_authentication( $user ) &&
+			$_POST
+		) {
 			$result = self::process_provider( $provider, $user, 'revalidate' );
 		}
 
@@ -1048,18 +1051,27 @@ class Two_Factor_Core {
 			exit;
 		}
 
-		if ( $provider ) {
-			$providers = self::get_available_providers_for_user( $user );
-			if ( isset( $providers[ $provider ] ) ) {
-				$provider = $providers[ $provider ];
-			} else {
-				wp_die( esc_html__( 'Cheatin&#8217; uh?', 'two-factor' ), 403 );
-			}
+		$providers = self::get_available_providers_for_user( $user );
+		if ( $provider && isset( $providers[ $provider ] ) ) {
+			$provider = $providers[ $provider ];
 		} else {
 			$provider = self::get_primary_provider_for_user( $user->ID );
 		}
 
-		$result = self::process_provider( $provider, $user );
+		if ( ! $provider  ) {
+			wp_die( esc_html__( 'Cheatin&#8217; uh?', 'two-factor' ), 403 );
+		}
+
+		// TODO: Can't just call `process_provider( Dummy_Provider )` as it'll return truthful straight away.
+		//       The provider doesn't require any POST params or the such.
+		$result = false;
+		if (
+			true !== $provider->pre_process_authentication( $user ) &&
+			$_POST
+		) {
+			$result = self::process_provider( $provider, $user, 'revalidate' );
+		}
+
 		if ( true !== $result ) {
 			$error = '';
 			if ( is_wp_error( $result ) ) {
@@ -1146,15 +1158,9 @@ class Two_Factor_Core {
 	 *
 	 * @param object  $provider The Two Factor Provider.
 	 * @param WP_User $user     The user being authenticated.
-	 * @return false|WP_Error|true WP_Error when an error occurs, true when the user is authenticated, false otherwise.
+	 * @return false|WP_Error|true WP_Error when an error occurs, true when the user is authenticated, false maybe otherwise.
 	 */
 	public static function process_provider( $provider, $user ) {
-
-		// Allow the provider to re-send codes, etc.
-		if ( true === $provider->pre_process_authentication( $user ) ) {
-			return false;
-		}
-
 		// Rate limit two factor authentication attempts.
 		if ( true === self::is_user_rate_limited( $user ) ) {
 			$time_delay = self::get_user_time_delay( $user );
