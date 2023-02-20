@@ -369,13 +369,13 @@ class Two_Factor_Totp extends Two_Factor_Provider {
 				<?php esc_html_e( 'Secret key is configured and registered. It is not possible to view it again for security reasons.', 'two-factor' ); ?>
 			</p>
 			<p>
-				<a class="button reset-totp-key" href="#"><?php esc_html_e( 'Reset Key', 'two-factor' ); ?></a>
+				<button class="button reset-totp-key" href="#"><?php esc_html_e( 'Reset Key', 'two-factor' ); ?></button>
 				<em class="description">
 					<?php esc_html_e( 'You will have to re-scan the QR code on all devices as the previous codes will stop working.', 'two-factor' ); ?>
 				</em>
 				<script>
 					( function( $ ) {
-						$( 'a.reset-totp-key' ).click( function( e ) {
+						$( 'button.reset-totp-key' ).click( function( e ) {
 							e.preventDefault();
 
 							wp.apiRequest( {
