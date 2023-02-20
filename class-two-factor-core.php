@@ -1327,7 +1327,7 @@ class Two_Factor_Core {
 
 			if ( self::is_current_user_session_two_factor() ) {
 				printf(
-					'<div class="notice notice-info"><p>%s</p></div>',
+					'<div class="notice notice-info inline"><p>%s</p></div>',
 					sprintf(
 						'You are currently logged in with a session from %s. <br>' .
 							'Your 2FA token was last confirmed at %s.<br>' .
@@ -1341,7 +1341,7 @@ class Two_Factor_Core {
 				);
 			} else {
 				printf(
-					'<div class="notice notice-warning"><p>%s</p></div>',
+					'<div class="notice notice-warning inline"><p>%s</p></div>',
 					sprintf(
 						'You are currently logged in with a session from %s. <br>' .
 							'<strong>You are NOT using a Two Factor session.</strong>',
@@ -1353,6 +1353,22 @@ class Two_Factor_Core {
 
 		// This is specific to the current session, not the displayed user.
 		$show_2fa_options = self::current_user_can_update_two_factor_options();
+
+		if ( ! $show_2fa_options ) {
+			$url = self::get_user_two_factor_revalidate_url();
+			$url = add_query_arg( 'redirect_to', urlencode( self::get_user_settings_page_url( $user->ID ) ), $url );
+			$url .= '#two-factor-options';
+
+			printf(
+				'<div class="notice notice-warning inline"><p>%s</p></div>',
+				sprintf(
+					/** TODO: Translations.  */
+					'To update your Two Factor options, you must first re-validate your session.' .
+					'<br><a class="button" href="%s">Revalidate now</a>',
+					esc_url( $url )
+				)
+			);
+		}
 
 		printf(
 			'<fieldset id="two-factor-options" %s>',
