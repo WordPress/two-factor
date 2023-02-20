@@ -224,17 +224,15 @@ class Two_Factor_Core {
 	 * @return string
 	 */
 	protected static function get_user_settings_page_url( $user_id ) {
-		$page = 'user-edit.php';
-
 		if ( defined( 'IS_PROFILE_PAGE' ) && IS_PROFILE_PAGE ) {
-			$page = 'profile.php';
+			return self_admin_url( 'profile.php' );
 		}
 
 		return add_query_arg(
 			array(
 				'user_id' => intval( $user_id ),
 			),
-			self_admin_url( $page )
+			self_admin_url( 'user-edit.php' )
 		);
 	}
 
