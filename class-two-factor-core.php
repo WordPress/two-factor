@@ -982,6 +982,41 @@ class Two_Factor_Core {
 	}
 
 	/**
+	 * Determine if the current user session can update Two-Factor settings.
+	 *
+	 * @param int $valid_ticks The number of 'ticks' that are valid. Saving options should be twice the display.
+	 *
+	 * @return bool
+	 */
+	public static function current_user_can_update_two_factor_options( $valid_ticks = 1 ) {
+		$user_id               = get_current_user_id();
+		$is_two_factor_session = self::is_current_user_session_two_factor();
+
+		// If the current user is not a two-factor user, not having a two-factor session is okay.
+		if ( ! self::is_user_using_two_factor( $user_id ) && ! $is_two_factor_session ) {
+			return true;
+		}
+
+		// Else, if the session is not two-factor, the user should not be able to update settings.
+		if ( ! $is_two_factor_session ) {
+			return false;
+		}
+
+		$two_factor_revalidate_time = 10 * MINUTE_IN_SECONDS;
+		/** TODO: Add filter */
+		$two_factor_revalidate_time *= $valid_ticks;
+
+		// If the user last-2fa'd within the last 15 minutes, allow.
+		$seconds_ago = time() - $is_two_factor_session;
+		if ( $seconds_ago <= $two_factor_revalidate_time ) {
+			return true;
+		}
+
+		// Otherwise the user cannot update the options.
+		return false;
+	}
+
+	/**
 	 * Login form validation.
 	 *
 	 * @since 0.1-dev
