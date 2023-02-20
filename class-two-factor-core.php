@@ -1333,10 +1333,12 @@ class Two_Factor_Core {
 					sprintf(
 						'You are currently logged in with a session from %s. <br>' .
 							'Your 2FA token was last confirmed at %s.<br>' .
-							'Your 2FA method for login was %s.',
+							'Your 2FA method for login was %s (%s after login, %s ago).',
 						'<code>' . date( 'r', $session['login'] ) . '</code>',
-						'<code>' . date( 'r', $session['two-factor-login'] ) . '</code>' . ( absint( $session['login'] - $session['two-factor-login'] ) < 5 ? ' (At login time)' : ' (' . human_time_diff( $session['login'], $session['two-factor-login'] ) . ' after login)'),
-						'<code>' . esc_html( $session['two-factor-provider'] ) . '</code>'
+						'<code>' . date( 'r', $session['two-factor-login'] ) . '</code>',
+						'<code>' . esc_html( $session['two-factor-provider'] ) . '</code>',
+						human_time_diff( $session['login'], $session['two-factor-login'] ),
+						human_time_diff( time(), $session['two-factor-login'] ),
 					)
 				);
 			} else {
