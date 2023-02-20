@@ -267,7 +267,11 @@ class Two_Factor_Core {
 	 * @return boolean
 	 */
 	public static function is_valid_user_action( $user_id, $action ) {
-		$request_nonce = isset( $_REQUEST[ self::USER_SETTINGS_ACTION_NONCE_QUERY_ARG ] ) ? sanitize_key( $_REQUEST[ self::USER_SETTINGS_ACTION_NONCE_QUERY_ARG ] ) : '';
+		$request_nonce = isset( $_REQUEST[ self::USER_SETTINGS_ACTION_NONCE_QUERY_ARG ] ) ? wp_unslash( $_REQUEST[ self::USER_SETTINGS_ACTION_NONCE_QUERY_ARG ] ) : '';
+
+		if ( ! $user_id || ! $action || ! $request_nonce ) {
+			return false;
+		}
 
 		return wp_verify_nonce(
 			$request_nonce,
@@ -300,10 +304,10 @@ class Two_Factor_Core {
 	 * @return void
 	 */
 	public static function trigger_user_settings_action() {
-		$action  = isset( $_REQUEST[ self::USER_SETTINGS_ACTION_QUERY_VAR ] ) ? sanitize_key( $_REQUEST[ self::USER_SETTINGS_ACTION_QUERY_VAR ] ) : '';
+		$action  = isset( $_REQUEST[ self::USER_SETTINGS_ACTION_QUERY_VAR ] ) ? wp_unslash( $_REQUEST[ self::USER_SETTINGS_ACTION_QUERY_VAR ] ) : '';
 		$user_id = self::current_user_being_edited();
 
-		if ( ! empty( $action ) && self::is_valid_user_action( $user_id, $action ) ) {
+		if ( self::is_valid_user_action( $user_id, $action ) ) {
 			/**
 			 * This action is triggered when a valid Two Factor settings
 			 * action is detected and it passes the nonce validation.
@@ -945,9 +949,9 @@ class Two_Factor_Core {
 	 * @since 0.1-dev
 	 */
 	public static function login_form_validate_2fa() {
-		$wp_auth_id = ! empty( $_REQUEST['wp-auth-id'] )    ? absint( $_REQUEST['wp-auth-id'] )                          : 0;
-		$nonce      = ! empty( $_REQUEST['wp-auth-nonce'] ) ? sanitize_key( wp_unslash( $_REQUEST['wp-auth-nonce'] ) )   : '';
-		$provider   = ! empty( $_REQUEST['provider'] )      ? sanitize_text_field( wp_unslash( $_REQUEST['provider'] ) ) : false;
+		$wp_auth_id = ! empty( $_REQUEST['wp-auth-id'] )    ? absint( $_REQUEST['wp-auth-id'] )        : 0;
+		$nonce      = ! empty( $_REQUEST['wp-auth-nonce'] ) ? wp_unslash( $_REQUEST['wp-auth-nonce'] ) : '';
+		$provider   = ! empty( $_REQUEST['provider'] )      ? wp_unslash( $_REQUEST['provider'] )      : false;
 
 		if ( ! $wp_auth_id || ! $nonce ) {
 			return;
