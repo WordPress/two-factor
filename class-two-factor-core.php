@@ -1177,6 +1177,11 @@ class Two_Factor_Core {
 			return false;
 		}
 
+		// If it's not a POST request, there's no processing to perform.
+		if ( ! $_POST ) {
+			return false;
+		}
+
 		// Rate limit two factor authentication attempts.
 		if ( true === self::is_user_rate_limited( $user ) ) {
 			$time_delay = self::get_user_time_delay( $user );
