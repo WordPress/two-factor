@@ -1082,6 +1082,26 @@ class Two_Factor_Core {
 	}
 
 	/**
+	 * Determine if the current user session is logged in with 2FA.
+	 *
+	 * @since 0.8.0
+	 *
+	 * @return int|false The last time the two-factor was validated on success, false if not currently using a 2FA session.
+	 */
+	public static function is_current_user_session_two_factor() {
+		$user    = wp_get_current_user();
+		$manager = WP_Session_Tokens::get_instance( $user->ID );
+		$token   = wp_get_session_token();
+		$session = $manager->get( $token );
+
+		if ( empty( $session['two-factor-login'] ) ) {
+			return false;
+		}
+
+		return (int) $session['two-factor-login'];
+	}
+
+	/**
 	 * Login form validation.
 	 *
 	 * @since 0.1-dev
