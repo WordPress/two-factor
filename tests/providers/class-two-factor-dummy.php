@@ -67,16 +67,21 @@ class Tests_Two_Factor_Dummy extends WP_UnitTestCase {
 
 		$this->assertStringContainsString( 'Are you really you?', $contents );
 		$this->assertStringContainsString( '<p class="submit">', $contents );
+		$this->assertStringContainsString( '<input type="hidden" name="dummy-auth"', $contents );
 		$this->assertStringContainsString( 'Yup', $contents );
 
 	}
 
 	/**
-	 * Verify that dummy validation returns true.
+	 * Verify that dummy validation returns true when appropriate.
 	 *
 	 * @covers Two_Factor_Dummy::validate_authentication
 	 */
 	public function test_validate_authentication() {
+
+		$this->assertFalse( $this->provider->validate_authentication( false ) );
+
+		$_POST['dummy-auth'] = 1;
 
 		$this->assertTrue( $this->provider->validate_authentication( false ) );
 

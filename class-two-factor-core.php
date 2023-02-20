@@ -979,13 +979,8 @@ class Two_Factor_Core {
 			wp_die( esc_html__( 'Cheatin&#8217; uh?', 'two-factor' ), 403 );
 		}
 
-		// TODO: Can't just call `process_provider( Dummy_Provider )` as it'll return truthful straight away.
-		//       The provider doesn't require any POST params or the such.
 		$result = false;
-		if (
-			true !== $provider->pre_process_authentication( $user ) &&
-			$_POST
-		) {
+		if ( true !== $provider->pre_process_authentication( $user ) ) {
 			$result = self::process_provider( $provider, $user, 'revalidate' );
 		}
 
@@ -1105,13 +1100,8 @@ class Two_Factor_Core {
 			wp_die( esc_html__( 'Cheatin&#8217; uh?', 'two-factor' ), 403 );
 		}
 
-		// TODO: Can't just call `process_provider( Dummy_Provider )` as it'll return truthful straight away.
-		//       The provider doesn't require any POST params or the such.
 		$result = false;
-		if (
-			true !== $provider->pre_process_authentication( $user ) &&
-			$_POST
-		) {
+		if ( true !== $provider->pre_process_authentication( $user ) ) {
 			$result = self::process_provider( $provider, $user, 'revalidate' );
 		}
 

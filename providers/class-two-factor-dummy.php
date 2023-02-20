@@ -58,6 +58,7 @@ class Two_Factor_Dummy extends Two_Factor_Provider {
 		require_once ABSPATH . '/wp-admin/includes/template.php';
 		?>
 		<p><?php esc_html_e( 'Are you really you?', 'two-factor' ); ?></p>
+		<input type="hidden" name="dummy-auth" value="1" />
 		<?php
 		submit_button( __( 'Yup.', 'two-factor' ) );
 	}
@@ -73,7 +74,7 @@ class Two_Factor_Dummy extends Two_Factor_Provider {
 	 * @return boolean
 	 */
 	public function validate_authentication( $user ) {
-		return true;
+		return ! empty( $_POST['dummy-auth'] );
 	}
 
 	/**
