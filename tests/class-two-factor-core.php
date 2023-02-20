@@ -21,12 +21,20 @@ class Test_ClassTwoFactorCore extends WP_UnitTestCase {
 	private $old_user_id;
 
 	/**
+	 * The last authentication cookie that was set.
+	 *
+	 * @var array
+	 */
+	protected static $last_auth_cookie;
+
+	/**
 	 * Set up error handling before test suite.
 	 *
 	 * @see WP_UnitTestCase_Base::set_up_before_class()
 	 */
 	public static function wpSetUpBeforeClass() {
 		set_error_handler( array( 'Test_ClassTwoFactorCore', 'error_handler' ) ); // phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_set_error_handler
+		add_action( 'set_auth_cookie', [ __CLASS__, 'set_last_auth_cookie' ], 1, 6 );
 	}
 
 	/**
@@ -36,6 +44,7 @@ class Test_ClassTwoFactorCore extends WP_UnitTestCase {
 	 */
 	public static function wpTearDownAfterClass() {
 		restore_error_handler();
+		remove_action( 'set_auth_cookie', [ __CLASS__, 'set_last_auth_cookie' ] );
 	}
 
 	/**
@@ -54,6 +63,13 @@ class Test_ClassTwoFactorCore extends WP_UnitTestCase {
 		}
 
 		return true;
+	}
+
+	/**
+	 * Set self::$last_auth_cookie for testing.
+	 */
+	public static function set_last_auth_cookie( $auth_cookie, $expire, $expiration, $user_id, $scheme, $token ) {
+		self::$last_auth_cookie = compact( 'auth_cookie', 'expire', 'expiration', 'user_id', 'scheme', 'token' );
 	}
 
 	/**
@@ -783,4 +799,28 @@ class Test_ClassTwoFactorCore extends WP_UnitTestCase {
 
 		$this->assertStringContainsString( 'check your email for instructions on regaining access', $contents );
 	}
+
+	/**
+	 * Validate that a non-2fa login doesn't set the session two-factor data.
+	 *
+	 * @covers Two_Factor_Core::is_current_user_session_two_factor()
+	 * @covers Two_Factor_Core::login_form_validate_2fa()
+	 */
+	public function test_is_current_user_session_two_factor_without_two_factor() {
+		$user_id = self::factory()->user->create();
+
+		// Assert user not logged in is false.
+		$this->assertFalse( Two_Factor_Core::is_current_user_session_two_factor() );
+
+		// Set the cookie without going through two-factoe, and fill in $_COOKIE.
+		wp_set_auth_cookie( $user_id );
+
+		$this->assertNotEmpty( self::$last_auth_cookie );
+
+		// Simulate the cookie being sent, so that core session functions work.
+		$_COOKIE[ AUTH_COOKIE ] = self::$last_auth_cookie['auth_cookie'];
+
+		$this->assertFalse( Two_Factor_Core::is_current_user_session_two_factor() );
+	}
+
 }
