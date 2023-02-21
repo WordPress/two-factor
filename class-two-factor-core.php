@@ -1265,7 +1265,7 @@ class Two_Factor_Core {
 			This is an automated notification. If you would like to speak to a site administrator, please contact them directly.',
 			esc_html( $user->user_login ),
 			home_url(),
-			'https://wordpress.org/support/article/password-best-practices/',
+			'https://wordpress.org/documentation/article/password-best-practices/',
 			esc_url( add_query_arg( 'action', 'lostpassword', wp_login_url() ) ),
 		);
 		$user_message = str_replace( "\t", '', $user_message );
