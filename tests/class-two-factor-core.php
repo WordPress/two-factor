@@ -562,4 +562,183 @@ class Test_ClassTwoFactorCore extends WP_UnitTestCase {
 		$this->assertStringContainsString( '5 times', $contents );
 		$this->assertStringContainsString( human_time_diff( $five_hours_ago ), $contents );
 	}
+
+	/**
+	 * @covers Two_Factor_Core::maybe_show_reset_password_notice()
+	 */
+	public function test_no_reset_notice_when_no_errors() {
+		$errors = new WP_Error();
+		Two_Factor_Core::maybe_show_reset_password_notice( $errors );
+		$this->assertCount( 0, $errors->get_error_codes() );
+	}
+
+	/**
+	 * @covers Two_Factor_Core::maybe_show_reset_password_notice()
+	 */
+	public function test_no_reset_notice_when_different_error() {
+		$errors = new WP_Error( 'foo_bar', 'Foo Bar' );
+		Two_Factor_Core::maybe_show_reset_password_notice( $errors );
+		$this->assertCount( 1, $errors->get_error_codes() );
+		$this->assertSame( 'foo_bar', $errors->get_error_code() );
+	}
+
+	/**
+	 * @covers Two_Factor_Core::maybe_show_reset_password_notice()
+	 */
+	public function test_no_reset_notice_when_password_not_reset() {
+		$user         = self::factory()->user->create_and_get();
+		$errors       = new WP_Error( 'incorrect_password', 'Incorrect password' );
+		$_POST['log'] = $user->user_login;
+
+		Two_Factor_Core::maybe_show_reset_password_notice( $errors );
+		$this->assertCount( 1, $errors->get_error_codes() );
+		$this->assertSame( 'incorrect_password', $errors->get_error_code() );
+	}
+
+	/**
+	 * @covers Two_Factor_Core::maybe_show_reset_password_notice()
+	 */
+	public function test_reset_notice_when_password_was_reset() {
+		$user         = self::factory()->user->create_and_get();
+		$errors       = new WP_Error( 'incorrect_password', 'Incorrect password' );
+		$_POST['log'] = $user->user_login;
+
+	    update_user_meta( $user->ID, Two_Factor_Core::USER_PASSWORD_WAS_RESET_KEY, true );
+		Two_Factor_Core::maybe_show_reset_password_notice( $errors );
+		$this->assertCount( 1, $errors->get_error_codes() );
+		$this->assertSame( 'two_factor_password_reset', $errors->get_error_code() );
+	}
+
+	/**
+	 * @covers Two_Factor_Core::clear_password_reset_notice()
+	 */
+	public function test_clear_password_reset_notice() {
+		$user = self::factory()->user->create_and_get();
+		update_user_meta( $user->ID, Two_Factor_Core::USER_PASSWORD_WAS_RESET_KEY, true );
+
+		Two_Factor_Core::clear_password_reset_notice( $user );
+		$this->assertEmpty( get_user_meta( $user->ID, Two_Factor_Core::USER_PASSWORD_WAS_RESET_KEY, true ) );
+	}
+
+	/**
+	 * @covers Two_Factor_Core::should_reset_password()
+	 */
+	public function test_should_reset_password() {
+		$user = self::factory()->user->create_and_get();
+
+		// Test default limit.
+		update_user_meta( $user->ID, Two_Factor_Core::USER_FAILED_LOGIN_ATTEMPTS_KEY, 29 );
+		$this->assertFalse( Two_Factor_Core::should_reset_password( $user->ID ) );
+		update_user_meta( $user->ID, Two_Factor_Core::USER_FAILED_LOGIN_ATTEMPTS_KEY, 30 );
+		$this->assertTrue( Two_Factor_Core::should_reset_password( $user->ID ) );
+		update_user_meta( $user->ID, Two_Factor_Core::USER_FAILED_LOGIN_ATTEMPTS_KEY, 31 );
+		$this->assertTrue( Two_Factor_Core::should_reset_password( $user->ID ) );
+
+		// Test filtered limit.
+		$strict_limit = function() {
+			return 7;
+		};
+
+		add_filter( 'two_factor_failed_attempt_limit', $strict_limit );
+		update_user_meta( $user->ID, Two_Factor_Core::USER_FAILED_LOGIN_ATTEMPTS_KEY, 6 );
+		$this->assertFalse( Two_Factor_Core::should_reset_password( $user->ID ) );
+		update_user_meta( $user->ID, Two_Factor_Core::USER_FAILED_LOGIN_ATTEMPTS_KEY, 7 );
+		$this->assertTrue( Two_Factor_Core::should_reset_password( $user->ID ) );
+		update_user_meta( $user->ID, Two_Factor_Core::USER_FAILED_LOGIN_ATTEMPTS_KEY, 8 );
+		$this->assertTrue( Two_Factor_Core::should_reset_password( $user->ID ) );
+		remove_filter( 'two_factor_failed_attempt_limit', $strict_limit );
+	}
+
+	/**
+	 * Resetting a password should change the password and notify the user and admin.
+	 *
+	 * @covers Two_Factor_Core::reset_compromised_password()
+	 */
+	public function test_reset_compromised_password() {
+		$user     = self::factory()->user->create_and_get();
+		$old_hash = $user->user_pass;
+
+		// Simulate entered password but failed 2FA too many times.
+		Two_Factor_Core::create_login_nonce( $user->ID );
+		update_user_meta( $user->ID, Two_Factor_Core::USER_RATE_LIMIT_KEY, time() );
+		update_user_meta( $user->ID, Two_Factor_Core::USER_FAILED_LOGIN_ATTEMPTS_KEY, 30 );
+
+		Two_Factor_Core::reset_compromised_password( $user );
+		$user = get_user_by( 'id', $user->ID );
+		$this->assertNotSame( $old_hash, $user->user_pass );
+		$this->assertSame( '1', get_user_meta( $user->ID, Two_Factor_Core::USER_PASSWORD_WAS_RESET_KEY, true ) );
+		$this->assertEmpty( get_user_meta( $user->ID, Two_Factor_Core::USER_META_NONCE_KEY, true ) );
+		$this->assertEmpty( get_user_meta( $user->ID, Two_Factor_Core::USER_RATE_LIMIT_KEY ) );
+		$this->assertEmpty( get_user_meta( $user->ID, Two_Factor_Core::USER_FAILED_LOGIN_ATTEMPTS_KEY ) );
+	}
+
+	/**
+	 * @covers Two_Factor_Core::send_password_reset_emails()
+	 * @covers Two_Factor_Core::notify_user_password_reset()
+	 * @covers Two_Factor_Core::notify_admin_user_password_reset()
+	 */
+	public function test_both_password_reset_notifications_sent() {
+		$user        = self::factory()->user->create_and_get();
+		$mailer      = tests_retrieve_phpmailer_instance();
+		$admin_email = get_option( 'admin_email' );
+
+		Two_Factor_Core::send_password_reset_emails( $user );
+
+		$this->assertCount( 2, $mailer->mock_sent );
+		$this->assertContains( $user->user_email, $mailer->mock_sent[0]['to'][0] );
+		$this->assertContains( $admin_email, $mailer->mock_sent[1]['to'][0] );
+
+		reset_phpmailer_instance();
+	}
+
+	/**
+	 * @covers Two_Factor_Core::send_password_reset_emails()
+	 * @covers Two_Factor_Core::notify_user_password_reset()
+	 */
+	public function test_single_email_sent_when_admin_password_reset() {
+		$admin       = get_user_by( 'id', 1 );
+		$mailer      = tests_retrieve_phpmailer_instance();
+		$admin_email = get_option( 'admin_email' );
+
+		Two_Factor_Core::send_password_reset_emails( $admin );
+
+		$this->assertSame( $admin->user_email, $admin_email );
+		$this->assertCount( 1, $mailer->mock_sent );
+		$this->assertContains( $admin_email, $mailer->mock_sent[0]['to'][0] );
+		$this->assertStringStartsWith( 'Your password was compromised', $mailer->mock_sent[0]['subject'] );
+
+		reset_phpmailer_instance();
+	}
+
+	/**
+	 * @covers Two_Factor_Core::send_password_reset_emails()
+	 * @covers Two_Factor_Core::notify_user_password_reset()
+	 */
+	public function test_dont_notify_admin_when_filter_disabled() {
+		$user        = self::factory()->user->create_and_get();
+		$mailer      = tests_retrieve_phpmailer_instance();
+		$admin_email = get_option( 'admin_email' );
+
+		add_filter( 'two_factor_notify_admin_user_password_reset', '__return_false' );
+		Two_Factor_Core::send_password_reset_emails( $user );
+		remove_filter( 'two_factor_notify_admin_user_password_reset', '__return_false' );
+
+		$this->assertNotSame( $user->user_email, $admin_email );
+		$this->assertCount( 1, $mailer->mock_sent );
+		$this->assertContains( $user->user_email, $mailer->mock_sent[0]['to'][0] );
+		$this->assertNotContains( $admin_email, $mailer->mock_sent[0]['to'][0] );
+
+		reset_phpmailer_instance();
+	}
+
+	/**
+	 * @covers Two_Factor_Core::show_password_reset_error
+	 */
+	public function test_show_password_reset_error() {
+		ob_start();
+		Two_Factor_Core::show_password_reset_error();
+		$contents = ob_get_clean();
+
+		$this->assertStringContainsString( 'check your email for instructions on regaining access', $contents );
+	}
 }

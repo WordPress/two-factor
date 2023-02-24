@@ -23,6 +23,8 @@ require_once dirname( __DIR__ ) . '/vendor/autoload.php';
 
 // Give access to tests_add_filter() function.
 require_once getenv( 'WP_PHPUNIT__DIR' ) . '/includes/functions.php';
+require_once dirname( __DIR__ ) . '/includes/function.login-header.php';
+require_once dirname( __DIR__ ) . '/includes/function.login-footer.php';
 
 // Activate the plugin.
 tests_add_filter(
