@@ -213,7 +213,17 @@ class Two_Factor_Totp extends Two_Factor_Provider {
 	 * @return string
 	 */
 	public static function generate_qr_code_url( $user, $secret_key ) {
-		$site_name = get_bloginfo( 'name', 'display' );
+		$issuer = get_bloginfo( 'name', 'display' );
+
+		/**
+		 * Filter the Issuer for the TOTP. Do not URL Encode.
+		 *
+		 * Must follow the TOTP format for a "issuer". Do not URL Encode.
+		 *
+		 * @see https://github.com/google/google-authenticator/wiki/Key-Uri-Format#label
+		 * @param string $issuer The issuer for TOTP.
+		 */
+		$issuer = apply_filters( 'two_factor_totp_issuer', $issuer );
 
 		/**
 		 * Filter the Label for the TOTP.
@@ -223,13 +233,14 @@ class Two_Factor_Totp extends Two_Factor_Provider {
 		 * @see https://github.com/google/google-authenticator/wiki/Key-Uri-Format#label
 		 * @param string  $totp_title The label for the TOTP.
 		 * @param WP_User $user       The User object.
+		 * @param string  $issuer     The issuer of the TOTP. This should be the prefix of the result.
 		 */
-		$totp_title = apply_filters( 'two_factor_totp_title', $site_name . ':' . $user->user_login, $user );
+		$totp_title = apply_filters( 'two_factor_totp_title', $issuer . ':' . $user->user_login, $user, $issuer );
 
 		$totp_url = add_query_arg(
 			array(
 				'secret' => rawurlencode( $secret_key ),
-				'issuer' => rawurlencode( $site_name ),
+				'issuer' => rawurlencode( $issuer ),
 			),
 			'otpauth://totp/' . rawurlencode( $totp_title )
 		);
