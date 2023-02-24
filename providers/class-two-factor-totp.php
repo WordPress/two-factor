@@ -215,9 +215,15 @@ class Two_Factor_Totp extends Two_Factor_Provider {
 	public static function generate_qr_code_url( $user, $secret_key ) {
 		$site_name = get_bloginfo( 'name', 'display' );
 
-		// Must follow TOTP format for a "label":
-		// https://github.com/google/google-authenticator/wiki/Key-Uri-Format#label
-		// Do not URL encode, that will be done later.
+		/**
+		 * Filter the Label for the TOTP.
+		 * 
+		 * Must follow the TOTP format for a "label". Do not URL Encode.
+		 *
+		 * @see https://github.com/google/google-authenticator/wiki/Key-Uri-Format#label
+		 * @param string  $totp_title The label for the TOTP.
+		 * @param WP_User $user       The User object.
+		 */
 		$totp_title = apply_filters( 'two_factor_totp_title', $site_name . ':' . $user->user_login, $user );
 
 		$totp_url = add_query_arg(
@@ -228,8 +234,15 @@ class Two_Factor_Totp extends Two_Factor_Provider {
 			'otpauth://totp/' . rawurlencode( $totp_title )
 		);
 
-		// Must follow TOTP format:
-		// https://github.com/google/google-authenticator/wiki/Key-Uri-Format
+		/**
+		 * Filter the TOTP generated URL.
+		 *
+		 * Must follow the TOTP format. Do not URL Encode.
+		 *
+		 * @see https://github.com/google/google-authenticator/wiki/Key-Uri-Format
+		 * @param string  $totp_url The TOTP URL.
+		 * @param WP_User $user     The user object.
+		 */
 		$totp_url = apply_filters( 'two_factor_totp_url', $totp_url, $user );
 		$totp_url = esc_url( $totp_url, array( 'otpauth' ) );
 
