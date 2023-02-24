@@ -216,7 +216,7 @@ class Two_Factor_Totp extends Two_Factor_Provider {
 		$issuer = get_bloginfo( 'name', 'display' );
 
 		/**
-		 * Filter the Issuer for the TOTP. Do not URL Encode.
+		 * Filter the Issuer for the TOTP.
 		 *
 		 * Must follow the TOTP format for a "issuer". Do not URL Encode.
 		 *
