@@ -220,7 +220,7 @@ class Two_Factor_Totp extends Two_Factor_Provider {
 		 *
 		 * Must follow the TOTP format for a "issuer". Do not URL Encode.
 		 *
-		 * @see https://github.com/google/google-authenticator/wiki/Key-Uri-Format#label
+		 * @see https://github.com/google/google-authenticator/wiki/Key-Uri-Format#issuer
 		 * @param string $issuer The issuer for TOTP.
 		 */
 		$issuer = apply_filters( 'two_factor_totp_issuer', $issuer );
