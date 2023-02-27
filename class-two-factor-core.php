@@ -661,7 +661,20 @@ class Two_Factor_Core {
 			return $errors;
 		}
 
-		$attempted_user     = get_user_by( 'login', $_POST['log'] );
+		if ( ! isset( $_POST['log'] ) ) {
+			return $errors;
+		}
+
+		$user_name      = sanitize_user( wp_unslash( $_POST['log'] ) );
+		$attempted_user = get_user_by( 'login', $user_name );
+		if ( ! $attempted_user && str_contains( $user_name, '@' ) ) {
+			$attempted_user = get_user_by( 'email', $user_name );
+		}
+
+		if ( ! $attempted_user ) {
+			return $errors;
+		}
+		
 		$password_was_reset = get_user_meta( $attempted_user->ID, self::USER_PASSWORD_WAS_RESET_KEY, true );
 
 		if ( ! $password_was_reset ) {
