@@ -949,9 +949,10 @@ class Two_Factor_Core {
 	 * @since 0.1-dev
 	 */
 	public static function login_form_validate_2fa() {
-		$wp_auth_id = ! empty( $_REQUEST['wp-auth-id'] )    ? absint( $_REQUEST['wp-auth-id'] )        : 0;
-		$nonce      = ! empty( $_REQUEST['wp-auth-nonce'] ) ? wp_unslash( $_REQUEST['wp-auth-nonce'] ) : '';
-		$provider   = ! empty( $_REQUEST['provider'] )      ? wp_unslash( $_REQUEST['provider'] )      : false;
+		$wp_auth_id      = ! empty( $_REQUEST['wp-auth-id'] )    ? absint( $_REQUEST['wp-auth-id'] )        : 0;
+		$nonce           = ! empty( $_REQUEST['wp-auth-nonce'] ) ? wp_unslash( $_REQUEST['wp-auth-nonce'] ) : '';
+		$provider        = ! empty( $_REQUEST['provider'] )      ? wp_unslash( $_REQUEST['provider'] )      : false;
+		$is_post_request = ( 'POST' === strtoupper( $_SERVER['REQUEST_METHOD'] ) );
 
 		if ( ! $wp_auth_id || ! $nonce ) {
 			return;
@@ -980,6 +981,17 @@ class Two_Factor_Core {
 
 		// Allow the provider to re-send codes, etc.
 		if ( true === $provider->pre_process_authentication( $user ) ) {
+			$login_nonce = self::create_login_nonce( $user->ID );
+			if ( ! $login_nonce ) {
+				wp_die( esc_html__( 'Failed to create a login nonce.', 'two-factor' ) );
+			}
+
+			self::login_html( $user, $login_nonce['key'], $_REQUEST['redirect_to'], '', $provider );
+			exit;
+		}
+
+		// If the form hasn't been submitted, just display the auth form.
+		if ( ! $is_post_request ) {
 			$login_nonce = self::create_login_nonce( $user->ID );
 			if ( ! $login_nonce ) {
 				wp_die( esc_html__( 'Failed to create a login nonce.', 'two-factor' ) );
