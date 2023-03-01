@@ -174,7 +174,33 @@ class Test_ClassTwoFactorCore extends WP_UnitTestCase {
 		$this->assertCount( 1, Two_Factor_Core::get_available_providers_for_user( $user->ID ) );
 		$this->assertCount( 1, Two_Factor_Core::get_enabled_providers_for_user( $user->ID ) );
 
+		// Revert back to the previous user
 		wp_set_current_user( $this->old_user_id );
+
+		// Verify the counts are still correct for that user ID.
+		$this->assertCount( 1, Two_Factor_Core::get_available_providers_for_user( $user->ID ) );
+		$this->assertCount( 1, Two_Factor_Core::get_enabled_providers_for_user( $user->ID ) );
+
+		$this->clean_dummy_user();
+	}
+
+	/**
+	 * Verify enabled providers for invalid input is empty.
+	 *
+	 * @covers Two_Factor_Core::get_enabled_providers_for_user
+	 * @covers Two_Factor_Core::get_available_providers_for_user
+	 * @covers Two_Factor_Core::user_two_factor_options_update
+	 */
+	public function test_get_enabled_providers_for_user_bad_input() {
+		$user = $this->get_dummy_user();
+
+		$this->assertCount( 1, Two_Factor_Core::get_available_providers_for_user( $user->ID ) );
+		$this->assertCount( 1, Two_Factor_Core::get_enabled_providers_for_user( $user->ID ) );
+
+		// Check that checking for an invalid input returns 0.
+		$this->assertCount( 0, Two_Factor_Core::get_available_providers_for_user( 'bad-input' ) );
+		$this->assertCount( 0, Two_Factor_Core::get_enabled_providers_for_user( 'bad-input' ) );
+
 		$this->clean_dummy_user();
 	}
 
