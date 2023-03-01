@@ -347,12 +347,18 @@ class Two_Factor_Core {
 	/**
 	 * Get all Two-Factor Auth providers that are enabled for the specified|current user.
 	 *
-	 * @param WP_User $user WP_User object of the logged-in user.
+	 * @param int|string|WP_User $user WP_User object of the logged-in user.
 	 * @return array
 	 */
 	public static function get_enabled_providers_for_user( $user = null ) {
-		if ( empty( $user ) || ! is_a( $user, 'WP_User' ) ) {
+		if ( null === $user ) {
 			$user = wp_get_current_user();
+		} else {
+			$user = new WP_User( $user );
+		}
+
+		if ( ! $user->exists() ) {
+			return array();
 		}
 
 		$providers         = self::get_providers();
@@ -374,12 +380,18 @@ class Two_Factor_Core {
 	/**
 	 * Get all Two-Factor Auth providers that are both enabled and configured for the specified|current user.
 	 *
-	 * @param WP_User $user WP_User object of the logged-in user.
+	 * @param int|string|WP_User $user WP_User object of the logged-in user.
 	 * @return array
 	 */
 	public static function get_available_providers_for_user( $user = null ) {
-		if ( empty( $user ) || ! is_a( $user, 'WP_User' ) ) {
+		if ( null === $user ) {
 			$user = wp_get_current_user();
+		} else {
+			$user = new WP_User( $user );
+		}
+
+		if ( ! $user->exists() ) {
+			return array();
 		}
 
 		$providers            = self::get_providers();
@@ -404,8 +416,12 @@ class Two_Factor_Core {
 	 * @return object|null
 	 */
 	public static function get_primary_provider_for_user( $user_id = null ) {
-		if ( empty( $user_id ) || ! is_numeric( $user_id ) ) {
+		if ( null === $user_id ) {
 			$user_id = get_current_user_id();
+		}
+
+		if ( ! $user_id || ! is_numeric( $user_id ) ) {
+			return null;
 		}
 
 		$providers           = self::get_providers();
