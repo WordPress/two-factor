@@ -949,6 +949,7 @@ class Two_Factor_Core {
 		$login_nonce = get_user_meta( $user_id, self::USER_META_NONCE_KEY, true );
 
 		if ( ! $login_nonce || empty( $login_nonce['key'] ) || empty( $login_nonce['expiration'] ) ) {
+			self::broadcast( 'login_nonce_missing', compact( 'user_id' ) );
 			return false;
 		}
 
@@ -967,6 +968,8 @@ class Two_Factor_Core {
 
 		// Require a fresh nonce if verification fails.
 		self::delete_login_nonce( $user_id );
+
+		self::broadcast( 'login_nonce_mismatch', compact( 'user_id' ) );
 
 		return false;
 	}
@@ -1037,7 +1040,13 @@ class Two_Factor_Core {
 		 * @param bool     $rate_limited Whether the user login is rate limited.
 		 * @param WP_User $user          The user attempting to login.
 		 */
-		return apply_filters( 'two_factor_is_user_rate_limited', $rate_limited, $user );
+		$rate_limited = apply_filters( 'two_factor_is_user_rate_limited', $rate_limited, $user );
+
+		if ( $rate_limited ) {
+			self::broadcast( 'user_rate_limited', compact( 'user', 'rate_limit', 'last_failed' ) );
+		}
+
+		return $rate_limited;
 	}
 
 	/**
@@ -1069,6 +1078,7 @@ class Two_Factor_Core {
 			if ( isset( $providers[ $provider ] ) ) {
 				$provider = $providers[ $provider ];
 			} else {
+				self::broadcast( 'unavailable_provider', compact( 'user', 'provider' ) );
 				wp_die( esc_html__( 'Cheatin&#8217; uh?', 'two-factor' ), 403 );
 			}
 		} else {
@@ -1458,6 +1468,7 @@ class Two_Factor_Core {
 		$available_providers = self::get_providers();
 
 		if ( ! array_key_exists( $new_provider, $available_providers ) ) {
+			self::broadcast( 'invalid_provider', compact( 'user_id', 'new_provider' ) );
 			return false;
 		}
 
@@ -1478,7 +1489,16 @@ class Two_Factor_Core {
 			$has_primary = update_user_meta( $user_id, self::PROVIDER_USER_META_KEY, $new_provider );
 		}
 
-		return $enabled && $has_primary;
+
+		$success = $enabled && $has_primary;
+
+		if ( $success ) {
+			self::broadcast( 'provider_enabled_for_user', compact( 'user', 'new_provider' ) );
+		} else {
+			self::broadcast( 'provider_not_enabled_for_user', compact( 'user', 'new_provider' ) );
+		}
+
+		return $success;
 	}
 
 	/**
@@ -1528,5 +1548,43 @@ class Two_Factor_Core {
 		}
 
 		return (bool) apply_filters( 'two_factor_rememberme', $rememberme );
+	}
+
+
+	/**
+	 * Broadcast an event to any listeners.
+	 *
+	 * This doesn't handle the event, it simply broadcasts it so that plugins can hook in and log it, send email notifications, etc.
+	 *
+	 * @param string $event_code A unique name for the event.
+	 * @param array  $event_data Contains any additional context about the event.
+	 *                           ⚠️ DO NOT add any sensitive info, like tokens, passwords, etc. It could end up in
+	 *                           error logs, emails, etc, and the plugin handling the event might not have enough
+	 *                           context to be aware of it or redact it.
+	 *                           The only exception to that is a `WP_User` object, which will automatically be
+	 *                           reduced to the `user_login`.
+	 *
+	 * @return void
+	 */
+	public static function broadcast( $event_code, $event_data = array() ) {
+		// Allow callers to pass in a WP_User object for convenience, but redact the password to prevent leaking it.
+		if ( $event_data['user'] instanceof WP_User ) {
+			$event_data['user'] = $event_data['user']->user_login;
+		}
+
+		/**
+		 * Listen for all Two Factor events.
+		 *
+		 * @param string $event_code A unique name for the event.
+		 * @param array $event_data  Contains any additional context about the event.
+		 */
+		do_action( 'two_factor_event', $event_code, $event_data );
+
+		/**
+		 * Listen for an individual Two Factor event.
+		 *
+		 * @param array $event_data  Contains any additional context about the event.
+		 */
+		do_action( 'two_factor_event_' . $event_code, $event_data );
 	}
 }

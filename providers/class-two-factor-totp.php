@@ -469,6 +469,7 @@ class Two_Factor_Totp extends Two_Factor_Provider {
 	 */
 	public function validate_authentication( $user ) {
 		if ( empty( $_REQUEST['authcode'] ) ) {
+			Two_Factor_Core::broadcast( 'totp_missing_authcode', compact( 'user' ) );
 			return false;
 		}
 
@@ -493,6 +494,7 @@ class Two_Factor_Totp extends Two_Factor_Provider {
 		);
 
 		if ( ! $valid_timestamp ) {
+			Two_Factor_Core::broadcast( 'totp_invalid_timestamp', compact( 'user' ) );
 			return false;
 		}
 
@@ -500,10 +502,13 @@ class Two_Factor_Totp extends Two_Factor_Provider {
 
 		// The TOTP authentication is not valid, if we've seen the same or newer code.
 		if ( $last_totp_login && $last_totp_login >= $valid_timestamp ) {
+			Two_Factor_Core::broadcast( 'totp_reused_or_old_code', compact( 'user' ) );
 			return false;
 		}
 
 		update_user_meta( $user->ID, self::LAST_SUCCESSFUL_LOGIN_META_KEY, $valid_timestamp );
+
+		Two_Factor_Core::broadcast( 'totp_auth_validated', compact( 'user' ) );
 
 		return true;
 	}
