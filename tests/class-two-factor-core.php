@@ -28,13 +28,21 @@ class Test_ClassTwoFactorCore extends WP_UnitTestCase {
 	protected static $last_auth_cookie;
 
 	/**
+	 * The last logged_in cookie that was set.
+	 *
+	 * @var array
+	 */
+	protected static $last_logged_in_cookie;
+
+	/**
 	 * Set up error handling before test suite.
 	 *
 	 * @see WP_UnitTestCase_Base::set_up_before_class()
 	 */
 	public static function wpSetUpBeforeClass() {
 		set_error_handler( array( 'Test_ClassTwoFactorCore', 'error_handler' ) ); // phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_set_error_handler
-		add_action( 'set_auth_cookie', [ __CLASS__, 'set_last_auth_cookie' ], 1, 6 );
+		add_action( 'set_auth_cookie', [ __CLASS__, 'set_auth_cookie' ], 1, 6 );
+		add_action( 'set_logged_in_cookie', [ __CLASS__, 'set_logged_in_cookie' ], 10, 6 );
 	}
 
 	/**
@@ -44,7 +52,8 @@ class Test_ClassTwoFactorCore extends WP_UnitTestCase {
 	 */
 	public static function wpTearDownAfterClass() {
 		restore_error_handler();
-		remove_action( 'set_auth_cookie', [ __CLASS__, 'set_last_auth_cookie' ] );
+		remove_action( 'set_auth_cookie', [ __CLASS__, 'set_auth_cookie' ] );
+		remove_action( 'set_logged_in_cookie', [ __CLASS__, 'set_logged_in_cookie' ] );
 	}
 
 	/**
@@ -68,8 +77,15 @@ class Test_ClassTwoFactorCore extends WP_UnitTestCase {
 	/**
 	 * Set self::$last_auth_cookie for testing.
 	 */
-	public static function set_last_auth_cookie( $auth_cookie, $expire, $expiration, $user_id, $scheme, $token ) {
+	public static function set_auth_cookie( $auth_cookie, $expire, $expiration, $user_id, $scheme, $token ) {
 		self::$last_auth_cookie = compact( 'auth_cookie', 'expire', 'expiration', 'user_id', 'scheme', 'token' );
+	}
+
+	/**
+	 * Set self::$last_logged_in_cookie for testing.
+	 */
+	public static function set_logged_in_cookie( $logged_in_cookie, $expire, $expiration, $user_id, $scheme, $token ) {
+		self::$last_logged_in_cookie = compact( 'logged_in_cookie', 'expire', 'expiration', 'user_id', 'scheme', 'token' );
 	}
 
 	/**
@@ -807,20 +823,77 @@ class Test_ClassTwoFactorCore extends WP_UnitTestCase {
 	 * @covers Two_Factor_Core::login_form_validate_2fa()
 	 */
 	public function test_is_current_user_session_two_factor_without_two_factor() {
-		$user_id = self::factory()->user->create();
+		$user = $this->get_dummy_user();
 
 		// Assert user not logged in is false.
 		$this->assertFalse( Two_Factor_Core::is_current_user_session_two_factor() );
 
-		// Set the cookie without going through two-factoe, and fill in $_COOKIE.
-		wp_set_auth_cookie( $user_id );
+		// Set the cookie without going through two-factor, and fill in $_COOKIE.
+		wp_set_auth_cookie( $user->ID );
 
 		$this->assertNotEmpty( self::$last_auth_cookie );
+		$this->assertNotEmpty( self::$last_logged_in_cookie );
 
-		// Simulate the cookie being sent, so that core session functions work.
-		$_COOKIE[ AUTH_COOKIE ] = self::$last_auth_cookie['auth_cookie'];
+		// Simulate the cookies being sent, so that core session functions work.
+		$_COOKIE[ AUTH_COOKIE ]      = self::$last_auth_cookie['auth_cookie'];
+		$_COOKIE[ LOGGED_IN_COOKIE ] = self::$last_logged_in_cookie['logged_in_cookie'];
 
+		// Validate that the session is not flagged as 2FA
 		$this->assertFalse( Two_Factor_Core::is_current_user_session_two_factor() );
+
+		$manager = WP_Session_Tokens::get_instance( $user->ID );
+		$token   = wp_get_session_token();
+		$session = $manager->get( $token );
+
+		// Validate the Session data is not set.
+		$this->assertArrayNotHasKey( 'two-factor-provider', $session );
+	}
+
+	/**
+	 * Validate that a simulated 2fa login sets the session two-factor data.
+	 *
+	 * @covers Two_Factor_Core::is_current_user_session_two_factor()
+	 * @covers Two_Factor_Core::login_form_validate_2fa()
+	 */
+	public function test_is_current_user_session_two_factor_with_two_factor() {
+		$user = $this->get_dummy_user( array( 'Two_Factor_Dummy' => 'Two_Factor_Dummy' ) );
+
+		// Assert user not logged in is false.
+		$this->assertFalse( Two_Factor_Core::is_current_user_session_two_factor() );
+
+		// Simulate a 2FA login.
+		$login_nonce = Two_Factor_Core::create_login_nonce( $user->ID );
+
+		$this->assertNotFalse( $login_nonce );
+
+		$_REQUEST['wp-auth-id']    = $user->ID;
+		$_REQUEST['wp-auth-nonce'] = $login_nonce['key'];
+		$_REQUEST['provider']      = 'Two_Factor_Dummy';
+		$_SERVER['REQUEST_METHOD'] = 'POST';
+		$_REQUEST['redirect_to']   = '';
+
+		ob_start();
+		Two_Factor_Core::_login_form_validate_2fa();
+		ob_end_clean();
+
+		$this->assertNotEmpty( self::$last_auth_cookie );
+		$this->assertNotEmpty( self::$last_logged_in_cookie );
+
+		// Simulate the cookies being sent, so that core session functions work.
+		$_COOKIE[ AUTH_COOKIE ]      = self::$last_auth_cookie['auth_cookie'];
+		$_COOKIE[ LOGGED_IN_COOKIE ] = self::$last_logged_in_cookie['logged_in_cookie'];
+
+		// Validate that the session is flagged as 2FA, the return value being int.
+		$this->assertNotFalse( Two_Factor_Core::is_current_user_session_two_factor() );
+
+		$manager = WP_Session_Tokens::get_instance( $user->ID );
+		$token   = wp_get_session_token();
+		$session = $manager->get( $token );
+
+		// Validate that the session provider is as expected.
+		$this->assertArrayHasKey( 'two-factor-provider', $session );
+		$this->assertEquals( 'Two_Factor_Dummy', $session['two-factor-provider'] );
+
 	}
 
 }
