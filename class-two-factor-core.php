@@ -1102,11 +1102,24 @@ class Two_Factor_Core {
 	}
 
 	/**
-	 * Login form validation.
+	 * Login form validation handler.
 	 *
 	 * @since 0.1-dev
 	 */
 	public static function login_form_validate_2fa() {
+		if ( self::_login_form_validate_2fa() ) {
+			exit;
+		}
+	}
+
+	/**
+	 * Login form validation.
+	 *
+	 * This function exists for unit testing, as `exit` prevents testing.
+	 *
+	 * @since x.x
+	 */
+	public static function _login_form_validate_2fa() {
 		$wp_auth_id      = ! empty( $_REQUEST['wp-auth-id'] )    ? absint( $_REQUEST['wp-auth-id'] )        : 0;
 		$nonce           = ! empty( $_REQUEST['wp-auth-nonce'] ) ? wp_unslash( $_REQUEST['wp-auth-nonce'] ) : '';
 		$provider        = ! empty( $_REQUEST['provider'] )      ? wp_unslash( $_REQUEST['provider'] )      : false;
@@ -1123,7 +1136,7 @@ class Two_Factor_Core {
 
 		if ( true !== self::verify_login_nonce( $user->ID, $nonce ) ) {
 			wp_safe_redirect( home_url() );
-			exit;
+			return true;
 		}
 
 		if ( $provider ) {
@@ -1145,7 +1158,7 @@ class Two_Factor_Core {
 			}
 
 			self::login_html( $user, $login_nonce['key'], $_REQUEST['redirect_to'], '', $provider );
-			exit;
+			return true;
 		}
 
 		// If the form hasn't been submitted, just display the auth form.
@@ -1156,7 +1169,7 @@ class Two_Factor_Core {
 			}
 
 			self::login_html( $user, $login_nonce['key'], $_REQUEST['redirect_to'], '', $provider );
-			exit;
+			return true;
 		}
 
 		// Rate limit two factor authentication attempts.
@@ -1180,7 +1193,7 @@ class Two_Factor_Core {
 			}
 
 			self::login_html( $user, $login_nonce['key'], $_REQUEST['redirect_to'], esc_html( $error->get_error_message() ), $provider );
-			exit;
+			return true;
 		}
 
 		// Ask the provider to verify the second factor.
@@ -1197,7 +1210,7 @@ class Two_Factor_Core {
 				self::reset_compromised_password( $user );
 				self::send_password_reset_emails( $user );
 				self::show_password_reset_error();
-				exit;
+				return true;
 			}
 
 			$login_nonce = self::create_login_nonce( $user->ID );
@@ -1206,7 +1219,7 @@ class Two_Factor_Core {
 			}
 
 			self::login_html( $user, $login_nonce['key'], $_REQUEST['redirect_to'], esc_html__( 'ERROR: Invalid verification code.', 'two-factor' ), $provider );
-			exit;
+			return true;
 		}
 
 		self::delete_login_nonce( $user->ID );
@@ -1265,12 +1278,13 @@ class Two_Factor_Core {
 			<?php endif; ?>
 			</body></html>
 			<?php
-			exit;
+			return true;
 		}
+
 		$redirect_to = apply_filters( 'login_redirect', $_REQUEST['redirect_to'], $_REQUEST['redirect_to'], $user );
 		wp_safe_redirect( $redirect_to );
 
-		exit;
+		return true;
 	}
 
 	/**
