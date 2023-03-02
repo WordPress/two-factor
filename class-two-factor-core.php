@@ -99,7 +99,6 @@ class Two_Factor_Core {
 		add_filter( 'wp_login_errors', array( __CLASS__, 'maybe_show_reset_password_notice' ) );
 		add_action( 'after_password_reset', array( __CLASS__, 'clear_password_reset_notice' ) );
 		add_action( 'login_form_validate_2fa', array( __CLASS__, 'login_form_validate_2fa' ) );
-		add_action( 'login_form_backup_2fa', array( __CLASS__, 'backup_2fa' ) );
 		add_action( 'show_user_profile', array( __CLASS__, 'user_two_factor_options' ) );
 		add_action( 'edit_user_profile', array( __CLASS__, 'user_two_factor_options' ) );
 		add_action( 'personal_options_update', array( __CLASS__, 'user_two_factor_options_update' ) );
@@ -277,7 +276,11 @@ class Two_Factor_Core {
 	 * @return boolean
 	 */
 	public static function is_valid_user_action( $user_id, $action ) {
-		$request_nonce = filter_input( INPUT_GET, self::USER_SETTINGS_ACTION_NONCE_QUERY_ARG, FILTER_CALLBACK, array( 'options' => 'sanitize_key' ) );
+		$request_nonce = isset( $_REQUEST[ self::USER_SETTINGS_ACTION_NONCE_QUERY_ARG ] ) ? wp_unslash( $_REQUEST[ self::USER_SETTINGS_ACTION_NONCE_QUERY_ARG ] ) : '';
+
+		if ( ! $user_id || ! $action || ! $request_nonce ) {
+			return false;
+		}
 
 		return wp_verify_nonce(
 			$request_nonce,
@@ -310,10 +313,10 @@ class Two_Factor_Core {
 	 * @return void
 	 */
 	public static function trigger_user_settings_action() {
-		$action  = filter_input( INPUT_GET, self::USER_SETTINGS_ACTION_QUERY_VAR, FILTER_CALLBACK, array( 'options' => 'sanitize_key' ) );
+		$action  = isset( $_REQUEST[ self::USER_SETTINGS_ACTION_QUERY_VAR ] ) ? wp_unslash( $_REQUEST[ self::USER_SETTINGS_ACTION_QUERY_VAR ] ) : '';
 		$user_id = self::current_user_being_edited();
 
-		if ( ! empty( $action ) && self::is_valid_user_action( $user_id, $action ) ) {
+		if ( self::is_valid_user_action( $user_id, $action ) ) {
 			/**
 			 * This action is triggered when a valid Two Factor settings
 			 * action is detected and it passes the nonce validation.
@@ -587,43 +590,6 @@ class Two_Factor_Core {
 	}
 
 	/**
-	 * Display the Backup code 2fa screen.
-	 *
-	 * @since 0.1-dev
-	 */
-	public static function backup_2fa() {
-		$wp_auth_id = filter_input( INPUT_GET, 'wp-auth-id', FILTER_SANITIZE_NUMBER_INT );
-		$nonce      = filter_input( INPUT_GET, 'wp-auth-nonce', FILTER_CALLBACK, array( 'options' => 'sanitize_key' ) );
-		$provider   = filter_input( INPUT_GET, 'provider', FILTER_CALLBACK, array( 'options' => 'sanitize_text_field' ) );
-
-		if ( ! $wp_auth_id || ! $nonce || ! $provider ) {
-			return;
-		}
-
-		$user = get_userdata( $wp_auth_id );
-		if ( ! $user ) {
-			return;
-		}
-
-		if ( true !== self::verify_login_nonce( $user->ID, $nonce ) ) {
-			wp_safe_redirect( home_url() );
-			exit;
-		}
-
-		$providers = self::get_available_providers_for_user( $user );
-		if ( isset( $providers[ $provider ] ) ) {
-			$provider = $providers[ $provider ];
-		} else {
-			wp_die( esc_html__( 'Cheatin&#8217; uh?', 'two-factor' ), 403 );
-		}
-
-		$redirect_to = filter_input( INPUT_GET, 'redirect_to', FILTER_SANITIZE_URL );
-		self::login_html( $user, $nonce, $redirect_to, '', $provider );
-
-		exit;
-	}
-
-	/**
 	 * Displays a message informing the user that their account has had failed login attempts.
 	 *
 	 * @param WP_User $user WP_User object of the logged-in user.
@@ -762,7 +728,7 @@ class Two_Factor_Core {
 			$backup_provider  = $backup_providers[ $backup_classname ];
 			$login_url        = self::login_url(
 				array(
-					'action'        => 'backup_2fa',
+					'action'        => 'validate_2fa',
 					'provider'      => $backup_classname,
 					'wp-auth-id'    => $user->ID,
 					'wp-auth-nonce' => $login_nonce,
@@ -798,7 +764,7 @@ class Two_Factor_Core {
 					foreach ( $backup_providers as $backup_classname => $backup_provider ) :
 						$login_url = self::login_url(
 							array(
-								'action'        => 'backup_2fa',
+								'action'        => 'validate_2fa',
 								'provider'      => $backup_classname,
 								'wp-auth-id'    => $user->ID,
 								'wp-auth-nonce' => $login_nonce,
@@ -1046,8 +1012,10 @@ class Two_Factor_Core {
 	 * @since 0.1-dev
 	 */
 	public static function login_form_validate_2fa() {
-		$wp_auth_id = filter_input( INPUT_POST, 'wp-auth-id', FILTER_SANITIZE_NUMBER_INT );
-		$nonce      = filter_input( INPUT_POST, 'wp-auth-nonce', FILTER_CALLBACK, array( 'options' => 'sanitize_key' ) );
+		$wp_auth_id      = ! empty( $_REQUEST['wp-auth-id'] )    ? absint( $_REQUEST['wp-auth-id'] )        : 0;
+		$nonce           = ! empty( $_REQUEST['wp-auth-nonce'] ) ? wp_unslash( $_REQUEST['wp-auth-nonce'] ) : '';
+		$provider        = ! empty( $_REQUEST['provider'] )      ? wp_unslash( $_REQUEST['provider'] )      : false;
+		$is_post_request = ( 'POST' === strtoupper( $_SERVER['REQUEST_METHOD'] ) );
 
 		if ( ! $wp_auth_id || ! $nonce ) {
 			return;
@@ -1063,7 +1031,6 @@ class Two_Factor_Core {
 			exit;
 		}
 
-		$provider = filter_input( INPUT_POST, 'provider', FILTER_CALLBACK, array( 'options' => 'sanitize_text_field' ) );
 		if ( $provider ) {
 			$providers = self::get_available_providers_for_user( $user );
 			if ( isset( $providers[ $provider ] ) ) {
@@ -1077,6 +1044,17 @@ class Two_Factor_Core {
 
 		// Allow the provider to re-send codes, etc.
 		if ( true === $provider->pre_process_authentication( $user ) ) {
+			$login_nonce = self::create_login_nonce( $user->ID );
+			if ( ! $login_nonce ) {
+				wp_die( esc_html__( 'Failed to create a login nonce.', 'two-factor' ) );
+			}
+
+			self::login_html( $user, $login_nonce['key'], $_REQUEST['redirect_to'], '', $provider );
+			exit;
+		}
+
+		// If the form hasn't been submitted, just display the auth form.
+		if ( ! $is_post_request ) {
 			$login_nonce = self::create_login_nonce( $user->ID );
 			if ( ! $login_nonce ) {
 				wp_die( esc_html__( 'Failed to create a login nonce.', 'two-factor' ) );
