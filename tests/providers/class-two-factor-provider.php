@@ -35,7 +35,7 @@ class Tests_Two_Factor_Provider extends WP_UnitTestCase {
 		$this->assertEquals( 8, strlen( $code ) );
 	}
 
-  /**
+	/**
 	 * Validate that sanitize_code_from_request() works as intended.
 	 *
 	 * @covers Two_Factor_Provider::sanitize_code_from_request
