@@ -29,6 +29,7 @@
 		</exclude>
 		<report>
 			<clover outputFile="tests/logs/clover.xml" />
+			<html outputDirectory="tests/logs/html" />
 		</report>
 	</coverage>
 </phpunit>

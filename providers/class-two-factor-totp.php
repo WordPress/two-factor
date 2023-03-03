@@ -213,23 +213,47 @@ class Two_Factor_Totp extends Two_Factor_Provider {
 	 * @return string
 	 */
 	public static function generate_qr_code_url( $user, $secret_key ) {
-		$site_name = get_bloginfo( 'name', 'display' );
+		$issuer = get_bloginfo( 'name', 'display' );
 
-		// Must follow TOTP format for a "label":
-		// https://github.com/google/google-authenticator/wiki/Key-Uri-Format#label
-		// Do not URL encode, that will be done later.
-		$totp_title = apply_filters( 'two_factor_totp_title', $site_name . ':' . $user->user_login, $user );
+		/**
+		 * Filter the Issuer for the TOTP.
+		 *
+		 * Must follow the TOTP format for a "issuer". Do not URL Encode.
+		 *
+		 * @see https://github.com/google/google-authenticator/wiki/Key-Uri-Format#issuer
+		 * @param string $issuer The issuer for TOTP.
+		 */
+		$issuer = apply_filters( 'two_factor_totp_issuer', $issuer );
+
+		/**
+		 * Filter the Label for the TOTP.
+		 * 
+		 * Must follow the TOTP format for a "label". Do not URL Encode.
+		 *
+		 * @see https://github.com/google/google-authenticator/wiki/Key-Uri-Format#label
+		 * @param string  $totp_title The label for the TOTP.
+		 * @param WP_User $user       The User object.
+		 * @param string  $issuer     The issuer of the TOTP. This should be the prefix of the result.
+		 */
+		$totp_title = apply_filters( 'two_factor_totp_title', $issuer . ':' . $user->user_login, $user, $issuer );
 
 		$totp_url = add_query_arg(
 			array(
 				'secret' => rawurlencode( $secret_key ),
-				'issuer' => rawurlencode( $site_name ),
+				'issuer' => rawurlencode( $issuer ),
 			),
 			'otpauth://totp/' . rawurlencode( $totp_title )
 		);
 
-		// Must follow TOTP format:
-		// https://github.com/google/google-authenticator/wiki/Key-Uri-Format
+		/**
+		 * Filter the TOTP generated URL.
+		 *
+		 * Must follow the TOTP format. Do not URL Encode.
+		 *
+		 * @see https://github.com/google/google-authenticator/wiki/Key-Uri-Format
+		 * @param string  $totp_url The TOTP URL.
+		 * @param WP_User $user     The user object.
+		 */
 		$totp_url = apply_filters( 'two_factor_totp_url', $totp_url, $user );
 		$totp_url = esc_url( $totp_url, array( 'otpauth' ) );
 
