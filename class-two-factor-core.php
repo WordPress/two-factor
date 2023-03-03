@@ -804,8 +804,48 @@ class Two_Factor_Core {
 			#login form p.two-factor-prompt {
 			margin-bottom: 1em;
 			}
+			.input.authcode {
+				letter-spacing: .3em;
+			}
+			.input.authcode::placeholder {
+				opacity: 0.5;
+			}
 		</style>
+		<script>
+			(function() {
+				// Enforce numeric-only input for numeric inputmode elements.
+				const form = document.querySelector( '#loginform' ),
+					inputEl = document.querySelector( 'input.authcode[inputmode="numeric"]' ),
+					expectedLength = inputEl?.dataset.digits || 0;
 
+				if ( inputEl ) {
+					let spaceInserted = false;
+					inputEl.addEventListener(
+						'input',
+						function() {
+							let value = this.value.replace( /[^0-9 ]/g, '' ).trimStart();
+
+							if ( ! spaceInserted && expectedLength && value.length === Math.floor( expectedLength / 2 ) ) {
+								value += ' ';
+								spaceInserted = true;
+							} else if ( spaceInserted && ! this.value ) {
+								spaceInserted = false;
+							}
+
+							this.value = value;
+
+							// Auto-submit if it's the expected length.
+							if ( expectedLength && value.replace( / /g, '' ).length == expectedLength ) {
+								if ( undefined !== form.requestSubmit ) {
+									form.requestSubmit();
+									form.submit.disabled = "disabled";
+								}
+							}
+						}
+					);
+				}
+			})();
+		</script>
 		<?php
 		if ( ! function_exists( 'login_footer' ) ) {
 			include_once TWO_FACTOR_DIR . 'includes/function.login-footer.php';

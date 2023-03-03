@@ -245,6 +245,33 @@ class Tests_Two_Factor_Totp extends WP_UnitTestCase {
 	}
 
 	/**
+	 * Validate that a TOTP code works even if presented with spaces, but invalid characters cause a rejection.
+	 *
+	 * @covers Two_Factor_Totp::validate_authentication
+	 */
+	function test_validate_authentication_invalid_chars_spaces() {
+		$user = new WP_User( self::factory()->user->create() );
+		$key  = $this->provider->generate_key();
+
+		// Configure secret for the user.
+		$this->provider->set_user_totp_key( $user->ID, $key );
+
+		$authcode = $this->provider->calc_totp( $key );
+
+		// Validate that an authcode with HTML in the string is not accepted.
+		$_REQUEST['authcode'] = '<strong>' . $authcode . '</strong>';
+		$this->assertFalse( $this->provider->validate_authentication( $user ), $_REQUEST['authcode'] );
+
+		// Validate that an authcode with leading encoded spaces aren't accepted.
+		$_REQUEST['authcode'] = '%20%20' . $authcode;
+		$this->assertFalse( $this->provider->validate_authentication( $user ), $_REQUEST['authcode'] );
+
+		// Validate that an authcode with leading, trailing, and middle whitespace is accepted.
+		$_REQUEST['authcode'] = ' ' . substr( $authcode, 0, 3 ) . ' ' . substr( $authcode, 3 ) . " \n"; // eg ' 123 456 \n'
+		$this->assertTrue( $this->provider->validate_authentication( $user ), $_REQUEST['authcode'] );
+	}
+
+	/**
 	 * Test that the validation function works.
 	 *
 	 * @covers Two_Factor_Totp::validate_code_for_user

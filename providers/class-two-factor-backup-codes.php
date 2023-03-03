@@ -330,7 +330,7 @@ class Two_Factor_Backup_Codes extends Two_Factor_Provider {
 		<p class="two-factor-prompt"><?php esc_html_e( 'Enter a backup verification code.', 'two-factor' ); ?></p>
 		<p>
 			<label for="authcode"><?php esc_html_e( 'Verification Code:', 'two-factor' ); ?></label>
-			<input type="tel" name="two-factor-backup-code" id="authcode" class="input" value="" size="20" pattern="[0-9]*" />
+			<input type="text" inputmode="numeric" name="two-factor-backup-code" id="authcode" class="input authcode" value="" size="20" pattern="[0-9 ]*" placeholder="1234 5678" data-digits="8" />
 		</p>
 		<?php
 		submit_button( __( 'Submit', 'two-factor' ) );
@@ -347,7 +347,11 @@ class Two_Factor_Backup_Codes extends Two_Factor_Provider {
 	 * @return boolean
 	 */
 	public function validate_authentication( $user ) {
-		$backup_code = isset( $_POST['two-factor-backup-code'] ) ? sanitize_text_field( wp_unslash( $_POST['two-factor-backup-code'] ) ) : '';
+		$backup_code = $this->sanitize_code_from_request( 'two-factor-backup-code' );
+		if ( ! $backup_code ) {
+			return false;
+		}
+
 		return $this->validate_code( $user, $backup_code );
 	}
 
