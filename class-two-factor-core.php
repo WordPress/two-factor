@@ -391,7 +391,7 @@ class Two_Factor_Core {
 		}
 
 		if ( ! $user || ! $user->exists() ) {
-			return null;
+			return array();
 		}
 
 		$providers            = self::get_providers();
@@ -412,20 +412,22 @@ class Two_Factor_Core {
 	 *
 	 * @since 0.1-dev
 	 *
-	 * @param int $user_id Optional. User ID. Default is 'null'.
+	 * @param int|WP_User $user Optonal. User ID, or WP_User object of the the user. Defaults to current user.
 	 * @return object|null
 	 */
-	public static function get_primary_provider_for_user( $user_id = null ) {
-		if ( null === $user_id ) {
-			$user_id = get_current_user_id();
+	public static function get_primary_provider_for_user( $user = null ) {
+		if ( null === $user ) {
+			$user = wp_get_current_user();
+		} elseif ( ! ( $user instanceof WP_User ) ) {
+			$user = get_user_by( 'id', $user );
 		}
 
-		if ( ! $user_id || ! is_numeric( $user_id ) ) {
+		if ( ! $user || ! $user->exists() ) {
 			return null;
 		}
 
 		$providers           = self::get_providers();
-		$available_providers = self::get_available_providers_for_user( get_userdata( $user_id ) );
+		$available_providers = self::get_available_providers_for_user( $user );
 
 		// If there's only one available provider, force that to be the primary.
 		if ( empty( $available_providers ) ) {
@@ -433,7 +435,7 @@ class Two_Factor_Core {
 		} elseif ( 1 === count( $available_providers ) ) {
 			$provider = key( $available_providers );
 		} else {
-			$provider = get_user_meta( $user_id, self::PROVIDER_USER_META_KEY, true );
+			$provider = get_user_meta( $user->ID, self::PROVIDER_USER_META_KEY, true );
 
 			// If the provider specified isn't enabled, just grab the first one that is.
 			if ( ! isset( $available_providers[ $provider ] ) ) {
@@ -447,7 +449,7 @@ class Two_Factor_Core {
 		 * @param string $provider The provider currently being used.
 		 * @param int    $user_id  The user ID.
 		 */
-		$provider = apply_filters( 'two_factor_primary_provider_for_user', $provider, $user_id );
+		$provider = apply_filters( 'two_factor_primary_provider_for_user', $provider, $user->ID );
 
 		if ( isset( $providers[ $provider ] ) ) {
 			return $providers[ $provider ];
