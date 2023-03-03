@@ -347,17 +347,17 @@ class Two_Factor_Core {
 	/**
 	 * Get all Two-Factor Auth providers that are enabled for the specified|current user.
 	 *
-	 * @param int|string|WP_User $user WP_User object of the logged-in user.
+	 * @param int|WP_User $user Optonal. User ID, or WP_User object of the the user. Defaults to current user.
 	 * @return array
 	 */
 	public static function get_enabled_providers_for_user( $user = null ) {
 		if ( null === $user ) {
 			$user = wp_get_current_user();
-		} else {
-			$user = new WP_User( $user );
+		} elseif ( ! ( $user instanceof WP_User ) ) {
+			$user = get_user_by( 'id', $user );
 		}
 
-		if ( ! $user->exists() ) {
+		if ( ! $user || ! $user->exists() ) {
 			return array();
 		}
 
@@ -380,18 +380,18 @@ class Two_Factor_Core {
 	/**
 	 * Get all Two-Factor Auth providers that are both enabled and configured for the specified|current user.
 	 *
-	 * @param int|string|WP_User $user WP_User object of the logged-in user.
+	 * @param int|WP_User $user Optonal. User ID, or WP_User object of the the user. Defaults to current user.
 	 * @return array
 	 */
 	public static function get_available_providers_for_user( $user = null ) {
 		if ( null === $user ) {
 			$user = wp_get_current_user();
-		} else {
-			$user = new WP_User( $user );
+		} elseif ( ! ( $user instanceof WP_User ) ) {
+			$user = get_user_by( 'id', $user );
 		}
 
-		if ( ! $user->exists() ) {
-			return array();
+		if ( ! $user || ! $user->exists() ) {
+			return null;
 		}
 
 		$providers            = self::get_providers();
