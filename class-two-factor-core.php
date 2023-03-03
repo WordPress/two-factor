@@ -463,11 +463,11 @@ class Two_Factor_Core {
 	 *
 	 * @since 0.1-dev
 	 *
-	 * @param int $user_id Optional. User ID. Default is 'null'.
+	 * @param int|WP_User $user Optonal. User ID, or WP_User object of the the user. Defaults to current user.
 	 * @return bool
 	 */
-	public static function is_user_using_two_factor( $user_id = null ) {
-		$provider = self::get_primary_provider_for_user( $user_id );
+	public static function is_user_using_two_factor( $user = null ) {
+		$provider = self::get_primary_provider_for_user( $user );
 		return ! empty( $provider );
 	}
 
@@ -560,7 +560,7 @@ class Two_Factor_Core {
 	/**
 	 * If the current user can login via API requests such as XML-RPC and REST.
 	 *
-	 * @param  integer $user_id User ID.
+	 * @param integer $user_id User ID.
 	 *
 	 * @return boolean
 	 */
