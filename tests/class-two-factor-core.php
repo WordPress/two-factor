@@ -138,6 +138,27 @@ class Test_ClassTwoFactorCore extends WP_UnitTestCase {
 	}
 
 	/**
+	 * @covers Two_Factor_Core::fetch_user
+	 */
+	public function test_fetch_user() {
+		$this->assertFalse( Two_Factor_Core::fetch_user( null ) );
+
+		$logged_in = self::factory()->user->create_and_get();
+		wp_set_current_user( $logged_in->ID );
+
+		$fetched = Two_Factor_Core::fetch_user( null );
+		$this->assertSame( $logged_in->ID, $fetched->ID );
+
+		$logged_out = self::factory()->user->create_and_get();
+
+		$fetched = Two_Factor_Core::fetch_user( $logged_out->ID );
+		$this->assertSame( $logged_out->ID, $fetched->ID );
+
+		$fetched = Two_Factor_Core::fetch_user( $logged_out );
+		$this->assertSame( $logged_out->ID, $fetched->ID );
+	}
+
+	/**
 	 * Verify enabled providers for non-logged-in user.
 	 *
 	 * @covers Two_Factor_Core::get_enabled_providers_for_user
