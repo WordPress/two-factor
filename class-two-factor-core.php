@@ -345,12 +345,15 @@ class Two_Factor_Core {
 	}
 
 	/**
-	 * Get all Two-Factor Auth providers that are enabled for the specified|current user.
+	 * Fetch the WP_User object for a provided input.
 	 *
-	 * @param int|WP_User $user Optonal. User ID, or WP_User object of the the user. Defaults to current user.
-	 * @return array
+	 * @since 0.8.0
+	 *
+	 * @param int|WP_User $user Optional. The WP_User or user ID. Defaults to current user.
+	 *
+	 * @return false|WP_User WP_User on success, false on failure.
 	 */
-	public static function get_enabled_providers_for_user( $user = null ) {
+	public static function fetch_user( $user = null ) {
 		if ( null === $user ) {
 			$user = wp_get_current_user();
 		} elseif ( ! ( $user instanceof WP_User ) ) {
@@ -358,6 +361,21 @@ class Two_Factor_Core {
 		}
 
 		if ( ! $user || ! $user->exists() ) {
+			return false;
+		}
+
+		return $user;
+	}
+
+	/**
+	 * Get all Two-Factor Auth providers that are enabled for the specified|current user.
+	 *
+	 * @param int|WP_User $user Optonal. User ID, or WP_User object of the the user. Defaults to current user.
+	 * @return array
+	 */
+	public static function get_enabled_providers_for_user( $user = null ) {
+		$user = self::fetch_user( $user );
+		if ( ! $user ) {
 			return array();
 		}
 
@@ -384,13 +402,8 @@ class Two_Factor_Core {
 	 * @return array
 	 */
 	public static function get_available_providers_for_user( $user = null ) {
-		if ( null === $user ) {
-			$user = wp_get_current_user();
-		} elseif ( ! ( $user instanceof WP_User ) ) {
-			$user = get_user_by( 'id', $user );
-		}
-
-		if ( ! $user || ! $user->exists() ) {
+		$user = self::fetch_user( $user );
+		if ( ! $user ) {
 			return array();
 		}
 
@@ -416,13 +429,8 @@ class Two_Factor_Core {
 	 * @return object|null
 	 */
 	public static function get_primary_provider_for_user( $user = null ) {
-		if ( null === $user ) {
-			$user = wp_get_current_user();
-		} elseif ( ! ( $user instanceof WP_User ) ) {
-			$user = get_user_by( 'id', $user );
-		}
-
-		if ( ! $user || ! $user->exists() ) {
+		$user = self::fetch_user( $user );
+		if ( ! $user ) {
 			return null;
 		}
 
