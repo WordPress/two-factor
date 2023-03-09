@@ -188,6 +188,7 @@ class Test_ClassTwoFactorCore extends WP_UnitTestCase {
 	 * @covers Two_Factor_Core::get_enabled_providers_for_user
 	 * @covers Two_Factor_Core::get_available_providers_for_user
 	 * @covers Two_Factor_Core::user_two_factor_options_update
+	 * @covers Two_Factor_Core::fetch_user
 	 */
 	public function test_get_enabled_providers_for_user_logged_in_and_set_provider() {
 		$user = $this->get_dummy_user();
@@ -211,6 +212,7 @@ class Test_ClassTwoFactorCore extends WP_UnitTestCase {
 	 * @covers Two_Factor_Core::get_enabled_providers_for_user
 	 * @covers Two_Factor_Core::get_available_providers_for_user
 	 * @covers Two_Factor_Core::user_two_factor_options_update
+	 * @covers Two_Factor_Core::fetch_user
 	 */
 	public function test_get_enabled_providers_for_user_bad_input() {
 		$user = $this->get_dummy_user();
