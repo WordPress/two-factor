@@ -188,7 +188,7 @@ class Two_Factor_Totp extends Two_Factor_Provider {
 		$user    = get_user_by( 'id', $user_id );
 
 		$key  = $request['key'];
-		$code = $request['code'];
+		$code = preg_replace( '/\s+/', '', $request['code'] );
 
 		if ( ! $this->is_valid_key( $key ) ) {
 			return new WP_Error( 'invalid_key', __( 'Invalid Two Factor Authentication secret key.', 'two-factor' ), array( 'status' => 400 ) );
@@ -225,23 +225,47 @@ class Two_Factor_Totp extends Two_Factor_Provider {
 	 * @return string
 	 */
 	public static function generate_qr_code_url( $user, $secret_key ) {
-		$site_name = get_bloginfo( 'name', 'display' );
+		$issuer = get_bloginfo( 'name', 'display' );
 
-		// Must follow TOTP format for a "label":
-		// https://github.com/google/google-authenticator/wiki/Key-Uri-Format#label
-		// Do not URL encode, that will be done later.
-		$totp_title = apply_filters( 'two_factor_totp_title', $site_name . ':' . $user->user_login, $user );
+		/**
+		 * Filter the Issuer for the TOTP.
+		 *
+		 * Must follow the TOTP format for a "issuer". Do not URL Encode.
+		 *
+		 * @see https://github.com/google/google-authenticator/wiki/Key-Uri-Format#issuer
+		 * @param string $issuer The issuer for TOTP.
+		 */
+		$issuer = apply_filters( 'two_factor_totp_issuer', $issuer );
+
+		/**
+		 * Filter the Label for the TOTP.
+		 * 
+		 * Must follow the TOTP format for a "label". Do not URL Encode.
+		 *
+		 * @see https://github.com/google/google-authenticator/wiki/Key-Uri-Format#label
+		 * @param string  $totp_title The label for the TOTP.
+		 * @param WP_User $user       The User object.
+		 * @param string  $issuer     The issuer of the TOTP. This should be the prefix of the result.
+		 */
+		$totp_title = apply_filters( 'two_factor_totp_title', $issuer . ':' . $user->user_login, $user, $issuer );
 
 		$totp_url = add_query_arg(
 			array(
 				'secret' => rawurlencode( $secret_key ),
-				'issuer' => rawurlencode( $site_name ),
+				'issuer' => rawurlencode( $issuer ),
 			),
 			'otpauth://totp/' . rawurlencode( $totp_title )
 		);
 
-		// Must follow TOTP format:
-		// https://github.com/google/google-authenticator/wiki/Key-Uri-Format
+		/**
+		 * Filter the TOTP generated URL.
+		 *
+		 * Must follow the TOTP format. Do not URL Encode.
+		 *
+		 * @see https://github.com/google/google-authenticator/wiki/Key-Uri-Format
+		 * @param string  $totp_url The TOTP URL.
+		 * @param WP_User $user     The user object.
+		 */
 		$totp_url = apply_filters( 'two_factor_totp_url', $totp_url, $user );
 		$totp_url = esc_url( $totp_url, array( 'otpauth' ) );
 
@@ -326,7 +350,11 @@ class Two_Factor_Totp extends Two_Factor_Provider {
 				<input type="hidden" id="two-factor-totp-key" name="two-factor-totp-key" value="<?php echo esc_attr( $key ); ?>" />
 				<label for="two-factor-totp-authcode">
 					<?php esc_html_e( 'Authentication Code:', 'two-factor' ); ?>
-					<input type="tel" name="two-factor-totp-authcode" id="two-factor-totp-authcode" class="input" value="" size="20" pattern="[0-9]*" />
+					<?php
+						/* translators: Example auth code. */
+						$placeholder = sprintf( __( 'eg. %s', 'two-factor' ), '123456' );
+					?>
+					<input type="tel" name="two-factor-totp-authcode" id="two-factor-totp-authcode" class="input" value="" size="20" pattern="[0-9 ]*" placeholder="<?php echo esc_attr( $placeholder ); ?>" />
 				</label>
 				<input type="submit" class="button totp-submit" name="two-factor-totp-submit" value="<?php esc_attr_e( 'Submit', 'two-factor' ); ?>" />
 			</p>
@@ -456,14 +484,12 @@ class Two_Factor_Totp extends Two_Factor_Provider {
 	 * @return bool Whether the user gave a valid code
 	 */
 	public function validate_authentication( $user ) {
-		if ( empty( $_REQUEST['authcode'] ) ) {
+		$code = $this->sanitize_code_from_request( 'authcode', self::DEFAULT_DIGIT_COUNT );
+		if ( ! $code ) {
 			return false;
 		}
 
-		return $this->validate_code_for_user(
-			$user,
-			sanitize_text_field( $_REQUEST['authcode'] )
-		);
+		return $this->validate_code_for_user( $user, $code );
 	}
 
 	/**
@@ -655,7 +681,7 @@ class Two_Factor_Totp extends Two_Factor_Provider {
 		</p>
 		<p>
 			<label for="authcode"><?php esc_html_e( 'Authentication Code:', 'two-factor' ); ?></label>
-			<input type="tel" autocomplete="one-time-code" name="authcode" id="authcode" class="input" value="" size="20" pattern="[0-9]*" />
+			<input type="text" inputmode="numeric" autocomplete="one-time-code" name="authcode" id="authcode" class="input authcode" value="" size="20" pattern="[0-9 ]*" placeholder="123 456" data-digits="<?php echo esc_attr( self::DEFAULT_DIGIT_COUNT ); ?>" />
 		</p>
 		<script type="text/javascript">
 			setTimeout( function(){

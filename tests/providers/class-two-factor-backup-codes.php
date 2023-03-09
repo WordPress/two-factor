@@ -69,13 +69,17 @@ class Tests_Two_Factor_Backup_Codes extends WP_UnitTestCase {
 	 * @covers Two_Factor_Backup_Codes::validate_authentication
 	 */
 	public function test_validate_authentication() {
-		$user                            = new WP_User( self::factory()->user->create() );
-		$code                            = $this->provider->generate_codes( $user, array( 'number' => 1 ) );
-		$_POST['two-factor-backup-code'] = $code[0];
+		$user = new WP_User( self::factory()->user->create() );
+		$code = $this->provider->generate_codes( $user, array( 'number' => 1 ) );
 
+		// Verify authentication correctly fails without a set code.
+		$this->assertFalse( $this->provider->validate_authentication( $user ) );
+
+		// Set the code and verify it passes.
+		$_REQUEST['two-factor-backup-code'] = $code[0];
 		$this->assertTrue( $this->provider->validate_authentication( $user ) );
 
-		unset( $_POST['two-factor-backup-code'] );
+		unset( $_REQUEST['two-factor-backup-code'] );
 	}
 
 	/**

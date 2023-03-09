@@ -99,4 +99,27 @@ abstract class Two_Factor_Provider {
 		}
 		return $code;
 	}
+
+	/**
+	 * Sanitizes a numeric code to be used as an auth code.
+	 *
+	 * @param string $field  The _REQUEST field to check for the code.
+	 * @param int    $length The valid expected length of the field.
+	 * @return false|string Auth code on success, false if the field is not set or not expected length.
+	 */
+	public static function sanitize_code_from_request( $field, $length = 0 ) {
+		if ( empty( $_REQUEST[ $field ] ) ) {
+			return false;
+		}
+
+		$code = wp_unslash( $_REQUEST[ $field ] ); // phpcs:ignore WordPress.Security.NonceVerification.Recommended, handled by the core method already.
+		$code = preg_replace( '/\s+/', '', $code );
+
+		// Maybe validate the length.
+		if ( $length && strlen( $code ) !== $length ) {
+			return false;
+		}
+
+		return (string) $code;
+	}
 }
