@@ -345,14 +345,38 @@ class Two_Factor_Core {
 	}
 
 	/**
+	 * Fetch the WP_User object for a provided input.
+	 *
+	 * @since 0.8.0
+	 *
+	 * @param int|WP_User $user Optional. The WP_User or user ID. Defaults to current user.
+	 *
+	 * @return false|WP_User WP_User on success, false on failure.
+	 */
+	public static function fetch_user( $user = null ) {
+		if ( null === $user ) {
+			$user = wp_get_current_user();
+		} elseif ( ! ( $user instanceof WP_User ) ) {
+			$user = get_user_by( 'id', $user );
+		}
+
+		if ( ! $user || ! $user->exists() ) {
+			return false;
+		}
+
+		return $user;
+	}
+
+	/**
 	 * Get all Two-Factor Auth providers that are enabled for the specified|current user.
 	 *
-	 * @param WP_User $user WP_User object of the logged-in user.
+	 * @param int|WP_User $user Optonal. User ID, or WP_User object of the the user. Defaults to current user.
 	 * @return array
 	 */
 	public static function get_enabled_providers_for_user( $user = null ) {
-		if ( empty( $user ) || ! is_a( $user, 'WP_User' ) ) {
-			$user = wp_get_current_user();
+		$user = self::fetch_user( $user );
+		if ( ! $user ) {
+			return array();
 		}
 
 		$providers         = self::get_providers();
@@ -374,12 +398,13 @@ class Two_Factor_Core {
 	/**
 	 * Get all Two-Factor Auth providers that are both enabled and configured for the specified|current user.
 	 *
-	 * @param WP_User $user WP_User object of the logged-in user.
+	 * @param int|WP_User $user Optonal. User ID, or WP_User object of the the user. Defaults to current user.
 	 * @return array
 	 */
 	public static function get_available_providers_for_user( $user = null ) {
-		if ( empty( $user ) || ! is_a( $user, 'WP_User' ) ) {
-			$user = wp_get_current_user();
+		$user = self::fetch_user( $user );
+		if ( ! $user ) {
+			return array();
 		}
 
 		$providers            = self::get_providers();
@@ -400,16 +425,17 @@ class Two_Factor_Core {
 	 *
 	 * @since 0.1-dev
 	 *
-	 * @param int $user_id Optional. User ID. Default is 'null'.
+	 * @param int|WP_User $user Optonal. User ID, or WP_User object of the the user. Defaults to current user.
 	 * @return object|null
 	 */
-	public static function get_primary_provider_for_user( $user_id = null ) {
-		if ( empty( $user_id ) || ! is_numeric( $user_id ) ) {
-			$user_id = get_current_user_id();
+	public static function get_primary_provider_for_user( $user = null ) {
+		$user = self::fetch_user( $user );
+		if ( ! $user ) {
+			return null;
 		}
 
 		$providers           = self::get_providers();
-		$available_providers = self::get_available_providers_for_user( get_userdata( $user_id ) );
+		$available_providers = self::get_available_providers_for_user( $user );
 
 		// If there's only one available provider, force that to be the primary.
 		if ( empty( $available_providers ) ) {
@@ -417,7 +443,7 @@ class Two_Factor_Core {
 		} elseif ( 1 === count( $available_providers ) ) {
 			$provider = key( $available_providers );
 		} else {
-			$provider = get_user_meta( $user_id, self::PROVIDER_USER_META_KEY, true );
+			$provider = get_user_meta( $user->ID, self::PROVIDER_USER_META_KEY, true );
 
 			// If the provider specified isn't enabled, just grab the first one that is.
 			if ( ! isset( $available_providers[ $provider ] ) ) {
@@ -431,7 +457,7 @@ class Two_Factor_Core {
 		 * @param string $provider The provider currently being used.
 		 * @param int    $user_id  The user ID.
 		 */
-		$provider = apply_filters( 'two_factor_primary_provider_for_user', $provider, $user_id );
+		$provider = apply_filters( 'two_factor_primary_provider_for_user', $provider, $user->ID );
 
 		if ( isset( $providers[ $provider ] ) ) {
 			return $providers[ $provider ];
@@ -445,11 +471,11 @@ class Two_Factor_Core {
 	 *
 	 * @since 0.1-dev
 	 *
-	 * @param int $user_id Optional. User ID. Default is 'null'.
+	 * @param int|WP_User $user Optonal. User ID, or WP_User object of the the user. Defaults to current user.
 	 * @return bool
 	 */
-	public static function is_user_using_two_factor( $user_id = null ) {
-		$provider = self::get_primary_provider_for_user( $user_id );
+	public static function is_user_using_two_factor( $user = null ) {
+		$provider = self::get_primary_provider_for_user( $user );
 		return ! empty( $provider );
 	}
 
@@ -542,7 +568,7 @@ class Two_Factor_Core {
 	/**
 	 * If the current user can login via API requests such as XML-RPC and REST.
 	 *
-	 * @param  integer $user_id User ID.
+	 * @param integer $user_id User ID.
 	 *
 	 * @return boolean
 	 */
