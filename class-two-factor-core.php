@@ -1612,6 +1612,7 @@ class Two_Factor_Core {
 			$primary_provider_key = null;
 		}
 
+		// DEBUG START - This section is not intended to be in the final release.
 		if ( $is_current_user ) {
 			$session = WP_Session_Tokens::get_instance( $user->ID )->get( wp_get_session_token() );
 
@@ -1640,6 +1641,7 @@ class Two_Factor_Core {
 				);
 			}
 		}
+		// DEBUG END
 
 		// This is specific to the current session, not the displayed user.
 		$show_2fa_options = self::current_user_can_update_two_factor_options();
