@@ -1330,7 +1330,7 @@ class Two_Factor_Core {
 		$interim_login = isset( $_REQUEST['interim-login'] ); // phpcs:ignore WordPress.WP.GlobalVariablesOverride.Prohibited,WordPress.Security.NonceVerification.Recommended
 
 		if ( $interim_login ) {
-			$message       = '<p class="message">' . __( 'You have re-authenticated successfully.', 'two-factor' ) . '</p>';
+			$message       = '<p class="message">' . __( 'You have revalidated successfully.', 'two-factor' ) . '</p>';
 			$interim_login = 'success'; // phpcs:ignore WordPress.WP.GlobalVariablesOverride.Prohibited
 			login_header( '', $message );
 			?>
