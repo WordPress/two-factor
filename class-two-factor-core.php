@@ -1646,15 +1646,13 @@ class Two_Factor_Core {
 
 		if ( ! $show_2fa_options ) {
 			$url = self::get_user_two_factor_revalidate_url();
-			$url = add_query_arg( 'redirect_to', urlencode( self::get_user_settings_page_url( $user->ID ) ), $url );
-			$url .= '#two-factor-options';
+			$url = add_query_arg( 'redirect_to', urlencode( self::get_user_settings_page_url( $user->ID ) . '#two-factor-options' ), $url );
 
 			printf(
 				'<div class="notice notice-warning inline"><p>%s</p></div>',
 				sprintf(
-					/** TODO: Translations.  */
-					'To update your Two Factor options, you must first re-validate your session.' .
-					'<br><a class="button" href="%s">Revalidate now</a>',
+					__( 'To update your Two-Factor options, you must first revalidate your session.', 'two-factor' ) .
+					'<br><a class="button" href="%s">' . __( 'Revalidate now', 'two-factor' ) . '</a>',
 					esc_url( $url )
 				)
 			);
