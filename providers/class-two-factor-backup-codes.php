@@ -70,13 +70,7 @@ class Two_Factor_Backup_Codes extends Two_Factor_Provider {
 				'methods'             => WP_REST_Server::CREATABLE,
 				'callback'            => array( $this, 'rest_generate_codes' ),
 				'permission_callback' => function( $request ) {
-					if ( ! current_user_can( 'edit_user', $request['user_id'] ) ) {
-						return false;
-					}
-					if ( ! Two_Factor_Core::current_user_can_update_two_factor_options( 'save' ) ) {
-						return new WP_Error( 'revalidation_required', 'Two Factor Revalidation required.' );
-					}
-					return true;
+					return Two_Factor_Core::rest_api_can_edit_user_and_update_two_factor_options( $request['user_id'] );
 				},
 				'args'                => array(
 					'user_id' => array(

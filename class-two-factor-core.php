@@ -1153,6 +1153,25 @@ class Two_Factor_Core {
 	}
 
 	/**
+	 * Validate that the current user can edit the specified user, and if two-factor is required by the account it's within the grace period.
+	 *
+	 * @param int $user_id The user ID being updated.
+	 *
+	 * @return bool|\WP_Error
+	 */
+	public static function rest_api_can_edit_user_and_update_two_factor_options( $user_id ) {
+		if ( ! current_user_can( 'edit_user', $user_id ) ) {
+			return false;
+		}
+
+		if ( ! self::current_user_can_update_two_factor_options( 'save' ) ) {
+			return new WP_Error( 'revalidation_required', __( 'Two Factor Revalidation required.', 'two-factor' ) );
+		}
+
+		return true;
+	}
+
+	/**
 	 * Login form validation.
 	 *
 	 * @since 0.1-dev
