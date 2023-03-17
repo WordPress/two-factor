@@ -1130,8 +1130,13 @@ class Two_Factor_Core {
 			return false;
 		}
 
-		$two_factor_revalidate_time = 10 * MINUTE_IN_SECONDS;
-		/** TODO: Add filter */
+		/**
+		 * Filter the grace time for two factor revalidation.
+		 *
+		 * @param int    $two_factor_revalidate_time The grace time between last validation time and when it'll be accepted. Default 10 minutes.
+		 * @param string $context                    The context in use, 'display' or 'save'. Save has twice the grace time.
+		 */
+		$two_factor_revalidate_time = apply_filters( 'two_factor_revalidate_time', 10 * MINUTE_IN_SECONDS, $user_id, $context );
 
 		if ( $context === 'save' ) {
 			$two_factor_revalidate_time *= 2;
