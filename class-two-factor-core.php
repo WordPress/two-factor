@@ -36,6 +36,27 @@ class Two_Factor_Core {
 	const USER_META_NONCE_KEY = '_two_factor_nonce';
 
 	/**
+	 * The user meta key to store the last failed timestamp.
+	 *
+	 * @type string
+	 */
+	const USER_RATE_LIMIT_KEY = '_two_factor_last_login_failure';
+
+	/**
+	 * The user meta key to store the number of failed login attempts.
+	 *
+	 * @var string
+	 */
+	const USER_FAILED_LOGIN_ATTEMPTS_KEY = '_two_factor_failed_login_attempts';
+
+	/**
+	 * The user meta key to store whether or not the password was reset.
+	 *
+	 * @var string
+	 */
+	const USER_PASSWORD_WAS_RESET_KEY = '_two_factor_password_was_reset';
+
+	/**
 	 * URL query paramater used for our custom actions.
 	 *
 	 * @var string
@@ -50,6 +71,13 @@ class Two_Factor_Core {
 	const USER_SETTINGS_ACTION_NONCE_QUERY_ARG = '_two_factor_action_nonce';
 
 	/**
+	 * Namespace for plugin rest api endpoints.
+	 *
+	 * @var string
+	 */
+	const REST_NAMESPACE = 'two-factor/1.0';
+
+	/**
 	 * Keep track of all the password-based authentication sessions that
 	 * need to invalidated before the second factor authentication.
 	 *
@@ -60,7 +88,7 @@ class Two_Factor_Core {
 	/**
 	 * Set up filters and actions.
 	 *
-	 * @param object $compat A compaitbility later for plugins.
+	 * @param object $compat A compatibility layer for plugins.
 	 *
 	 * @since 0.1-dev
 	 */
@@ -68,8 +96,9 @@ class Two_Factor_Core {
 		add_action( 'plugins_loaded', array( __CLASS__, 'load_textdomain' ) );
 		add_action( 'init', array( __CLASS__, 'get_providers' ) );
 		add_action( 'wp_login', array( __CLASS__, 'wp_login' ), 10, 2 );
+		add_filter( 'wp_login_errors', array( __CLASS__, 'maybe_show_reset_password_notice' ) );
+		add_action( 'after_password_reset', array( __CLASS__, 'clear_password_reset_notice' ) );
 		add_action( 'login_form_validate_2fa', array( __CLASS__, 'login_form_validate_2fa' ) );
-		add_action( 'login_form_backup_2fa', array( __CLASS__, 'backup_2fa' ) );
 		add_action( 'show_user_profile', array( __CLASS__, 'user_two_factor_options' ) );
 		add_action( 'edit_user_profile', array( __CLASS__, 'user_two_factor_options' ) );
 		add_action( 'personal_options_update', array( __CLASS__, 'user_two_factor_options_update' ) );
@@ -89,6 +118,9 @@ class Two_Factor_Core {
 
 		// Run only after the core wp_authenticate_username_password() check.
 		add_filter( 'authenticate', array( __CLASS__, 'filter_authenticate' ), 50 );
+
+		// Run as late as possible to prevent other plugins from unintentionally bypassing.
+		add_filter( 'authenticate', array( __CLASS__, 'filter_authenticate_block_cookies' ), PHP_INT_MAX );
 
 		add_action( 'admin_init', array( __CLASS__, 'trigger_user_settings_action' ) );
 		add_filter( 'two_factor_providers', array( __CLASS__, 'enable_dummy_method_for_debug' ) );
@@ -244,7 +276,11 @@ class Two_Factor_Core {
 	 * @return boolean
 	 */
 	public static function is_valid_user_action( $user_id, $action ) {
-		$request_nonce = filter_input( INPUT_GET, self::USER_SETTINGS_ACTION_NONCE_QUERY_ARG, FILTER_CALLBACK, array( 'options' => 'sanitize_key' ) );
+		$request_nonce = isset( $_REQUEST[ self::USER_SETTINGS_ACTION_NONCE_QUERY_ARG ] ) ? wp_unslash( $_REQUEST[ self::USER_SETTINGS_ACTION_NONCE_QUERY_ARG ] ) : '';
+
+		if ( ! $user_id || ! $action || ! $request_nonce ) {
+			return false;
+		}
 
 		return wp_verify_nonce(
 			$request_nonce,
@@ -277,10 +313,10 @@ class Two_Factor_Core {
 	 * @return void
 	 */
 	public static function trigger_user_settings_action() {
-		$action  = filter_input( INPUT_GET, self::USER_SETTINGS_ACTION_QUERY_VAR, FILTER_CALLBACK, array( 'options' => 'sanitize_key' ) );
+		$action  = isset( $_REQUEST[ self::USER_SETTINGS_ACTION_QUERY_VAR ] ) ? wp_unslash( $_REQUEST[ self::USER_SETTINGS_ACTION_QUERY_VAR ] ) : '';
 		$user_id = self::current_user_being_edited();
 
-		if ( ! empty( $action ) && self::is_valid_user_action( $user_id, $action ) ) {
+		if ( self::is_valid_user_action( $user_id, $action ) ) {
 			/**
 			 * This action is triggered when a valid Two Factor settings
 			 * action is detected and it passes the nonce validation.
@@ -309,14 +345,38 @@ class Two_Factor_Core {
 	}
 
 	/**
+	 * Fetch the WP_User object for a provided input.
+	 *
+	 * @since 0.8.0
+	 *
+	 * @param int|WP_User $user Optional. The WP_User or user ID. Defaults to current user.
+	 *
+	 * @return false|WP_User WP_User on success, false on failure.
+	 */
+	public static function fetch_user( $user = null ) {
+		if ( null === $user ) {
+			$user = wp_get_current_user();
+		} elseif ( ! ( $user instanceof WP_User ) ) {
+			$user = get_user_by( 'id', $user );
+		}
+
+		if ( ! $user || ! $user->exists() ) {
+			return false;
+		}
+
+		return $user;
+	}
+
+	/**
 	 * Get all Two-Factor Auth providers that are enabled for the specified|current user.
 	 *
-	 * @param WP_User $user WP_User object of the logged-in user.
+	 * @param int|WP_User $user Optonal. User ID, or WP_User object of the the user. Defaults to current user.
 	 * @return array
 	 */
 	public static function get_enabled_providers_for_user( $user = null ) {
-		if ( empty( $user ) || ! is_a( $user, 'WP_User' ) ) {
-			$user = wp_get_current_user();
+		$user = self::fetch_user( $user );
+		if ( ! $user ) {
+			return array();
 		}
 
 		$providers         = self::get_providers();
@@ -338,12 +398,13 @@ class Two_Factor_Core {
 	/**
 	 * Get all Two-Factor Auth providers that are both enabled and configured for the specified|current user.
 	 *
-	 * @param WP_User $user WP_User object of the logged-in user.
+	 * @param int|WP_User $user Optonal. User ID, or WP_User object of the the user. Defaults to current user.
 	 * @return array
 	 */
 	public static function get_available_providers_for_user( $user = null ) {
-		if ( empty( $user ) || ! is_a( $user, 'WP_User' ) ) {
-			$user = wp_get_current_user();
+		$user = self::fetch_user( $user );
+		if ( ! $user ) {
+			return array();
 		}
 
 		$providers            = self::get_providers();
@@ -364,16 +425,17 @@ class Two_Factor_Core {
 	 *
 	 * @since 0.1-dev
 	 *
-	 * @param int $user_id Optional. User ID. Default is 'null'.
+	 * @param int|WP_User $user Optonal. User ID, or WP_User object of the the user. Defaults to current user.
 	 * @return object|null
 	 */
-	public static function get_primary_provider_for_user( $user_id = null ) {
-		if ( empty( $user_id ) || ! is_numeric( $user_id ) ) {
-			$user_id = get_current_user_id();
+	public static function get_primary_provider_for_user( $user = null ) {
+		$user = self::fetch_user( $user );
+		if ( ! $user ) {
+			return null;
 		}
 
 		$providers           = self::get_providers();
-		$available_providers = self::get_available_providers_for_user( get_userdata( $user_id ) );
+		$available_providers = self::get_available_providers_for_user( $user );
 
 		// If there's only one available provider, force that to be the primary.
 		if ( empty( $available_providers ) ) {
@@ -381,7 +443,7 @@ class Two_Factor_Core {
 		} elseif ( 1 === count( $available_providers ) ) {
 			$provider = key( $available_providers );
 		} else {
-			$provider = get_user_meta( $user_id, self::PROVIDER_USER_META_KEY, true );
+			$provider = get_user_meta( $user->ID, self::PROVIDER_USER_META_KEY, true );
 
 			// If the provider specified isn't enabled, just grab the first one that is.
 			if ( ! isset( $available_providers[ $provider ] ) ) {
@@ -395,7 +457,7 @@ class Two_Factor_Core {
 		 * @param string $provider The provider currently being used.
 		 * @param int    $user_id  The user ID.
 		 */
-		$provider = apply_filters( 'two_factor_primary_provider_for_user', $provider, $user_id );
+		$provider = apply_filters( 'two_factor_primary_provider_for_user', $provider, $user->ID );
 
 		if ( isset( $providers[ $provider ] ) ) {
 			return $providers[ $provider ];
@@ -409,11 +471,11 @@ class Two_Factor_Core {
 	 *
 	 * @since 0.1-dev
 	 *
-	 * @param int $user_id Optional. User ID. Default is 'null'.
+	 * @param int|WP_User $user Optonal. User ID, or WP_User object of the the user. Defaults to current user.
 	 * @return bool
 	 */
-	public static function is_user_using_two_factor( $user_id = null ) {
-		$provider = self::get_primary_provider_for_user( $user_id );
+	public static function is_user_using_two_factor( $user = null ) {
+		$provider = self::get_primary_provider_for_user( $user );
 		return ! empty( $provider );
 	}
 
@@ -481,9 +543,32 @@ class Two_Factor_Core {
 	}
 
 	/**
+	 * Prevent login cookies being set on login for Two Factor users.
+	 *
+	 * This makes it so that Core never sends the auth cookies. `login_form_validate_2fa()` will send them manually once the 2nd factor has been verified.
+	 *
+	 * @param  WP_User|WP_Error $user Valid WP_User only if the previous filters
+	 *                                have verified and confirmed the
+	 *                                authentication credentials.
+	 *
+	 * @return WP_User|WP_Error
+	 */
+	public static function filter_authenticate_block_cookies( $user ) {
+		/*
+		 * NOTE: The `login_init` action is checked for here to ensure we're within the regular login flow,
+		 * rather than through an unsupported 3rd-party login process which this plugin doesn't support.
+		 */
+		if ( $user instanceof WP_User && self::is_user_using_two_factor( $user->ID ) && did_action( 'login_init' ) ) {
+			add_filter( 'send_auth_cookies', '__return_false', PHP_INT_MAX );
+		}
+
+		return $user;
+	}
+
+	/**
 	 * If the current user can login via API requests such as XML-RPC and REST.
 	 *
-	 * @param  integer $user_id User ID.
+	 * @param integer $user_id User ID.
 	 *
 	 * @return boolean
 	 */
@@ -531,40 +616,82 @@ class Two_Factor_Core {
 	}
 
 	/**
-	 * Display the Backup code 2fa screen.
+	 * Displays a message informing the user that their account has had failed login attempts.
 	 *
-	 * @since 0.1-dev
+	 * @param WP_User $user WP_User object of the logged-in user.
 	 */
-	public static function backup_2fa() {
-		$wp_auth_id = filter_input( INPUT_GET, 'wp-auth-id', FILTER_SANITIZE_NUMBER_INT );
-		$nonce      = filter_input( INPUT_GET, 'wp-auth-nonce', FILTER_CALLBACK, array( 'options' => 'sanitize_key' ) );
-		$provider   = filter_input( INPUT_GET, 'provider', FILTER_CALLBACK, array( 'options' => 'sanitize_text_field' ) );
+	public static function maybe_show_last_login_failure_notice( $user ) {
+		$last_failed_two_factor_login = (int) get_user_meta( $user->ID, self::USER_RATE_LIMIT_KEY, true );
+		$failed_login_count           = (int) get_user_meta( $user->ID, self::USER_FAILED_LOGIN_ATTEMPTS_KEY, true );
 
-		if ( ! $wp_auth_id || ! $nonce || ! $provider ) {
-			return;
+		if ( $last_failed_two_factor_login ) {
+			echo '<div id="login_notice" class="message"><strong>';
+			printf(
+				_n(
+					'WARNING: Your account has attempted to login without providing a valid two factor token. The last failed login occured %2$s ago. If this wasn\'t you, you should reset your password.',
+					'WARNING: Your account has attempted to login %1$s times without providing a valid two factor token. The last failed login occured %2$s ago. If this wasn\'t you, you should reset your password.',
+					$failed_login_count,
+					'two-factor'
+				),
+				number_format_i18n( $failed_login_count ),
+				human_time_diff( $last_failed_two_factor_login, time() )
+			);
+			echo '</strong></div>';
+		}
+	}
+
+	/**
+	 * Show the password reset notice if the user's password was reset.
+	 *
+	 * They were also sent an email notification in `send_password_reset_email()`, but email sent from a typical
+	 * web server is not reliable enough to trust completely.
+	 *
+	 * @param WP_Error $errors
+	 */
+	public static function maybe_show_reset_password_notice( $errors ) {
+		if ( 'incorrect_password' !== $errors->get_error_code() ) {
+			return $errors;
 		}
 
-		$user = get_userdata( $wp_auth_id );
-		if ( ! $user ) {
-			return;
+		if ( ! isset( $_POST['log'] ) ) {
+			return $errors;
 		}
 
-		if ( true !== self::verify_login_nonce( $user->ID, $nonce ) ) {
-			wp_safe_redirect( home_url() );
-			exit;
+		$user_name      = sanitize_user( wp_unslash( $_POST['log'] ) );
+		$attempted_user = get_user_by( 'login', $user_name );
+		if ( ! $attempted_user && str_contains( $user_name, '@' ) ) {
+			$attempted_user = get_user_by( 'email', $user_name );
 		}
 
-		$providers = self::get_available_providers_for_user( $user );
-		if ( isset( $providers[ $provider ] ) ) {
-			$provider = $providers[ $provider ];
-		} else {
-			wp_die( esc_html__( 'Cheatin&#8217; uh?', 'two-factor' ), 403 );
+		if ( ! $attempted_user ) {
+			return $errors;
+		}
+		
+		$password_was_reset = get_user_meta( $attempted_user->ID, self::USER_PASSWORD_WAS_RESET_KEY, true );
+
+		if ( ! $password_was_reset ) {
+			return $errors;
 		}
 
-		$redirect_to = filter_input( INPUT_GET, 'redirect_to', FILTER_SANITIZE_URL );
-		self::login_html( $user, $nonce, $redirect_to, '', $provider );
+		$errors->remove( 'incorrect_password' );
+		$errors->add(
+			'two_factor_password_reset',
+			sprintf(
+				__( 'Your password was reset because of too many failed Two Factor attempts. You will need to <a href="%s">create a new password</a> to regain access. Please check your email for more information.', 'two-factor' ),
+				esc_url( add_query_arg( 'action', 'lostpassword', wp_login_url() ) )
+			)
+		);
 
-		exit;
+		return $errors;
+	}
+
+	/**
+	 * Clear the password reset notice after the user resets their password.
+	 *
+	 * @param WP_User $user
+	 */
+	public static function clear_password_reset_notice( $user ) {
+		delete_user_meta( $user->ID, self::USER_PASSWORD_WAS_RESET_KEY );
 	}
 
 	/**
@@ -602,6 +729,8 @@ class Two_Factor_Core {
 
 		if ( ! empty( $error_msg ) ) {
 			echo '<div id="login_error"><strong>' . esc_html( $error_msg ) . '</strong><br /></div>';
+		} else {
+			self::maybe_show_last_login_failure_notice( $user );
 		}
 		?>
 
@@ -625,7 +754,7 @@ class Two_Factor_Core {
 			$backup_provider  = $backup_providers[ $backup_classname ];
 			$login_url        = self::login_url(
 				array(
-					'action'        => 'backup_2fa',
+					'action'        => 'validate_2fa',
 					'provider'      => $backup_classname,
 					'wp-auth-id'    => $user->ID,
 					'wp-auth-nonce' => $login_nonce,
@@ -661,7 +790,7 @@ class Two_Factor_Core {
 					foreach ( $backup_providers as $backup_classname => $backup_provider ) :
 						$login_url = self::login_url(
 							array(
-								'action'        => 'backup_2fa',
+								'action'        => 'validate_2fa',
 								'provider'      => $backup_classname,
 								'wp-auth-id'    => $user->ID,
 								'wp-auth-nonce' => $login_nonce,
@@ -698,8 +827,51 @@ class Two_Factor_Core {
 			.jetpack-sso-form-display #loginform > div {
 			display: block;
 			}
+			#login form p.two-factor-prompt {
+			margin-bottom: 1em;
+			}
+			.input.authcode {
+				letter-spacing: .3em;
+			}
+			.input.authcode::placeholder {
+				opacity: 0.5;
+			}
 		</style>
+		<script>
+			(function() {
+				// Enforce numeric-only input for numeric inputmode elements.
+				const form = document.querySelector( '#loginform' ),
+					inputEl = document.querySelector( 'input.authcode[inputmode="numeric"]' ),
+					expectedLength = inputEl?.dataset.digits || 0;
 
+				if ( inputEl ) {
+					let spaceInserted = false;
+					inputEl.addEventListener(
+						'input',
+						function() {
+							let value = this.value.replace( /[^0-9 ]/g, '' ).trimStart();
+
+							if ( ! spaceInserted && expectedLength && value.length === Math.floor( expectedLength / 2 ) ) {
+								value += ' ';
+								spaceInserted = true;
+							} else if ( spaceInserted && ! this.value ) {
+								spaceInserted = false;
+							}
+
+							this.value = value;
+
+							// Auto-submit if it's the expected length.
+							if ( expectedLength && value.replace( / /g, '' ).length == expectedLength ) {
+								if ( undefined !== form.requestSubmit ) {
+									form.requestSubmit();
+									form.submit.disabled = "disabled";
+								}
+							}
+						}
+					);
+				}
+			})();
+		</script>
 		<?php
 		if ( ! function_exists( 'login_footer' ) ) {
 			include_once TWO_FACTOR_DIR . 'includes/function.login-footer.php';
@@ -832,13 +1004,84 @@ class Two_Factor_Core {
 	}
 
 	/**
+	 * Determine the minimum wait between two factor attempts for a user.
+	 *
+	 * This implements an increasing backoff, requiring an attacker to wait longer
+	 * each time to attempt to brute-force the login.
+	 *
+	 * @param WP_User $user The user being operated upon.
+	 * @return int Time delay in seconds between login attempts.
+	 */
+	public static function get_user_time_delay( $user ) {
+		/**
+		 * Filter the minimum time duration between two factor attempts.
+		 *
+		 * @param int $rate_limit The number of seconds between two factor attempts.
+		 */
+		$rate_limit = apply_filters( 'two_factor_rate_limit', 1 );
+
+		$user_failed_logins = get_user_meta( $user->ID, self::USER_FAILED_LOGIN_ATTEMPTS_KEY, true );
+		if ( $user_failed_logins ) {
+			$rate_limit = pow( 2, $user_failed_logins ) * $rate_limit;
+
+			/**
+			 * Filter the maximum time duration a user may be locked out from retrying two factor authentications.
+			 *
+			 * @param int $max_rate_limit The maximum number of seconds a user might be locked out for. Default 15 minutes.
+			 */
+			$max_rate_limit = apply_filters( 'two_factor_max_rate_limit', 15 * MINUTE_IN_SECONDS );
+
+			$rate_limit = min( $max_rate_limit, $rate_limit );
+		}
+
+		/**
+		 * Filters the per-user time duration between two factor login attempts.
+		 *
+		 * @param int     $rate_limit The number of seconds between two factor attempts.
+		 * @param WP_User $user       The user attempting to login.
+		 */
+		return apply_filters( 'two_factor_user_rate_limit', $rate_limit, $user );
+	}
+
+	/**
+	 * Determine if a time delay between user two factor login attempts should be triggered.
+	 *
+	 * @since 0.8.0
+	 *
+	 * @param WP_User $user The User.
+	 * @return bool True if rate limit is okay, false if not.
+	 */
+	public static function is_user_rate_limited( $user ) {
+		$rate_limit  = self::get_user_time_delay( $user );
+		$last_failed = get_user_meta( $user->ID, self::USER_RATE_LIMIT_KEY, true );
+
+		$rate_limited = false;
+		if ( $last_failed && $last_failed + $rate_limit > time() ) {
+			$rate_limited = true;
+		}
+
+		/**
+		 * Filter whether this login attempt is rate limited or not.
+		 *
+		 * This allows for dedicated plugins to rate limit two factor login attempts
+		 * based on their own rules.
+		 *
+		 * @param bool     $rate_limited Whether the user login is rate limited.
+		 * @param WP_User $user          The user attempting to login.
+		 */
+		return apply_filters( 'two_factor_is_user_rate_limited', $rate_limited, $user );
+	}
+
+	/**
 	 * Login form validation.
 	 *
 	 * @since 0.1-dev
 	 */
 	public static function login_form_validate_2fa() {
-		$wp_auth_id = filter_input( INPUT_POST, 'wp-auth-id', FILTER_SANITIZE_NUMBER_INT );
-		$nonce      = filter_input( INPUT_POST, 'wp-auth-nonce', FILTER_CALLBACK, array( 'options' => 'sanitize_key' ) );
+		$wp_auth_id      = ! empty( $_REQUEST['wp-auth-id'] )    ? absint( $_REQUEST['wp-auth-id'] )        : 0;
+		$nonce           = ! empty( $_REQUEST['wp-auth-nonce'] ) ? wp_unslash( $_REQUEST['wp-auth-nonce'] ) : '';
+		$provider        = ! empty( $_REQUEST['provider'] )      ? wp_unslash( $_REQUEST['provider'] )      : false;
+		$is_post_request = ( 'POST' === strtoupper( $_SERVER['REQUEST_METHOD'] ) );
 
 		if ( ! $wp_auth_id || ! $nonce ) {
 			return;
@@ -854,7 +1097,6 @@ class Two_Factor_Core {
 			exit;
 		}
 
-		$provider = filter_input( INPUT_POST, 'provider', FILTER_CALLBACK, array( 'options' => 'sanitize_text_field' ) );
 		if ( $provider ) {
 			$providers = self::get_available_providers_for_user( $user );
 			if ( isset( $providers[ $provider ] ) ) {
@@ -877,9 +1119,57 @@ class Two_Factor_Core {
 			exit;
 		}
 
+		// If the form hasn't been submitted, just display the auth form.
+		if ( ! $is_post_request ) {
+			$login_nonce = self::create_login_nonce( $user->ID );
+			if ( ! $login_nonce ) {
+				wp_die( esc_html__( 'Failed to create a login nonce.', 'two-factor' ) );
+			}
+
+			self::login_html( $user, $login_nonce['key'], $_REQUEST['redirect_to'], '', $provider );
+			exit;
+		}
+
+		// Rate limit two factor authentication attempts.
+		if ( true === self::is_user_rate_limited( $user ) ) {
+			$time_delay = self::get_user_time_delay( $user );
+			$last_login = get_user_meta( $user->ID, self::USER_RATE_LIMIT_KEY, true );
+
+			$error = new WP_Error(
+				'two_factor_too_fast',
+				sprintf(
+					__( 'ERROR: Too many invalid verification codes, you can try again in %s. This limit protects your account against automated attacks.', 'two-factor' ),
+					human_time_diff( $last_login + $time_delay )
+				)
+			);
+
+			do_action( 'wp_login_failed', $user->user_login, $error );
+
+			$login_nonce = self::create_login_nonce( $user->ID );
+			if ( ! $login_nonce ) {
+				wp_die( esc_html__( 'Failed to create a login nonce.', 'two-factor' ) );
+			}
+
+			self::login_html( $user, $login_nonce['key'], $_REQUEST['redirect_to'], esc_html( $error->get_error_message() ), $provider );
+			exit;
+		}
+
 		// Ask the provider to verify the second factor.
 		if ( true !== $provider->validate_authentication( $user ) ) {
 			do_action( 'wp_login_failed', $user->user_login, new WP_Error( 'two_factor_invalid', __( 'ERROR: Invalid verification code.', 'two-factor' ) ) );
+
+			// Store the last time a failed login occured.
+			update_user_meta( $user->ID, self::USER_RATE_LIMIT_KEY, time() );
+
+			// Store the number of failed login attempts.
+			update_user_meta( $user->ID, self::USER_FAILED_LOGIN_ATTEMPTS_KEY, 1 + (int) get_user_meta( $user->ID, self::USER_FAILED_LOGIN_ATTEMPTS_KEY, true ) );
+
+			if ( self::should_reset_password( $user->ID ) ) {
+				self::reset_compromised_password( $user );
+				self::send_password_reset_emails( $user );
+				self::show_password_reset_error();
+				exit;
+			}
 
 			$login_nonce = self::create_login_nonce( $user->ID );
 			if ( ! $login_nonce ) {
@@ -891,12 +1181,20 @@ class Two_Factor_Core {
 		}
 
 		self::delete_login_nonce( $user->ID );
+		delete_user_meta( $user->ID, self::USER_RATE_LIMIT_KEY );
+		delete_user_meta( $user->ID, self::USER_FAILED_LOGIN_ATTEMPTS_KEY );
 
 		$rememberme = false;
 		if ( isset( $_REQUEST['rememberme'] ) && $_REQUEST['rememberme'] ) {
 			$rememberme = true;
 		}
 
+		/*
+		 * NOTE: This filter removal is not normally required, this is included for protection against
+		 * a plugin/two factor provider which runs the `authenticate` filter during it's validation.
+		 * Such a plugin would cause self::filter_authenticate_block_cookies() to run and add this filter.
+		 */
+		remove_filter( 'send_auth_cookies', '__return_false', PHP_INT_MAX );
 		wp_set_auth_cookie( $user->ID, $rememberme );
 
 		do_action( 'two_factor_user_authenticated', $user );
@@ -930,6 +1228,154 @@ class Two_Factor_Core {
 		wp_safe_redirect( $redirect_to );
 
 		exit;
+	}
+
+	/**
+	 * Determine if the user's password should be reset.
+	 *
+	 * @param int $user_id
+	 *
+	 * @return bool
+	 */
+	public static function should_reset_password( $user_id ) {
+		$failed_attempts = (int) get_user_meta( $user_id, self::USER_FAILED_LOGIN_ATTEMPTS_KEY, true );
+
+		/**
+		 * Filters the maximum number of failed attempts on a 2nd factor before the user's
+		 * password will be reset. After a reasonable number of attempts, it's safe to assume
+		 * that the password has been compromised and an attacker is trying to brute force the 2nd
+		 * factor.
+		 *
+		 * ⚠️ `get_user_time_delay()` mitigates brute force attempts, but many 2nd factors --
+		 * like TOTP and backup codes -- are very weak on their own, so it's not safe to give
+		 * attackers unlimited attempts. Setting this to a very large number is strongly
+		 * discouraged.
+		 *
+		 * @param int $limit The number of attempts before the password is reset.
+		 */
+		$failed_attempt_limit = apply_filters( 'two_factor_failed_attempt_limit', 30 );
+
+		return $failed_attempts >= $failed_attempt_limit;
+	}
+
+	/**
+	 * Reset a compromised password.
+	 *
+	 * If we know that the the password is compromised, we have the responsibility to reset it and inform the
+	 * user. `get_user_time_delay()` mitigates brute force attempts, but this acts as an extra layer of defense
+	 * which guarantees that attackers can't brute force it (unless they compromise the new password).
+	 *
+	 * @param WP_User $user The user who failed to login
+	 */
+	public static function reset_compromised_password( $user ) {
+		// Unhook because `wp_password_change_notification()` wouldn't notify the site admin when
+		// their password is compromised.
+		remove_action( 'after_password_reset', 'wp_password_change_notification' );
+		reset_password( $user, wp_generate_password( 25 ) );
+		update_user_meta( $user->ID, self::USER_PASSWORD_WAS_RESET_KEY, true );
+		add_action( 'after_password_reset', 'wp_password_change_notification' );
+
+		self::delete_login_nonce( $user->ID );
+		delete_user_meta( $user->ID, self::USER_RATE_LIMIT_KEY );
+		delete_user_meta( $user->ID, self::USER_FAILED_LOGIN_ATTEMPTS_KEY );
+	}
+
+	/**
+	 * Notify the user and admin that a password was reset for being compromised.
+	 *
+	 * @param WP_User $user The user whose password should be reset
+	 */
+	public static function send_password_reset_emails( $user ) {
+		self::notify_user_password_reset( $user );
+
+		/**
+		 * Filters whether or not to email the site admin when a user's password has been
+		 * compromised and reset.
+		 *
+		 * @param bool $reset `true` to notify the admin, `false` to not notify them.
+		 */
+		$notify_admin = apply_filters( 'two_factor_notify_admin_user_password_reset', true );
+		$admin_email  = get_option( 'admin_email' );
+
+		if ( $notify_admin && $admin_email !== $user->user_email ) {
+			self::notify_admin_user_password_reset( $user );
+		}
+	}
+
+	/**
+	 * Notify the user that their password has been compromised and reset.
+	 *
+	 * @param WP_User $user The user to notify
+	 *
+	 * @return bool `true` if the email was sent, `false` if it failed.
+	 */
+	public static function notify_user_password_reset( $user ) {
+		$user_message = sprintf(
+			'Hello %1$s, an unusually high number of failed login attempts have been detected on your account at %2$s.
+
+			These attempts successfully entered your password, and were only blocked because they failed to enter your second authentication factor. Despite not being able to access your account, this behavior indicates that the attackers have compromised your password. The most common reasons for this are that your password was easy to guess, or was reused on another site which has been compromised.
+
+			To protect your account, your password has been reset, and you will need to create a new one. For advice on setting a strong password, please read %3$s
+
+			To pick a new password, please visit %4$s
+
+			This is an automated notification. If you would like to speak to a site administrator, please contact them directly.',
+			esc_html( $user->user_login ),
+			home_url(),
+			'https://wordpress.org/documentation/article/password-best-practices/',
+			esc_url( add_query_arg( 'action', 'lostpassword', wp_login_url() ) ),
+		);
+		$user_message = str_replace( "\t", '', $user_message );
+
+		return wp_mail( $user->user_email, 'Your password was compromised and has been reset', $user_message );
+	}
+
+	/**
+	 * Notify the admin that a user's password was compromised and reset.
+	 *
+	 * @param WP_User $user The user whose password was reset.
+	 *
+	 * @return bool `true` if the email was sent, `false` if it failed.
+	 */
+	public static function notify_admin_user_password_reset( $user ) {
+		$admin_email = get_option( 'admin_email' );
+		$subject     = sprintf( 'Compromised password for %s has been reset', esc_html( $user->user_login ) );
+
+		$message = sprintf(
+			'Hello, this is a notice from the Two Factor plugin to inform you that an unusually high number of failed login attempts have been detected on the %1$s account (ID %2$d).
+
+			Those attempts successfully entered the user\'s password, and were only blocked because they entered invalid second authentication factors.
+
+			To protect their account, the password has automatically been reset, and they have been notified that they will need to create a new one.
+
+			If you do not wish to receive these notifications, you can disable them with the `two_factor_notify_admin_user_password_reset` filter. See %3$s for more information.
+
+			Thank you',
+			esc_html( $user->user_login ),
+			$user->ID,
+			'https://developer.wordpress.org/plugins/hooks/'
+		);
+		$message = str_replace( "\t", '', $message );
+
+		return wp_mail( $admin_email, $subject, $message );
+	}
+
+	/**
+	 * Show the password reset error when on the login screen.
+	 */
+	public static function show_password_reset_error() {
+		$error = new WP_Error(
+			'too_many_attempts',
+			sprintf(
+				'<p>%s</p>
+				<p style="margin-top: 1em;">%s</p>',
+				__( 'There have been too many failed two-factor authentication attempts, which often indicates that the password has been compromised. The password has been reset in order to protect the account.', 'two-factor' ),
+				__( 'If you are the owner of this account, please check your email for instructions on regaining access.', 'two-factor' )
+			)
+		);
+
+		login_header( __( 'Password Reset', 'two-factor' ), '',  $error );
+		login_footer();
 	}
 
 	/**
@@ -1042,6 +1488,41 @@ class Two_Factor_Core {
 		 * @since 0.1-dev
 		 */
 		do_action( 'show_user_security_settings', $user );
+	}
+
+	/**
+	 * Enable a provider for a user.
+	 *
+	 * @param int    $user_id      The ID of the user.
+	 * @param string $new_provider The name of the provider class.
+	 *
+	 * @return bool True if the provider was enabled, false otherwise.
+	 */
+	public static function enable_provider_for_user( $user_id, $new_provider ) {
+		$available_providers = self::get_providers();
+
+		if ( ! array_key_exists( $new_provider, $available_providers ) ) {
+			return false;
+		}
+
+		$user              = get_userdata( $user_id );
+		$enabled_providers = self::get_enabled_providers_for_user( $user );
+
+		if ( in_array( $new_provider, $enabled_providers ) ) {
+			return true;
+		}
+
+		$enabled_providers[] = $new_provider;
+		$enabled             = update_user_meta( $user_id, self::ENABLED_PROVIDERS_USER_META_KEY, $enabled_providers );
+
+		// Primary provider must be enabled.
+		$has_primary = is_object( self::get_primary_provider_for_user( $user_id ) );
+
+		if ( ! $has_primary ) {
+			$has_primary = update_user_meta( $user_id, self::PROVIDER_USER_META_KEY, $new_provider );
+		}
+
+		return $enabled && $has_primary;
 	}
 
 	/**

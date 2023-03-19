@@ -46,19 +46,53 @@ class Two_Factor_Backup_Codes extends Two_Factor_Provider {
 	 * Class constructor.
 	 *
 	 * @since 0.1-dev
+	 *
+	 * @codeCoverageIgnore
 	 */
 	protected function __construct() {
+		add_action( 'rest_api_init', array( $this, 'register_rest_routes' ) );
 		add_action( 'two_factor_user_options_' . __CLASS__, array( $this, 'user_options' ) );
 		add_action( 'admin_notices', array( $this, 'admin_notices' ) );
-		add_action( 'wp_ajax_two_factor_backup_codes_generate', array( $this, 'ajax_generate_json' ) );
 
 		return parent::__construct();
+	}
+
+	/**
+	 * Register the rest-api endpoints required for this provider.
+	 *
+	 * @codeCoverageIgnore
+	 */
+	public function register_rest_routes() {
+		register_rest_route(
+			Two_Factor_Core::REST_NAMESPACE,
+			'/generate-backup-codes',
+			array(
+				'methods'             => WP_REST_Server::CREATABLE,
+				'callback'            => array( $this, 'rest_generate_codes' ),
+				'permission_callback' => function( $request ) {
+					return current_user_can( 'edit_user', $request['user_id'] );
+				},
+				'args'                => array(
+					'user_id' => array(
+						'required' => true,
+						'type'     => 'number',
+					),
+					'enable_provider' => array(
+						'required' => false,
+						'type'     => 'boolean',
+						'default'  => false,
+					),
+				),
+			)
+		);
 	}
 
 	/**
 	 * Displays an admin notice when backup codes have run out.
 	 *
 	 * @since 0.1-dev
+	 *
+	 * @codeCoverageIgnore
 	 */
 	public function admin_notices() {
 		$user = wp_get_current_user();
@@ -125,8 +159,7 @@ class Two_Factor_Backup_Codes extends Two_Factor_Provider {
 	 * @param WP_User $user WP_User object of the logged-in user.
 	 */
 	public function user_options( $user ) {
-		$ajax_nonce = wp_create_nonce( 'two-factor-backup-codes-generate-json-' . $user->ID );
-		$count      = self::codes_remaining_for_user( $user );
+		$count = self::codes_remaining_for_user( $user );
 		?>
 		<p id="two-factor-backup-codes">
 			<button type="button" class="button button-two-factor-backup-codes-generate button-secondary hide-if-no-js">
@@ -154,39 +187,26 @@ class Two_Factor_Backup_Codes extends Two_Factor_Provider {
 		<script type="text/javascript">
 			( function( $ ) {
 				$( '.button-two-factor-backup-codes-generate' ).click( function() {
-					$.ajax( {
+					wp.apiRequest( {
 						method: 'POST',
-						url: ajaxurl,
+						path: <?php echo wp_json_encode( Two_Factor_Core::REST_NAMESPACE . '/generate-backup-codes' ); ?>,
 						data: {
-							action: 'two_factor_backup_codes_generate',
-							user_id: '<?php echo esc_js( $user->ID ); ?>',
-							nonce: '<?php echo esc_js( $ajax_nonce ); ?>'
-						},
-						dataType: 'JSON',
-						success: function( response ) {
-							var $codesList = $( '.two-factor-backup-codes-unused-codes' );
-
-							$( '.two-factor-backup-codes-wrapper' ).show();
-							$codesList.html( '' );
-
-							// Append the codes.
-							for ( i = 0; i < response.data.codes.length; i++ ) {
-								$codesList.append( '<li>' + response.data.codes[ i ] + '</li>' );
-							}
-
-							// Update counter.
-							$( '.two-factor-backup-codes-count' ).html( response.data.i18n.count );
-
-							// Build the download link.
-							var txt_data = 'data:application/text;charset=utf-8,' + '\n';
-							txt_data += response.data.i18n.title.replace( /%s/g, document.domain ) + '\n\n';
-
-							for ( i = 0; i < response.data.codes.length; i++ ) {
-								txt_data += i + 1 + '. ' + response.data.codes[ i ] + '\n';
-							}
-
-							$( '#two-factor-backup-codes-download-link' ).attr( 'href', encodeURI( txt_data ) );
+							user_id: <?php echo wp_json_encode( $user->ID ); ?>
 						}
+					} ).then( function( response ) {
+						var $codesList = $( '.two-factor-backup-codes-unused-codes' );
+
+						$( '.two-factor-backup-codes-wrapper' ).show();
+						$codesList.html( '' );
+
+						// Append the codes.
+						for ( i = 0; i < response.codes.length; i++ ) {
+							$codesList.append( '<li>' + response.codes[ i ] + '</li>' );
+						}
+
+						// Update counter.
+						$( '.two-factor-backup-codes-count' ).html( response.i18n.count );
+						$( '#two-factor-backup-codes-download-link' ).attr( 'href', response.download_link );
 					} );
 				} );
 			} )( jQuery );
@@ -233,30 +253,53 @@ class Two_Factor_Backup_Codes extends Two_Factor_Provider {
 	}
 
 	/**
-	 * Generates a JSON object of backup codes.
+	 * Generates Backup Codes for returning through the WordPress Rest API.
 	 *
-	 * @since 0.1-dev
+	 * @since 0.8.0
 	 */
-	public function ajax_generate_json() {
-		$user = get_user_by( 'id', filter_input( INPUT_POST, 'user_id', FILTER_SANITIZE_NUMBER_INT ) );
-		check_ajax_referer( 'two-factor-backup-codes-generate-json-' . $user->ID, 'nonce' );
+	public function rest_generate_codes( $request ) {
+		$user_id = $request['user_id'];
+		$user    = get_user_by( 'id', $user_id );
 
-		// Setup the return data.
-		$codes = $this->generate_codes( $user );
-		$count = self::codes_remaining_for_user( $user );
-		$i18n  = array(
-			/* translators: %s: count */
-			'count' => esc_html( sprintf( _n( '%s unused code remaining.', '%s unused codes remaining.', $count, 'two-factor' ), $count ) ),
-			/* translators: %s: the site's domain */
-			'title' => esc_html__( 'Two-Factor Backup Codes for %s', 'two-factor' ),
+		// Hardcode these, the user shouldn't be able to choose them.
+		$args =  array(
+			'number' => self::NUMBER_OF_CODES,
+			'method' => 'replace',
 		);
 
-		// Send the response.
-		wp_send_json_success(
-			array(
-				'codes' => $codes,
-				'i18n'  => $i18n,
-			)
+		// Setup the return data.
+		$codes = $this->generate_codes( $user, $args );
+		$count = self::codes_remaining_for_user( $user );
+		$title = sprintf(
+			/* translators: %s: the site's domain */
+			__( 'Two-Factor Backup Codes for %s', 'two-factor' ),
+			home_url( '/' )
+		);
+
+		// Generate download content.
+		$download_link  = 'data:application/text;charset=utf-8,';
+		$download_link .= rawurlencode( "{$title}\r\n\r\n" );
+
+		$i = 1;
+		foreach ( $codes as $code ) {
+			$download_link .= rawurlencode( "{$i}. {$code}\r\n" );
+			$i++;
+		}
+
+		$i18n = array(
+			/* translators: %s: count */
+			'count' => esc_html( sprintf( _n( '%s unused code remaining.', '%s unused codes remaining.', $count, 'two-factor' ), $count ) ),
+		);
+
+		if ( $request->get_param( 'enable_provider' ) && ! Two_Factor_Core::enable_provider_for_user( $user_id, 'Two_Factor_Backup_Codes' ) ) {
+			return new WP_Error( 'db_error', __( 'Unable to enable Backup Codes provider for this user.', 'two-factor' ), array( 'status' => 500 ) );
+		}
+
+		return array(
+			'codes'         => $codes,
+			'download_link' => $download_link,
+			'remaining'     => $count,
+			'i18n'          => $i18n,
 		);
 	}
 
@@ -284,10 +327,10 @@ class Two_Factor_Backup_Codes extends Two_Factor_Provider {
 	public function authentication_page( $user ) {
 		require_once ABSPATH . '/wp-admin/includes/template.php';
 		?>
-		<p><?php esc_html_e( 'Enter a backup verification code.', 'two-factor' ); ?></p><br/>
+		<p class="two-factor-prompt"><?php esc_html_e( 'Enter a backup verification code.', 'two-factor' ); ?></p>
 		<p>
 			<label for="authcode"><?php esc_html_e( 'Verification Code:', 'two-factor' ); ?></label>
-			<input type="tel" name="two-factor-backup-code" id="authcode" class="input" value="" size="20" pattern="[0-9]*" />
+			<input type="text" inputmode="numeric" name="two-factor-backup-code" id="authcode" class="input authcode" value="" size="20" pattern="[0-9 ]*" placeholder="1234 5678" data-digits="8" />
 		</p>
 		<?php
 		submit_button( __( 'Submit', 'two-factor' ) );
@@ -304,7 +347,11 @@ class Two_Factor_Backup_Codes extends Two_Factor_Provider {
 	 * @return boolean
 	 */
 	public function validate_authentication( $user ) {
-		$backup_code = isset( $_POST['two-factor-backup-code'] ) ? sanitize_text_field( wp_unslash( $_POST['two-factor-backup-code'] ) ) : '';
+		$backup_code = $this->sanitize_code_from_request( 'two-factor-backup-code' );
+		if ( ! $backup_code ) {
+			return false;
+		}
+
 		return $this->validate_code( $user, $backup_code );
 	}
 

@@ -48,7 +48,7 @@
     "test:report-coverage": "php-coveralls -v",
     "test:watch": [
       "Composer\\Config::disableProcessTimeout",
-      "phpunit-watcher watch"
+      "phpunit-watcher watch --no-coverage"
     ],
     "format": "phpcbf"
   }

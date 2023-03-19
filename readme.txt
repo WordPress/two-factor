@@ -29,17 +29,23 @@ Here is a list of action and filter hooks provided by the plugin:
 - `two_factor_user_authenticated` action which receives the logged in `WP_User` object as the first argument for determining the logged in user right after the authentication workflow.
 - `two_factor_token_ttl` filter overrides the time interval in seconds that an email token is considered after generation. Accepts the time in seconds as the first argument and the ID of the `WP_User` object being authenticated.
 
+== Frequently Asked Questions ==
+
+= How can I send feedback or get help with a bug? =
+
+The best place to report bugs, feature suggestions, or any other (non-security) feedback is at <a href="https://github.com/WordPress/two-factor/issues">the Two Factor GitHub issues page</a>. Before submitting a new issue, please search the existing issues to check if someone else has reported the same feedback.
+
+= Where can I report security bugs? =
+
+The plugin contributors and WordPress community take security bugs seriously. We appreciate your efforts to responsibly disclose your findings, and will make every effort to acknowledge your contributions.
+
+To report a security issue, please visit the [WordPress HackerOne](https://hackerone.com/wordpress) program.
+
 == Screenshots ==
 
 1. Two-factor options under User Profile.
 2. U2F Security Keys section under User Profile.
 3. Email Code Authentication during WordPress Login.
-
-== Get Involved ==
-
-Please [report (non-security) issues](https://github.com/WordPress/two-factor/issues) and [open pull requests](https://github.com/WordPress/two-factor/pulls) on GitHub.
-
-Please report any potential security issues to the [WordPress HackerOne](https://hackerone.com/wordpress) program.
 
 == Changelog ==
 
