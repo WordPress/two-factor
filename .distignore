@@ -1,15 +1,19 @@
-.*
+# Directories
+/node_modules/
 /tests/
 /vendor/
-/node_modules/
 /wordpress/
-/Gruntfile.js
+
+# Files
+.*
 /composer.json
 /composer.lock
+/docker-compose.yml
+/Gruntfile.js
+/npm-debug.log
 /package.json
 /package-lock.json
-/npm-debug.log
-/docker-compose.yml
-/readme.md
 /phpcs*
 /phpunit*
+/readme.md
+/SECURITY.md
