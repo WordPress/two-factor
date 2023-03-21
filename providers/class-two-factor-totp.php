@@ -420,7 +420,8 @@ class Two_Factor_Totp extends Two_Factor_Provider {
 	 * @return string
 	 */
 	public function get_user_totp_key( $user_id ) {
-		return (string) get_user_meta( $user_id, self::SECRET_META_KEY, true );
+		$meta = (string) get_user_meta( $user_id, self::SECRET_META_KEY, true );
+		return apply_filters( 'two_factor_totp_get_user_totp_key', $meta, $user_id );
 	}
 
 	/**
@@ -432,6 +433,7 @@ class Two_Factor_Totp extends Two_Factor_Provider {
 	 * @return boolean If the key was stored successfully.
 	 */
 	public function set_user_totp_key( $user_id, $key ) {
+		$key = apply_filters( 'two_factor_totp_set_user_totp_key', $key, $user_id );
 		return update_user_meta( $user_id, self::SECRET_META_KEY, $key );
 	}
 
