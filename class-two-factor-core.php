@@ -411,9 +411,9 @@ class Two_Factor_Core {
 		$enabled_providers    = self::get_enabled_providers_for_user( $user );
 		$configured_providers = array();
 
-		foreach ( $providers as $classname => $provider ) {
-			if ( in_array( $classname, $enabled_providers, true ) && $provider->is_available_for_user( $user ) ) {
-				$configured_providers[ $classname ] = $provider;
+		foreach ( $providers as $provider_name => $provider ) {
+			if ( in_array( $provider_name, $enabled_providers, true ) && $provider->is_available_for_user( $user ) ) {
+				$configured_providers[ $provider_name ] = $provider;
 			}
 		}
 
@@ -712,10 +712,10 @@ class Two_Factor_Core {
 			$provider = call_user_func( array( $provider, 'get_instance' ) );
 		}
 
-		$provider_class = get_class( $provider );
+		$provider_name = $provider->get_name();
 
 		$available_providers = self::get_available_providers_for_user( $user );
-		$backup_providers    = array_diff_key( $available_providers, array( $provider_class => null ) );
+		$backup_providers    = array_diff_key( $available_providers, array( $provider_name => null ) );
 		$interim_login       = isset( $_REQUEST['interim-login'] ); // phpcs:ignore WordPress.Security.NonceVerification.Recommended
 
 		$rememberme = intval( self::rememberme() );
@@ -735,7 +735,7 @@ class Two_Factor_Core {
 		?>
 
 		<form name="validate_2fa_form" id="loginform" action="<?php echo esc_url( self::login_url( array( 'action' => 'validate_2fa' ), 'login_post' ) ); ?>" method="post" autocomplete="off">
-				<input type="hidden" name="provider"      id="provider"      value="<?php echo esc_attr( $provider_class ); ?>" />
+				<input type="hidden" name="provider"      id="provider"      value="<?php echo esc_attr( $provider_name ); ?>" />
 				<input type="hidden" name="wp-auth-id"    id="wp-auth-id"    value="<?php echo esc_attr( $user->ID ); ?>" />
 				<input type="hidden" name="wp-auth-nonce" id="wp-auth-nonce" value="<?php echo esc_attr( $login_nonce ); ?>" />
 				<?php if ( $interim_login ) { ?>
@@ -1428,7 +1428,7 @@ class Two_Factor_Core {
 		$primary_provider  = self::get_primary_provider_for_user( $user->ID );
 
 		if ( ! empty( $primary_provider ) && is_object( $primary_provider ) ) {
-			$primary_provider_key = get_class( $primary_provider );
+			$primary_provider_key = $primary_provider->get_name();
 		} else {
 			$primary_provider_key = null;
 		}
@@ -1452,24 +1452,24 @@ class Two_Factor_Core {
 							</tr>
 						</thead>
 						<tbody>
-						<?php foreach ( self::get_providers() as $class => $object ) : ?>
+						<?php foreach ( self::get_providers() as $provider_name => $object ) : ?>
 							<tr>
-								<th scope="row"><input id="enabled-<?php echo esc_attr( $class ); ?>" type="checkbox" name="<?php echo esc_attr( self::ENABLED_PROVIDERS_USER_META_KEY ); ?>[]" value="<?php echo esc_attr( $class ); ?>" <?php checked( in_array( $class, $enabled_providers, true ) ); ?> /></th>
-								<th scope="row"><input type="radio" name="<?php echo esc_attr( self::PROVIDER_USER_META_KEY ); ?>" value="<?php echo esc_attr( $class ); ?>" <?php checked( $class, $primary_provider_key ); ?> /></th>
+								<th scope="row"><input id="enabled-<?php echo esc_attr( $provider_name ); ?>" type="checkbox" name="<?php echo esc_attr( self::ENABLED_PROVIDERS_USER_META_KEY ); ?>[]" value="<?php echo esc_attr( $provider_name ); ?>" <?php checked( in_array( $provider_name, $enabled_providers, true ) ); ?> /></th>
+								<th scope="row"><input type="radio" name="<?php echo esc_attr( self::PROVIDER_USER_META_KEY ); ?>" value="<?php echo esc_attr( $provider_name ); ?>" <?php checked( $provider_name, $primary_provider_key ); ?> /></th>
 								<td>
-									<label class="two-factor-method-label" for="enabled-<?php echo esc_attr( $class ); ?>"><?php echo esc_html( $object->get_label() ); ?></label>
+									<label class="two-factor-method-label" for="enabled-<?php echo esc_attr( $provider_name ); ?>"><?php echo esc_html( $object->get_label() ); ?></label>
 									<?php
 										/**
 										 * Fires after user options are shown.
 										 *
-										 * Use the {@see 'two_factor_user_options_' . $class } hook instead.
+										 * Use the {@see 'two_factor_user_options_' . $provider_name } hook instead.
 										 *
 										 * @deprecated 0.7.0
 										 *
 										 * @param WP_User $user The user.
 										 */
-										do_action_deprecated( 'two-factor-user-options-' . $class, array( $user ), '0.7.0', 'two_factor_user_options_' . $class );
-										do_action( 'two_factor_user_options_' . $class, $user );
+										do_action_deprecated( 'two-factor-user-options-' . $provider_name, array( $user ), '0.7.0', 'two_factor_user_options_' . $provider_name );
+										do_action( 'two_factor_user_options_' . $provider_name, $user );
 									?>
 								</td>
 							</tr>
