@@ -15,6 +15,23 @@
 abstract class Two_Factor_Provider {
 
 	/**
+	 * Ensures only one instance of the provider class exists in memory at any one time.
+	 *
+	 * @since 0.1-dev
+	 */
+	public static function get_instance() {
+		static $instances = array();
+
+		$class_name = static::class;
+
+		if ( ! isset( $instance[ $class_name ] ) ) {
+			$instance[ $class_name ] = new $class_name;
+		}
+
+		return $instance[ $class_name ];
+	}
+
+	/**
 	 * Class constructor.
 	 *
 	 * @since 0.1-dev
