@@ -42,13 +42,13 @@ abstract class Two_Factor_Provider {
 	}
 
 	/**
-	 * Retrieves the provider name.
+	 * Retrieves the provider key / slug.
 	 *
 	 * @since 0.9.0
 	 *
 	 * @return string
 	 */
-	public function get_name() {
+	public function get_key() {
 		return get_class( $this );
 	}
 
