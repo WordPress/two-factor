@@ -182,6 +182,12 @@ class Two_Factor_Core {
 		foreach ( $providers as $provider_name => $path ) {
 			include_once $path;
 
+			/**
+			 * Filters the classname for a provider.
+			 *
+			 * @param string $provider_name The provider name, which is the default for the Classname.
+			 * @param string $path          The provided provider path to be included.
+			 */
 			$class = apply_filters( 'two_factor_provider_classname', $provider_name, $path );
 
 			/**
