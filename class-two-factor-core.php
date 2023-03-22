@@ -179,17 +179,19 @@ class Two_Factor_Core {
 		/**
 		 * For each filtered provider,
 		 */
-		foreach ( $providers as $class => $path ) {
+		foreach ( $providers as $provider_name => $path ) {
 			include_once $path;
+
+			$class = apply_filters( 'two_factor_provider_classname', $provider_name, $path );
 
 			/**
 			 * Confirm that it's been successfully included before instantiating.
 			 */
 			if ( class_exists( $class ) ) {
 				try {
-					$providers[ $class ] = call_user_func( array( $class, 'get_instance' ) );
+					$providers[ $provider_name ] = call_user_func( array( $class, 'get_instance' ) );
 				} catch ( Exception $e ) {
-					unset( $providers[ $class ] );
+					unset( $providers[ $provider_name ] );
 				}
 			}
 		}
