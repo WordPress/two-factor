@@ -42,6 +42,17 @@ abstract class Two_Factor_Provider {
 	}
 
 	/**
+	 * Retrieves the provider name.
+	 *
+	 * @since 0.9.0
+	 *
+	 * @return string
+	 */
+	public function get_name() {
+		return get_class( $this );
+	}
+
+	/**
 	 * Prints the form that prompts the user to authenticate.
 	 *
 	 * @since 0.1-dev
