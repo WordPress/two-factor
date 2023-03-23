@@ -71,9 +71,9 @@ class Tests_Two_Factor_Dummy_Secure extends WP_UnitTestCase {
 		$providers = Two_Factor_Core::get_providers();
 
 		// Add filter, fetch, and then validate.
-		add_filter( 'two_factor_provider_classname', array( $this, 'filter_change_provider' ) );
+		add_filter( 'two_factor_provider_classname_Two_Factor_Dummy', array( $this, 'filter_change_provider' ) );
 		$filtered = Two_Factor_Core::get_providers();
-		remove_filter( 'two_factor_provider_classname', array( $this, 'filter_change_provider' ) );
+		remove_filter( 'two_factor_provider_classname_Two_Factor_Dummy', array( $this, 'filter_change_provider' ) );
 
 		$this->assertEquals( 'Two_Factor_Dummy',        get_class( $providers['Two_Factor_Dummy'] ) );
 		$this->assertNotEquals( 'Two_Factor_Dummy',     get_class( $filtered['Two_Factor_Dummy'] ) );
@@ -84,11 +84,7 @@ class Tests_Two_Factor_Dummy_Secure extends WP_UnitTestCase {
 	}
 
 	public function filter_change_provider( $provider_key ) {
-		if ( 'Two_Factor_Dummy' === $provider_key ) {
-			$provider_key = 'Two_Factor_Dummy_Secure';
-		}
-
-		return $provider_key;
+		return 'Two_Factor_Dummy_Secure';
 	}
 
 }
