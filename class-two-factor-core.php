@@ -182,13 +182,15 @@ class Two_Factor_Core {
 		foreach ( $providers as $provider_key => $path ) {
 			include_once $path;
 
+			$class = $provider_key;
+
 			/**
-			 * Filters the classname for a provider.
+			 * Filters the classname for a provider. The dynamic portion of the filter is the defined providers key.
 			 *
-			 * @param string $provider_key The provider name, which is the default for the Classname.
-			 * @param string $path         The provided provider path to be included.
+			 * @param string $class The PHP Classname of the provider.
+			 * @param string $path  The provided provider path to be included.
 			 */
-			$class = apply_filters( 'two_factor_provider_classname', $provider_key, $path );
+			$class = apply_filters( "two_factor_provider_classname_{$provider_key}", $class, $path );
 
 			/**
 			 * Confirm that it's been successfully included before instantiating.
