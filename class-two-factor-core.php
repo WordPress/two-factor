@@ -666,7 +666,7 @@ class Two_Factor_Core {
 		if ( ! $attempted_user ) {
 			return $errors;
 		}
-		
+
 		$password_was_reset = get_user_meta( $attempted_user->ID, self::USER_PASSWORD_WAS_RESET_KEY, true );
 
 		if ( ! $password_was_reset ) {
