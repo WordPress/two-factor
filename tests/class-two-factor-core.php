@@ -820,7 +820,6 @@ class Test_ClassTwoFactorCore extends WP_UnitTestCase {
 	 * Validate that a non-2fa login doesn't set the session two-factor data.
 	 *
 	 * @covers Two_Factor_Core::is_current_user_session_two_factor()
-	 * @covers Two_Factor_Core::login_form_validate_2fa()
 	 */
 	public function test_is_current_user_session_two_factor_without_two_factor() {
 		$user = $this->get_dummy_user();
