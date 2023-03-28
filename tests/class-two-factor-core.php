@@ -852,7 +852,7 @@ class Test_ClassTwoFactorCore extends WP_UnitTestCase {
 	 * Validate that a simulated 2fa login sets the session two-factor data.
 	 *
 	 * @covers Two_Factor_Core::is_current_user_session_two_factor()
-	 * @covers Two_Factor_Core::login_form_validate_2fa()
+	 * @covers Two_Factor_Core::_login_form_validate_2fa()
 	 */
 	public function test_is_current_user_session_two_factor_with_two_factor() {
 		$user = $this->get_dummy_user( array( 'Two_Factor_Dummy' => 'Two_Factor_Dummy' ) );
