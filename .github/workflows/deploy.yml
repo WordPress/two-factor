@@ -1,6 +1,6 @@
 name: Deploy
 
-# Run deploy only on publised releases.
+# Run deploy only on published releases.
 on:
   release:
     types: [published]
