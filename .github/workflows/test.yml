@@ -39,7 +39,10 @@ jobs:
         run: composer lint-php8
 
       - name: Start the Docker testing environment
-        run: npm run env start -- --xdebug=coverage
+        env:
+          LOCAL_PHP_XDEBUG: true
+          LOCAL_PHP_XDEBUG_MODE: coverage
+        run: npm run env start
 
       - name: Test
         run: npm run test
