@@ -666,7 +666,7 @@ class Two_Factor_Core {
 		if ( ! $attempted_user ) {
 			return $errors;
 		}
-		
+
 		$password_was_reset = get_user_meta( $attempted_user->ID, self::USER_PASSWORD_WAS_RESET_KEY, true );
 
 		if ( ! $password_was_reset ) {
@@ -1323,7 +1323,7 @@ class Two_Factor_Core {
 			esc_html( $user->user_login ),
 			home_url(),
 			'https://wordpress.org/documentation/article/password-best-practices/',
-			esc_url( add_query_arg( 'action', 'lostpassword', wp_login_url() ) ),
+			esc_url( add_query_arg( 'action', 'lostpassword', wp_login_url() ) )
 		);
 		$user_message = str_replace( "\t", '', $user_message );
 
