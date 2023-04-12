@@ -43,21 +43,6 @@ class Two_Factor_FIDO_U2F extends Two_Factor_Provider {
 	const U2F_ASSET_VERSION = '0.2.1';
 
 	/**
-	 * Ensures only one instance of this class exists in memory at any one time.
-	 *
-	 * @return \Two_Factor_FIDO_U2F
-	 */
-	public static function get_instance() {
-		static $instance;
-
-		if ( ! isset( $instance ) ) {
-			$instance = new self();
-		}
-
-		return $instance;
-	}
-
-	/**
 	 * Class constructor.
 	 *
 	 * @since 0.1-dev

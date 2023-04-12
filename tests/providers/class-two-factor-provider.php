@@ -65,4 +65,15 @@ class Tests_Two_Factor_Provider extends WP_UnitTestCase {
 		];
 	}
 
+	/**
+	 * Validate that Two_Factor_Provider::get_instance() always returns the same instance.
+	 *
+	 * @covers Two_Factor_Provider::get_instance
+	 */
+	function test_get_instance() {
+		$instance_one = Two_Factor_Dummy::get_instance();
+		$instance_two = Two_Factor_Dummy::get_instance();
+
+		$this->assertSame( $instance_one, $instance_two );
+	}
 }

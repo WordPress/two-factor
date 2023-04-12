@@ -15,6 +15,23 @@
 abstract class Two_Factor_Provider {
 
 	/**
+	 * Ensures only one instance of the provider class exists in memory at any one time.
+	 *
+	 * @since 0.1-dev
+	 */
+	public static function get_instance() {
+		static $instances = array();
+
+		$class_name = static::class;
+
+		if ( ! isset( $instances[ $class_name ] ) ) {
+			$instances[ $class_name ] = new $class_name;
+		}
+
+		return $instances[ $class_name ];
+	}
+
+	/**
 	 * Class constructor.
 	 *
 	 * @since 0.1-dev
@@ -39,6 +56,17 @@ abstract class Two_Factor_Provider {
 	 */
 	public function print_label() {
 		echo esc_html( $this->get_label() );
+	}
+
+	/**
+	 * Retrieves the provider key / slug.
+	 *
+	 * @since 0.9.0
+	 *
+	 * @return string
+	 */
+	public function get_key() {
+		return get_class( $this );
 	}
 
 	/**
