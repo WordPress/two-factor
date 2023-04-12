@@ -2,7 +2,7 @@
 Contributors:      georgestephanis, valendesigns, stevenkword, extendwings, sgrant, aaroncampbell, johnbillion, stevegrunwell, netweb, kasparsd, alihusnainarshad, passoniate
 Tags:              two factor, two step, authentication, login, totp, fido u2f, u2f, email, backup codes, 2fa, yubikey
 Requires at least: 4.3
-Tested up to:      6.0
+Tested up to:      6.2
 Requires PHP:      5.6
 Stable tag:        0.8.1
 
