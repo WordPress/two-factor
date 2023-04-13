@@ -1109,7 +1109,7 @@ class Two_Factor_Core {
 	public static function login_form_validate_2fa() {
 		$wp_auth_id      = ! empty( $_REQUEST['wp-auth-id'] )    ? absint( $_REQUEST['wp-auth-id'] )        : 0;
 		$nonce           = ! empty( $_REQUEST['wp-auth-nonce'] ) ? wp_unslash( $_REQUEST['wp-auth-nonce'] ) : '';
-		$provider        = ! empty( $_REQUEST['provider'] )      ? wp_unslash( $_REQUEST['provider'] )      : false;
+		$provider        = ! empty( $_REQUEST['provider'] )      ? wp_unslash( $_REQUEST['provider'] )      : '';
 		$redirect_to     = ! empty( $_REQUEST['redirect_to'] )   ? wp_unslash( $_REQUEST['redirect_to'] )   : '';
 		$is_post_request = ( 'POST' === strtoupper( $_SERVER['REQUEST_METHOD'] ) );
 		$user            = get_user_by( 'id', $wp_auth_id );
@@ -1130,14 +1130,14 @@ class Two_Factor_Core {
 	 *
 	 * @since x.x
 	 *
-	 * @param WP_User     $user            The WP_User instance.
-	 * @param string      $nonce           The nonce provided.
-	 * @param string|bool $provider        The provider to use, if known.
-	 * @param string      $redirect_to     The redirection location.
-	 * @param bool        $is_post_request Whether the incoming request was a POST request or not.
+	 * @param WP_User $user            The WP_User instance.
+	 * @param string  $nonce           The nonce provided.
+	 * @param string  $provider        The provider to use, if known.
+	 * @param string  $redirect_to     The redirection location.
+	 * @param bool    $is_post_request Whether the incoming request was a POST request or not.
 	 * @return void
 	 */
-	public static function _login_form_validate_2fa( $user, $nonce = '', $provider = false, $redirect_to = '', $is_post_request = false ) {
+	public static function _login_form_validate_2fa( $user, $nonce = '', $provider = '', $redirect_to = '', $is_post_request = false ) {
 		// Validate the request.
 		if ( true !== self::verify_login_nonce( $user->ID, $nonce ) ) {
 			wp_safe_redirect( home_url() );
