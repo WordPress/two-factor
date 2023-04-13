@@ -783,26 +783,13 @@ class Two_Factor_Core {
 			/* @todo: migrate to an external stylesheet. */
 			.backup-methods-wrap {
 				margin-top: 16px;
-				padding: 16px 24px;
-				border: 1px solid #c3c4c7;
+				padding: 0 24px;
+			}
+			.backup-methods-wrap a {
+				text-decoration: none;
 			}
 			.backup-methods-wrap ul {
 				list-style-position: inside;
-			}
-			.backup-methods-wrap ul a {
-				text-decoration: none;
-
-			}
-			.backup-methods-wrap a.button {
-				color: #777;
-				border-color: #777;
-				text-align: center;
-				text-decoration: none;
-				width: 100%;
-			}
-			.backup-methods-wrap a.button:hover {
-				color: #555;
-				border-color: #555;
 			}
 			/* Prevent Jetpack from hiding our controls, see https://github.com/Automattic/jetpack/issues/3747 */
 			.jetpack-sso-form-display #loginform > p,
@@ -810,7 +797,7 @@ class Two_Factor_Core {
 				display: block;
 			}
 			#login form p.two-factor-prompt {
-			margin-bottom: 1em;
+				margin-bottom: 1em;
 			}
 			.input.authcode {
 				letter-spacing: .3em;
