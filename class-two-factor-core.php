@@ -1234,7 +1234,7 @@ class Two_Factor_Core {
 		$session_information_callback = function( $session, $user_id ) use( $provider, $user ) {
 			if ( $user->ID === $user_id ) {
 				$session['two-factor-login']    = time();
-				$session['two-factor-provider'] = get_class( $provider );
+				$session['two-factor-provider'] = $provider->get_key();
 			}
 
 			return $session;
