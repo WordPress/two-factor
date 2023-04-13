@@ -1107,7 +1107,8 @@ class Two_Factor_Core {
 	 * @since 0.1-dev
 	 */
 	public static function login_form_validate_2fa() {
-		if ( self::_login_form_validate_2fa() ) {
+		$should_exit = self::_login_form_validate_2fa();
+		if ( $should_exit ) {
 			exit;
 		}
 	}
@@ -1118,6 +1119,7 @@ class Two_Factor_Core {
 	 * This function exists for unit testing, as `exit` prevents testing.
 	 *
 	 * @since x.x
+	 * @return bool True if the request should exit, false otherwise.
 	 */
 	public static function _login_form_validate_2fa() {
 		$wp_auth_id      = ! empty( $_REQUEST['wp-auth-id'] )    ? absint( $_REQUEST['wp-auth-id'] )        : 0;
@@ -1126,12 +1128,12 @@ class Two_Factor_Core {
 		$is_post_request = ( 'POST' === strtoupper( $_SERVER['REQUEST_METHOD'] ) );
 
 		if ( ! $wp_auth_id || ! $nonce ) {
-			return;
+			return false;
 		}
 
 		$user = get_userdata( $wp_auth_id );
 		if ( ! $user ) {
-			return;
+			return false;
 		}
 
 		if ( true !== self::verify_login_nonce( $user->ID, $nonce ) ) {
