@@ -1084,7 +1084,7 @@ class Two_Factor_Core {
 	/**
 	 * Determine if the current user session is logged in with 2FA.
 	 *
-	 * @since 0.8.0
+	 * @since 0.9.0
 	 *
 	 * @return int|false The last time the two-factor was validated on success, false if not currently using a 2FA session.
 	 */
@@ -1126,9 +1126,9 @@ class Two_Factor_Core {
 	 * Login form validation.
 	 *
 	 * This function exists for unit testing, as `exit` prevents testing.
-	 * This function intends on the caller exiting after calling.
+	 * This function expects the caller exiting after calling.
 	 *
-	 * @since x.x
+	 * @since 0.9.0
 	 *
 	 * @param WP_User $user            The WP_User instance.
 	 * @param string  $nonce           The nonce provided.
