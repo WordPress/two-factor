@@ -864,14 +864,8 @@ class Test_ClassTwoFactorCore extends WP_UnitTestCase {
 
 		$this->assertNotFalse( $login_nonce );
 
-		$_REQUEST['wp-auth-id']    = $user->ID;
-		$_REQUEST['wp-auth-nonce'] = $login_nonce['key'];
-		$_REQUEST['provider']      = 'Two_Factor_Dummy';
-		$_SERVER['REQUEST_METHOD'] = 'POST';
-		$_REQUEST['redirect_to']   = '';
-
 		ob_start();
-		Two_Factor_Core::_login_form_validate_2fa();
+		Two_Factor_Core::_login_form_validate_2fa( $user, $login_nonce['key'], 'Two_Factor_Dummy', '', true );
 		ob_end_clean();
 
 		$this->assertNotEmpty( $_COOKIE[ AUTH_COOKIE ] );
