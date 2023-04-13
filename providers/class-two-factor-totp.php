@@ -129,10 +129,10 @@ class Two_Factor_Totp extends Two_Factor_Provider {
 	/**
 	 * Returns the "continue with" text provider for the login screen.
 	 *
-	 * @since 0.8
+	 * @since 0.9.0
 	 */
-	public function get_continue_with_label() {
-		return __( 'Continue with your authenticator app', 'two-factor' );
+	public function get_alternative_provider_label() {
+		return __( 'Use your authenticator app', 'two-factor' );
 	}
 
 	/**

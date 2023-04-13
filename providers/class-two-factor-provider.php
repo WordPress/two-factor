@@ -35,14 +35,14 @@ abstract class Two_Factor_Provider {
 	/**
 	 * Returns the "continue with" text provider for the login screen.
 	 *
-	 * @since 0.8.0
+	 * @since 0.9.0
 	 *
 	 * @return string
 	 */
-	public function get_continue_with_label() {
+	public function get_alternative_provider_label() {
 		return sprintf(
 			/* translators: the two factor provider name */
-			__( 'Continue with %s', 'two-factor' ),
+			__( 'Use %s', 'two-factor' ),
 			$this->get_label()
 		);
 	}

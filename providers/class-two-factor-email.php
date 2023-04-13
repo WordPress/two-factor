@@ -71,10 +71,10 @@ class Two_Factor_Email extends Two_Factor_Provider {
 	/**
 	 * Returns the "continue with" text provider for the login screen.
 	 *
-	 * @since 0.8
+	 * @since 0.9.0
 	 */
-	public function get_continue_with_label() {
-		return __( 'Continue with an emailed code', 'two-factor' );
+	public function get_alternative_provider_label() {
+		return __( 'Send a code to your email', 'two-factor' );
 	}
 
 	/**

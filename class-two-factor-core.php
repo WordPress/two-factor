@@ -752,25 +752,30 @@ class Two_Factor_Core {
 		</form>
 		<?php if ( $backup_providers ) : ?>
 			<div class="backup-methods-wrap">
-				<?php
-				foreach ( $backup_providers as $backup_classname => $backup_provider ) :
-					$login_url = self::login_url(
-						array(
-							'action'        => 'validate_2fa',
-							'provider'      => $backup_classname,
-							'wp-auth-id'    => $user->ID,
-							'wp-auth-nonce' => $login_nonce,
-							'redirect_to'   => $redirect_to,
-							'rememberme'    => $rememberme,
-						)
-					);
-					?>
-					<p class="backup-methods">
-						<a class="button button-secondary" href="<?php echo esc_url( $login_url ); ?>">
-							<?php echo esc_html( $backup_provider->get_continue_with_label() ); ?>
-						</a>
-					</p>
-				<?php endforeach; ?>
+				<p>
+					<?php esc_html_e( 'Having Problems?', 'two-factor' ); ?>
+				</p>
+				<ul>
+					<?php
+					foreach ( $backup_providers as $backup_provider_key => $backup_provider ) :
+						$login_url = self::login_url(
+							array(
+								'action'        => 'validate_2fa',
+								'provider'      => $backup_provider_key,
+								'wp-auth-id'    => $user->ID,
+								'wp-auth-nonce' => $login_nonce,
+								'redirect_to'   => $redirect_to,
+								'rememberme'    => $rememberme,
+							)
+						);
+						?>
+						<li>
+							<a href="<?php echo esc_url( $login_url ); ?>">
+								<?php echo esc_html( $backup_provider->get_alternative_provider_label() ); ?>
+							</a>
+						</li>
+					<?php endforeach; ?>
+				</ul>
 			</div>
 		<?php endif; ?>
 
@@ -778,10 +783,15 @@ class Two_Factor_Core {
 			/* @todo: migrate to an external stylesheet. */
 			.backup-methods-wrap {
 				margin-top: 16px;
-				padding: 0 24px;
+				padding: 16px 24px;
+				border: 1px solid #c3c4c7;
 			}
-			.backup-methods-wrap p {
-				margin-bottom: 16px;
+			.backup-methods-wrap ul {
+				list-style-position: inside;
+			}
+			.backup-methods-wrap ul a {
+				text-decoration: none;
+
 			}
 			.backup-methods-wrap a.button {
 				color: #777;
