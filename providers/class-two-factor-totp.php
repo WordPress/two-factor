@@ -38,19 +38,6 @@ class Two_Factor_Totp extends Two_Factor_Provider {
 	private static $base_32_chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ234567';
 
 	/**
-	 * Ensures only one instance of this class exists in memory at any one time.
-	 *
-	 * @codeCoverageIgnore
-	 */
-	public static function get_instance() {
-		static $instance;
-		if ( ! isset( $instance ) ) {
-			$instance = new self();
-		}
-		return $instance;
-	}
-
-	/**
 	 * Class constructor. Sets up hooks, etc.
 	 *
 	 * @codeCoverageIgnore
