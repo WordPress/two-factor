@@ -793,10 +793,9 @@ class Two_Factor_Core {
 		}
 
 		if ( 1 === count( $backup_providers ) ) :
-			$backup_provider_key = key( $backup_providers );
-			$backup_provider     = $backup_providers[ $backup_provider_key ];
-
-      $backup_link_args['provider'] = $backup_provider_key;
+			$backup_provider_key          = key( $backup_providers );
+			$backup_provider              = $backup_providers[ $backup_provider_key ];
+			$backup_link_args['provider'] = $backup_provider_key;
 			?>
 			<div class="backup-methods-wrap">
 				<p class="backup-methods">
