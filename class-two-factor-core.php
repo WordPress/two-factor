@@ -1082,28 +1082,66 @@ class Two_Factor_Core {
 	}
 
 	/**
-	 * Login form validation.
+	 * Determine if the current user session is logged in with 2FA.
+	 *
+	 * @since 0.9.0
+	 *
+	 * @return int|false The last time the two-factor was validated on success, false if not currently using a 2FA session.
+	 */
+	public static function is_current_user_session_two_factor() {
+		$user_id = get_current_user_id();
+		$token   = wp_get_session_token();
+		$manager = WP_Session_Tokens::get_instance( $user_id );
+		$session = $manager->get( $token );
+
+		if ( empty( $session['two-factor-login'] ) ) {
+			return false;
+		}
+
+		return (int) $session['two-factor-login'];
+	}
+
+	/**
+	 * Login form validation handler.
 	 *
 	 * @since 0.1-dev
 	 */
 	public static function login_form_validate_2fa() {
 		$wp_auth_id      = ! empty( $_REQUEST['wp-auth-id'] )    ? absint( $_REQUEST['wp-auth-id'] )        : 0;
 		$nonce           = ! empty( $_REQUEST['wp-auth-nonce'] ) ? wp_unslash( $_REQUEST['wp-auth-nonce'] ) : '';
-		$provider        = ! empty( $_REQUEST['provider'] )      ? wp_unslash( $_REQUEST['provider'] )      : false;
+		$provider        = ! empty( $_REQUEST['provider'] )      ? wp_unslash( $_REQUEST['provider'] )      : '';
+		$redirect_to     = ! empty( $_REQUEST['redirect_to'] )   ? wp_unslash( $_REQUEST['redirect_to'] )   : '';
 		$is_post_request = ( 'POST' === strtoupper( $_SERVER['REQUEST_METHOD'] ) );
+		$user            = get_user_by( 'id', $wp_auth_id );
 
-		if ( ! $wp_auth_id || ! $nonce ) {
+		if ( ! $wp_auth_id || ! $nonce || ! $user ) {
 			return;
 		}
 
-		$user = get_userdata( $wp_auth_id );
-		if ( ! $user ) {
-			return;
-		}
+		self::_login_form_validate_2fa( $user, $nonce, $provider, $redirect_to, $is_post_request );
+		exit;
+	}
 
+	/**
+	 * Login form validation.
+	 *
+	 * This function exists for unit testing, as `exit` prevents testing.
+	 * This function expects the caller exiting after calling.
+	 *
+	 * @since 0.9.0
+	 *
+	 * @param WP_User $user            The WP_User instance.
+	 * @param string  $nonce           The nonce provided.
+	 * @param string  $provider        The provider to use, if known.
+	 * @param string  $redirect_to     The redirection location.
+	 * @param bool    $is_post_request Whether the incoming request was a POST request or not.
+	 * @return void
+	 */
+	public static function _login_form_validate_2fa( $user, $nonce = '', $provider = '', $redirect_to = '', $is_post_request = false ) {
+		// Validate the request.
 		if ( true !== self::verify_login_nonce( $user->ID, $nonce ) ) {
 			wp_safe_redirect( home_url() );
-			exit;
+			return;
 		}
 
 		if ( $provider ) {
@@ -1124,8 +1162,8 @@ class Two_Factor_Core {
 				wp_die( esc_html__( 'Failed to create a login nonce.', 'two-factor' ) );
 			}
 
-			self::login_html( $user, $login_nonce['key'], $_REQUEST['redirect_to'], '', $provider );
-			exit;
+			self::login_html( $user, $login_nonce['key'], $redirect_to, '', $provider );
+			return;
 		}
 
 		// If the form hasn't been submitted, just display the auth form.
@@ -1135,8 +1173,8 @@ class Two_Factor_Core {
 				wp_die( esc_html__( 'Failed to create a login nonce.', 'two-factor' ) );
 			}
 
-			self::login_html( $user, $login_nonce['key'], $_REQUEST['redirect_to'], '', $provider );
-			exit;
+			self::login_html( $user, $login_nonce['key'], $redirect_to, '', $provider );
+			return;
 		}
 
 		// Rate limit two factor authentication attempts.
@@ -1159,8 +1197,8 @@ class Two_Factor_Core {
 				wp_die( esc_html__( 'Failed to create a login nonce.', 'two-factor' ) );
 			}
 
-			self::login_html( $user, $login_nonce['key'], $_REQUEST['redirect_to'], esc_html( $error->get_error_message() ), $provider );
-			exit;
+			self::login_html( $user, $login_nonce['key'], $redirect_to, esc_html( $error->get_error_message() ), $provider );
+			return;
 		}
 
 		// Ask the provider to verify the second factor.
@@ -1177,7 +1215,7 @@ class Two_Factor_Core {
 				self::reset_compromised_password( $user );
 				self::send_password_reset_emails( $user );
 				self::show_password_reset_error();
-				exit;
+				return;
 			}
 
 			$login_nonce = self::create_login_nonce( $user->ID );
@@ -1185,8 +1223,8 @@ class Two_Factor_Core {
 				wp_die( esc_html__( 'Failed to create a login nonce.', 'two-factor' ) );
 			}
 
-			self::login_html( $user, $login_nonce['key'], $_REQUEST['redirect_to'], esc_html__( 'ERROR: Invalid verification code.', 'two-factor' ), $provider );
-			exit;
+			self::login_html( $user, $login_nonce['key'], $redirect_to, esc_html__( 'ERROR: Invalid verification code.', 'two-factor' ), $provider );
+			return;
 		}
 
 		self::delete_login_nonce( $user->ID );
@@ -1198,15 +1236,29 @@ class Two_Factor_Core {
 			$rememberme = true;
 		}
 
+		$session_information_callback = static function( $session, $user_id ) use( $provider, $user ) {
+			if ( $user->ID === $user_id ) {
+				$session['two-factor-login']    = time();
+				$session['two-factor-provider'] = $provider->get_key();
+			}
+
+			return $session;
+		};
+
+		add_filter( 'attach_session_information', $session_information_callback, 10, 2 );
+
 		/*
 		 * NOTE: This filter removal is not normally required, this is included for protection against
 		 * a plugin/two factor provider which runs the `authenticate` filter during it's validation.
 		 * Such a plugin would cause self::filter_authenticate_block_cookies() to run and add this filter.
 		 */
 		remove_filter( 'send_auth_cookies', '__return_false', PHP_INT_MAX );
+
 		wp_set_auth_cookie( $user->ID, $rememberme );
 
-		do_action( 'two_factor_user_authenticated', $user );
+		do_action( 'two_factor_user_authenticated', $user, $provider );
+
+		remove_filter( 'attach_session_information', $session_information_callback );
 
 		// Must be global because that's how login_header() uses it.
 		global $interim_login;
@@ -1231,12 +1283,11 @@ class Two_Factor_Core {
 			<?php endif; ?>
 			</body></html>
 			<?php
-			exit;
+			return;
 		}
-		$redirect_to = apply_filters( 'login_redirect', $_REQUEST['redirect_to'], $_REQUEST['redirect_to'], $user );
-		wp_safe_redirect( $redirect_to );
 
-		exit;
+		$redirect_to = apply_filters( 'login_redirect', $redirect_to, $redirect_to, $user );
+		wp_safe_redirect( $redirect_to );
 	}
 
 	/**
