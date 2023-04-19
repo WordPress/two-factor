@@ -767,7 +767,7 @@ class Two_Factor_Core {
 				<?php if ( $interim_login ) { ?>
 					<input type="hidden" name="interim-login" value="1" />
 				<?php } else { ?>
-					<input type="hidden" name="redirect_to" value="<?php echo sanitize_url( $redirect_to ); ?>" />
+					<input type="hidden" name="redirect_to" value="<?php echo esc_attr( $redirect_to ); ?>" />
 				<?php } ?>
 				<input type="hidden" name="rememberme"    id="rememberme"    value="<?php echo esc_attr( $rememberme ); ?>" />
 
@@ -1100,7 +1100,7 @@ class Two_Factor_Core {
 	/**
 	 * Determine if the current user session is logged in with 2FA.
 	 *
-	 * @since 0.8.0
+	 * @since 0.9.0
 	 *
 	 * @return int|false The last time the two-factor was validated on success, false if not currently using a 2FA session.
 	 */
@@ -1180,27 +1180,46 @@ class Two_Factor_Core {
 	}
 
 	/**
-	 * Login form validation.
+	 * Login form validation handler.
 	 *
 	 * @since 0.1-dev
 	 */
 	public static function login_form_validate_2fa() {
-		$wp_auth_id = ! empty( $_REQUEST['wp-auth-id'] )    ? absint( $_REQUEST['wp-auth-id'] )        : 0;
-		$nonce      = ! empty( $_REQUEST['wp-auth-nonce'] ) ? wp_unslash( $_REQUEST['wp-auth-nonce'] ) : '';
-		$provider   = ! empty( $_REQUEST['provider'] )      ? wp_unslash( $_REQUEST['provider'] )      : false;
+		$wp_auth_id      = ! empty( $_REQUEST['wp-auth-id'] )    ? absint( $_REQUEST['wp-auth-id'] )        : 0;
+		$nonce           = ! empty( $_REQUEST['wp-auth-nonce'] ) ? wp_unslash( $_REQUEST['wp-auth-nonce'] ) : '';
+		$provider        = ! empty( $_REQUEST['provider'] )      ? wp_unslash( $_REQUEST['provider'] )      : '';
+		$redirect_to     = ! empty( $_REQUEST['redirect_to'] )   ? wp_unslash( $_REQUEST['redirect_to'] )   : '';
+		$is_post_request = ( 'POST' === strtoupper( $_SERVER['REQUEST_METHOD'] ) );
+		$user            = get_user_by( 'id', $wp_auth_id );
 
-		if ( ! $wp_auth_id || ! $nonce ) {
+		if ( ! $wp_auth_id || ! $nonce || ! $user ) {
 			return;
 		}
 
-		$user = get_userdata( $wp_auth_id );
-		if ( ! $user ) {
-			return;
-		}
+		self::_login_form_validate_2fa( $user, $nonce, $provider, $redirect_to, $is_post_request );
+		exit;
+	}
 
+	/**
+	 * Login form validation.
+	 *
+	 * This function exists for unit testing, as `exit` prevents testing.
+	 * This function expects the caller exiting after calling.
+	 *
+	 * @since 0.9.0
+	 *
+	 * @param WP_User $user            The WP_User instance.
+	 * @param string  $nonce           The nonce provided.
+	 * @param string  $provider        The provider to use, if known.
+	 * @param string  $redirect_to     The redirection location.
+	 * @param bool    $is_post_request Whether the incoming request was a POST request or not.
+	 * @return void
+	 */
+	public static function _login_form_validate_2fa( $user, $nonce = '', $provider = '', $redirect_to = '', $is_post_request = false ) {
+		// Validate the request.
 		if ( true !== self::verify_login_nonce( $user->ID, $nonce ) ) {
 			wp_safe_redirect( home_url() );
-			exit;
+			return;
 		}
 
 		$providers = self::get_available_providers_for_user( $user );
@@ -1210,12 +1229,8 @@ class Two_Factor_Core {
 			$provider = self::get_primary_provider_for_user( $user->ID );
 		}
 
-		if ( ! $provider  ) {
-			wp_die( esc_html__( 'Cheatin&#8217; uh?', 'two-factor' ), 403 );
-		}
-
 		// Run the provider processing.
-		$result = self::process_provider( $provider, $user );
+		$result = self::process_provider( $provider, $user, $is_post_request );
 		if ( true !== $result ) {
 			$error = '';
 			if ( is_wp_error( $result ) ) {
@@ -1229,8 +1244,8 @@ class Two_Factor_Core {
 				wp_die( esc_html__( 'Failed to create a login nonce.', 'two-factor' ) );
 			}
 
-			self::login_html( $user, $login_nonce['key'], $_REQUEST['redirect_to'], $error, $provider, 'validate_2fa' );
-			exit;
+			self::login_html( $user, $login_nonce['key'], $redirect_to, $error, $provider );
+			return;
 		}
 
 		self::delete_login_nonce( $user->ID );
@@ -1242,18 +1257,16 @@ class Two_Factor_Core {
 			$rememberme = true;
 		}
 
-		// Create a new User session
-		$expiration = time() + apply_filters( 'auth_cookie_expiration', ( $rememberme ? 14 : 2 ) * DAY_IN_SECONDS, $user->ID, $rememberme );
-		$manager    = WP_Session_Tokens::get_instance( $user->ID );
-		$token      = $manager->create( $expiration );
-		$session    = $manager->get( $token );
+		$session_information_callback = static function( $session, $user_id ) use( $provider, $user ) {
+			if ( $user->ID === $user_id ) {
+				$session['two-factor-login']    = time();
+				$session['two-factor-provider'] = $provider->get_key();
+			}
 
-		// Append the Two Factor session data
-		$session['two-factor-login']    = time();
-		$session['two-factor-provider'] = get_class( $provider );
+			return $session;
+		};
 
-		// Save it in the session and create the cookie with it.
-		$manager->update( $token, $session );
+		add_filter( 'attach_session_information', $session_information_callback, 10, 2 );
 
 		/*
 		 * NOTE: This filter removal is not normally required, this is included for protection against
@@ -1262,9 +1275,11 @@ class Two_Factor_Core {
 		 */
 		remove_filter( 'send_auth_cookies', '__return_false', PHP_INT_MAX );
 
-		wp_set_auth_cookie( $user->ID, $rememberme, '', $token );
+		wp_set_auth_cookie( $user->ID, $rememberme );
 
-		do_action( 'two_factor_user_authenticated', $user, $provider, $token );
+		do_action( 'two_factor_user_authenticated', $user, $provider );
+
+		remove_filter( 'attach_session_information', $session_information_callback );
 
 		// Must be global because that's how login_header() uses it.
 		global $interim_login;
@@ -1289,26 +1304,45 @@ class Two_Factor_Core {
 			<?php endif; ?>
 			</body></html>
 			<?php
-			exit;
+			return;
 		}
-		$redirect_to = apply_filters( 'login_redirect', $_REQUEST['redirect_to'], $_REQUEST['redirect_to'], $user );
-		wp_safe_redirect( $redirect_to );
 
-		exit;
+		$redirect_to = apply_filters( 'login_redirect', $redirect_to, $redirect_to, $user );
+		wp_safe_redirect( $redirect_to );
 	}
+
 
 	/**
 	 * Display the "Revalidate Two Factor" page.
 	 *
-	 * @since 0.8.0
+	 * @since 0.9.0
 	 */
 	public static function login_form_revalidate_2fa() {
-		$provider    = ! empty( $_REQUEST['provider'] )    ? sanitize_text_field( wp_unslash( $_REQUEST['provider'] ) ) : false;
-		$redirect_to = ! empty( $_REQUEST['redirect_to'] ) ? wp_unslash( $_REQUEST['redirect_to'] )                     : admin_url();
+		$provider        = ! empty( $_REQUEST['provider'] )    ? sanitize_text_field( wp_unslash( $_REQUEST['provider'] ) ) : false;
+		$redirect_to     = ! empty( $_REQUEST['redirect_to'] ) ? wp_unslash( $_REQUEST['redirect_to'] )                     : admin_url();
+		$is_post_request = ( 'POST' === strtoupper( $_SERVER['REQUEST_METHOD'] ) );
 
+		self::_login_form_revalidate_2fa( $provider, $redirect_to, $is_post_request );
+		exit;
+	}
+
+	/**
+	 * Revalidate form validation.
+	 *
+	 * This function exists for unit testing, as `exit` prevents testing.
+	 * This function expects the caller exiting after calling.
+	 *
+	 * @since 0.9.0
+	 *
+	 * @param string  $provider        The provider to use, if known.
+	 * @param string  $redirect_to     The redirection location.
+	 * @param bool    $is_post_request Whether the incoming request was a POST request or not.
+	 * @return void
+	 */
+	public static function _login_form_revalidate_2fa( $provider = '', $redirect_to = '', $is_post_request = false ) {
 		if ( ! is_user_logged_in() ) {
 			wp_safe_redirect( home_url() );
-			exit;
+			return;
 		}
 
 		$user            = wp_get_current_user();
@@ -1328,13 +1362,8 @@ class Two_Factor_Core {
 			$provider = self::get_primary_provider_for_user( $user->ID );
 		}
 
-		if ( ! $provider  ) {
-			wp_die( esc_html__( 'Cheatin&#8217; uh?', 'two-factor' ), 403 );
-		}
-
 		// Run the provider processing.
-		$result = self::process_provider( $provider, $user, 'revalidate' );
-
+		$result = self::process_provider( $provider, $user, $is_post_request );
 		if ( true !== $result ) {
 			$error = '';
 			if ( is_wp_error( $result ) ) {
@@ -1344,7 +1373,7 @@ class Two_Factor_Core {
 			}
 
 			self::login_html( $user, '', $redirect_to, $error, $provider, 'revalidate_2fa' );
-			exit;
+			return;
 		}
 
 		$session['two-factor-provider'] = get_class( $provider );
@@ -1373,19 +1402,24 @@ class Two_Factor_Core {
 
 		$redirect_to = apply_filters( 'login_redirect', $redirect_to, $redirect_to, $user );
 		wp_safe_redirect( $redirect_to );
-
-		exit;
+		return;
 	}
 
 	/**
 	 * Process the 2FA provider authentication.
 	 *
-	 * @param object  $provider The Two Factor Provider.
-	 * @param WP_User $user     The user being authenticated.
+	 * @param object  $provider        The Two Factor Provider.
+	 * @param WP_User $user            The user being authenticated.
+	 * @param bool    $is_post_request Whether the request is a POST request.
 	 * @return false|WP_Error|true WP_Error when an error occurs, true when the user is authenticated, false if no action occured.
 	 */
-	public static function process_provider( $provider, $user ) {
-		$is_post_request = ( 'POST' === strtoupper( $_SERVER['REQUEST_METHOD'] ) );
+	public static function process_provider( $provider, $user, $is_post_request ) {
+		if ( ! $provider ) {
+			return new WP_Error(
+				'two_factor_provider_missing',
+				__( 'Cheatin&#8217; uh?', 'two-factor' ),
+			);
+		}
 
 		// Allow the provider to re-send codes, etc.
 		if ( true === $provider->pre_process_authentication( $user ) ) {

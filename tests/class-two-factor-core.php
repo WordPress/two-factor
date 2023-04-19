@@ -27,6 +27,8 @@ class Test_ClassTwoFactorCore extends WP_UnitTestCase {
 	 */
 	public static function wpSetUpBeforeClass() {
 		set_error_handler( array( 'Test_ClassTwoFactorCore', 'error_handler' ) ); // phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_set_error_handler
+		add_action( 'set_auth_cookie', [ __CLASS__, 'set_auth_cookie' ] );
+		add_action( 'set_logged_in_cookie', [ __CLASS__, 'set_logged_in_cookie' ] );
 	}
 
 	/**
@@ -36,6 +38,17 @@ class Test_ClassTwoFactorCore extends WP_UnitTestCase {
 	 */
 	public static function wpTearDownAfterClass() {
 		restore_error_handler();
+		remove_action( 'set_auth_cookie', [ __CLASS__, 'set_auth_cookie' ] );
+		remove_action( 'set_logged_in_cookie', [ __CLASS__, 'set_logged_in_cookie' ] );
+	}
+
+	/**
+	 * Cleanup after each test.
+	 */
+	public function tearDown(): void {
+		parent::tearDown();
+
+		unset( $_COOKIE[ AUTH_COOKIE ], $_COOKIE[ LOGGED_IN_COOKIE ] );
 	}
 
 	/**
@@ -54,6 +67,20 @@ class Test_ClassTwoFactorCore extends WP_UnitTestCase {
 		}
 
 		return true;
+	}
+
+	/**
+	 * Simulate the auth cookie having being sent.
+	 */
+	public static function set_auth_cookie( $auth_cookie ) {
+		$_COOKIE[ AUTH_COOKIE ] = $auth_cookie;
+	}
+
+	/**
+	 * Simulate the logged_in cookie having being sent.
+	 */
+	public static function set_logged_in_cookie( $logged_in_cookie ) {
+		$_COOKIE[ LOGGED_IN_COOKIE ] = $logged_in_cookie;
 	}
 
 	/**
@@ -783,4 +810,78 @@ class Test_ClassTwoFactorCore extends WP_UnitTestCase {
 
 		$this->assertStringContainsString( 'check your email for instructions on regaining access', $contents );
 	}
+
+	/**
+	 * Validate that a non-2fa login doesn't set the session two-factor data.
+	 *
+	 * @covers Two_Factor_Core::is_current_user_session_two_factor()
+	 */
+	public function test_is_current_user_session_two_factor_without_two_factor() {
+		$user = $this->get_dummy_user();
+
+		// Assert no cookies are set.
+		$this->assertArrayNotHasKey( AUTH_COOKIE, $_COOKIE );
+		$this->assertArrayNotHasKey( LOGGED_IN_COOKIE, $_COOKIE );
+
+		// Assert user not logged in is false.
+		$this->assertFalse( Two_Factor_Core::is_current_user_session_two_factor() );
+
+		// Set the cookie without going through two-factor, and fill in $_COOKIE.
+		wp_set_auth_cookie( $user->ID );
+
+		$this->assertNotEmpty( $_COOKIE[ AUTH_COOKIE ] );
+		$this->assertNotEmpty( $_COOKIE[ LOGGED_IN_COOKIE ] );
+
+		// Validate that the session is not flagged as 2FA
+		$this->assertFalse( Two_Factor_Core::is_current_user_session_two_factor() );
+
+		$manager = WP_Session_Tokens::get_instance( $user->ID );
+		$token   = wp_get_session_token();
+		$session = $manager->get( $token );
+
+		// Validate the Session data is not set.
+		$this->assertArrayNotHasKey( 'two-factor-provider', $session );
+	}
+
+	/**
+	 * Validate that a simulated 2fa login sets the session two-factor data.
+	 *
+	 * @covers Two_Factor_Core::is_current_user_session_two_factor()
+	 * @covers Two_Factor_Core::_login_form_validate_2fa()
+	 */
+	public function test_is_current_user_session_two_factor_with_two_factor() {
+		$user = $this->get_dummy_user( array( 'Two_Factor_Dummy' => 'Two_Factor_Dummy' ) );
+
+		// Assert no cookies are set.
+		$this->assertArrayNotHasKey( AUTH_COOKIE, $_COOKIE );
+		$this->assertArrayNotHasKey( LOGGED_IN_COOKIE, $_COOKIE );
+
+		// Assert user not logged in is false.
+		$this->assertFalse( Two_Factor_Core::is_current_user_session_two_factor() );
+
+		// Simulate a 2FA login.
+		$login_nonce = Two_Factor_Core::create_login_nonce( $user->ID );
+
+		$this->assertNotFalse( $login_nonce );
+
+		ob_start();
+		Two_Factor_Core::_login_form_validate_2fa( $user, $login_nonce['key'], 'Two_Factor_Dummy', '', true );
+		ob_end_clean();
+
+		$this->assertNotEmpty( $_COOKIE[ AUTH_COOKIE ] );
+		$this->assertNotEmpty( $_COOKIE[ LOGGED_IN_COOKIE ] );
+
+		// Validate that the session is flagged as 2FA, the return value being int.
+		$this->assertNotFalse( Two_Factor_Core::is_current_user_session_two_factor() );
+
+		$manager = WP_Session_Tokens::get_instance( $user->ID );
+		$token   = wp_get_session_token();
+		$session = $manager->get( $token );
+
+		// Validate that the session provider is as expected.
+		$this->assertArrayHasKey( 'two-factor-provider', $session );
+		$this->assertEquals( 'Two_Factor_Dummy', $session['two-factor-provider'] );
+
+	}
+
 }
