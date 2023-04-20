@@ -1397,7 +1397,7 @@ class Two_Factor_Core {
 			?>
 			</body></html>
 			<?php
-			exit;
+			return;
 		}
 
 		$redirect_to = apply_filters( 'login_redirect', $redirect_to, $redirect_to, $user );
