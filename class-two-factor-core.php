@@ -1150,7 +1150,7 @@ class Two_Factor_Core {
 			$two_factor_revalidate_time *= 2;
 		}
 
-		// If the user last-2fa'd within the last 15 minutes, allow.
+		// If the user last-2fa'd within the last 10 (or 20) minutes, allow.
 		$seconds_ago = time() - $is_two_factor_session;
 		if ( $seconds_ago <= $two_factor_revalidate_time ) {
 			return true;
