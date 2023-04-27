@@ -1141,13 +1141,20 @@ class Two_Factor_Core {
 		/**
 		 * Filter the grace time for two factor revalidation.
 		 *
-		 * @param int    $two_factor_revalidate_time The grace time between last validation time and when it'll be accepted. Default 10 minutes.
+		 * Return a falsey value (false, 0) if you wish to never require revalidation.
+		 *
+		 * @param int    $two_factor_revalidate_time The grace time between last validation time and when it'll be accepted. Default 10 minutes (in seconds).
 		 * @param string $context                    The context in use, 'display' or 'save'. Save has twice the grace time.
 		 */
 		$two_factor_revalidate_time = apply_filters( 'two_factor_revalidate_time', 10 * MINUTE_IN_SECONDS, $user_id, $context );
 
 		if ( $context === 'save' ) {
 			$two_factor_revalidate_time *= 2;
+		}
+
+		// If the revalidate time is falsey, don't enable revalidation.
+		if ( ! $two_factor_revalidate_time ) {
+			return true;
 		}
 
 		// If the user last-2fa'd within the last 10 (or 20) minutes, allow.
