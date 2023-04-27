@@ -1161,7 +1161,7 @@ class Two_Factor_Core {
 	}
 
 	/**
-	 * Validate that the current user can edit the specified user, and if two-factor is required by the account it's within the grace period.
+	 * Validate that the current user can edit the specified user. If two-factor is required by the account, also verify that it's within the revalidation grace period.
 	 *
 	 * @param int $user_id The user ID being updated.
 	 *
