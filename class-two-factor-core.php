@@ -1128,6 +1128,11 @@ class Two_Factor_Core {
 		$user_id               = get_current_user_id();
 		$is_two_factor_session = self::is_current_user_session_two_factor();
 
+		// If the user isn't logged in, bail.
+		if ( ! $user_id ) {
+			return false;
+		}
+
 		// If the current user is not a two-factor user, not having a two-factor session is okay.
 		if ( ! self::is_user_using_two_factor( $user_id ) && ! $is_two_factor_session ) {
 			return true;
