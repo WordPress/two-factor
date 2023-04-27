@@ -1032,4 +1032,55 @@ class Test_ClassTwoFactorCore extends WP_UnitTestCase {
 		$this->assertGreaterThanOrEqual( time() - MINUTE_IN_SECONDS, $current_session_two_factor );
 	}
 
+	/**
+	 * @covers Two_Factor_Core::current_user_can_update_two_factor_options()
+	 */
+	public function test_current_user_can_update_two_factor_options() {
+		// Logged out.
+		$this->assertFalse( Two_Factor_Core::current_user_can_update_two_factor_options() );
+
+		// Create a user, set a session.
+		$user = self::factory()->user->create_and_get();
+
+		wp_set_current_user( $user->ID );
+		wp_set_auth_cookie( $user->ID );
+
+		// Logged in, no 2FA setup.
+		$this->assertTrue( Two_Factor_Core::current_user_can_update_two_factor_options() );
+
+		// Manually setup 2FA, but not through the User Options API, such that the above session is not-2fa.
+		Two_Factor_Core::enable_provider_for_user( $user->ID, 'Two_Factor_Dummy' );
+
+		// Logged in, user has 2FA, session has no 2FA
+		$this->assertFalse( Two_Factor_Core::current_user_can_update_two_factor_options() );
+
+		// Set the session as 2FA.
+		$manager = WP_Session_Tokens::get_instance( $user->ID );
+		$token   = wp_get_session_token();
+		$session = $manager->get( $token );
+
+		$session['two-factor-provider'] = 'Two_Factor_Dummy';
+		$session['two-factor-login']    = time();
+		$manager->update( $token, $session );
+
+		// Logged in, user has 2FA, session has 2FA "now".
+		$this->assertTrue( Two_Factor_Core::current_user_can_update_two_factor_options() );
+
+		// Set the two factor login time to a minute less than the grace time.
+		$session['two-factor-login']    = time() - ( 11 * MINUTE_IN_SECONDS );
+		$manager->update( $token, $session );
+
+		// Logged in, user has 2FA, session has 2FA that's longer than the grace period. Can Save, can't Display.
+		$this->assertTrue( Two_Factor_Core::current_user_can_update_two_factor_options( 'save' ) );
+		$this->assertFalse( Two_Factor_Core::current_user_can_update_two_factor_options() );
+
+		// Set the two factor login time to a older than the saving grace time.
+		$session['two-factor-login']    = time() - ( 30 * MINUTE_IN_SECONDS );
+		$manager->update( $token, $session );
+
+		// Logged in, user has 2FA, session has 2FA way past grace period. Can't Save, can't Display.
+		$this->assertFalse( Two_Factor_Core::current_user_can_update_two_factor_options( 'save' ) );
+		$this->assertFalse( Two_Factor_Core::current_user_can_update_two_factor_options() );
+	}
+
 }
