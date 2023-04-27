@@ -1848,9 +1848,9 @@ class Two_Factor_Core {
 				return;
 			}
 
-			$providers = self::get_providers();
-
-			$enabled_providers = $_POST[ self::ENABLED_PROVIDERS_USER_META_KEY ];
+			$providers          = self::get_providers();
+			$enabled_providers  = $_POST[ self::ENABLED_PROVIDERS_USER_META_KEY ];
+			$existing_providers = self::get_enabled_providers_for_user( $user_id );
 
 			// Enable only the available providers.
 			$enabled_providers = array_intersect( $enabled_providers, array_keys( $providers ) );
@@ -1860,6 +1860,25 @@ class Two_Factor_Core {
 			$new_provider = isset( $_POST[ self::PROVIDER_USER_META_KEY ] ) ? $_POST[ self::PROVIDER_USER_META_KEY ] : '';
 			if ( ! empty( $new_provider ) && in_array( $new_provider, $enabled_providers, true ) ) {
 				update_user_meta( $user_id, self::PROVIDER_USER_META_KEY, $new_provider );
+			}
+
+			// Have we enabled new providers? Set this as a 2FA session, so they can continue to edit.
+			if (
+				! $existing_providers &&
+				$enabled_providers &&
+				! self::is_current_user_session_two_factor() &&
+				$user_id === get_current_user_id()
+			) {
+				$token = wp_get_session_token();
+				if ( $token ) {
+					$manager = WP_Session_Tokens::get_instance( $user_id );
+					$session = $manager->get( $token );
+
+					$session['two-factor-provider'] = ''; // Set the key, but not the provider, as no provider has been used yet.
+					$session['two-factor-login']    = time();
+
+					$manager->update( $token, $session );
+				}
 			}
 		}
 	}

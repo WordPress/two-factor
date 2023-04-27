@@ -812,6 +812,57 @@ class Test_ClassTwoFactorCore extends WP_UnitTestCase {
 	}
 
 	/**
+	 * Ensure that when a user enables two factor, that they are able to continue to change settings.
+	 *
+	 * @covers Two_Factor_Core::current_user_can_update_two_factor_options()
+	 * @covers Two_Factor_Core::user_two_factor_options_update()
+	 */
+	public function test_enabling_two_factor_is_factored_session() {
+		$user              = self::factory()->user->create_and_get();
+
+		$this->assertFalse( Two_Factor_Core::is_current_user_session_two_factor() );
+
+		// Set the cookie without going through two-factor, and fill in $_COOKIE.
+		wp_set_current_user( $user->ID );
+		wp_set_auth_cookie( $user->ID );
+
+		// Session is not two-factored.
+		$this->assertFalse( Two_Factor_Core::is_current_user_session_two_factor() );
+
+		// Can view 2FA edit settings.
+		$this->assertTrue( Two_Factor_Core::current_user_can_update_two_factor_options() );
+		// Can save 2FA settings.
+		$this->assertTrue( Two_Factor_Core::current_user_can_update_two_factor_options( 'save' ) );
+
+		$key              = '_nonce_user_two_factor_options';
+		$nonce            = wp_create_nonce( 'user_two_factor_options' );
+		$_POST[ $key ]    = $nonce;
+		$_REQUEST[ $key ] = $nonce;
+
+		$_POST[ Two_Factor_Core::ENABLED_PROVIDERS_USER_META_KEY ] = [ 'Two_Factor_Dummy' => 'Two_Factor_Dummy' ];
+
+		Two_Factor_Core::user_two_factor_options_update( $user->ID );
+
+		// Validate that the session is flagged as 2FA, the return value being int.
+		$this->assertNotFalse( Two_Factor_Core::is_current_user_session_two_factor() );
+
+		$manager = WP_Session_Tokens::get_instance( $user->ID );
+		$token   = wp_get_session_token();
+		$session = $manager->get( $token );
+
+		// Validate that the session provider is as expected.
+		$this->assertArrayHasKey( 'two-factor-login', $session );
+		$this->assertEquals( '', $session['two-factor-provider'] ); // No provider was used for login.
+		$this->assertGreaterThan( time() - MINUTE_IN_SECONDS, $session['two-factor-login'] );
+
+		// Can view 2FA edit settings.
+		$this->assertTrue( Two_Factor_Core::current_user_can_update_two_factor_options() );
+		// Can save 2FA settings.
+		$this->assertTrue( Two_Factor_Core::current_user_can_update_two_factor_options( 'save' ) );
+
+	}
+
+	/**
 	 * Validate that a non-2fa login doesn't set the session two-factor data.
 	 *
 	 * @covers Two_Factor_Core::is_current_user_session_two_factor()
