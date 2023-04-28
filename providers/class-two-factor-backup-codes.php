@@ -100,7 +100,7 @@ class Two_Factor_Backup_Codes extends Two_Factor_Provider {
 					echo wp_kses(
 						sprintf(
 						/* translators: %s: URL for code regeneration */
-							__( 'Two-Factor: You are out of backup codes and need to <a href="%s">regenerate!</a>', 'two-factor' ),
+							__( 'Two-Factor: You are out of recovery codes and need to <a href="%s">regenerate!</a>', 'two-factor' ),
 							esc_url( get_edit_user_link( $user->ID ) . '#two-factor-backup-codes' )
 						),
 						array( 'a' => array( 'href' => true ) )
@@ -118,7 +118,16 @@ class Two_Factor_Backup_Codes extends Two_Factor_Provider {
 	 * @since 0.1-dev
 	 */
 	public function get_label() {
-		return _x( 'Backup Verification Codes (Single Use)', 'Provider Label', 'two-factor' );
+		return _x( 'Recovery Codes', 'Provider Label', 'two-factor' );
+	}
+
+	/**
+	 * Returns the "continue with" text provider for the login screen.
+	 *
+	 * @since 0.9.0
+	 */
+	public function get_alternative_provider_label() {
+		return __( 'Use a recovery code', 'two-factor' );
 	}
 
 	/**
@@ -148,24 +157,26 @@ class Two_Factor_Backup_Codes extends Two_Factor_Provider {
 		$count = self::codes_remaining_for_user( $user );
 		?>
 		<p id="two-factor-backup-codes">
-			<button type="button" class="button button-two-factor-backup-codes-generate button-secondary hide-if-no-js">
-				<?php esc_html_e( 'Generate Verification Codes', 'two-factor' ); ?>
-			</button>
-			<span class="two-factor-backup-codes-count">
+			<p class="two-factor-backup-codes-count">
 			<?php
 				echo esc_html(
 					sprintf(
-					/* translators: %s: count */
-						_n( '%s unused code remaining.', '%s unused codes remaining.', $count, 'two-factor' ),
+						/* translators: %s: count */
+						_n( '%s unused code remaining, each recovery code can only be used once.', '%s unused codes remaining, each recovery code can only be used once.', $count, 'two-factor' ),
 						$count
 					)
 				);
 			?>
-				</span>
+			</p>
+			<p>
+				<button type="button" class="button button-two-factor-backup-codes-generate button-secondary hide-if-no-js">
+					<?php esc_html_e( 'Generate new recovery codes', 'two-factor' ); ?>
+				</button>
+			</p>
 		</p>
 		<div class="two-factor-backup-codes-wrapper" style="display:none;">
 			<ol class="two-factor-backup-codes-unused-codes"></ol>
-			<p class="description"><?php esc_html_e( 'Write these down!  Once you navigate away from this page, you will not be able to view these codes again.', 'two-factor' ); ?></p>
+			<p class="description"><?php esc_html_e( 'Write these down! Once you navigate away from this page, you will not be able to view these codes again.', 'two-factor' ); ?></p>
 			<p>
 				<a class="button button-two-factor-backup-codes-download button-secondary hide-if-no-js" href="javascript:void(0);" id="two-factor-backup-codes-download-link" download="two-factor-backup-codes.txt"><?php esc_html_e( 'Download Codes', 'two-factor' ); ?></a>
 			<p>
@@ -258,7 +269,7 @@ class Two_Factor_Backup_Codes extends Two_Factor_Provider {
 		$count = self::codes_remaining_for_user( $user );
 		$title = sprintf(
 			/* translators: %s: the site's domain */
-			__( 'Two-Factor Backup Codes for %s', 'two-factor' ),
+			__( 'Two-Factor Recovery Codes for %s', 'two-factor' ),
 			home_url( '/' )
 		);
 
@@ -274,11 +285,11 @@ class Two_Factor_Backup_Codes extends Two_Factor_Provider {
 
 		$i18n = array(
 			/* translators: %s: count */
-			'count' => esc_html( sprintf( _n( '%s unused code remaining.', '%s unused codes remaining.', $count, 'two-factor' ), $count ) ),
+			'count' => esc_html( sprintf( _n( '%s unused code remaining, each recovery code can only be used once.', '%s unused codes remaining, each recovery code can only be used once.', $count, 'two-factor' ), $count ) ),
 		);
 
 		if ( $request->get_param( 'enable_provider' ) && ! Two_Factor_Core::enable_provider_for_user( $user_id, 'Two_Factor_Backup_Codes' ) ) {
-			return new WP_Error( 'db_error', __( 'Unable to enable Backup Codes provider for this user.', 'two-factor' ), array( 'status' => 500 ) );
+			return new WP_Error( 'db_error', __( 'Unable to enable recovery codes for this user.', 'two-factor' ), array( 'status' => 500 ) );
 		}
 
 		return array(
@@ -313,9 +324,9 @@ class Two_Factor_Backup_Codes extends Two_Factor_Provider {
 	public function authentication_page( $user ) {
 		require_once ABSPATH . '/wp-admin/includes/template.php';
 		?>
-		<p class="two-factor-prompt"><?php esc_html_e( 'Enter a backup verification code.', 'two-factor' ); ?></p>
+		<p class="two-factor-prompt"><?php esc_html_e( 'Enter a recovery code.', 'two-factor' ); ?></p><br/>
 		<p>
-			<label for="authcode"><?php esc_html_e( 'Verification Code:', 'two-factor' ); ?></label>
+			<label for="authcode"><?php esc_html_e( 'Recovery Code:', 'two-factor' ); ?></label>
 			<input type="text" inputmode="numeric" name="two-factor-backup-code" id="authcode" class="input authcode" value="" size="20" pattern="[0-9 ]*" placeholder="1234 5678" data-digits="8" />
 		</p>
 		<?php

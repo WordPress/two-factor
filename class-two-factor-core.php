@@ -734,6 +734,9 @@ class Two_Factor_Core {
 			include_once TWO_FACTOR_DIR . 'includes/function.login-header.php';
 		}
 
+		// Disable the language switcher.
+		add_filter( 'login_display_language_dropdown', '__return_false' );
+
 		login_header();
 
 		if ( ! empty( $error_msg ) ) {
@@ -756,45 +759,12 @@ class Two_Factor_Core {
 
 				<?php $provider->authentication_page( $user ); ?>
 		</form>
-
-		<?php
-		if ( 1 === count( $backup_providers ) ) :
-			$backup_provider_key = key( $backup_providers );
-			$backup_provider     = $backup_providers[ $backup_provider_key ];
-			$login_url           = self::login_url(
-				array(
-					'action'        => 'validate_2fa',
-					'provider'      => $backup_provider_key,
-					'wp-auth-id'    => $user->ID,
-					'wp-auth-nonce' => $login_nonce,
-					'redirect_to'   => $redirect_to,
-					'rememberme'    => $rememberme,
-				)
-			);
-			?>
+		<?php if ( $backup_providers ) : ?>
 			<div class="backup-methods-wrap">
-				<p class="backup-methods">
-					<a href="<?php echo esc_url( $login_url ); ?>">
-						<?php
-						echo esc_html(
-							sprintf(
-								// translators: %s: Two-factor method name.
-								__( 'Or, use your backup method: %s &rarr;', 'two-factor' ),
-								$backup_provider->get_label()
-							)
-						);
-						?>
-					</a>
+				<p>
+					<?php esc_html_e( 'Having Problems?', 'two-factor' ); ?>
 				</p>
-			</div>
-			<?php elseif ( 1 < count( $backup_providers ) ) : ?>
-			<div class="backup-methods-wrap">
-				<p class="backup-methods">
-					<a href="javascript:;" onclick="document.querySelector('ul.backup-methods').style.display = 'block';">
-						<?php esc_html_e( 'Or, use a backup method…', 'two-factor' ); ?>
-					</a>
-				</p>
-				<ul class="backup-methods">
+				<ul>
 					<?php
 					foreach ( $backup_providers as $backup_provider_key => $backup_provider ) :
 						$login_url = self::login_url(
@@ -810,34 +780,33 @@ class Two_Factor_Core {
 						?>
 						<li>
 							<a href="<?php echo esc_url( $login_url ); ?>">
-								<?php echo esc_html( $backup_provider->get_label() ); ?>
+								<?php echo esc_html( $backup_provider->get_alternative_provider_label() ); ?>
 							</a>
 						</li>
 					<?php endforeach; ?>
 				</ul>
 			</div>
 		<?php endif; ?>
+
 		<style>
 			/* @todo: migrate to an external stylesheet. */
 			.backup-methods-wrap {
-			margin-top: 16px;
-			padding: 0 24px;
+				margin-top: 16px;
+				padding: 0 24px;
 			}
 			.backup-methods-wrap a {
-			color: #999;
-			text-decoration: none;
+				text-decoration: none;
 			}
-			ul.backup-methods {
-			display: none;
-			padding-left: 1.5em;
+			.backup-methods-wrap ul {
+				list-style-position: inside;
 			}
 			/* Prevent Jetpack from hiding our controls, see https://github.com/Automattic/jetpack/issues/3747 */
 			.jetpack-sso-form-display #loginform > p,
 			.jetpack-sso-form-display #loginform > div {
-			display: block;
+				display: block;
 			}
 			#login form p.two-factor-prompt {
-			margin-bottom: 1em;
+				margin-bottom: 1em;
 			}
 			.input.authcode {
 				letter-spacing: .3em;

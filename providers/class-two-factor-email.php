@@ -55,6 +55,15 @@ class Two_Factor_Email extends Two_Factor_Provider {
 	}
 
 	/**
+	 * Returns the "continue with" text provider for the login screen.
+	 *
+	 * @since 0.9.0
+	 */
+	public function get_alternative_provider_label() {
+		return __( 'Send a code to your email', 'two-factor' );
+	}
+
+	/**
 	 * Generate the user token.
 	 *
 	 * @since 0.1-dev

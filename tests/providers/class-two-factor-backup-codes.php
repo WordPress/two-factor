@@ -47,7 +47,7 @@ class Tests_Two_Factor_Backup_Codes extends WP_UnitTestCase {
 	 * @covers Two_Factor_Backup_Codes::get_label
 	 */
 	public function test_get_label() {
-		$this->assertStringContainsString( 'Backup Verification Codes', $this->provider->get_label() );
+		$this->assertStringContainsString( 'Recovery Codes', $this->provider->get_label() );
 	}
 
 	/**
@@ -60,7 +60,7 @@ class Tests_Two_Factor_Backup_Codes extends WP_UnitTestCase {
 		$this->provider->authentication_page( false );
 		$contents = ob_get_clean();
 
-		$this->assertStringContainsString( 'Enter a backup verification code.', $contents );
+		$this->assertStringContainsString( 'Enter a recovery code.', $contents );
 	}
 
 	/**

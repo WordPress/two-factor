@@ -105,6 +105,15 @@ class Two_Factor_FIDO_U2F extends Two_Factor_Provider {
 	}
 
 	/**
+	 * Returns the "continue with" text provider for the login screen.
+	 *
+	 * @since 0.9.0
+	 */
+	public function get_alternative_provider_label() {
+		return __( 'Use your security key', 'two-factor' );
+	}
+
+	/**
 	 * Register script dependencies used during login and when
 	 * registering keys in the WP admin.
 	 *
