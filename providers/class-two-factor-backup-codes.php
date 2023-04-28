@@ -61,7 +61,7 @@ class Two_Factor_Backup_Codes extends Two_Factor_Provider {
 				'args'                => array(
 					'user_id' => array(
 						'required' => true,
-						'type'     => 'number',
+						'type'     => 'integer',
 					),
 					'enable_provider' => array(
 						'required' => false,
