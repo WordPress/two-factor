@@ -142,7 +142,7 @@ class Two_Factor_Backup_Codes extends Two_Factor_Provider {
 		wp_register_script(
 			'two-factor-backup-codes',
 			plugins_url( 'js/admin-backup-codes.js', __DIR__ ),
-			array( 'jquery', 'wp-api-request' ),
+			array( 'wp-api-request' ),
 			TWO_FACTOR_VERSION,
 			true
 		);
