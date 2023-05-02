@@ -1,7 +1,9 @@
-(function($){
+(function(){
+	const totpSetup = document.getElementById( 'two-factor-totp-options' ),
+		userId = totpSetup.dataset.userid || 0;
 
 	// TOTP QR Setup
-	var qr_generator = function() {
+	const renderQRCode = function() {
 		var link = document.querySelector( '#two-factor-qr-code a' );
 		if ( ! link ) {
 			return;
@@ -21,56 +23,68 @@
 		link.innerHTML = qr.createSvgTag( 5 );
 	};
 
-	// Run now if the document is loaded, otherwise on DOMContentLoaded.
-	if ( document.readyState === 'complete' ) {
-		qr_generator();
-	} else {
-		window.addEventListener( 'DOMContentLoaded', qr_generator );
-	}
-
 	// TOTP Setup
-	$('.totp-submit').click( function( e ) {
+	const totpSetupHandler = function( e ) {
 		e.preventDefault();
-		var key = $('#two-factor-totp-key').val(),
-			code = $('#two-factor-totp-authcode').val();
+
+		const totpKey = document.getElementById( 'two-factor-totp-key' ).value,
+			totpCodeInput = document.getElementById( 'two-factor-totp-authcode' ),
+			totpSetupSubmit = totpSetup.querySelector( '.totp-submit' );
 
 		wp.apiRequest( {
 			method: 'POST',
-			path: <?php echo wp_json_encode( Two_Factor_Core::REST_NAMESPACE . '/totp' ); ?>,
+			path: 'two-factor/1.0/totp',
 			data: {
-				user_id: <?php echo wp_json_encode( $user->ID ); ?>,
-				key: key,
-				code: code,
+				user_id: userId,
+				key: totpKey,
+				code: totpCodeInput.value,
 			}
 		} ).fail( function( response, status ) {
-			var errorMessage = response.responseJSON.message || status,
-				$error = $( '#totp-setup-error' );
+			let errorMessage = response.responseJSON.message || status,
+				errorDiv = totpSetup.querySelector( '.totp-setup-error' );
 
-			if ( ! $error.length ) {
-				$error = $('<div class="error" id="totp-setup-error"><p></p></div>').insertAfter( $('.totp-submit') );
+			if ( ! errorDiv ) {
+				totpSetupSubmit.outerHTML += '<div class="totp-setup-error error"><p></p></div>';
+				errorDiv = totpSetup.querySelector( '.totp-setup-error' );
 			}
 
-			$error.find('p').text( errorMessage );
-
-			$('#two-factor-totp-authcode').val('');
+			errorDiv.querySelector( 'p' ).textContent = errorMessage;
+			totpCodeInput.value = '';
 		} ).then( function( response ) {
-			$( '#two-factor-totp-options' ).html( response.html );
+			totpSetup.innerHTML = response.html;
 		} );
-	} );
+	};
 
-	// TOTP Reset
-	$( '.button.reset-totp-key' ).click( function( e ) {
+	const totpResetHandler = function( e ) {
 		e.preventDefault();
 
 		wp.apiRequest( {
 			method: 'DELETE',
-			path: <?php echo wp_json_encode( Two_Factor_Core::REST_NAMESPACE . '/totp' ); ?>,
+			path: 'two-factor/1.0/totp',
 			data: {
-				user_id: <?php echo wp_json_encode( $user->ID ); ?>,
+				user_id: userId,
 			}
 		} ).then( function( response ) {
-			$( '#two-factor-totp-options' ).html( response.html );
-		} );
-	} );
+			totpSetup.innerHTML = response.html;
 
-})(jQuery);
+			// And render the QR.
+			renderQRCode();
+		} );
+	};
+
+	// Render the QR now if the document is loaded, otherwise on DOMContentLoaded.
+	if ( document.readyState === 'complete' ) {
+		renderQRCode();
+	} else {
+		window.addEventListener( 'DOMContentLoaded', renderQRCode );
+	}
+
+	// Add the Click handlers.
+	totpSetup.addEventListener( 'click', function( e ) {
+		if ( e.target.closest( '.totp-submit' ) ) {
+			totpSetupHandler( e );
+		} else if ( e.target.closest( '.reset-totp-key' ) ) {
+			totpResetHandler( e );
+		}
+	} );
+})();

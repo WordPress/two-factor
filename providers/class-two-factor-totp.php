@@ -282,7 +282,7 @@ class Two_Factor_Totp extends Two_Factor_Provider {
 		wp_enqueue_script( 'two-factor-totp' );
 
 		?>
-		<div id="two-factor-totp-options">
+		<div id="two-factor-totp-options" data-userid="<?php echo esc_attr( $user->ID ); ?>">
 		<?php
 		if ( empty( $key ) ) :
 
@@ -296,7 +296,7 @@ class Two_Factor_Totp extends Two_Factor_Provider {
 			</p>
 			<p id="two-factor-qr-code">
 				<a href="<?php echo $totp_url; ?>">
-					Loading...
+					<?php esc_html_e( 'Loading...', 'two-factor' ); ?>
 					<img src="<?php echo esc_url( admin_url( 'images/spinner.gif' ) ); ?>" alt="" />
 				</a>
 			</p>
@@ -322,7 +322,7 @@ class Two_Factor_Totp extends Two_Factor_Provider {
 					?>
 					<input type="tel" name="two-factor-totp-authcode" id="two-factor-totp-authcode" class="input" value="" size="20" pattern="[0-9 ]*" placeholder="<?php echo esc_attr( $placeholder ); ?>" />
 				</label>
-				<input type="submit" class="button totp-submit" name="two-factor-totp-submit" value="<?php esc_attr_e( 'Submit', 'two-factor' ); ?>" />
+				<input type="submit" class="button totp-submit" value="<?php esc_attr_e( 'Submit', 'two-factor' ); ?>" />
 			</p>
 
 		<?php else : ?>
