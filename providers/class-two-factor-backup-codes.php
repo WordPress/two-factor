@@ -176,7 +176,7 @@ class Two_Factor_Backup_Codes extends Two_Factor_Provider {
 
 		$count = self::codes_remaining_for_user( $user );
 		?>
-		<div id="two-factor-backup-codes">
+		<div id="two-factor-backup-codes" data-userid="<?php echo esc_attr( $user->ID ); ?>">
 			<p class="two-factor-backup-codes-count">
 			<?php
 				echo esc_html(
@@ -197,7 +197,7 @@ class Two_Factor_Backup_Codes extends Two_Factor_Provider {
 				<ol class="two-factor-backup-codes-unused-codes"></ol>
 				<p class="description"><?php esc_html_e( 'Write these down! Once you navigate away from this page, you will not be able to view these codes again.', 'two-factor' ); ?></p>
 				<p>
-					<a class="button button-two-factor-backup-codes-download button-secondary hide-if-no-js" href="javascript:void(0);" id="two-factor-backup-codes-download-link" download="two-factor-backup-codes.txt"><?php esc_html_e( 'Download Codes', 'two-factor' ); ?></a>
+					<a class="button button-two-factor-backup-codes-download button-secondary hide-if-no-js" download="two-factor-backup-codes.txt"><?php esc_html_e( 'Download Codes', 'two-factor' ); ?></a>
 				<p>
 			</div>
 		</div>
