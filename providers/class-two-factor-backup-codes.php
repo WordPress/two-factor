@@ -154,6 +154,9 @@ class Two_Factor_Backup_Codes extends Two_Factor_Provider {
 	 * @param WP_User $user WP_User object of the logged-in user.
 	 */
 	public function user_options( $user ) {
+		wp_enqueue_script( 'wp-api-request' );
+		wp_enqueue_script( 'jquery' );
+
 		$count = self::codes_remaining_for_user( $user );
 		?>
 		<p id="two-factor-backup-codes">
