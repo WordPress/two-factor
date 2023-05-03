@@ -50,6 +50,21 @@ abstract class Two_Factor_Provider {
 	abstract public function get_label();
 
 	/**
+	 * Returns the "continue with" text provider for the login screen.
+	 *
+	 * @since 0.9.0
+	 *
+	 * @return string
+	 */
+	public function get_alternative_provider_label() {
+		return sprintf(
+			/* translators: the two factor provider name */
+			__( 'Use %s', 'two-factor' ),
+			$this->get_label()
+		);
+	}
+
+	/**
 	 * Prints the name of the provider.
 	 *
 	 * @since 0.1-dev
