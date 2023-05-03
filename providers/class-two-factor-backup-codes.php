@@ -40,6 +40,9 @@ class Two_Factor_Backup_Codes extends Two_Factor_Provider {
 		add_action( 'two_factor_user_options_' . __CLASS__, array( $this, 'user_options' ) );
 		add_action( 'admin_notices', array( $this, 'admin_notices' ) );
 
+		add_action( 'admin_enqueue_scripts', array( $this, 'enqueue_assets' ) );
+		add_action( 'wp_enqueue_scripts', array( $this, 'enqueue_assets' ) );
+
 		return parent::__construct();
 	}
 
@@ -131,6 +134,21 @@ class Two_Factor_Backup_Codes extends Two_Factor_Provider {
 	}
 
 	/**
+	 * Enqueue scripts
+	 *
+	 * @codeCoverageIgnore
+	 */
+	public function enqueue_assets( $hook_suffix ) {
+		wp_register_script(
+			'two-factor-backup-codes',
+			plugins_url( 'js/admin-backup-codes.js', __DIR__ ),
+			array( 'wp-api-request' ),
+			TWO_FACTOR_VERSION,
+			true
+		);
+	}
+
+	/**
 	 * Whether this Two Factor provider is configured and codes are available for the user specified.
 	 *
 	 * @since 0.1-dev
@@ -154,9 +172,11 @@ class Two_Factor_Backup_Codes extends Two_Factor_Provider {
 	 * @param WP_User $user WP_User object of the logged-in user.
 	 */
 	public function user_options( $user ) {
+		wp_enqueue_script( 'two-factor-backup-codes' );
+
 		$count = self::codes_remaining_for_user( $user );
 		?>
-		<p id="two-factor-backup-codes">
+		<div id="two-factor-backup-codes" data-userid="<?php echo esc_attr( $user->ID ); ?>">
 			<p class="two-factor-backup-codes-count">
 			<?php
 				echo esc_html(
@@ -173,41 +193,14 @@ class Two_Factor_Backup_Codes extends Two_Factor_Provider {
 					<?php esc_html_e( 'Generate new recovery codes', 'two-factor' ); ?>
 				</button>
 			</p>
-		</p>
-		<div class="two-factor-backup-codes-wrapper" style="display:none;">
-			<ol class="two-factor-backup-codes-unused-codes"></ol>
-			<p class="description"><?php esc_html_e( 'Write these down! Once you navigate away from this page, you will not be able to view these codes again.', 'two-factor' ); ?></p>
-			<p>
-				<a class="button button-two-factor-backup-codes-download button-secondary hide-if-no-js" href="javascript:void(0);" id="two-factor-backup-codes-download-link" download="two-factor-backup-codes.txt"><?php esc_html_e( 'Download Codes', 'two-factor' ); ?></a>
-			<p>
+			<div class="two-factor-backup-codes-wrapper" style="display:none;">
+				<ol class="two-factor-backup-codes-unused-codes"></ol>
+				<p class="description"><?php esc_html_e( 'Write these down! Once you navigate away from this page, you will not be able to view these codes again.', 'two-factor' ); ?></p>
+				<p>
+					<a class="button button-two-factor-backup-codes-download button-secondary hide-if-no-js" download="two-factor-backup-codes.txt"><?php esc_html_e( 'Download Codes', 'two-factor' ); ?></a>
+				<p>
+			</div>
 		</div>
-		<script type="text/javascript">
-			( function( $ ) {
-				$( '.button-two-factor-backup-codes-generate' ).click( function() {
-					wp.apiRequest( {
-						method: 'POST',
-						path: <?php echo wp_json_encode( Two_Factor_Core::REST_NAMESPACE . '/generate-backup-codes' ); ?>,
-						data: {
-							user_id: <?php echo wp_json_encode( $user->ID ); ?>
-						}
-					} ).then( function( response ) {
-						var $codesList = $( '.two-factor-backup-codes-unused-codes' );
-
-						$( '.two-factor-backup-codes-wrapper' ).show();
-						$codesList.html( '' );
-
-						// Append the codes.
-						for ( i = 0; i < response.codes.length; i++ ) {
-							$codesList.append( '<li>' + response.codes[ i ] + '</li>' );
-						}
-
-						// Update counter.
-						$( '.two-factor-backup-codes-count' ).html( response.i18n.count );
-						$( '#two-factor-backup-codes-download-link' ).attr( 'href', response.download_link );
-					} );
-				} );
-			} )( jQuery );
-		</script>
 		<?php
 	}
 
