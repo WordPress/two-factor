@@ -777,25 +777,24 @@ class Two_Factor_Core {
 				<?php $provider->authentication_page( $user ); ?>
 		</form>
 
-		<?php
-		$backup_link_args = array(
-			'action' => $action,
-		);
-		if ( $rememberme ) {
-			$backup_link_args['rememberme'] = $rememberme;
-		}
-		if ( $login_nonce ) {
-			$backup_link_args['wp-auth-id']    = $user->ID;
-			$backup_link_args['wp-auth-nonce'] = $login_nonce;
-		}
-		if ( $redirect_to ) {
-			$backup_link_args['redirect_to'] = $redirect_to;
-		}
-		if ( $interim_login ) {
-			$backup_link_args['interim-login'] = 1;
-		}
-
-		<?php if ( $backup_providers ) : ?>
+		<?php if ( $backup_providers ) :
+			$backup_link_args = array(
+				'action' => $action,
+			);
+			if ( $rememberme ) {
+				$backup_link_args['rememberme'] = $rememberme;
+			}
+			if ( $login_nonce ) {
+				$backup_link_args['wp-auth-id']    = $user->ID;
+				$backup_link_args['wp-auth-nonce'] = $login_nonce;
+			}
+			if ( $redirect_to ) {
+				$backup_link_args['redirect_to'] = $redirect_to;
+			}
+			if ( $interim_login ) {
+				$backup_link_args['interim-login'] = 1;
+			}
+			?>
 			<div class="backup-methods-wrap">
 				<p>
 					<?php esc_html_e( 'Having Problems?', 'two-factor' ); ?>
