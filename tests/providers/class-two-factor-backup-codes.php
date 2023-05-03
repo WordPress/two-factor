@@ -165,7 +165,7 @@ class Tests_Two_Factor_Backup_Codes extends WP_UnitTestCase {
 
 		$this->assertStringContainsString( '<div id="two-factor-backup-codes"', $buffer );
 		$this->assertStringContainsString( '<div class="two-factor-backup-codes-wrapper" style="display:none;">', $buffer );
-		$this->assertStringContainsString( "user_id: {$user->ID}", $buffer );
+		$this->assertStringContainsString( "data-userid=\"{$user->ID}\"", $buffer );
 	}
 
 	/**
