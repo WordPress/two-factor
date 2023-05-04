@@ -272,6 +272,8 @@ class Two_Factor_Totp extends Two_Factor_Provider {
 		$key = $this->get_user_totp_key( $user->ID );
 
 		wp_enqueue_script( 'two-factor-qr-code-generator' );
+		wp_enqueue_script( 'wp-api-request' );
+		wp_enqueue_script( 'jquery' );
 
 		?>
 		<div id="two-factor-totp-options">
