@@ -283,7 +283,7 @@ class Two_Factor_Core {
 	 * @param bool $interim If the URL should load the interim login iframe modal.
 	 * @return string
 	 */
-	protected static function get_user_two_factor_revalidate_url( $interim = false ) {
+	public static function get_user_two_factor_revalidate_url( $interim = false ) {
 		$args = array(
 			'action' => 'revalidate_2fa',
 		);
