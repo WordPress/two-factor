@@ -812,6 +812,57 @@ class Test_ClassTwoFactorCore extends WP_UnitTestCase {
 	}
 
 	/**
+	 * Ensure that when a user enables two factor, that they are able to continue to change settings.
+	 *
+	 * @covers Two_Factor_Core::current_user_can_update_two_factor_options()
+	 * @covers Two_Factor_Core::user_two_factor_options_update()
+	 */
+	public function test_enabling_two_factor_is_factored_session() {
+		$user              = self::factory()->user->create_and_get();
+
+		$this->assertFalse( Two_Factor_Core::is_current_user_session_two_factor() );
+
+		// Set the cookie without going through two-factor, and fill in $_COOKIE.
+		wp_set_current_user( $user->ID );
+		wp_set_auth_cookie( $user->ID );
+
+		// Session is not two-factored.
+		$this->assertFalse( Two_Factor_Core::is_current_user_session_two_factor() );
+
+		// Can view 2FA edit settings.
+		$this->assertTrue( Two_Factor_Core::current_user_can_update_two_factor_options() );
+		// Can save 2FA settings.
+		$this->assertTrue( Two_Factor_Core::current_user_can_update_two_factor_options( 'save' ) );
+
+		$key              = '_nonce_user_two_factor_options';
+		$nonce            = wp_create_nonce( 'user_two_factor_options' );
+		$_POST[ $key ]    = $nonce;
+		$_REQUEST[ $key ] = $nonce;
+
+		$_POST[ Two_Factor_Core::ENABLED_PROVIDERS_USER_META_KEY ] = [ 'Two_Factor_Dummy' => 'Two_Factor_Dummy' ];
+
+		Two_Factor_Core::user_two_factor_options_update( $user->ID );
+
+		// Validate that the session is flagged as 2FA, the return value being int.
+		$this->assertNotFalse( Two_Factor_Core::is_current_user_session_two_factor() );
+
+		$manager = WP_Session_Tokens::get_instance( $user->ID );
+		$token   = wp_get_session_token();
+		$session = $manager->get( $token );
+
+		// Validate that the session provider is as expected.
+		$this->assertArrayHasKey( 'two-factor-login', $session );
+		$this->assertEquals( '', $session['two-factor-provider'] ); // No provider was used for login.
+		$this->assertGreaterThan( time() - MINUTE_IN_SECONDS, $session['two-factor-login'] );
+
+		// Can view 2FA edit settings.
+		$this->assertTrue( Two_Factor_Core::current_user_can_update_two_factor_options() );
+		// Can save 2FA settings.
+		$this->assertTrue( Two_Factor_Core::current_user_can_update_two_factor_options( 'save' ) );
+
+	}
+
+	/**
 	 * Validate that a non-2fa login doesn't set the session two-factor data.
 	 *
 	 * @covers Two_Factor_Core::is_current_user_session_two_factor()
@@ -847,6 +898,7 @@ class Test_ClassTwoFactorCore extends WP_UnitTestCase {
 	 * Validate that a simulated 2fa login sets the session two-factor data.
 	 *
 	 * @covers Two_Factor_Core::is_current_user_session_two_factor()
+	 * @covers Two_Factor_Core::current_user_can_update_two_factor_options()
 	 * @covers Two_Factor_Core::_login_form_validate_2fa()
 	 */
 	public function test_is_current_user_session_two_factor_with_two_factor() {
@@ -859,11 +911,21 @@ class Test_ClassTwoFactorCore extends WP_UnitTestCase {
 		// Assert user not logged in is false.
 		$this->assertFalse( Two_Factor_Core::is_current_user_session_two_factor() );
 
-		// Simulate a 2FA login.
+		// Display it.
 		$login_nonce = Two_Factor_Core::create_login_nonce( $user->ID );
-
 		$this->assertNotFalse( $login_nonce );
 
+		ob_start();
+		Two_Factor_Core::_login_form_validate_2fa( $user, $login_nonce['key'], 'Two_Factor_Dummy', '', false );
+		ob_end_clean();
+
+		// Validate that the session is not set, as it wasn't a POST.
+		$this->assertFalse( Two_Factor_Core::is_current_user_session_two_factor() );
+
+		$login_nonce = Two_Factor_Core::create_login_nonce( $user->ID );
+		$this->assertNotFalse( $login_nonce );
+
+		// Process it.
 		ob_start();
 		Two_Factor_Core::_login_form_validate_2fa( $user, $login_nonce['key'], 'Two_Factor_Dummy', '', true );
 		ob_end_clean();
@@ -882,6 +944,143 @@ class Test_ClassTwoFactorCore extends WP_UnitTestCase {
 		$this->assertArrayHasKey( 'two-factor-provider', $session );
 		$this->assertEquals( 'Two_Factor_Dummy', $session['two-factor-provider'] );
 
+	}
+
+	/**
+	 * Validate that a simulated 2fa revalidation updates the session two-factor data.
+	 *
+	 * @covers Two_Factor_Core::_login_form_revalidate_2fa()
+	 * @covers Two_Factor_Core::current_user_can_update_two_factor_options()
+	 */
+	public function test_revalidation_sets_time() {
+		$user = $this->get_dummy_user( array( 'Two_Factor_Dummy' => 'Two_Factor_Dummy' ) );
+
+		// Assert no cookies are set.
+		$this->assertArrayNotHasKey( AUTH_COOKIE, $_COOKIE );
+		$this->assertArrayNotHasKey( LOGGED_IN_COOKIE, $_COOKIE );
+
+		// Assert user not logged in is false.
+		$this->assertFalse( Two_Factor_Core::is_current_user_session_two_factor() );
+		$this->assertFalse( Two_Factor_Core::current_user_can_update_two_factor_options() );
+
+		// Simulate a 2FA login.
+
+		// Display it.
+		$login_nonce = Two_Factor_Core::create_login_nonce( $user->ID );
+		$this->assertNotFalse( $login_nonce );
+
+		ob_start();
+		Two_Factor_Core::_login_form_validate_2fa( $user, $login_nonce['key'], 'Two_Factor_Dummy', '', false );
+		ob_end_clean();
+
+		$login_nonce = Two_Factor_Core::create_login_nonce( $user->ID );
+		$this->assertNotFalse( $login_nonce );
+
+		// Process it.
+		ob_start();
+		Two_Factor_Core::_login_form_validate_2fa( $user, $login_nonce['key'], 'Two_Factor_Dummy', '', true );
+		ob_end_clean();
+
+		$this->assertNotEmpty( $_COOKIE[ AUTH_COOKIE ] );
+		$this->assertNotEmpty( $_COOKIE[ LOGGED_IN_COOKIE ] );
+
+		// Validate that the session is flagged as 2FA, and now-ish.
+		$current_session_two_factor = Two_Factor_Core::is_current_user_session_two_factor();
+		$this->assertNotFalse( $current_session_two_factor );
+		// Verify that it was set to now.
+		$this->assertLessThanOrEqual( time(), $current_session_two_factor );
+		$this->assertGreaterThanOrEqual( time() - MINUTE_IN_SECONDS, $current_session_two_factor );
+
+		// Validate that the user can update options.
+		$this->assertTrue( Two_Factor_Core::current_user_can_update_two_factor_options() );
+
+		$manager = WP_Session_Tokens::get_instance( $user->ID );
+		$token   = wp_get_session_token();
+		$session = $manager->get( $token );
+
+		// Validate that the session provider is as expected.
+		$this->assertArrayHasKey( 'two-factor-provider', $session );
+		$this->assertEquals( 'Two_Factor_Dummy', $session['two-factor-provider'] );
+		$this->assertEquals( $current_session_two_factor, $session['two-factor-login'] );
+
+		// Set the Session to have started an hour ago.
+		$session['two-factor-login'] = time() - HOUR_IN_SECONDS;
+		$manager->update( $token, $session );
+
+		// The session should now be "expired" for revalidation.
+		$this->assertLessThan( time(), Two_Factor_Core::is_current_user_session_two_factor() );
+
+		// Revalidate.
+		// Simulate displaying it.
+		ob_start();
+		Two_Factor_Core::_login_form_revalidate_2fa( 'Two_Factor_Dummy', '', false );
+		ob_end_clean();
+
+		// Check it's still expired.
+		$this->assertLessThan( time(), Two_Factor_Core::is_current_user_session_two_factor() );
+
+		// Simulate clicking it.
+		ob_start();
+		Two_Factor_Core::_login_form_revalidate_2fa( 'Two_Factor_Dummy', '', true );
+		ob_end_clean();
+
+		// Validate that the session is flagged as 2FA, and set to now-ish.
+		$current_session_two_factor = Two_Factor_Core::is_current_user_session_two_factor();
+		$this->assertNotFalse( $current_session_two_factor );
+		// Verify that it was set to now.
+		$this->assertLessThanOrEqual( time(), $current_session_two_factor );
+		$this->assertGreaterThanOrEqual( time() - MINUTE_IN_SECONDS, $current_session_two_factor );
+	}
+
+	/**
+	 * @covers Two_Factor_Core::current_user_can_update_two_factor_options()
+	 */
+	public function test_current_user_can_update_two_factor_options() {
+		// Logged out.
+		$this->assertFalse( Two_Factor_Core::current_user_can_update_two_factor_options() );
+
+		// Create a user, set a session.
+		$user = self::factory()->user->create_and_get();
+
+		wp_set_current_user( $user->ID );
+		wp_set_auth_cookie( $user->ID );
+
+		// Logged in, no 2FA setup.
+		$this->assertTrue( Two_Factor_Core::current_user_can_update_two_factor_options() );
+
+		// Manually setup 2FA, but not through the User Options API, such that the above session is not-2fa.
+		Two_Factor_Core::enable_provider_for_user( $user->ID, 'Two_Factor_Dummy' );
+
+		// Logged in, user has 2FA, session has no 2FA
+		$this->assertFalse( Two_Factor_Core::current_user_can_update_two_factor_options() );
+
+		// Set the session as 2FA.
+		$manager = WP_Session_Tokens::get_instance( $user->ID );
+		$token   = wp_get_session_token();
+		$session = $manager->get( $token );
+
+		$session['two-factor-provider'] = 'Two_Factor_Dummy';
+		$session['two-factor-login']    = time();
+		$manager->update( $token, $session );
+
+		// Logged in, user has 2FA, session has 2FA "now".
+		$this->assertTrue( Two_Factor_Core::current_user_can_update_two_factor_options() );
+
+		// Set the two factor login time to a minute less than the grace time.
+		$session['two-factor-login']    = time() - ( 11 * MINUTE_IN_SECONDS );
+		$manager->update( $token, $session );
+
+		// Logged in, user has 2FA, session has 2FA that's longer than the grace period. Can Save, can't Display.
+		$this->assertTrue( Two_Factor_Core::current_user_can_update_two_factor_options( 'save' ) );
+		$this->assertFalse( Two_Factor_Core::current_user_can_update_two_factor_options() );
+
+		// Set the two factor login time to a older than the saving grace time.
+		$session['two-factor-login']    = time() - ( 30 * MINUTE_IN_SECONDS );
+		$manager->update( $token, $session );
+
+		// Logged in, user has 2FA, session has 2FA way past grace period. Can't Save, can't Display.
+		$this->assertFalse( Two_Factor_Core::current_user_can_update_two_factor_options( 'save' ) );
+		$this->assertFalse( Two_Factor_Core::current_user_can_update_two_factor_options() );
 	}
 
 }

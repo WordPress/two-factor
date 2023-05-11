@@ -65,7 +65,7 @@ class Two_Factor_Totp extends Two_Factor_Provider {
 					'methods'             => WP_REST_Server::DELETABLE,
 					'callback'            => array( $this, 'rest_delete_totp' ),
 					'permission_callback' => function( $request ) {
-						return current_user_can( 'edit_user', $request['user_id'] );
+						return Two_Factor_Core::rest_api_can_edit_user_and_update_two_factor_options( $request['user_id'] );
 					},
 					'args'                => array(
 						'user_id' => array(
@@ -78,7 +78,7 @@ class Two_Factor_Totp extends Two_Factor_Provider {
 					'methods'             => WP_REST_Server::CREATABLE,
 					'callback'            => array( $this, 'rest_setup_totp' ),
 					'permission_callback' => function( $request ) {
-						return current_user_can( 'edit_user', $request['user_id'] );
+						return Two_Factor_Core::rest_api_can_edit_user_and_update_two_factor_options( $request['user_id'] );
 					},
 					'args'                => array(
 						'user_id' => array(
