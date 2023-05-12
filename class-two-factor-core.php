@@ -1830,23 +1830,23 @@ class Two_Factor_Core {
 				update_user_meta( $user_id, self::PROVIDER_USER_META_KEY, $new_provider );
 			}
 
-			// Have we enabled new providers? Set this as a 2FA session, so they can continue to edit.
-			if (
-				! $existing_providers &&
-				$enabled_providers &&
-				! self::is_current_user_session_two_factor() &&
-				$user_id === get_current_user_id()
-			) {
-				$token = wp_get_session_token();
-				if ( $token ) {
-					$manager = WP_Session_Tokens::get_instance( $user_id );
-					$session = $manager->get( $token );
+			$token = wp_get_session_token();
+			if ( $token ) {
+				$manager = WP_Session_Tokens::get_instance( $user_id );
+				$session = $manager->get( $token );
 
+				// Have we enabled new providers? Set this as a 2FA session, so they can continue to edit.
+				if (
+					! $existing_providers &&
+					$enabled_providers &&
+					! self::is_current_user_session_two_factor() &&
+					$user_id === get_current_user_id()
+				) {
 					$session['two-factor-provider'] = ''; // Set the key, but not the provider, as no provider has been used yet.
 					$session['two-factor-login']    = time();
-
-					$manager->update( $token, $session );
 				}
+
+				$manager->update( $token, $session );
 			}
 		}
 	}
