@@ -864,6 +864,9 @@ class Test_ClassTwoFactorCore extends WP_UnitTestCase {
 
 	/**
 	 * Validate that disabling all providers [invalidate] the two-factor session.
+	 *
+	 * @covers Two_Factor_Core::current_user_can_update_two_factor_options()
+	 * @covers Two_Factor_Core::user_two_factor_options_update()
 	 */
 	public function test_disabling_two_factor_is_not_factored_session() {
 		$user = self::factory()->user->create_and_get();
@@ -881,14 +884,20 @@ class Test_ClassTwoFactorCore extends WP_UnitTestCase {
 
 		Two_Factor_Core::user_two_factor_options_update( $user->ID );
 
-		// Validate that the session is flagged as 2FA, the return value being int.
 		$this->assertNotFalse( Two_Factor_Core::is_current_user_session_two_factor() );
 
 		// Disable all providers, and test that the session is invalidated.
-		delete_user_meta( $user->ID, Two_Factor_Core::ENABLED_PROVIDERS_USER_META_KEY );
-		delete_user_meta( $user->ID, Two_Factor_Core::PROVIDER_USER_META_KEY );
+		$_POST[ Two_Factor_Core::ENABLED_PROVIDERS_USER_META_KEY ] = [];
+		Two_Factor_Core::user_two_factor_options_update( $user->ID );
 
 		$this->assertFalse( Two_Factor_Core::is_current_user_session_two_factor() );
+
+		$manager = WP_Session_Tokens::get_instance( $user->ID );
+		$token   = wp_get_session_token();
+		$session = $manager->get( $token );
+
+		$this->assertArrayNotHasKey( 'two-factor-login', $session );
+		$this->assertArrayNotHasKey( 'two-factor-provider', $session );
 	}
 
 	/**
