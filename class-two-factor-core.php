@@ -1100,6 +1100,11 @@ class Two_Factor_Core {
 		$manager = WP_Session_Tokens::get_instance( $user_id );
 		$session = $manager->get( $token );
 
+		// this works, but leaves the raw session data still indicating that it's a 2fa session. that feels wrong.
+		// if ( ! self::get_available_providers_for_user( $user_id ) ) {
+		// 	return false;
+		// }
+
 		if ( empty( $session['two-factor-login'] ) ) {
 			return false;
 		}
