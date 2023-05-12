@@ -1846,6 +1846,12 @@ class Two_Factor_Core {
 					$session['two-factor-login']    = time();
 				}
 
+				// Have we disabled all providers? Unset the 2FA session.
+				if ( ! $enabled_providers ) {
+					unset( $session['two-factor-provider'] );
+					unset( $session['two-factor-login'] );
+				}
+
 				$manager->update( $token, $session );
 			}
 		}
