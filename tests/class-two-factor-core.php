@@ -886,7 +886,7 @@ class Test_ClassTwoFactorCore extends WP_UnitTestCase {
 
 		$this->assertNotFalse( Two_Factor_Core::is_current_user_session_two_factor() );
 
-		// Disable all providers, and test that the session is invalidated.
+		// Disable all providers, and test that the 2FA session is invalidated.
 		$_POST[ Two_Factor_Core::ENABLED_PROVIDERS_USER_META_KEY ] = [];
 		Two_Factor_Core::user_two_factor_options_update( $user->ID );
 
