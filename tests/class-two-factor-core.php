@@ -863,6 +863,35 @@ class Test_ClassTwoFactorCore extends WP_UnitTestCase {
 	}
 
 	/**
+	 * Validate that disabling all providers [invalidate] the two-factor session.
+	 */
+	public function test_disabling_two_factor_is_not_factored_session() {
+		$user = self::factory()->user->create_and_get();
+
+		// Setup a 2FA session.
+		wp_set_current_user( $user->ID );
+		wp_set_auth_cookie( $user->ID );
+
+		$key              = '_nonce_user_two_factor_options';
+		$nonce            = wp_create_nonce( 'user_two_factor_options' );
+		$_POST[ $key ]    = $nonce;
+		$_REQUEST[ $key ] = $nonce;
+
+		$_POST[ Two_Factor_Core::ENABLED_PROVIDERS_USER_META_KEY ] = [ 'Two_Factor_Dummy' => 'Two_Factor_Dummy' ];
+
+		Two_Factor_Core::user_two_factor_options_update( $user->ID );
+
+		// Validate that the session is flagged as 2FA, the return value being int.
+		$this->assertNotFalse( Two_Factor_Core::is_current_user_session_two_factor() );
+
+		// Disable all providers, and test that the session is invalidated.
+		delete_user_meta( $user->ID, Two_Factor_Core::ENABLED_PROVIDERS_USER_META_KEY );
+		delete_user_meta( $user->ID, Two_Factor_Core::PROVIDER_USER_META_KEY );
+
+		$this->assertFalse( Two_Factor_Core::is_current_user_session_two_factor() );
+	}
+
+	/**
 	 * Validate that a non-2fa login doesn't set the session two-factor data.
 	 *
 	 * @covers Two_Factor_Core::is_current_user_session_two_factor()
