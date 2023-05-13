@@ -1325,6 +1325,9 @@ class Two_Factor_Core {
 		$is_post_request = ( 'POST' === strtoupper( $_SERVER['REQUEST_METHOD'] ) );
 
 		self::_login_form_revalidate_2fa( $provider, $redirect_to, $is_post_request );
+
+		// todo need to use new update_session() function here and everywhere else?
+
 		exit;
 	}
 
@@ -1825,31 +1828,47 @@ class Two_Factor_Core {
 				update_user_meta( $user_id, self::PROVIDER_USER_META_KEY, $new_provider );
 			}
 
-			$token = wp_get_session_token();
-			if ( $token ) {
-				$manager = WP_Session_Tokens::get_instance( $user_id );
-				$session = $manager->get( $token );
-
-				// Have we enabled new providers? Set this as a 2FA session, so they can continue to edit.
-				if (
-					! $existing_providers &&
-					$enabled_providers &&
-					! self::is_current_user_session_two_factor() &&
-					$user_id === get_current_user_id()
-				) {
-					$session['two-factor-provider'] = ''; // Set the key, but not the provider, as no provider has been used yet.
-					$session['two-factor-login']    = time();
-				}
-
-				// Have we disabled all providers? Unset the 2FA session.
-				if ( ! $enabled_providers ) {
-					unset( $session['two-factor-provider'] );
-					unset( $session['two-factor-login'] );
-				}
-
-				$manager->update( $token, $session );
-			}
+			self::update_session( $user_id, $enabled_providers );
 		}
+	}
+
+	/**
+	 * Update the user session.
+	 */
+	public static function update_session( $user_id, $enabled_providers ) {
+		// maybe rename to something more specific to updating the providers? see if this is only used when enabling/disabling, or also used when logging in, revalidating, etc
+
+		$token = wp_get_session_token();
+
+		if ( ! $token ) {
+			return false;
+		}
+
+		$manager = WP_Session_Tokens::get_instance( $user_id );
+		$session = $manager->get( $token );
+
+		// Have we enabled new providers? Set this as a 2FA session, so they can continue to edit.
+		if (
+			// ! $existing_providers &&
+				// does it matter that they were existing? is it enough to just say "if there are some, then..."
+				// test still pass w/ this commented out
+			$enabled_providers &&
+			! self::is_current_user_session_two_factor() &&
+			$user_id === get_current_user_id()
+		) {
+			$session['two-factor-provider'] = ''; // Set the key, but not the provider, as no provider has been used yet.
+			$session['two-factor-login']    = time();
+		}
+
+		// Have we disabled all providers? Unset the 2FA session.
+		if ( ! $enabled_providers ) {
+			unset( $session['two-factor-provider'] );
+			unset( $session['two-factor-login'] );
+		}
+
+		$manager->update( $token, $session );
+
+		return true;
 	}
 
 	/**

@@ -150,6 +150,11 @@ class Two_Factor_Totp extends Two_Factor_Provider {
 		$user    = get_user_by( 'id', $user_id );
 
 		$this->delete_user_totp_key( $user_id );
+		// this doesn't call user_two_factor_options_update()
+		// maybe the custom ui should do that? well i guess it cant
+		// it's probably appropriate for this func to do that
+
+		// same for other rest api endpoints that update providers
 
 		ob_start();
 		$this->user_two_factor_options( $user );
@@ -189,6 +194,8 @@ class Two_Factor_Totp extends Two_Factor_Provider {
 		if ( $request->get_param( 'enable_provider' ) && ! Two_Factor_Core::enable_provider_for_user( $user_id, 'Two_Factor_Totp' ) ) {
 			return new WP_Error( 'db_error', __( 'Unable to enable TOTP provider for this user.', 'two-factor' ), array( 'status' => 500 ) );
 		}
+
+		// does this need to do something to update the session?
 
 		ob_start();
 		$this->user_two_factor_options( $user );
