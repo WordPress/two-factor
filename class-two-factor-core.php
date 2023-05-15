@@ -1154,8 +1154,8 @@ class Two_Factor_Core {
 			return false;
 		}
 
-		// If the current user is not a two-factor user, not having a two-factor session is okay.
-		if ( ! self::is_user_using_two_factor( $user_id ) && ! $is_two_factor_session ) {
+		// If the current user is not using two-factor, they can adjust the settings.
+		if ( ! self::is_user_using_two_factor( $user_id ) ) {
 			return true;
 		}
 
