@@ -1851,7 +1851,7 @@ class Two_Factor_Core {
 					// We've enabled two-factor, set the key but not the provider, as no provider has been used yet.
 					self::update_current_user_session( array(
 						'two-factor-provider' => '',
-						'two-factor-login' => time(),
+						'two-factor-login'    => time(),
 					) );
 				} elseif ( $existing_providers && ! $enabled_providers ) {
 					// We've disabled two-factor, remove session metadata.
