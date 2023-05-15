@@ -455,7 +455,7 @@ class Two_Factor_Core {
 	 * @return null|object The provider
 	 */
 	public static function get_provider_for_user( $user = null, $preferred_provider = null ) {
-		if ( $preferred_provider && $preferred_provider instanceOf Two_Factor_Provider ) {
+		if ( $preferred_provider && $preferred_provider instanceof Two_Factor_Provider ) {
 			return $preferred_provider;
 		}
 
