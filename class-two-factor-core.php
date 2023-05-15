@@ -1828,7 +1828,9 @@ class Two_Factor_Core {
 				update_user_meta( $user_id, self::PROVIDER_USER_META_KEY, $new_provider );
 			}
 
-			self::update_current_session( $enabled_providers );
+			if ( $user_id === get_current_user_id() ) {
+				self::update_current_session( $enabled_providers );
+			}
 		}
 	}
 
@@ -1854,8 +1856,7 @@ class Two_Factor_Core {
 				// does it matter that they were existing? is it enough to just say "if there are some, then..."
 				// test still pass w/ this commented out
 			$enabled_providers &&
-			! self::is_current_user_session_two_factor() &&
-			$user_id === get_current_user_id()
+			! self::is_current_user_session_two_factor()
 		) {
 			$session['two-factor-provider'] = ''; // Set the key, but not the provider, as no provider has been used yet.
 			$session['two-factor-login']    = time();
