@@ -1847,8 +1847,8 @@ class Two_Factor_Core {
 			// Have we changed the two-factor settings for the current user? Alter their session metadata.
 			if ( $user_id === get_current_user_id() ) {
 
-				if ( $enabled_providers && ! $existing_providers ) {
-					// We've enabled two-factor, set the key but not the provider, as no provider has been used yet.
+				if ( $enabled_providers && ! $existing_providers && ! self::is_current_user_session_two_factor() ) {
+					// We've enabled two-factor from a non-two-factor session, set the key but not the provider, as no provider has been used yet.
 					self::update_current_user_session( array(
 						'two-factor-provider' => '',
 						'two-factor-login'    => time(),
