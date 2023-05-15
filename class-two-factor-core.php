@@ -770,7 +770,7 @@ class Two_Factor_Core {
 	public static function login_html( $user, $login_nonce, $redirect_to, $error_msg = '', $provider = null, $action = 'validate_2fa' ) {
 		$provider = self::get_provider_for_user( $user, $provider );
 		if ( ! $provider ) {
-			wp_die( "No provider" );
+			wp_die( __( 'Cheatin&#8217; uh?', 'two-factor' ) );
 		}
 
 		$provider_key        = $provider->get_key();
@@ -1257,7 +1257,7 @@ class Two_Factor_Core {
 
 		$provider = self::get_provider_for_user( $user, $provider );
 		if ( ! $provider ) {
-			wp_die( "No provider" );
+			wp_die( __( 'Cheatin&#8217; uh?', 'two-factor' ) );
 		}
 
 		// Run the provider processing.
@@ -1379,7 +1379,7 @@ class Two_Factor_Core {
 		$user     = wp_get_current_user();
 		$provider = self::get_provider_for_user( $user, $provider );
 		if ( ! $provider ) {
-			wp_die( "No provider" );
+			wp_die( __( 'Cheatin&#8217; uh?', 'two-factor' ) );
 		}
 
 		// Run the provider processing.
