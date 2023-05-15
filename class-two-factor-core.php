@@ -448,6 +448,44 @@ class Two_Factor_Core {
 	}
 
 	/**
+	 * Fetch the provider for the request based on the user preferences.
+	 *
+	 * @param int|WP_User $user Optonal. User ID, or WP_User object of the the user. Defaults to current user.
+	 * @param null|string|object $preferred_provider Optional. The name of the provider, the provider, or empty.
+	 * @return null|object The provider
+	 */
+	public static function get_provider_for_user( $user = null, $preferred_provider = null ) {
+		if ( $preferred_provider && $preferred_provider instanceOf Two_Factor_Provider ) {
+			return $preferred_provider;
+		}
+
+		$user = self::fetch_user( $user );
+		if ( ! $user ) {
+			return null;
+		}
+
+		if ( ! $preferred_provider && get_current_user_id() === $user->ID ) {
+			$session_token   = wp_get_session_token();
+			$session_manager = WP_Session_Tokens::get_instance( $user->ID );
+			$session         = $session_manager->get( $session_token );
+
+			// Default to the currently logged in provider.
+			if ( ! empty( $session['two-factor-provider'] )	) {
+				$preferred_provider = $session['two-factor-provider'];
+			}
+		}
+
+		if ( is_string( $preferred_provider ) ) {
+			$providers = self::get_available_providers_for_user( $user );
+			if ( isset( $providers[ $preferred_provider ] ) ) {
+				return $providers[ $preferred_provider ];
+			}
+		}
+
+		return self::get_primary_provider_for_user( $user );
+	}
+
+	/**
 	 * Gets the Two-Factor Auth provider for the specified|current user.
 	 *
 	 * @since 0.1-dev
@@ -733,10 +771,9 @@ class Two_Factor_Core {
 	 * @param string|object $provider An override to the provider.
 	 */
 	public static function login_html( $user, $login_nonce, $redirect_to, $error_msg = '', $provider = null, $action = 'validate_2fa' ) {
-		if ( empty( $provider ) ) {
-			$provider = self::get_primary_provider_for_user( $user->ID );
-		} elseif ( is_string( $provider ) && method_exists( $provider, 'get_instance' ) ) {
-			$provider = call_user_func( array( $provider, 'get_instance' ) );
+		$provider = self::get_provider_for_user( $user, $provider );
+		if ( ! $provider ) {
+			wp_die( "No provider" );
 		}
 
 		$provider_key        = $provider->get_key();
@@ -1224,11 +1261,9 @@ class Two_Factor_Core {
 			return;
 		}
 
-		$providers = self::get_available_providers_for_user( $user );
-		if ( $provider && isset( $providers[ $provider ] ) ) {
-			$provider = $providers[ $provider ];
-		} else {
-			$provider = self::get_primary_provider_for_user( $user->ID );
+		$provider = self::get_provider_for_user( $user, $provider );
+		if ( ! $provider ) {
+			wp_die( "No provider" );
 		}
 
 		// Run the provider processing.
@@ -1347,21 +1382,10 @@ class Two_Factor_Core {
 			return;
 		}
 
-		$user            = wp_get_current_user();
-		$session_token   = wp_get_session_token();
-		$session_manager = WP_Session_Tokens::get_instance( $user->ID );
-		$session         = $session_manager->get( $session_token );
-		$providers       = self::get_available_providers_for_user( $user );
-
-		// Default to the currently logged in provider.
-		if ( ! $provider && ! empty( $session['two-factor-provider'] )	) {
-			$provider = $session['two-factor-provider'];
-		}
-
-		if ( $provider && isset( $providers[ $provider ] ) ) {
-			$provider = $providers[ $provider ];
-		} else {
-			$provider = self::get_primary_provider_for_user( $user->ID );
+		$user     = wp_get_current_user();
+		$provider = self::get_provider_for_user( $user, $provider );
+		if ( ! $provider ) {
+			wp_die( "No provider" );
 		}
 
 		// Run the provider processing.
