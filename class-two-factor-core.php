@@ -1873,12 +1873,12 @@ class Two_Factor_Core {
 	public static function update_current_user_session( $data = array() ) {
 		$user_id = get_current_user_id();
 		$token   = wp_get_session_token();
-		$manager = WP_Session_Tokens::get_instance( $user_id );
-		$session = $manager->get( $token );
-
 		if ( ! $user_id || ! $token ) {
 			return false;
 		}
+
+		$manager = WP_Session_Tokens::get_instance( $user_id );
+		$session = $manager->get( $token );
 
 		// Add any session data.
 		$session = array_merge( $session, $data );
@@ -1899,11 +1899,11 @@ class Two_Factor_Core {
 	public static function get_current_user_session() {
 		$user_id = get_current_user_id();
 		$token   = wp_get_session_token();
-		$manager = WP_Session_Tokens::get_instance( $user_id );
-
 		if ( ! $user_id || ! $token ) {
 			return false;
 		}
+
+		$manager = WP_Session_Tokens::get_instance( $user_id );
 
 		return $manager->get( $token );
 	}
