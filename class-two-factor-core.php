@@ -1828,17 +1828,18 @@ class Two_Factor_Core {
 				update_user_meta( $user_id, self::PROVIDER_USER_META_KEY, $new_provider );
 			}
 
-			self::update_session( $user_id, $enabled_providers );
+			self::update_current_session( $enabled_providers );
 		}
 	}
 
 	/**
 	 * Update the user session.
 	 */
-	public static function update_session( $user_id, $enabled_providers ) {
+	public static function update_current_session( $enabled_providers ) {
 		// maybe rename to something more specific to updating the providers? see if this is only used when enabling/disabling, or also used when logging in, revalidating, etc
 
-		$token = wp_get_session_token();
+		$user_id = get_current_user_id();
+		$token   = wp_get_session_token();
 
 		if ( ! $token ) {
 			return false;
