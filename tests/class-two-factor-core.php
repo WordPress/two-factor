@@ -892,9 +892,7 @@ class Test_ClassTwoFactorCore extends WP_UnitTestCase {
 
 		$this->assertFalse( Two_Factor_Core::is_current_user_session_two_factor() );
 
-		$manager = WP_Session_Tokens::get_instance( $user->ID );
-		$token   = wp_get_session_token();
-		$session = $manager->get( $token );
+		$session = Two_Factor_Core::get_current_user_session();
 
 		$this->assertArrayNotHasKey( 'two-factor-login', $session );
 		$this->assertArrayNotHasKey( 'two-factor-provider', $session );
