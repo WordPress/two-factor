@@ -1867,7 +1867,9 @@ class Two_Factor_Core {
 	/**
 	 * Update the current user session metadata.
 	 *
-	 * @param array $data The data to append/remove from the current session. Null value keys are removed from the user session.
+	 * Any values set in $data that are null will be removed from the user session metadata.
+	 *
+	 * @param array $data The data to append/remove from the current session.
 	 * @return bool
 	 */
 	public static function update_current_user_session( $data = array() ) {
@@ -1892,7 +1894,7 @@ class Two_Factor_Core {
 	}
 
 	/**
-	 * Fetch the current user session.
+	 * Fetch the current user session metadata.
 	 *
 	 * @return false|array The session array, false on error.
 	 */
