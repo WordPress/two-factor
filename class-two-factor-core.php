@@ -464,12 +464,9 @@ class Two_Factor_Core {
 			return null;
 		}
 
+		// Default to the currently logged in provider.
 		if ( ! $preferred_provider && get_current_user_id() === $user->ID ) {
-			$session_token   = wp_get_session_token();
-			$session_manager = WP_Session_Tokens::get_instance( $user->ID );
-			$session         = $session_manager->get( $session_token );
-
-			// Default to the currently logged in provider.
+			$session = self::get_current_user_session();
 			if ( ! empty( $session['two-factor-provider'] )	) {
 				$preferred_provider = $session['two-factor-provider'];
 			}
@@ -1132,10 +1129,7 @@ class Two_Factor_Core {
 	 * @return int|false The last time the two-factor was validated on success, false if not currently using a 2FA session.
 	 */
 	public static function is_current_user_session_two_factor() {
-		$user_id = get_current_user_id();
-		$token   = wp_get_session_token();
-		$manager = WP_Session_Tokens::get_instance( $user_id );
-		$session = $manager->get( $token );
+		$session = self::get_current_user_session();
 
 		if ( empty( $session['two-factor-login'] ) ) {
 			return false;
@@ -1402,10 +1396,11 @@ class Two_Factor_Core {
 			return;
 		}
 
-		$session['two-factor-provider'] = get_class( $provider );
-		$session['two-factor-login']    = time();
-
-		$session_manager->update( $session_token, $session );
+		// Update the session metadata with the revalidation details.
+		self::update_current_user_session( array(
+			'two-factor-provider' => $provider->get_key(),
+			'two-factor-login'    => time(),
+		) );
 
 		// Must be global because that's how login_header() uses it.
 		global $interim_login;
@@ -1849,25 +1844,68 @@ class Two_Factor_Core {
 				update_user_meta( $user_id, self::PROVIDER_USER_META_KEY, $new_provider );
 			}
 
-			// Have we enabled new providers? Set this as a 2FA session, so they can continue to edit.
-			if (
-				! $existing_providers &&
-				$enabled_providers &&
-				! self::is_current_user_session_two_factor() &&
-				$user_id === get_current_user_id()
-			) {
-				$token = wp_get_session_token();
-				if ( $token ) {
-					$manager = WP_Session_Tokens::get_instance( $user_id );
-					$session = $manager->get( $token );
+			// Have we changed the two-factor settings for the current user? Alter their session metadata.
+			if ( $user_id === get_current_user_id() ) {
 
-					$session['two-factor-provider'] = ''; // Set the key, but not the provider, as no provider has been used yet.
-					$session['two-factor-login']    = time();
-
-					$manager->update( $token, $session );
+				if ( $enabled_providers && ! $existing_providers ) {
+					// We've enabled two-factor, set the key but not the provider, as no provider has been used yet.
+					self::update_current_user_session( array(
+						'two-factor-provider' => '',
+						'two-factor-login' => time(),
+					) );
+				} elseif ( $existing_providers && ! $enabled_providers ) {
+					// We've disabled two-factor, remove session metadata.
+					self::update_current_user_session( array(
+						'two-factor-provider' => null,
+						'two-factor-login'    => null,
+					) );
 				}
 			}
 		}
+	}
+
+	/**
+	 * Update the current user session metadata.
+	 *
+	 * @param array $data The data to append/remove from the current session. Null value keys are removed from the user session.
+	 * @return bool
+	 */
+	public static function update_current_user_session( $data = array() ) {
+		$user_id = get_current_user_id();
+		$token   = wp_get_session_token();
+		$manager = WP_Session_Tokens::get_instance( $user_id );
+		$session = $manager->get( $token );
+
+		if ( ! $user_id || ! $token ) {
+			return false;
+		}
+
+		// Add any session data.
+		$session = array_merge( $session, $data );
+
+		// Remove any set null fields.
+		foreach ( array_filter( $data, 'is_null' ) as $key => $null ) {
+			unset( $session[ $key ] );
+		}
+
+		return $manager->update( $token, $session );
+	}
+
+	/**
+	 * Fetch the current user session.
+	 *
+	 * @return false|array The session array, false on error.
+	 */
+	public static function get_current_user_session() {
+		$user_id = get_current_user_id();
+		$token   = wp_get_session_token();
+		$manager = WP_Session_Tokens::get_instance( $user_id );
+
+		if ( ! $user_id || ! $token ) {
+			return false;
+		}
+
+		return $manager->get( $token );
 	}
 
 	/**
