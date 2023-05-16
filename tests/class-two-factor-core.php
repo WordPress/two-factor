@@ -863,7 +863,7 @@ class Test_ClassTwoFactorCore extends WP_UnitTestCase {
 	}
 
 	/**
-	 * Validate that disabling all providers [invalidate] the two-factor session.
+	 * Validate that disabling all providers results in a non-two-factor session.
 	 *
 	 * @covers Two_Factor_Core::current_user_can_update_two_factor_options()
 	 * @covers Two_Factor_Core::user_two_factor_options_update()
