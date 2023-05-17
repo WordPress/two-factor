@@ -455,13 +455,21 @@ class Two_Factor_Core {
 	 * @return null|object The provider
 	 */
 	public static function get_provider_for_user( $user = null, $preferred_provider = null ) {
-		if ( $preferred_provider && $preferred_provider instanceof Two_Factor_Provider ) {
-			return $preferred_provider;
-		}
-
 		$user = self::fetch_user( $user );
 		if ( ! $user ) {
 			return null;
+		}
+
+		// If a specific provider is requested, verify it's valid.
+		if ( $preferred_provider && $preferred_provider instanceof Two_Factor_Provider ) {
+			$providers = self::get_available_providers_for_user( $user );
+			if ( isset( $providers[ $preferred_provider->get_key() ] ) ) {
+				// Return the specific instance passed in.
+				return $preferred_provider;
+			}
+
+			// Unset, fall through to the session or primary.
+			$preferred_provider = false;
 		}
 
 		// Default to the currently logged in provider.
