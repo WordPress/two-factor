@@ -1194,6 +1194,12 @@ class Test_ClassTwoFactorCore extends WP_UnitTestCase {
 			get_class( Two_Factor_Core::get_provider_for_user( $user ) )
 		);
 
+		// Validate that passing a specific provider that's not enabled, returns their primary provider.
+		$this->assertSame(
+			$dummy,
+			Two_Factor_Core::get_provider_for_user( $user, $email )
+		);
+
 		// Validate that upon requesting an invalid provider, valid data comes back.
 		$this->assertEquals(
 			'Two_Factor_Dummy',
