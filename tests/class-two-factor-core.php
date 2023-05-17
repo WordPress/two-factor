@@ -1119,4 +1119,134 @@ class Test_ClassTwoFactorCore extends WP_UnitTestCase {
 		$this->assertFalse( Two_Factor_Core::current_user_can_update_two_factor_options() );
 	}
 
+	/**
+	 * Test the fetch & update session methods.
+	 *
+	 * @covers Two_Factor_Core::get_current_user_session
+	 * @covers Two_Factor_Core::update_current_user_session
+	 */
+	public function test_session_getter_setter() {
+		$user = $this->get_dummy_user( array( 'Two_Factor_Dummy' => 'Two_Factor_Dummy' ) );
+
+		// Fetch the session, it's not yet a thing.
+		$session = Two_Factor_Core::get_current_user_session();
+		$this->assertFalse( $session );
+
+		// Set the cookie without going through two-factor, and fill in $_COOKIE, for session handler.
+		wp_set_auth_cookie( $user->ID );
+
+		// Fetch the session, check it exists.
+		$session = Two_Factor_Core::get_current_user_session();
+		$this->assertNotEmpty( $session );
+
+		// Check setting keys works.
+		$this->assertArrayNotHasKey( 'test-key', $session );
+
+		// Set the key
+		Two_Factor_Core::update_current_user_session( array(
+			'test-key'     => true,
+			'test-key-two' => true,
+		) );
+
+		// Retrieve the session again, and verify it's updated.
+		$session = Two_Factor_Core::get_current_user_session();
+		$this->assertNotEmpty( $session );
+		$this->assertArrayHasKey( 'test-key', $session );
+		$this->assertArrayHasKey( 'test-key-two', $session );
+
+		// Remove the key by setting it to null
+		Two_Factor_Core::update_current_user_session( array(
+			'test-key' => null
+		) );
+
+		// Check the key is no longer there.
+		$session = Two_Factor_Core::get_current_user_session();
+		$this->assertNotEmpty( $session );
+		$this->assertArrayNotHasKey( 'test-key', $session );
+		$this->assertArrayHasKey( 'test-key-two', $session );
+	}
+
+	/**
+	 * Test get_provider_for_user()
+	 *
+	 * @covers Two_Factor_Core::get_provider_for_user
+	 */
+	public function test_get_provider_for_user() {
+		$other_user = $this->get_dummy_user( array( 'Two_Factor_Dummy' => 'Two_Factor_Dummy' ) );
+		$user       = $this->get_dummy_user( array( 'Two_Factor_Dummy' => 'Two_Factor_Dummy' ) );
+
+		// Set the cookie without going through two-factor, and fill in $_COOKIE.
+		wp_set_auth_cookie( $user->ID );
+
+		// Setup the current session as 2fa'd
+		Two_Factor_Core::update_current_user_session( array(
+			'two-factor-provider' => 'Two_Factor_Dummy',
+			'two-factor-login'    => time()
+		) );
+
+		$secure_dummy = Two_Factor_Dummy_Secure::get_instance();
+		$email        = Two_Factor_Email::get_instance();
+
+		// Ensure the provider returned is the primary for the user.
+		$this->assertEquals(
+			'Two_Factor_Dummy',
+			// Using get_class() to verify the actual class, rather than the provider key.
+			get_class( Two_Factor_Core::get_provider_for_user( $user ) )
+		);
+
+		// Ensure that passing a specific provider class in comes back out.
+		$this->assertSame(
+			$secure_dummy,
+			Two_Factor_Core::get_provider_for_user( $user, $secure_dummy )
+		);
+
+		// Validate that upon requesting an invalid provider, valid data comes back.
+		$this->assertEquals(
+			'Two_Factor_Dummy',
+			Two_Factor_Core::get_provider_for_user( $user, new stdClass )->get_key()
+		);
+		$this->assertEquals(
+			'Two_Factor_Dummy',
+			Two_Factor_Core::get_provider_for_user( $user, false )->get_key()
+		);
+		$this->assertEquals(
+			'Two_Factor_Dummy',
+			Two_Factor_Core::get_provider_for_user( $user, 'Unknown_Provider' )->get_key()
+		);
+
+		// Validate that a provider not setup for the user is not returned.
+		$this->assertEquals(
+			'Two_Factor_Dummy',
+			Two_Factor_Core::get_provider_for_user( $user, 'Two_Factor_Email' )->get_key()
+		);
+		$this->assertEquals(
+			'Two_Factor_Dummy',
+			Two_Factor_Core::get_provider_for_user( $user, $email )->get_key()
+		);
+
+		// Validate that even when another provider is set as primary, if the user is the current user it returns their last-used.
+		Two_Factor_Core::enable_provider_for_user( $user->ID, 'Two_Factor_Email' );
+		$this->assertEquals(
+			'Two_Factor_Dummy',
+			Two_Factor_Core::get_provider_for_user( $user )->get_key()
+		);
+
+		// Update the session to say that Email was last-used.
+		Two_Factor_Core::update_current_user_session( array(
+			'two-factor-provider' => $email->get_key(),
+		) );
+
+		// Validate it's now the default for the current session.
+		$this->assertEquals(
+			'Two_Factor_Email',
+			Two_Factor_Core::get_provider_for_user( $user )->get_key()
+		);
+
+		// Validate that the current user session doesn't affect fetching it for a different user.
+		$this->assertEquals(
+			'Two_Factor_Dummy',
+			Two_Factor_Core::get_provider_for_user( $other_user )->get_key()
+		);
+	}
+
 }
