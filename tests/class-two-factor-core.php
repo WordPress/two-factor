@@ -1184,20 +1184,14 @@ class Test_ClassTwoFactorCore extends WP_UnitTestCase {
 			'two-factor-login'    => time()
 		) );
 
-		$secure_dummy = Two_Factor_Dummy_Secure::get_instance();
-		$email        = Two_Factor_Email::get_instance();
+		$dummy = Two_Factor_Dummy::get_instance();
+		$email = Two_Factor_Email::get_instance();
 
 		// Ensure the provider returned is the primary for the user.
 		$this->assertEquals(
 			'Two_Factor_Dummy',
 			// Using get_class() to verify the actual class, rather than the provider key.
 			get_class( Two_Factor_Core::get_provider_for_user( $user ) )
-		);
-
-		// Ensure that passing a specific provider class in comes back out.
-		$this->assertSame(
-			$secure_dummy,
-			Two_Factor_Core::get_provider_for_user( $user, $secure_dummy )
 		);
 
 		// Validate that upon requesting an invalid provider, valid data comes back.
@@ -1240,6 +1234,16 @@ class Test_ClassTwoFactorCore extends WP_UnitTestCase {
 		$this->assertEquals(
 			'Two_Factor_Email',
 			Two_Factor_Core::get_provider_for_user( $user )->get_key()
+		);
+
+		// Ensure that passing a specific provider class in comes back out.
+		$this->assertSame(
+			$dummy,
+			Two_Factor_Core::get_provider_for_user( $user, $dummy )
+		);
+		$this->assertSame(
+			$email,
+			Two_Factor_Core::get_provider_for_user( $user, $email )
 		);
 
 		// Validate that the current user session doesn't affect fetching it for a different user.

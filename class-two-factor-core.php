@@ -460,16 +460,9 @@ class Two_Factor_Core {
 			return null;
 		}
 
-		// If a specific provider is requested, verify it's valid.
+		// If a specific provider instance is passed, process it just as the key.
 		if ( $preferred_provider && $preferred_provider instanceof Two_Factor_Provider ) {
-			$providers = self::get_available_providers_for_user( $user );
-			if ( isset( $providers[ $preferred_provider->get_key() ] ) ) {
-				// Return the specific instance passed in.
-				return $preferred_provider;
-			}
-
-			// Unset, fall through to the session or primary.
-			$preferred_provider = false;
+			$preferred_provider = $preferred_provider->get_key();
 		}
 
 		// Default to the currently logged in provider.
