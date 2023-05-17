@@ -448,6 +448,42 @@ class Two_Factor_Core {
 	}
 
 	/**
+	 * Fetch the provider for the request based on the user preferences.
+	 *
+	 * @param int|WP_User $user Optonal. User ID, or WP_User object of the the user. Defaults to current user.
+	 * @param null|string|object $preferred_provider Optional. The name of the provider, the provider, or empty.
+	 * @return null|object The provider
+	 */
+	public static function get_provider_for_user( $user = null, $preferred_provider = null ) {
+		$user = self::fetch_user( $user );
+		if ( ! $user ) {
+			return null;
+		}
+
+		// If a specific provider instance is passed, process it just as the key.
+		if ( $preferred_provider && $preferred_provider instanceof Two_Factor_Provider ) {
+			$preferred_provider = $preferred_provider->get_key();
+		}
+
+		// Default to the currently logged in provider.
+		if ( ! $preferred_provider && get_current_user_id() === $user->ID ) {
+			$session = self::get_current_user_session();
+			if ( ! empty( $session['two-factor-provider'] )	) {
+				$preferred_provider = $session['two-factor-provider'];
+			}
+		}
+
+		if ( is_string( $preferred_provider ) ) {
+			$providers = self::get_available_providers_for_user( $user );
+			if ( isset( $providers[ $preferred_provider ] ) ) {
+				return $providers[ $preferred_provider ];
+			}
+		}
+
+		return self::get_primary_provider_for_user( $user );
+	}
+
+	/**
 	 * Gets the Two-Factor Auth provider for the specified|current user.
 	 *
 	 * @since 0.1-dev
@@ -733,10 +769,9 @@ class Two_Factor_Core {
 	 * @param string|object $provider An override to the provider.
 	 */
 	public static function login_html( $user, $login_nonce, $redirect_to, $error_msg = '', $provider = null, $action = 'validate_2fa' ) {
-		if ( empty( $provider ) ) {
-			$provider = self::get_primary_provider_for_user( $user->ID );
-		} elseif ( is_string( $provider ) && method_exists( $provider, 'get_instance' ) ) {
-			$provider = call_user_func( array( $provider, 'get_instance' ) );
+		$provider = self::get_provider_for_user( $user, $provider );
+		if ( ! $provider ) {
+			wp_die( __( 'Cheatin&#8217; uh?', 'two-factor' ) );
 		}
 
 		$provider_key        = $provider->get_key();
@@ -1095,10 +1130,7 @@ class Two_Factor_Core {
 	 * @return int|false The last time the two-factor was validated on success, false if not currently using a 2FA session.
 	 */
 	public static function is_current_user_session_two_factor() {
-		$user_id = get_current_user_id();
-		$token   = wp_get_session_token();
-		$manager = WP_Session_Tokens::get_instance( $user_id );
-		$session = $manager->get( $token );
+		$session = self::get_current_user_session();
 
 		if ( empty( $session['two-factor-login'] ) ) {
 			return false;
@@ -1123,8 +1155,8 @@ class Two_Factor_Core {
 			return false;
 		}
 
-		// If the current user is not a two-factor user, not having a two-factor session is okay.
-		if ( ! self::is_user_using_two_factor( $user_id ) && ! $is_two_factor_session ) {
+		// If the current user is not using two-factor, they can adjust the settings.
+		if ( ! self::is_user_using_two_factor( $user_id ) ) {
 			return true;
 		}
 
@@ -1224,11 +1256,9 @@ class Two_Factor_Core {
 			return;
 		}
 
-		$providers = self::get_available_providers_for_user( $user );
-		if ( $provider && isset( $providers[ $provider ] ) ) {
-			$provider = $providers[ $provider ];
-		} else {
-			$provider = self::get_primary_provider_for_user( $user->ID );
+		$provider = self::get_provider_for_user( $user, $provider );
+		if ( ! $provider ) {
+			wp_die( __( 'Cheatin&#8217; uh?', 'two-factor' ) );
 		}
 
 		// Run the provider processing.
@@ -1347,21 +1377,10 @@ class Two_Factor_Core {
 			return;
 		}
 
-		$user            = wp_get_current_user();
-		$session_token   = wp_get_session_token();
-		$session_manager = WP_Session_Tokens::get_instance( $user->ID );
-		$session         = $session_manager->get( $session_token );
-		$providers       = self::get_available_providers_for_user( $user );
-
-		// Default to the currently logged in provider.
-		if ( ! $provider && ! empty( $session['two-factor-provider'] )	) {
-			$provider = $session['two-factor-provider'];
-		}
-
-		if ( $provider && isset( $providers[ $provider ] ) ) {
-			$provider = $providers[ $provider ];
-		} else {
-			$provider = self::get_primary_provider_for_user( $user->ID );
+		$user     = wp_get_current_user();
+		$provider = self::get_provider_for_user( $user, $provider );
+		if ( ! $provider ) {
+			wp_die( __( 'Cheatin&#8217; uh?', 'two-factor' ) );
 		}
 
 		// Run the provider processing.
@@ -1378,10 +1397,11 @@ class Two_Factor_Core {
 			return;
 		}
 
-		$session['two-factor-provider'] = get_class( $provider );
-		$session['two-factor-login']    = time();
-
-		$session_manager->update( $session_token, $session );
+		// Update the session metadata with the revalidation details.
+		self::update_current_user_session( array(
+			'two-factor-provider' => $provider->get_key(),
+			'two-factor-login'    => time(),
+		) );
 
 		// Must be global because that's how login_header() uses it.
 		global $interim_login;
@@ -1825,25 +1845,70 @@ class Two_Factor_Core {
 				update_user_meta( $user_id, self::PROVIDER_USER_META_KEY, $new_provider );
 			}
 
-			// Have we enabled new providers? Set this as a 2FA session, so they can continue to edit.
-			if (
-				! $existing_providers &&
-				$enabled_providers &&
-				! self::is_current_user_session_two_factor() &&
-				$user_id === get_current_user_id()
-			) {
-				$token = wp_get_session_token();
-				if ( $token ) {
-					$manager = WP_Session_Tokens::get_instance( $user_id );
-					$session = $manager->get( $token );
+			// Have we changed the two-factor settings for the current user? Alter their session metadata.
+			if ( $user_id === get_current_user_id() ) {
 
-					$session['two-factor-provider'] = ''; // Set the key, but not the provider, as no provider has been used yet.
-					$session['two-factor-login']    = time();
-
-					$manager->update( $token, $session );
+				if ( $enabled_providers && ! $existing_providers && ! self::is_current_user_session_two_factor() ) {
+					// We've enabled two-factor from a non-two-factor session, set the key but not the provider, as no provider has been used yet.
+					self::update_current_user_session( array(
+						'two-factor-provider' => '',
+						'two-factor-login'    => time(),
+					) );
+				} elseif ( $existing_providers && ! $enabled_providers ) {
+					// We've disabled two-factor, remove session metadata.
+					self::update_current_user_session( array(
+						'two-factor-provider' => null,
+						'two-factor-login'    => null,
+					) );
 				}
 			}
 		}
+	}
+
+	/**
+	 * Update the current user session metadata.
+	 *
+	 * Any values set in $data that are null will be removed from the user session metadata.
+	 *
+	 * @param array $data The data to append/remove from the current session.
+	 * @return bool
+	 */
+	public static function update_current_user_session( $data = array() ) {
+		$user_id = get_current_user_id();
+		$token   = wp_get_session_token();
+		if ( ! $user_id || ! $token ) {
+			return false;
+		}
+
+		$manager = WP_Session_Tokens::get_instance( $user_id );
+		$session = $manager->get( $token );
+
+		// Add any session data.
+		$session = array_merge( $session, $data );
+
+		// Remove any set null fields.
+		foreach ( array_filter( $data, 'is_null' ) as $key => $null ) {
+			unset( $session[ $key ] );
+		}
+
+		return $manager->update( $token, $session );
+	}
+
+	/**
+	 * Fetch the current user session metadata.
+	 *
+	 * @return false|array The session array, false on error.
+	 */
+	public static function get_current_user_session() {
+		$user_id = get_current_user_id();
+		$token   = wp_get_session_token();
+		if ( ! $user_id || ! $token ) {
+			return false;
+		}
+
+		$manager = WP_Session_Tokens::get_instance( $user_id );
+
+		return $manager->get( $token );
 	}
 
 	/**
