@@ -27,6 +27,8 @@ class Test_ClassTwoFactorCore extends WP_UnitTestCase {
 	 */
 	public static function wpSetUpBeforeClass() {
 		set_error_handler( array( 'Test_ClassTwoFactorCore', 'error_handler' ) ); // phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_set_error_handler
+		add_action( 'set_auth_cookie', [ __CLASS__, 'set_auth_cookie' ] );
+		add_action( 'set_logged_in_cookie', [ __CLASS__, 'set_logged_in_cookie' ] );
 	}
 
 	/**
@@ -36,6 +38,17 @@ class Test_ClassTwoFactorCore extends WP_UnitTestCase {
 	 */
 	public static function wpTearDownAfterClass() {
 		restore_error_handler();
+		remove_action( 'set_auth_cookie', [ __CLASS__, 'set_auth_cookie' ] );
+		remove_action( 'set_logged_in_cookie', [ __CLASS__, 'set_logged_in_cookie' ] );
+	}
+
+	/**
+	 * Cleanup after each test.
+	 */
+	public function tearDown(): void {
+		parent::tearDown();
+
+		unset( $_COOKIE[ AUTH_COOKIE ], $_COOKIE[ LOGGED_IN_COOKIE ] );
 	}
 
 	/**
@@ -54,6 +67,20 @@ class Test_ClassTwoFactorCore extends WP_UnitTestCase {
 		}
 
 		return true;
+	}
+
+	/**
+	 * Simulate the auth cookie having being sent.
+	 */
+	public static function set_auth_cookie( $auth_cookie ) {
+		$_COOKIE[ AUTH_COOKIE ] = $auth_cookie;
+	}
+
+	/**
+	 * Simulate the logged_in cookie having being sent.
+	 */
+	public static function set_logged_in_cookie( $logged_in_cookie ) {
+		$_COOKIE[ LOGGED_IN_COOKIE ] = $logged_in_cookie;
 	}
 
 	/**
