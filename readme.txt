@@ -4,7 +4,7 @@ Tags:              two factor, two step, authentication, login, totp, fido u2f, 
 Requires at least: 4.3
 Tested up to:      6.2
 Requires PHP:      5.6
-Stable tag:        0.8.1
+Stable tag:        0.8.2
 
 Enable Two-Factor Authentication using time-based one-time passwords (OTP, Google Authenticator), Universal 2nd Factor (FIDO U2F, YubiKey), email and backup verification codes.
 
