@@ -61,6 +61,11 @@ class Two_Factor_FIDO_U2F_Admin {
 
 		$security_keys = Two_Factor_FIDO_U2F::get_security_keys( $user_id );
 
+		// Disabled interface if there's no keys.
+		if ( ! $security_keys ) {
+			return;
+		}
+
 		// @todo Ensure that scripts don't fail because of missing u2fL10n.
 		try {
 			$data              = Two_Factor_FIDO_U2F::$u2f->getRegisterData( $security_keys );
@@ -164,6 +169,11 @@ class Two_Factor_FIDO_U2F_Admin {
 	 * @param WP_User $user WP_User object of the logged-in user.
 	 */
 	public static function show_user_profile( $user ) {
+		// Don't display if the user cannot configure it.
+		if ( ! Two_Factor_FIDO_U2F::get_instance()->is_available_for_user( $user ) ) {
+			return;
+		}
+
 		wp_nonce_field( "user_security_keys-{$user->ID}", '_nonce_user_security_keys' );
 		$new_key = false;
 

@@ -1716,6 +1716,13 @@ class Two_Factor_Core {
 			$show_2fa_options ? '' : 'disabled="disabled"',
 		);
 
+		$providers = self::get_providers();
+
+		// Disable U2F unless already configured.
+		if ( isset( $providers['Two_Factor_FIDO_U2F'] ) && ! $providers['Two_Factor_FIDO_U2F']->is_available_for_user( $user ) ) {
+			unset( $providers['Two_Factor_FIDO_U2F'] );
+		}
+
 		wp_nonce_field( 'user_two_factor_options', '_nonce_user_two_factor_options', false );
 		?>
 		<input type="hidden" name="<?php echo esc_attr( self::ENABLED_PROVIDERS_USER_META_KEY ); ?>[]" value="<?php /* Dummy input so $_POST value is passed when no providers are enabled. */ ?>" />
@@ -1734,7 +1741,7 @@ class Two_Factor_Core {
 							</tr>
 						</thead>
 						<tbody>
-						<?php foreach ( self::get_providers() as $provider_key => $object ) : ?>
+						<?php foreach ( $providers as $provider_key => $object ) : ?>
 							<tr>
 								<th scope="row"><input id="enabled-<?php echo esc_attr( $provider_key ); ?>" type="checkbox" name="<?php echo esc_attr( self::ENABLED_PROVIDERS_USER_META_KEY ); ?>[]" value="<?php echo esc_attr( $provider_key ); ?>" <?php checked( in_array( $provider_key, $enabled_providers, true ) ); ?> /></th>
 								<th scope="row"><input type="radio" name="<?php echo esc_attr( self::PROVIDER_USER_META_KEY ); ?>" value="<?php echo esc_attr( $provider_key ); ?>" <?php checked( $provider_key, $primary_provider_key ); ?> /></th>
