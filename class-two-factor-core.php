@@ -1719,7 +1719,7 @@ class Two_Factor_Core {
 		$providers = self::get_providers();
 
 		// Disable U2F unless already configured.
-		if ( isset( $providers['Two_Factor_FIDO_U2F'] ) && ! $providers['Two_Factor_FIDO_U2F']->is_available_for_user( $user ) ) {
+		if ( isset( $providers['Two_Factor_FIDO_U2F'] ) && ! $providers['Two_Factor_FIDO_U2F']->is_available_for_user( $user ) && apply_filters( 'two_factor_u2f_disabled', true ) ) {
 			unset( $providers['Two_Factor_FIDO_U2F'] );
 		}
 

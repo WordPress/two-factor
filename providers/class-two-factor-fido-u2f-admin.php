@@ -62,7 +62,7 @@ class Two_Factor_FIDO_U2F_Admin {
 		$security_keys = Two_Factor_FIDO_U2F::get_security_keys( $user_id );
 
 		// Disabled interface if there's no keys.
-		if ( ! $security_keys ) {
+		if ( ! $security_keys && apply_filters( 'two_factor_u2f_disabled', true ) ) {
 			return;
 		}
 
@@ -170,7 +170,7 @@ class Two_Factor_FIDO_U2F_Admin {
 	 */
 	public static function show_user_profile( $user ) {
 		// Don't display if the user cannot configure it.
-		if ( ! Two_Factor_FIDO_U2F::get_instance()->is_available_for_user( $user ) ) {
+		if ( ! Two_Factor_FIDO_U2F::get_instance()->is_available_for_user( $user ) && apply_filters( 'two_factor_u2f_disabled', true ) ) {
 			return;
 		}
 
