@@ -1049,15 +1049,26 @@ class Test_ClassTwoFactorCore extends WP_UnitTestCase {
 		// Revalidate.
 		// Simulate displaying it.
 		ob_start();
-		Two_Factor_Core::_login_form_revalidate_2fa( 'Two_Factor_Dummy', '', false );
+		Two_Factor_Core::_login_form_revalidate_2fa( '', 'Two_Factor_Dummy', '', false );
+		ob_end_clean();
+
+		// Check it's still expired.
+		$this->assertLessThan( time(), Two_Factor_Core::is_current_user_session_two_factor() );
+
+		// Simulate clicking it with an incorrect nonce.
+		$bad_nonce = '__BAD_NONCE__';
+		ob_start();
+		Two_Factor_Core::_login_form_revalidate_2fa( $bad_nonce, 'Two_Factor_Dummy', '', true );
 		ob_end_clean();
 
 		// Check it's still expired.
 		$this->assertLessThan( time(), Two_Factor_Core::is_current_user_session_two_factor() );
 
 		// Simulate clicking it.
+		$login_nonce = wp_create_nonce( 'two_factor_revalidate_' . $user->ID );
+
 		ob_start();
-		Two_Factor_Core::_login_form_revalidate_2fa( 'Two_Factor_Dummy', '', true );
+		Two_Factor_Core::_login_form_revalidate_2fa( $login_nonce, 'Two_Factor_Dummy', '', true );
 		ob_end_clean();
 
 		// Validate that the session is flagged as 2FA, and set to now-ish.
