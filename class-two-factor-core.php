@@ -1719,8 +1719,22 @@ class Two_Factor_Core {
 		$providers = self::get_providers();
 
 		// Disable U2F unless already configured.
-		if ( isset( $providers['Two_Factor_FIDO_U2F'] ) && ! $providers['Two_Factor_FIDO_U2F']->is_available_for_user( $user ) && apply_filters( 'two_factor_u2f_disabled', true ) ) {
-			unset( $providers['Two_Factor_FIDO_U2F'] );
+		if ( isset( $providers['Two_Factor_FIDO_U2F'] ) ) {
+			$disabled = ! $providers['Two_Factor_FIDO_U2F']->is_available_for_user( $user );
+
+			/**
+			 * Filter whether the deprecated U2F provider is available.
+			 *
+			 * The U2F provider does not support modern browsers, and it being enabled causes confusion.
+			 *
+			 * @param bool    $disabled Whether the provider is disabled for this user.
+			 * @param WP_User $user     The user being displayed.
+			 */
+			$disabled = apply_filters( 'two_factor_u2f_disabled', $disabled, $user );
+
+			if ( $disabled ) {
+				unset( $providers['Two_Factor_FIDO_U2F'] );
+			}
 		}
 
 		wp_nonce_field( 'user_two_factor_options', '_nonce_user_two_factor_options', false );
