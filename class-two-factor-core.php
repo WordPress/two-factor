@@ -124,6 +124,8 @@ class Two_Factor_Core {
 		// Run as late as possible to prevent other plugins from unintentionally bypassing.
 		add_filter( 'authenticate', array( __CLASS__, 'filter_authenticate_block_cookies' ), PHP_INT_MAX );
 
+		add_filter( 'attach_session_information', array( __CLASS__, 'filter_session_information' ), 10, 2 );
+		
 		add_action( 'admin_init', array( __CLASS__, 'trigger_user_settings_action' ) );
 		add_filter( 'two_factor_providers', array( __CLASS__, 'enable_dummy_method_for_debug' ) );
 
@@ -1924,5 +1926,33 @@ class Two_Factor_Core {
 		}
 
 		return (bool) apply_filters( 'two_factor_rememberme', $rememberme );
+	}
+
+	/**
+	 * Sync the Two-Factor session data from the current session to newly created sessions.
+	 *
+	 * This is required as WordPress creates a new session when the user password is changed.
+	 *
+	 * @see https://core.trac.wordpress.org/ticket/58427
+	 *
+	 * @param array $session The Session information.
+	 * @param int   $user_id The User ID for the session.
+	 * @return array
+	 */
+	public static function filter_session_information( $session, $user_id ) {
+		if ( $user_id !== get_current_user_id() ) {
+			return $session;
+		}
+
+		$current_session = self::get_current_user_session();
+		if ( $current_session ) {
+			foreach ( $current_session as $key => $value ) {
+				if ( str_starts_with( $key, 'two-factor-' ) ) {
+					$session[ $key ] = $value;
+				}
+			}
+		}
+
+		return $session;
 	}
 }
