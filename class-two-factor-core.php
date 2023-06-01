@@ -1945,9 +1945,11 @@ class Two_Factor_Core {
 		}
 
 		$current_session = self::get_current_user_session();
-		foreach ( $current_session as $key => $value ) {
-			if ( str_starts_with( $key, 'two-factor-' ) ) {
-				$session[ $key ] = $value;
+		if ( $current_session ) {
+			foreach ( $current_session as $key => $value ) {
+				if ( str_starts_with( $key, 'two-factor-' ) ) {
+					$session[ $key ] = $value;
+				}
 			}
 		}
 
