@@ -1259,4 +1259,76 @@ class Test_ClassTwoFactorCore extends WP_UnitTestCase {
 		);
 	}
 
+	/**
+	 * Test that session information related to Two-Factor sync's to new sessions created in the context of the user.
+	 *
+	 * @covers Two_Factor_Core::filter_session_information
+	 */
+	public function test_filter_session_information() {
+		$user = $this->get_dummy_user( array( 'Two_Factor_Dummy' => 'Two_Factor_Dummy' ) );
+
+		// Assert no cookies are set.
+		$this->assertArrayNotHasKey( AUTH_COOKIE, $_COOKIE );
+		$this->assertArrayNotHasKey( LOGGED_IN_COOKIE, $_COOKIE );
+
+		// Assert user not logged in is false.
+		$this->assertFalse( Two_Factor_Core::is_current_user_session_two_factor() );
+
+		// Display it.
+		$login_nonce = Two_Factor_Core::create_login_nonce( $user->ID );
+		$this->assertNotFalse( $login_nonce );
+
+		// Process it.
+		ob_start();
+		Two_Factor_Core::_login_form_validate_2fa( $user, $login_nonce['key'], 'Two_Factor_Dummy', '', true );
+		ob_end_clean();
+
+		$this->assertNotEmpty( $_COOKIE[ AUTH_COOKIE ] );
+		$this->assertNotEmpty( $_COOKIE[ LOGGED_IN_COOKIE ] );
+
+		// Boilerplate ends here.
+
+		// Add a custom meta item to the session
+		Two_Factor_Core::update_current_user_session( [
+			'two-factor-test-key1' => 'test-value',
+			'two-factor-test-key2' => 'test-value',
+			'tests-key'            => 'test-value',
+		] );
+
+		$session = Two_Factor_Core::get_current_user_session();
+		$this->assertArrayHasKey( 'two-factor-test-key1', $session );
+		$this->assertArrayHasKey( 'two-factor-test-key2', $session );
+		$this->assertArrayHasKey( 'tests-key', $session );
+
+		// Create a new user session.
+		$manager = WP_Session_Tokens::get_instance( $user->ID );
+		$token   = $manager->create( time() + DAY_IN_SECONDS );
+		$session = $manager->get( $token );
+
+		$this->assertNotSame( $token, wp_get_session_token() );
+
+		// Validate that the two-factor-* key(s) sync over.
+		$this->assertArrayHasKey( 'two-factor-test-key1', $session );
+		$this->assertArrayHasKey( 'two-factor-test-key2', $session );
+		$this->assertArrayNotHasKey( 'tests-key', $session );
+
+		// Validate that it only applies to new sessions created for this user from this user session.
+
+		// Simulate a new browser session.
+		unset( $_COOKIE[ AUTH_COOKIE ], $_COOKIE[ LOGGED_IN_COOKIE ] );
+		wp_set_current_user( 0 );
+
+		$this->assertEmpty( wp_get_session_token() );
+
+		$token2  = $manager->create( time() + DAY_IN_SECONDS );
+		$session = $manager->get( $token2 );
+
+		$this->assertNotSame( $token, wp_get_session_token() );
+		$this->assertNotSame( $token, $token2 );
+
+		$this->assertArrayNotHasKey( 'two-factor-test-key1', $session );
+		$this->assertArrayNotHasKey( 'two-factor-test-key2', $session );
+		$this->assertArrayNotHasKey( 'tests-key', $session );
+	}
+
 }
