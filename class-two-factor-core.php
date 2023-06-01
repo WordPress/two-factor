@@ -816,14 +816,12 @@ class Two_Factor_Core {
 
 		<?php if ( $backup_providers ) :
 			$backup_link_args = array(
-				'action' => $action,
+				'action'        => $action,
+				'wp-auth-id'    => $user->ID,
+				'wp-auth-nonce' => $login_nonce,
 			);
 			if ( $rememberme ) {
 				$backup_link_args['rememberme'] = $rememberme;
-			}
-			if ( $login_nonce ) {
-				$backup_link_args['wp-auth-id']    = $user->ID;
-				$backup_link_args['wp-auth-nonce'] = $login_nonce;
 			}
 			if ( $redirect_to ) {
 				$backup_link_args['redirect_to'] = $redirect_to;
@@ -1352,11 +1350,12 @@ class Two_Factor_Core {
 	 * @since 0.9.0
 	 */
 	public static function login_form_revalidate_2fa() {
-		$provider        = ! empty( $_REQUEST['provider'] )    ? sanitize_text_field( wp_unslash( $_REQUEST['provider'] ) ) : false;
-		$redirect_to     = ! empty( $_REQUEST['redirect_to'] ) ? wp_unslash( $_REQUEST['redirect_to'] )                     : admin_url();
+		$nonce           = ! empty( $_REQUEST['wp-auth-nonce'] ) ? wp_unslash( $_REQUEST['wp-auth-nonce'] )                   : '';
+		$provider        = ! empty( $_REQUEST['provider'] )      ? sanitize_text_field( wp_unslash( $_REQUEST['provider'] ) ) : false;
+		$redirect_to     = ! empty( $_REQUEST['redirect_to'] )   ? wp_unslash( $_REQUEST['redirect_to'] )                     : admin_url();
 		$is_post_request = ( 'POST' === strtoupper( $_SERVER['REQUEST_METHOD'] ) );
 
-		self::_login_form_revalidate_2fa( $provider, $redirect_to, $is_post_request );
+		self::_login_form_revalidate_2fa( $nonce, $provider, $redirect_to, $is_post_request );
 		exit;
 	}
 
@@ -1368,18 +1367,26 @@ class Two_Factor_Core {
 	 *
 	 * @since 0.9.0
 	 *
+	 * @param string  $nonce           The nonce passed with the request.
 	 * @param string  $provider        The provider to use, if known.
 	 * @param string  $redirect_to     The redirection location.
 	 * @param bool    $is_post_request Whether the incoming request was a POST request or not.
 	 * @return void
 	 */
-	public static function _login_form_revalidate_2fa( $provider = '', $redirect_to = '', $is_post_request = false ) {
+	public static function _login_form_revalidate_2fa( $nonce = '', $provider = '', $redirect_to = '', $is_post_request = false ) {
 		if ( ! is_user_logged_in() ) {
 			wp_safe_redirect( home_url() );
 			return;
 		}
 
-		$user     = wp_get_current_user();
+		$user = wp_get_current_user();
+
+		// Validate the nonce for POST requests. GET requests do not perform actions, and such do not require the nonce (such as the initial request).
+		if ( $is_post_request && ! wp_verify_nonce( $nonce, 'two_factor_revalidate_' . $user->ID ) ) {
+			wp_safe_redirect( home_url() );
+			return;
+		}
+
 		$provider = self::get_provider_for_user( $user, $provider );
 		if ( ! $provider ) {
 			wp_die( __( 'Cheatin&#8217; uh?', 'two-factor' ) );
@@ -1395,7 +1402,9 @@ class Two_Factor_Core {
 				$error = $result->get_error_message();
 			}
 
-			self::login_html( $user, '', $redirect_to, $error, $provider, 'revalidate_2fa' );
+			$nonce = wp_create_nonce( 'two_factor_revalidate_' . $user->ID );
+
+			self::login_html( $user, $nonce, $redirect_to, $error, $provider, 'revalidate_2fa' );
 			return;
 		}
 
