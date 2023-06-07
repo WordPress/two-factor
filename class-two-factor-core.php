@@ -1873,6 +1873,17 @@ class Two_Factor_Core {
 					) );
 				}
 			}
+
+			// Destroy other sessions if we've activated a new provider.
+			if ( array_diff( $enabled_providers, $existing_providers ) ) {
+				if ( $user_id === get_current_user_id() ) {
+					// Keep the current session, destroy others sessions for this user.
+					wp_destroy_other_sessions();
+				} else {
+					// Destroy all sessions for the user.
+					WP_Session_Tokens::get_instance( $user_id )->destroy_all();
+				}
+			}
 		}
 	}
 
