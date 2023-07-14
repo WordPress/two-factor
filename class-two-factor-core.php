@@ -1874,8 +1874,13 @@ class Two_Factor_Core {
 				}
 			}
 
-			// Destroy other sessions if we've activated a new provider.
-			if ( array_diff( $enabled_providers, $existing_providers ) ) {
+			// Destroy other sessions if setup 2FA for the first time, or deactivated a provider
+			if (
+				// No providers, enabling one (or more)
+				( ! $existing_providers && $enabled_providers ) ||
+				// Has providers, and is disabling one (or more)
+				( $existing_providers && array_diff( $existing_providers, $enabled_providers ) )
+			) {
 				if ( $user_id === get_current_user_id() ) {
 					// Keep the current session, destroy others sessions for this user.
 					wp_destroy_other_sessions();
