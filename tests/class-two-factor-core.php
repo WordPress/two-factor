@@ -1416,12 +1416,9 @@ class Test_ClassTwoFactorCore extends WP_UnitTestCase {
 		$this->assertCount( 2, Two_Factor_Core::get_available_providers_for_user( $user->ID ) );
 		$this->assertCount( 2, Two_Factor_Core::get_enabled_providers_for_user( $user->ID ) );
 
-		$this->assertCount( 1, $session_manager->get_all(), 'All known authentication sessions have been destroyed' );
+		$this->assertCount( 2, $session_manager->get_all(), 'Adding an additional provider should not destroy other sessions.' );
 
-		// Create another session, disable a provider, verify both sessions still exist.
-		$session_manager->create( time() + DAY_IN_SECONDS  );
-		$this->assertCount( 2, $session_manager->get_all(), 'Failed to create another session' );
-
+		// Disable a provider, verify other sessions are destroyed.
 		$_POST[ Two_Factor_Core::ENABLED_PROVIDERS_USER_META_KEY ] = array(
 			'Two_Factor_Dummy' => 'Two_Factor_Dummy',
 		);
@@ -1432,12 +1429,25 @@ class Test_ClassTwoFactorCore extends WP_UnitTestCase {
 		$this->assertCount( 1, Two_Factor_Core::get_available_providers_for_user( $user->ID ) );
 		$this->assertCount( 1, Two_Factor_Core::get_enabled_providers_for_user( $user->ID ) );
 
-		$this->assertCount( 2, $session_manager->get_all(), 'All known authentication sessions have been destroyed' );
+		$this->assertCount( 1, $session_manager->get_all(), 'All known authentication sessions have been destroyed' );
 
+		// Create another session, deactivate two-factor, verify sessions are still valid.
+		$session_manager->create( time() + DAY_IN_SECONDS  );
+		$this->assertCount( 2, $session_manager->get_all(), 'Failed to create another session' );
+
+		$_POST[ Two_Factor_Core::ENABLED_PROVIDERS_USER_META_KEY ] = array();
+
+		Two_Factor_Core::user_two_factor_options_update( $user->ID );
+
+		// Validate that Two-Factor is now disabled.
+		$this->assertCount( 0, Two_Factor_Core::get_available_providers_for_user( $user->ID ) );
+		$this->assertCount( 0, Two_Factor_Core::get_enabled_providers_for_user( $user->ID ) );
+
+		$this->assertCount( 2, $session_manager->get_all(), 'All known authentication sessions have been destroyed' );
 	}
 
 	/**
-	 * Validate the administrators sessions are not modified when modifying another user.
+	 * Validate the current users sessions are not modified when modifying another user.
 	 *
 	 * @covers Two_Factor_Core::user_two_factor_options_update
 	 */
