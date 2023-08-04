@@ -193,6 +193,10 @@ class Two_Factor_Force {
 			wp_enqueue_style( 'list-tables' );
 		}
 
+		if ( isset( $providers[ 'Two_Factor_Totp' ] ) ) {
+			$providers[ 'Two_Factor_Totp' ]->enqueue_assets( 'profile.php' );
+		}
+
 		if ( ! function_exists( 'login_header' ) ) {
 			// We really should migrate login_header() out of `wp-login.php` so it can be called from an includes file.
 			include_once( TWO_FACTOR_DIR . 'includes/function.login-header.php' );
