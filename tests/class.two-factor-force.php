@@ -20,20 +20,23 @@ class Test_ClassTwoFactorForce extends WP_UnitTestCase {
 				array( 'Two_Factor_Force', 'register_scripts' )
 			)
 		);
-		$this->assertGreaterThan(
-			0,
-			has_action(
-				'wpmu_options',
-				array( 'Two_Factor_Force', 'force_two_factor_setting_options' )
-			)
-		);
-		$this->assertGreaterThan(
-			0,
-			has_action(
-				'update_wpmu_options',
-				array( 'Two_Factor_Force', 'save_network_force_two_factor_update' )
-			)
-		);
+
+		if ( is_multisite() ) {
+			$this->assertGreaterThan(
+				0,
+				has_action(
+					'wpmu_options',
+					array( 'Two_Factor_Force', 'force_two_factor_setting_options' )
+				)
+			);
+			$this->assertGreaterThan(
+				0,
+				has_action(
+					'update_wpmu_options',
+					array( 'Two_Factor_Force', 'save_network_force_two_factor_update' )
+				)
+			);
+		}
 		$this->assertGreaterThan(
 			0,
 			has_action(
