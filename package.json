@@ -1,24 +1,49 @@
 {
-	"name": "two-factor",
-	"title": "Two Factor",
-	"homepage": "https://github.com/georgestephanis/two-factor",
-	"scripts": {
-		"grunt": "grunt",
-		"test": "DIFF_BASE=master ./node_modules/wp-dev-lib/pre-commit",
-		"readme": "./node_modules/wp-dev-lib/generate-markdown-readme",
-		"phpunit": "DEV_LIB_ONLY=phpunit ./node_modules/wp-dev-lib/pre-commit",
-		"precommit": "DEV_LIB_SKIP=phpunit ./node_modules/wp-dev-lib/pre-commit"
-	},
-	"repository": {
-		"type": "git",
-		"url": "https://github.com/georgestephanis/two-factor.git"
-	},
-	"author": "georgestephanis",
-	"license": "GPL-2.0+",
-	"devDependencies": {
-		"grunt": "~0.4.5",
-		"grunt-contrib-jshint": "~0.11.3",
-		"husky": "^0.14.3",
-		"wp-dev-lib": "github:xwp/wp-dev-lib"
-	}
+  "name": "two-factor",
+  "title": "Two Factor",
+  "private": true,
+  "engineStrict": true,
+  "engines": {
+    "node": ">=16"
+  },
+  "homepage": "https://github.com/wordpress/two-factor",
+  "scripts": {
+    "env": "wp-env",
+    "deploy": "grunt deploy",
+    "build": "grunt build",
+    "lint": "npm-run-all lint:*",
+    "lint:php": "composer lint",
+    "lint:css": "wp-scripts lint-style ./user-edit.css ./providers/css/",
+    "lint:js": "wp-scripts lint-js ./Gruntfile.js ./providers/js/",
+    "format": "npm-run-all format:*",
+    "format:php": "composer format",
+    "format:js": "npm run lint:js -- --fix",
+    "format:css": "npm run lint:css -- --fix",
+    "test": "npm run composer test",
+    "test:watch": "npm run composer test:watch",
+    "composer": "wp-env run phpunit composer --working-dir=/var/www/html/wp-content/plugins/two-factor",
+    "preinstall": "composer install"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/wordpress/two-factor.git"
+  },
+  "author": "georgestephanis",
+  "license": "GPL-2.0+",
+  "dependencies": {
+    "qrcode-generator": "^1.4.4"
+  },
+  "devDependencies": {
+    "@wordpress/env": "^5.4.0",
+    "@wordpress/eslint-plugin": "^13.3.0",
+    "@wordpress/scripts": "^24.3.0",
+    "grunt": "^1.5.3",
+    "grunt-cli": "^1.4.3",
+    "grunt-contrib-clean": "^2.0.1",
+    "grunt-contrib-copy": "^1.0.0",
+    "grunt-wp-deploy": "^2.1.2",
+    "load-grunt-tasks": "^5.1.0",
+    "npm-run-all": "^4.1.5",
+    "parse-gitignore": "^0.5.1"
+  }
 }

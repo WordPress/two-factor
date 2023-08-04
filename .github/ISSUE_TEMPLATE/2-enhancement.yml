@@ -1,0 +1,55 @@
+name: "Enhancement"
+description: "Suggest an idea for a feature or enhancement to the Two-Factor plugin for WordPress."
+labels: "type:enhancement"
+body:
+    - type: markdown
+      attributes:
+          value: |
+              Thank you for suggesting an idea to make things better.  Please fill in as much of the template below as you can.
+    - type: textarea
+      attributes:
+          label: Is your enhancement related to a problem? Please describe.
+          description: Please describe the problem you are trying to solve.
+          placeholder: |
+              "I'm always frustrated when ..." or "It is currently difficult to ...".
+      validations:
+          required: true
+
+    - type: textarea
+      attributes:
+          label: Proposed Solution
+          description: |
+              Please outline the feature or enhancement that you want and how it addresses any problem identified above.
+      validations:
+          required: false
+
+    - type: textarea
+      attributes:
+          label: Designs
+          description: |
+              If applicable, add mockups/screenshots/etc. to help explain your idea.
+              Tip: You can attach images or videos by clicking this area to highlight it and then dragging files in.
+      validations:
+          required: false
+
+    - type: textarea
+      attributes:
+          label: Describe alternatives you've considered
+          description: |
+              Please describe alternative solutions or features you have considered.
+          placeholder: |
+             I have also considered `...describe alternative...`, however I feel that my solution described above is better because of `...reason...`.
+      validations:
+          required: false
+
+    - type: dropdown
+      id: existing
+      attributes:
+          label: Please confirm that you have searched existing issues in this repository.
+          description: You can do this by searching https://github.com/WordPress/two-factor/issues and making sure the bug is not related to another plugin.
+          multiple: true
+          options:
+              - 'Yes'
+              - 'No'
+      validations:
+          required: true

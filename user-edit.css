@@ -56,3 +56,8 @@
 .login .two-factor-main-label {
 	display: none;
 }
+
+.two-factor-methods-table .two-factor-method-label {
+	display: block;
+	font-weight: 700;
+}
