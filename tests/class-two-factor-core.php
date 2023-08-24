@@ -317,7 +317,7 @@ class Test_ClassTwoFactorCore extends WP_UnitTestCase {
 			array(
 				'Two_Factor_Email',
 			),
-			Two_Factor_Core::get_available_providers_for_user( $user )
+			array_keys( Two_Factor_Core::get_available_providers_for_user( $user ) )
 		);
 
 		// Set the dummy user with a non-existent provider and a valid one.
@@ -335,7 +335,7 @@ class Test_ClassTwoFactorCore extends WP_UnitTestCase {
 			array(
 				'Two_Factor_Totp',
 			),
-			Two_Factor_Core::get_available_providers_for_user( $user )
+			array_keys( Two_Factor_Core::get_available_providers_for_user( $user ) )
 		);
 
 		$this->clean_dummy_user();
