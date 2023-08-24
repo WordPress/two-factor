@@ -456,7 +456,7 @@ class Two_Factor_Core {
 			} else {
 				return new WP_Error(
 					'no_available_2fa_methods',
-					__( 'Error: User has Two Factor method(s) enabled, but provider(s) no longer exist,', 'two-factor' ),
+					__( 'Error: You have Two Factor method(s) enabled, but the provider(s) no longer exist. Please contact a site administrator for assistance.', 'two-factor' ),
 					array(
 						'user_providers_raw'  => $user_providers_raw,
 						'available_providers' => array_keys( $providers ),
