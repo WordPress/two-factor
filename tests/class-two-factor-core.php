@@ -326,14 +326,14 @@ class Test_ClassTwoFactorCore extends WP_UnitTestCase {
 			Two_Factor_Core::ENABLED_PROVIDERS_USER_META_KEY,
 			array(
 				'Two_Factor_Deprecated',
-				'Two_Factor_Totp',
+				'Two_Factor_Dummy',
 			)
 		);
 
 		// This time it should just strip out the invalid one, and not inject a new one.
 		$this->assertEquals(
 			array(
-				'Two_Factor_Totp',
+				'Two_Factor_Dummy',
 			),
 			array_keys( Two_Factor_Core::get_available_providers_for_user( $user ) )
 		);
