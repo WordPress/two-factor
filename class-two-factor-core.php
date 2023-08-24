@@ -413,29 +413,7 @@ class Two_Factor_Core {
 		if ( empty( $enabled_providers ) ) {
 			$enabled_providers = array();
 		}
-		$enabled_existing_providers = array_intersect( $enabled_providers, array_keys( $providers ) );
-
-		/**
-		 * If the user had enabled providers, but none of them exist currently,
-		 * if emailed codes is available force it to be on, so that deprecated
-		 * or removed providers don't result in the two-factor requirement being
-		 * removed and 'failing open'.
-		 */
-		if ( $enabled_providers && empty( $enabled_existing_providers ) ) {
-			if ( isset( $providers['Two_Factor_Email'] ) ) {
-				// Force Emailed codes to 'on'.
-				$enabled_existing_providers[] = 'Two_Factor_Email';
-			} else {
-				return new WP_Error(
-					'no_available_2fa_methods',
-					__( 'Error: User has Two Factor method(s) enabled, but provider(s) no longer exist,', 'two-factor' ),
-					array(
-						'enabled_providers'   => $enabled_providers,
-						'available_providers' => array_keys( $providers ),
-					)
-				);
-			}
-		}
+		$enabled_providers = array_intersect( $enabled_providers, array_keys( $providers ) );
 
 		/**
 		 * Filter the enabled two-factor authentication providers for this user.
@@ -443,14 +421,14 @@ class Two_Factor_Core {
 		 * @param array  $enabled_providers The enabled providers.
 		 * @param int    $user_id           The user ID.
 		 */
-		return apply_filters( 'two_factor_enabled_providers_for_user', $enabled_existing_providers, $user->ID );
+		return apply_filters( 'two_factor_enabled_providers_for_user', $enabled_providers, $user->ID );
 	}
 
 	/**
 	 * Get all Two-Factor Auth providers that are both enabled and configured for the specified|current user.
 	 *
 	 * @param int|WP_User $user Optonal. User ID, or WP_User object of the the user. Defaults to current user.
-	 * @return array
+	 * @return array|WP_Error
 	 */
 	public static function get_available_providers_for_user( $user = null ) {
 		$user = self::fetch_user( $user );
@@ -461,6 +439,31 @@ class Two_Factor_Core {
 		$providers            = self::get_providers();
 		$enabled_providers    = self::get_enabled_providers_for_user( $user );
 		$configured_providers = array();
+		$user_providers_raw   = get_user_meta( $user->ID, self::ENABLED_PROVIDERS_USER_META_KEY, true );
+
+		/**
+		 * If the user had enabled providers, but none of them exist currently,
+		 * if emailed codes is available force it to be on, so that deprecated
+		 * or removed providers don't result in the two-factor requirement being
+		 * removed and 'failing open'.
+		 * 
+		 * Possible enhancement: add a filter to change the fallback method?
+		 */
+		if ( empty( $enabled_providers ) && $user_providers_raw ) {
+			if ( isset( $providers['Two_Factor_Email'] ) ) {
+				// Force Emailed codes to 'on'.
+				$enabled_providers[] = 'Two_Factor_Email';
+			} else {
+				return new WP_Error(
+					'no_available_2fa_methods',
+					__( 'Error: User has Two Factor method(s) enabled, but provider(s) no longer exist,', 'two-factor' ),
+					array(
+						'user_providers_raw'  => $user_providers_raw,
+						'available_providers' => array_keys( $providers ),
+					)
+				);
+			}
+		}
 
 		foreach ( $providers as $provider_key => $provider ) {
 			if ( in_array( $provider_key, $enabled_providers, true ) && $provider->is_available_for_user( $user ) ) {
