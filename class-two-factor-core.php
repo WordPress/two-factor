@@ -502,7 +502,7 @@ class Two_Factor_Core {
 
 		if ( is_string( $preferred_provider ) ) {
 			$providers = self::get_available_providers_for_user( $user );
-			if ( isset( $providers[ $preferred_provider ] ) ) {
+			if ( ! is_wp_error( $providers ) && isset( $providers[ $preferred_provider ] ) ) {
 				return $providers[ $preferred_provider ];
 			}
 		}
@@ -530,6 +530,9 @@ class Two_Factor_Core {
 		// If there's only one available provider, force that to be the primary.
 		if ( empty( $available_providers ) ) {
 			return null;
+		} elseif ( is_wp_error( $available_providers ) ) {
+			// If it returned an error, the configured methods don't exist, and it couldn't swap in a replacement.
+			wp_die( $available_providers );
 		} elseif ( 1 === count( $available_providers ) ) {
 			$provider = key( $available_providers );
 		} else {
@@ -807,6 +810,11 @@ class Two_Factor_Core {
 		$interim_login       = isset( $_REQUEST['interim-login'] ); // phpcs:ignore WordPress.Security.NonceVerification.Recommended
 
 		$rememberme = intval( self::rememberme() );
+
+		if ( is_wp_error( $available_providers ) ) {
+			// If it returned an error, the configured methods don't exist, and it couldn't swap in a replacement.
+			wp_die( $available_providers );
+		}
 
 		if ( ! function_exists( 'login_header' ) ) {
 			// We really should migrate login_header() out of `wp-login.php` so it can be called from an includes file.
@@ -1721,7 +1729,14 @@ class Two_Factor_Core {
 	public static function user_two_factor_options( $user ) {
 		wp_enqueue_style( 'user-edit-2fa', plugins_url( 'user-edit.css', __FILE__ ), array(), TWO_FACTOR_VERSION );
 
-		$enabled_providers = array_keys( self::get_available_providers_for_user( $user ) );
+		$available_providers = self::get_available_providers_for_user( $user );
+
+		if ( is_wp_error( $available_providers ) ) {
+			// If it returned an error, the configured methods don't exist, and it couldn't swap in a replacement.
+			wp_die( $available_providers );
+		}
+
+		$enabled_providers = array_keys( $available_providers );
 		$primary_provider  = self::get_primary_provider_for_user( $user->ID );
 
 		if ( ! empty( $primary_provider ) && is_object( $primary_provider ) ) {
