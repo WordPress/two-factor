@@ -1873,6 +1873,22 @@ class Two_Factor_Core {
 					) );
 				}
 			}
+
+			// Destroy other sessions if setup 2FA for the first time, or deactivated a provider
+			if (
+				// No providers, enabling one (or more)
+				( ! $existing_providers && $enabled_providers ) ||
+				// Has providers, and is disabling one (or more), but remaining with 2FA.
+				( $existing_providers && $enabled_providers && array_diff( $existing_providers, $enabled_providers ) )
+			) {
+				if ( $user_id === get_current_user_id() ) {
+					// Keep the current session, destroy others sessions for this user.
+					wp_destroy_other_sessions();
+				} else {
+					// Destroy all sessions for the user.
+					WP_Session_Tokens::get_instance( $user_id )->destroy_all();
+				}
+			}
 		}
 	}
 
