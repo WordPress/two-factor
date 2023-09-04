@@ -1543,9 +1543,9 @@ class Two_Factor_Core {
 				return;
 			}
 
-			$providers = self::get_providers();
-
-			$enabled_providers = $_POST[ self::ENABLED_PROVIDERS_USER_META_KEY ];
+			$providers          = self::get_providers();
+			$enabled_providers  = $_POST[ self::ENABLED_PROVIDERS_USER_META_KEY ];
+			$existing_providers = self::get_enabled_providers_for_user( $user_id );
 
 			// Enable only the available providers.
 			$enabled_providers = array_intersect( $enabled_providers, array_keys( $providers ) );
@@ -1555,6 +1555,17 @@ class Two_Factor_Core {
 			$new_provider = isset( $_POST[ self::PROVIDER_USER_META_KEY ] ) ? $_POST[ self::PROVIDER_USER_META_KEY ] : '';
 			if ( ! empty( $new_provider ) && in_array( $new_provider, $enabled_providers, true ) ) {
 				update_user_meta( $user_id, self::PROVIDER_USER_META_KEY, $new_provider );
+			}
+
+			// Destroy other sessions if we've activated a new provider.
+			if ( array_diff( $enabled_providers, $existing_providers ) ) {
+				if ( $user_id === get_current_user_id() ) {
+					// Keep the current session, destroy others sessions for this user.
+					wp_destroy_other_sessions();
+				} else {
+					// Destroy all sessions for the user.
+					WP_Session_Tokens::get_instance( $user_id )->destroy_all();
+				}
 			}
 		}
 	}
