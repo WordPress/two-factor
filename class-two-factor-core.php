@@ -1788,6 +1788,8 @@ class Two_Factor_Core {
 	/**
 	 * Enable a provider for a user.
 	 *
+	 * The caller is responsible for checking the user has permission to do this.
+	 *
 	 * @param int    $user_id      The ID of the user.
 	 * @param string $new_provider The name of the provider class.
 	 *
@@ -1825,6 +1827,8 @@ class Two_Factor_Core {
 	 *
 	 * This intentionally doesn't set a new primary provider when disabling the current primary provider, because
 	 * `get_primary_provider_for_user()` will pick a new one automatically.
+	 *
+	 * The caller is responsible for checking the user has permission to do this.
 	 *
 	 * @param int    $user_id  The ID of the user.
 	 * @param string $provider The name of the provider class.
