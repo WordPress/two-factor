@@ -125,7 +125,7 @@ class Two_Factor_Core {
 		add_filter( 'authenticate', array( __CLASS__, 'filter_authenticate_block_cookies' ), PHP_INT_MAX );
 
 		add_filter( 'attach_session_information', array( __CLASS__, 'filter_session_information' ), 10, 2 );
-		
+
 		add_action( 'admin_init', array( __CLASS__, 'trigger_user_settings_action' ) );
 		add_filter( 'two_factor_providers', array( __CLASS__, 'enable_dummy_method_for_debug' ) );
 
@@ -1788,6 +1788,8 @@ class Two_Factor_Core {
 	/**
 	 * Enable a provider for a user.
 	 *
+	 * The caller is responsible for checking the user has permission to do this.
+	 *
 	 * @param int    $user_id      The ID of the user.
 	 * @param string $new_provider The name of the provider class.
 	 *
@@ -1818,6 +1820,39 @@ class Two_Factor_Core {
 		}
 
 		return $enabled && $has_primary;
+	}
+
+	/**
+	 * Disable a provider for a user.
+	 *
+	 * This intentionally doesn't set a new primary provider when disabling the current primary provider, because
+	 * `get_primary_provider_for_user()` will pick a new one automatically.
+	 *
+	 * The caller is responsible for checking the user has permission to do this.
+	 *
+	 * @param int    $user_id  The ID of the user.
+	 * @param string $provider The name of the provider class.
+	 *
+	 * @return bool True if the provider was disabled, false otherwise.
+	 */
+	public static function disable_provider_for_user( $user_id, $provider_to_delete ) {
+		$is_registered = array_key_exists( $provider_to_delete, self::get_providers() );
+
+		if ( ! $is_registered ) {
+			return false;
+		}
+
+		$old_enabled_providers = self::get_enabled_providers_for_user( $user_id );
+		$is_enabled            = in_array( $provider_to_delete, $old_enabled_providers );
+
+		if ( ! $is_enabled ) {
+			return true;
+		}
+
+		$new_enabled_providers     = array_diff( $old_enabled_providers, array( $provider_to_delete ) );
+		$was_disabled              = update_user_meta( $user_id, self::ENABLED_PROVIDERS_USER_META_KEY, $new_enabled_providers );
+
+		return (bool) $was_disabled;
 	}
 
 	/**
