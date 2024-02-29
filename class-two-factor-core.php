@@ -184,7 +184,7 @@ class Two_Factor_Core {
 		 * For each filtered provider,
 		 */
 		foreach ( $providers as $provider_key => $path ) {
-			include_once $path;
+			require_once $path;
 
 			$class = $provider_key;
 
@@ -785,7 +785,7 @@ class Two_Factor_Core {
 
 		if ( ! function_exists( 'login_header' ) ) {
 			// We really should migrate login_header() out of `wp-login.php` so it can be called from an includes file.
-			include_once TWO_FACTOR_DIR . 'includes/function.login-header.php';
+			require_once TWO_FACTOR_DIR . 'includes/function.login-header.php';
 		}
 
 		// Disable the language switcher.
@@ -913,7 +913,7 @@ class Two_Factor_Core {
 		</script>
 		<?php
 		if ( ! function_exists( 'login_footer' ) ) {
-			include_once TWO_FACTOR_DIR . 'includes/function.login-footer.php';
+			require_once TWO_FACTOR_DIR . 'includes/function.login-footer.php';
 		}
 
 			login_footer();
