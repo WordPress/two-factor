@@ -208,7 +208,7 @@ class Two_Factor_FIDO_U2F_Admin {
 			<p><a href="https://support.google.com/accounts/answer/6103523"><?php esc_html_e( 'You can find FIDO U2F Security Key devices for sale from here.', 'two-factor' ); ?></a></p>
 
 			<?php
-				require TWO_FACTOR_DIR . 'providers/class-two-factor-fido-u2f-admin-list-table.php';
+				require_once TWO_FACTOR_DIR . 'providers/class-two-factor-fido-u2f-admin-list-table.php';
 				$u2f_list_table        = new Two_Factor_FIDO_U2F_Admin_List_Table();
 				$u2f_list_table->items = $security_keys;
 				$u2f_list_table->prepare_items();
@@ -328,7 +328,7 @@ class Two_Factor_FIDO_U2F_Admin {
 	public static function wp_ajax_inline_save() {
 		check_ajax_referer( 'keyinlineeditnonce', '_inline_edit' );
 
-		require TWO_FACTOR_DIR . 'providers/class-two-factor-fido-u2f-admin-list-table.php';
+		require_once TWO_FACTOR_DIR . 'providers/class-two-factor-fido-u2f-admin-list-table.php';
 		$wp_list_table = new Two_Factor_FIDO_U2F_Admin_List_Table();
 
 		if ( ! isset( $_POST['keyHandle'] ) ) {

@@ -30,9 +30,9 @@ require_once dirname( __DIR__ ) . '/includes/function.login-footer.php';
 tests_add_filter(
 	'muplugins_loaded',
 	function() {
-		require dirname( __DIR__ ) . '/two-factor.php';
+		require_once dirname( __DIR__ ) . '/two-factor.php';
 	}
 );
 
 // Start up the WP testing environment.
-require getenv( 'WP_PHPUNIT__DIR' ) . '/includes/bootstrap.php';
+require_once getenv( 'WP_PHPUNIT__DIR' ) . '/includes/bootstrap.php';
