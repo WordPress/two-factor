@@ -129,7 +129,22 @@ class Two_Factor_Core {
 		add_action( 'admin_init', array( __CLASS__, 'trigger_user_settings_action' ) );
 		add_filter( 'two_factor_providers', array( __CLASS__, 'enable_dummy_method_for_debug' ) );
 
+		add_action( 'two_factor_ajax_options_update', array( __CLASS__, 'user_two_factor_options_update' ) );
+		add_action( 'init', array( __CLASS__, 'register_scripts' ) );
+
 		$compat->init();
+	}
+
+	/**
+	 * Register scripts.
+	 */
+	public static function register_scripts() {
+		wp_register_style(
+			'user-edit-2fa',
+			plugins_url( 'user-edit.css', __FILE__ ),
+			[],
+			TWO_FACTOR_VERSION
+		);
 	}
 
 	/**
@@ -1694,7 +1709,7 @@ class Two_Factor_Core {
 	 * @param WP_User $user WP_User object of the logged-in user.
 	 */
 	public static function user_two_factor_options( $user ) {
-		wp_enqueue_style( 'user-edit-2fa', plugins_url( 'user-edit.css', __FILE__ ), array(), TWO_FACTOR_VERSION );
+		wp_enqueue_style( 'user-edit-2fa' );
 
 		$enabled_providers = array_keys( self::get_available_providers_for_user( $user ) );
 		$primary_provider  = self::get_primary_provider_for_user( $user->ID );
@@ -1732,7 +1747,7 @@ class Two_Factor_Core {
 		<input type="hidden" name="<?php echo esc_attr( self::ENABLED_PROVIDERS_USER_META_KEY ); ?>[]" value="<?php /* Dummy input so $_POST value is passed when no providers are enabled. */ ?>" />
 		<table class="form-table">
 			<tr>
-				<th>
+				<th class="two-factor-main-label">
 					<?php esc_html_e( 'Two-Factor Options', 'two-factor' ); ?>
 				</th>
 				<td>
