@@ -1450,7 +1450,7 @@ class Two_Factor_Core {
 		if ( ! $provider ) {
 			return new WP_Error(
 				'two_factor_provider_missing',
-				__( 'Cheatin&#8217; uh?', 'two-factor' ),
+				__( 'Cheatin&#8217; uh?', 'two-factor' )
 			);
 		}
 
@@ -1724,7 +1724,7 @@ class Two_Factor_Core {
 
 		printf(
 			'<fieldset id="two-factor-options" %s>',
-			$show_2fa_options ? '' : 'disabled="disabled"',
+			$show_2fa_options ? '' : 'disabled="disabled"'
 		);
 
 		wp_nonce_field( 'user_two_factor_options', '_nonce_user_two_factor_options', false );
