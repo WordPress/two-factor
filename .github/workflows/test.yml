@@ -38,6 +38,9 @@ jobs:
       - name: Lint PHP Compatibility
         run: composer lint-compat
 
+      - name: Start the Docker testing environment
+        run: npm run env start --xdebug=coverage
+
       - name: Test
         run: npm run test
 
