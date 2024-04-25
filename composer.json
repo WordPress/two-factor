@@ -35,7 +35,7 @@
     "phpcompatibility/phpcompatibility-wp": "dev-master",
     "phpunit/phpunit": "^9.5",
     "roots/wordpress-core-installer": "^1.100",
-    "roots/wordpress-full": "~6.0",
+    "roots/wordpress-full": "^6.0",
     "spatie/phpunit-watcher": "^1.23",
     "wp-coding-standards/wpcs": "^2.3",
     "wp-phpunit/wp-phpunit": "^6.0",
@@ -44,7 +44,8 @@
   "scripts": {
     "lint": "phpcs",
     "lint-php8": "phpcs -p --standard=PHPCompatibilityWP --runtime-set testVersion 8.0- --extensions=php --ignore='vendor/,wordpress/,node_modules/' .",
-    "test": "php -d xdebug.mode=coverage vendor/bin/phpunit",
+    "test": "phpunit",
+    "test:report-coverage": "php-coveralls -v",
     "test:watch": [
       "Composer\\Config::disableProcessTimeout",
       "phpunit-watcher watch --no-coverage"
