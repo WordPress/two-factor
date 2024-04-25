@@ -43,6 +43,12 @@ require_once TWO_FACTOR_DIR . 'class-two-factor-core.php';
  */
 require_once TWO_FACTOR_DIR . 'class-two-factor-compat.php';
 
+/**
+ * Include Force Two Factor Authentication class.
+ */
+require_once( TWO_FACTOR_DIR . 'class.two-factor-force.php' );
+
 $two_factor_compat = new Two_Factor_Compat();
 
 Two_Factor_Core::add_hooks( $two_factor_compat );
+Two_Factor_Force::add_hooks();

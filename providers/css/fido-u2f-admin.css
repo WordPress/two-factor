@@ -10,3 +10,12 @@
 	vertical-align: middle;
 	font-style: italic;
 }
+
+.login #security-keys-section p {
+	line-height: 1.5;
+	margin: 1em 0;
+}
+
+.login #security-keys-section .button.button-secondary {
+	display: inline-block;
+}
