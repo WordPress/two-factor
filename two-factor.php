@@ -8,14 +8,16 @@
  * @license     GPL-2.0-or-later
  *
  * @wordpress-plugin
- * Plugin Name: Two Factor
- * Plugin URI:  https://wordpress.org/plugins/two-factor/
- * Description: Two-Factor Authentication using time-based one-time passwords, Universal 2nd Factor (FIDO U2F), email and backup verification codes.
- * Author:      Plugin Contributors
- * Version:     0.9.1
- * Author URI:  https://github.com/wordpress/two-factor/graphs/contributors
- * Network:     True
- * Text Domain: two-factor
+ * Plugin Name:       Two Factor
+ * Plugin URI:        https://wordpress.org/plugins/two-factor/
+ * Description:       wo-Factor Authentication using time-based one-time passwords, Universal 2nd Factor (FIDO U2F), email and backup verification codes.
+ * Author:            Plugin Contributors
+ * Version:           0.9.1
+ * Author URI:        https://github.com/wordpress/two-factor/graphs/contributors
+ * Network:           True
+ * Text Domain:       two-factor
+ * Requires at least: 4.6
+ * Requires PHP:      5.6
  */
 
 /**
