@@ -93,7 +93,6 @@ class Two_Factor_Core {
 	 * @since 0.1-dev
 	 */
 	public static function add_hooks( $compat ) {
-		add_action( 'plugins_loaded', array( __CLASS__, 'load_textdomain' ) );
 		add_action( 'init', array( __CLASS__, 'get_providers' ) );
 		add_action( 'wp_login', array( __CLASS__, 'wp_login' ), 10, 2 );
 		add_filter( 'wp_login_errors', array( __CLASS__, 'maybe_show_reset_password_notice' ) );
@@ -130,15 +129,6 @@ class Two_Factor_Core {
 		add_filter( 'two_factor_providers', array( __CLASS__, 'enable_dummy_method_for_debug' ) );
 
 		$compat->init();
-	}
-
-	/**
-	 * Loads the plugin's text domain.
-	 *
-	 * Sites on WordPress 4.6+ benefit from just-in-time loading of translations.
-	 */
-	public static function load_textdomain() {
-		load_plugin_textdomain( 'two-factor' );
 	}
 
 	/**
