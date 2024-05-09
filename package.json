@@ -29,7 +29,7 @@
     "url": "https://github.com/wordpress/two-factor.git"
   },
   "author": "georgestephanis",
-  "license": "GPL-2.0+",
+  "license": "GPL-2.0-or-later",
   "dependencies": {
     "qrcode-generator": "^1.4.4"
   },
