@@ -25,6 +25,14 @@ class Two_Factor_Compat {
 		 * @see https://wordpress.org/plugins/jetpack/
 		 */
 		add_filter( 'two_factor_rememberme', array( $this, 'jetpack_rememberme' ) );
+		
+		/**
+		 * bbPress
+		 * 
+		 * Workaround for profile page breakage
+		 * @see https://github.com/WordPress/two-factor/issues/175
+		 */
+		add_action( 'wp', array( $this, 'bbpress_remove_twofactor' ) );
 	}
 
 	/**
@@ -52,4 +60,16 @@ class Two_Factor_Compat {
 	public function jetpack_is_sso_active() {
 		return ( method_exists( 'Jetpack', 'is_module_active' ) && Jetpack::is_module_active( 'sso' ) );
 	}
+	
+	/**
+	 * Helper function to apply bbPress workaround at the right time.
+	 *
+	 * @return void
+	 */
+	 public function bbpress_remove_twofactor() {
+		if ( function_exists('bbp_is_single_user_edit') && bbp_is_single_user_edit() ) {
+			remove_action( 'show_user_profile', array( 'Two_Factor_Core', 'user_two_factor_options' ) );
+			remove_action( 'edit_user_profile', array( 'Two_Factor_Core', 'user_two_factor_options' ) );
+		}
+	 }
 }
