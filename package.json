@@ -21,7 +21,7 @@
     "format:css": "npm run lint:css -- --fix",
     "test": "npm run composer test",
     "test:watch": "npm run composer test:watch",
-    "composer": "wp-env run phpunit composer --working-dir=/var/www/html/wp-content/plugins/two-factor",
+    "composer": "wp-env run cli --env-cwd=wp-content/plugins/two-factor composer",
     "preinstall": "composer install"
   },
   "repository": {
