@@ -835,6 +835,7 @@ class Two_Factor_Core {
 							</a>
 						</li>
 					<?php endforeach; ?>
+					<?php echo apply_filters( 'two_factor_login_support_links', '' ); ?>
 				</ul>
 			</div>
 		<?php endif; ?>
