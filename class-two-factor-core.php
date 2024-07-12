@@ -825,23 +825,29 @@ class Two_Factor_Core {
 					<?php esc_html_e( 'Having Problems?', 'two-factor' ); ?>
 				</p>
 				<ul>
-					<?php
-					foreach ( $backup_providers as $backup_provider_key => $backup_provider ) :
+				<?php
+					$links = [];
+
+					foreach ( $backup_providers as $backup_provider_key => $backup_provider ) {
 						$backup_link_args['provider'] = $backup_provider_key;
-						?>
-						<li>
-							<a href="<?php echo esc_url( self::login_url( $backup_link_args ) ); ?>">
-								<?php echo esc_html( $backup_provider->get_alternative_provider_label() ); ?>
-							</a>
-						</li>
-					<?php endforeach; ?>
-					<?php
+						$links[] = sprintf(
+							'<li><a href="$1%s">$2%s</a></li>',
+							esc_url( self::login_url( $backup_link_args ) ),
+							esc_html( $backup_provider->get_alternative_provider_label() )
+						);
+					}
+
 					/*
 					* Allow plugins to add links to the two-factor login form.
 					*/
-					echo apply_filters( 'two_factor_login_support_links', '' );
-					?>
-				</ul>
+					$links = apply_filters( 'two_factor_login_support_links', $links );
+
+					// Echo out the filtered links
+					foreach ( $links as $link ) {
+						echo wp_kses_post( $link );
+					}
+				?>
+			</ul>
 			</div>
 		<?php endif; ?>
 
