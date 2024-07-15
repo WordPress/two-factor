@@ -43,7 +43,7 @@ require_once TWO_FACTOR_DIR . 'providers/class-two-factor-provider.php';
 require_once TWO_FACTOR_DIR . 'class-two-factor-core.php';
 
 /**
- * A compatability layer for some of the most-used plugins out there.
+ * A compatibility layer for some of the most-used plugins out there.
  */
 require_once TWO_FACTOR_DIR . 'class-two-factor-compat.php';
 
