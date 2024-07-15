@@ -142,7 +142,7 @@ class Two_Factor_Totp extends Two_Factor_Provider {
 	/**
 	 * Rest API endpoint for handling deactivation of TOTP.
 	 *
-	 * @param WP_Rest_Request $request The Rest Request object.
+	 * @param WP_REST_Request $request The Rest Request object.
 	 * @return array Success array.
 	 */
 	public function rest_delete_totp( $request ) {
@@ -164,7 +164,7 @@ class Two_Factor_Totp extends Two_Factor_Provider {
 	/**
 	 * REST API endpoint for setting up TOTP.
 	 *
-	 * @param WP_Rest_Request $request The Rest Request object.
+	 * @param WP_REST_Request $request The Rest Request object.
 	 * @return WP_Error|array Array of data on success, WP_Error on error.
 	 */
 	public function rest_setup_totp( $request ) {
@@ -203,8 +203,8 @@ class Two_Factor_Totp extends Two_Factor_Provider {
 	/**
 	 * Generates a URL that can be used to create a QR code.
 	 *
-	 * @param WP_User $user The user to generate a URL for.
-	 * @param string  $key  The secret key.
+	 * @param WP_User $user       The user to generate a URL for.
+	 * @param string  $secret_key The secret key.
 	 *
 	 * @return string
 	 */

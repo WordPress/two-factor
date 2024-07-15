@@ -143,7 +143,7 @@ class Two_Factor_FIDO_U2F extends Two_Factor_Provider {
 	 * @since 0.1-dev
 	 *
 	 * @param WP_User $user WP_User object of the logged-in user.
-	 * @return null
+	 * @return void
 	 */
 	public function authentication_page( $user ) {
 		require_once ABSPATH . '/wp-admin/includes/template.php';
@@ -165,7 +165,7 @@ class Two_Factor_FIDO_U2F extends Two_Factor_Provider {
 			?>
 			<p><?php esc_html_e( 'An error occurred while creating authentication data.', 'two-factor' ); ?></p>
 			<?php
-			return null;
+			return;
 		}
 
 		wp_localize_script(
