@@ -1161,6 +1161,7 @@ class Two_Factor_Core {
 		 * Return a falsey value (false, 0) if you wish to never require revalidation.
 		 *
 		 * @param int    $two_factor_revalidate_time The grace time between last validation time and when it'll be accepted. Default 10 minutes (in seconds).
+		 * @param int    $user_id                    The user ID.
 		 * @param string $context                    The context in use, 'display' or 'save'. Save has twice the grace time.
 		 */
 		$two_factor_revalidate_time = apply_filters( 'two_factor_revalidate_time', 10 * MINUTE_IN_SECONDS, $user_id, $context );
