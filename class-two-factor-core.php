@@ -57,7 +57,7 @@ class Two_Factor_Core {
 	const USER_PASSWORD_WAS_RESET_KEY = '_two_factor_password_was_reset';
 
 	/**
-	 * URL query paramater used for our custom actions.
+	 * URL query parameter used for our custom actions.
 	 *
 	 * @var string
 	 */
@@ -389,7 +389,7 @@ class Two_Factor_Core {
 	/**
 	 * Get all Two-Factor Auth providers that are enabled for the specified|current user.
 	 *
-	 * @param int|WP_User $user Optonal. User ID, or WP_User object of the the user. Defaults to current user.
+	 * @param int|WP_User $user Optional. User ID, or WP_User object of the the user. Defaults to current user.
 	 * @return array
 	 */
 	public static function get_enabled_providers_for_user( $user = null ) {
@@ -417,7 +417,7 @@ class Two_Factor_Core {
 	/**
 	 * Get all Two-Factor Auth providers that are both enabled and configured for the specified|current user.
 	 *
-	 * @param int|WP_User $user Optonal. User ID, or WP_User object of the the user. Defaults to current user.
+	 * @param int|WP_User $user Optional. User ID, or WP_User object of the the user. Defaults to current user.
 	 * @return array
 	 */
 	public static function get_available_providers_for_user( $user = null ) {
@@ -442,7 +442,7 @@ class Two_Factor_Core {
 	/**
 	 * Fetch the provider for the request based on the user preferences.
 	 *
-	 * @param int|WP_User $user Optonal. User ID, or WP_User object of the the user. Defaults to current user.
+	 * @param int|WP_User $user Optional. User ID, or WP_User object of the the user. Defaults to current user.
 	 * @param null|string|object $preferred_provider Optional. The name of the provider, the provider, or empty.
 	 * @return null|object The provider
 	 */
@@ -480,7 +480,7 @@ class Two_Factor_Core {
 	 *
 	 * @since 0.1-dev
 	 *
-	 * @param int|WP_User $user Optonal. User ID, or WP_User object of the the user. Defaults to current user.
+	 * @param int|WP_User $user Optional. User ID, or WP_User object of the the user. Defaults to current user.
 	 * @return object|null
 	 */
 	public static function get_primary_provider_for_user( $user = null ) {
@@ -526,7 +526,7 @@ class Two_Factor_Core {
 	 *
 	 * @since 0.1-dev
 	 *
-	 * @param int|WP_User $user Optonal. User ID, or WP_User object of the the user. Defaults to current user.
+	 * @param int|WP_User $user Optional. User ID, or WP_User object of the the user. Defaults to current user.
 	 * @return bool
 	 */
 	public static function is_user_using_two_factor( $user = null ) {
@@ -683,8 +683,8 @@ class Two_Factor_Core {
 			echo '<div id="login_notice" class="message"><strong>';
 			printf(
 				_n(
-					'WARNING: Your account has attempted to login without providing a valid two factor token. The last failed login occured %2$s ago. If this wasn\'t you, you should reset your password.',
-					'WARNING: Your account has attempted to login %1$s times without providing a valid two factor token. The last failed login occured %2$s ago. If this wasn\'t you, you should reset your password.',
+					'WARNING: Your account has attempted to login without providing a valid two factor token. The last failed login occurred %2$s ago. If this wasn\'t you, you should reset your password.',
+					'WARNING: Your account has attempted to login %1$s times without providing a valid two factor token. The last failed login occurred %2$s ago. If this wasn\'t you, you should reset your password.',
 					$failed_login_count,
 					'two-factor'
 				),
@@ -1434,7 +1434,7 @@ class Two_Factor_Core {
 	 * @param object  $provider        The Two Factor Provider.
 	 * @param WP_User $user            The user being authenticated.
 	 * @param bool    $is_post_request Whether the request is a POST request.
-	 * @return false|WP_Error|true WP_Error when an error occurs, true when the user is authenticated, false if no action occured.
+	 * @return false|WP_Error|true WP_Error when an error occurs, true when the user is authenticated, false if no action occurred.
 	 */
 	public static function process_provider( $provider, $user, $is_post_request ) {
 		if ( ! $provider ) {
@@ -1470,7 +1470,7 @@ class Two_Factor_Core {
 
 		// Ask the provider to verify the second factor.
 		if ( true !== $provider->validate_authentication( $user ) ) {
-			// Store the last time a failed login occured.
+			// Store the last time a failed login occurred.
 			update_user_meta( $user->ID, self::USER_RATE_LIMIT_KEY, time() );
 
 			// Store the number of failed login attempts.
