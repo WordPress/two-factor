@@ -67,6 +67,7 @@ class Two_Factor_FIDO_U2F_Admin_List_Table extends WP_List_Table {
 
 				$actions = array(
 					'rename hide-if-no-js' => Two_Factor_FIDO_U2F_Admin::rename_link( $item ),
+					'migrate'              => Two_Factor_FIDO_U2F_Admin::migrate_link( $item ),
 					'delete'               => Two_Factor_FIDO_U2F_Admin::delete_link( $item ),
 				);
 
