@@ -1404,6 +1404,8 @@ class Two_Factor_Core {
 			'two-factor-login'    => time(),
 		) );
 
+		do_action( 'two_factor_user_revalidated', $user, $provider );
+		
 		// Must be global because that's how login_header() uses it.
 		global $interim_login;
 		$interim_login = isset( $_REQUEST['interim-login'] ); // phpcs:ignore WordPress.WP.GlobalVariablesOverride.Prohibited,WordPress.Security.NonceVerification.Recommended
