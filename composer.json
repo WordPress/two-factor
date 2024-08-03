@@ -10,16 +10,45 @@
     "issues": "https://github.com/WordPress/two-factor/issues"
   },
   "config": {
+    "sort-packages": true,
     "platform": {
-      "php": "5.6.20"
+      "php": "7.4"
+    },
+    "allow-plugins": {
+      "dealerdirect/phpcodesniffer-composer-installer": true,
+      "roots/wordpress-core-installer": true
     }
   },
+  "extra": {
+    "wordpress-install-dir": "wordpress"
+  },
+  "minimum-stability": "dev",
+  "prefer-stable" : true,
   "require": {
     "php": ">=5.6"
   },
   "require-dev": {
-    "php-coveralls/php-coveralls": "^2.4",
-    "wp-coding-standards/wpcs": "^2.3",
-    "xwp/wp-dev-lib": "^1.0"
+    "automattic/vipwpcs": "^3.0",
+    "dealerdirect/phpcodesniffer-composer-installer": "^1.0",
+    "php-coveralls/php-coveralls": "^2.5",
+    "phpcompatibility/php-compatibility": "10.x-dev as 9.99.99",
+    "phpcompatibility/phpcompatibility-wp": "^2.1",
+    "phpunit/phpunit": "^9.5",
+    "roots/wordpress-core-installer": "^1.100",
+    "roots/wordpress-full": "~6.0",
+    "spatie/phpunit-watcher": "^1.23",
+    "wp-coding-standards/wpcs": "^3.1",
+    "wp-phpunit/wp-phpunit": "~6.0",
+    "yoast/phpunit-polyfills": "^2.0"
+  },
+  "scripts": {
+    "lint": "phpcs",
+    "lint-compat": "phpcs -p --standard=PHPCompatibilityWP --runtime-set testVersion 5.6- --extensions=php --ignore='tests/,dist/,includes/Yubico/,vendor/,wordpress/,node_modules/' .",
+    "test": "phpunit",
+    "test:watch": [
+      "Composer\\Config::disableProcessTimeout",
+      "phpunit-watcher watch --no-coverage"
+    ],
+    "format": "phpcbf"
   }
 }

@@ -10,6 +10,7 @@
  *
  * @package Two_Factor
  * @group providers
+ * @group email
  */
 class Tests_Two_Factor_Email extends WP_UnitTestCase {
 
@@ -37,10 +38,10 @@ class Tests_Two_Factor_Email extends WP_UnitTestCase {
 	/**
 	 * Set up a test case.
 	 *
-	 * @see WP_UnitTestCase::setup()
+	 * @see WP_UnitTestCase_Base::set_up()
 	 */
-	public function setUp() {
-		parent::setUp();
+	public function set_up() {
+		parent::set_up();
 
 		$this->provider = Two_Factor_Email::get_instance();
 	}
@@ -50,18 +51,16 @@ class Tests_Two_Factor_Email extends WP_UnitTestCase {
 	 *
 	 * @see WP_UnitTestCase::tearDown()
 	 */
-	public function tearDown() {
+	public function tear_down() {
 		unset( $this->provider );
 
-		parent::tearDown();
+		parent::tear_down();
 	}
 
 	/**
 	 * Set up before class.
 	 */
-	public static function setUpBeforeClass() {
-		parent::setUpBeforeClass();
-
+	public static function wpSetUpBeforeClass() {
 		self::$mockmailer = new MockPHPMailer();
 
 		if ( isset( $GLOBALS['phpmailer'] ) ) {
@@ -73,19 +72,15 @@ class Tests_Two_Factor_Email extends WP_UnitTestCase {
 	}
 
 	/**
-	 * Tear down before class.
+	 * Tear down after class.
 	 */
-	public static function tearDownBeforeClass() {
+	public static function wpTearDownAfterClass() {
 		unset( $_SERVER['SERVER_NAME'] );
 
 		if ( isset( self::$phpmailer ) ) {
 			$GLOBALS['phpmailer'] = self::$phpmailer;
 			self::$phpmailer      = null;
 		}
-
-		unset( self::$mockmailer );
-
-		parent::tearDownBeforeClass();
 	}
 
 	/**
@@ -103,7 +98,7 @@ class Tests_Two_Factor_Email extends WP_UnitTestCase {
 	 * @covers Two_Factor_Email::get_label
 	 */
 	public function test_get_label() {
-		$this->assertContains( 'Email', $this->provider->get_label() );
+		$this->assertStringContainsString( 'Email', $this->provider->get_label() );
 	}
 
 	/**
@@ -157,7 +152,7 @@ class Tests_Two_Factor_Email extends WP_UnitTestCase {
 	 * @covers Two_Factor_Email::validate_token
 	 */
 	public function test_generate_and_email_token() {
-		$user = new WP_User( $this->factory->user->create() );
+		$user = new WP_User( self::factory()->user->create() );
 
 		$this->provider->generate_and_email_token( $user );
 
@@ -182,12 +177,20 @@ class Tests_Two_Factor_Email extends WP_UnitTestCase {
 	}
 
 	/**
-	 * Verify that email validation with no user returns false.
+	 * Verify that email validation fails if user or token are missing.
 	 *
 	 * @covers Two_Factor_Email::validate_authentication
 	 */
-	public function test_validate_authentication_no_user_is_false() {
-		$this->assertFalse( $this->provider->validate_authentication( false ) );
+	public function test_validate_authentication_fails_with_missing_input() {
+		$logged_out_user = new WP_User();
+		$valid_user      = new WP_User( self::factory()->user->create() );
+
+		// User but no code.
+		$this->assertFalse( $this->provider->validate_authentication( $valid_user ) );
+
+		// Code but no user.
+		$_REQUEST['two-factor-email-code'] = $this->provider->generate_token( $valid_user->ID );
+		$this->assertFalse( $this->provider->validate_authentication( $logged_out_user ) );
 	}
 
 	/**
@@ -196,7 +199,7 @@ class Tests_Two_Factor_Email extends WP_UnitTestCase {
 	 * @covers Two_Factor_Email::validate_authentication
 	 */
 	public function test_validate_authentication() {
-		$user = new WP_User( $this->factory->user->create() );
+		$user = new WP_User( self::factory()->user->create() );
 
 		$token                             = $this->provider->generate_token( $user->ID );
 		$_REQUEST['two-factor-email-code'] = $token;
@@ -212,7 +215,7 @@ class Tests_Two_Factor_Email extends WP_UnitTestCase {
 	 * @covers Two_Factor_Email::validate_authentication
 	 */
 	public function test_validate_authentication_code_with_spaces() {
-		$user = new WP_User( $this->factory->user->create() );
+		$user = new WP_User( self::factory()->user->create() );
 
 		$token                             = $this->provider->generate_token( $user->ID );
 		$_REQUEST['two-factor-email-code'] = sprintf( ' %s ', $token );
@@ -237,8 +240,8 @@ class Tests_Two_Factor_Email extends WP_UnitTestCase {
 	 * @covers Two_Factor_Email::get_user_token
 	 */
 	public function test_get_user_token() {
-		$user_with_token    = $this->factory->user->create_and_get();
-		$user_without_token = $this->factory->user->create_and_get();
+		$user_with_token    = self::factory()->user->create_and_get();
+		$user_without_token = self::factory()->user->create_and_get();
 
 		$token = wp_hash( $this->provider->generate_token( $user_with_token->ID ) );
 
@@ -252,7 +255,7 @@ class Tests_Two_Factor_Email extends WP_UnitTestCase {
 	 * @covers Two_Factor_Email::pre_process_authentication
 	 */
 	public function test_pre_process_authentication() {
-		$user           = $this->factory->user->create_and_get();
+		$user           = self::factory()->user->create_and_get();
 		$token_original = wp_hash( $this->provider->generate_token( $user->ID ) );
 
 		// Check pre_process_authentication() will prevent any further authentication.
@@ -284,7 +287,7 @@ class Tests_Two_Factor_Email extends WP_UnitTestCase {
 	 * @covers Two_Factor_Email::user_token_lifetime
 	 */
 	public function test_tokens_have_generation_time() {
-		$user_id = $this->factory->user->create();
+		$user_id = self::factory()->user->create();
 
 		$this->assertFalse(
 			$this->provider->user_has_token( $user_id ),
@@ -321,7 +324,7 @@ class Tests_Two_Factor_Email extends WP_UnitTestCase {
 	 * @covers Two_Factor_Email::validate_token
 	 */
 	public function test_tokens_can_expire() {
-		$user_id = $this->factory->user->create();
+		$user_id = self::factory()->user->create();
 		$token   = $this->provider->generate_token( $user_id );
 
 		$this->assertFalse(

@@ -1,6 +1,8 @@
 .DS_Store
-/node_modules
+/node_modules/
 /npm-debug.log
-/vendor
-/dist
-/tests/logs
+/vendor/
+/dist/
+/tests/logs/
+/wordpress/
+.phpunit.result.cache

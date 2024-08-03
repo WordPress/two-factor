@@ -1,4 +1,4 @@
-/* global u2f, u2fL10n */
+/* global window, u2fL10n, jQuery */
 ( function( $ ) {
 	var $button = $( '#register_security_key' );
 	var $statusNotice = $( '#security-keys-section .security-key-status' );
@@ -45,4 +45,4 @@
 			$( '<form>' )[0].submit.call( $( '#your-profile' )[0] );
 		} );
 	} );
-} )( jQuery );
+}( jQuery ) );

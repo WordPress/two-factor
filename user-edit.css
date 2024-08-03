@@ -35,3 +35,8 @@
 .two-factor-methods-table tbody tr:nth-child(odd) {
 	background-color: #f9f9f9;
 }
+
+.two-factor-methods-table .two-factor-method-label {
+	display: block;
+	font-weight: 700;
+}

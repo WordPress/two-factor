@@ -15,6 +15,23 @@
 abstract class Two_Factor_Provider {
 
 	/**
+	 * Ensures only one instance of the provider class exists in memory at any one time.
+	 *
+	 * @since 0.1-dev
+	 */
+	public static function get_instance() {
+		static $instances = array();
+
+		$class_name = static::class;
+
+		if ( ! isset( $instances[ $class_name ] ) ) {
+			$instances[ $class_name ] = new $class_name;
+		}
+
+		return $instances[ $class_name ];
+	}
+
+	/**
 	 * Class constructor.
 	 *
 	 * @since 0.1-dev
@@ -33,12 +50,38 @@ abstract class Two_Factor_Provider {
 	abstract public function get_label();
 
 	/**
+	 * Returns the "continue with" text provider for the login screen.
+	 *
+	 * @since 0.9.0
+	 *
+	 * @return string
+	 */
+	public function get_alternative_provider_label() {
+		return sprintf(
+			/* translators: the two factor provider name */
+			__( 'Use %s', 'two-factor' ),
+			$this->get_label()
+		);
+	}
+
+	/**
 	 * Prints the name of the provider.
 	 *
 	 * @since 0.1-dev
 	 */
 	public function print_label() {
 		echo esc_html( $this->get_label() );
+	}
+
+	/**
+	 * Retrieves the provider key / slug.
+	 *
+	 * @since 0.9.0
+	 *
+	 * @return string
+	 */
+	public function get_key() {
+		return get_class( $this );
 	}
 
 	/**
@@ -89,7 +132,7 @@ abstract class Two_Factor_Provider {
 	 * @param string|array $chars Valid auth code characters.
 	 * @return string
 	 */
-	public function get_code( $length = 8, $chars = '1234567890' ) {
+	public static function get_code( $length = 8, $chars = '1234567890' ) {
 		$code = '';
 		if ( is_array( $chars ) ) {
 			$chars = implode( '', $chars );
@@ -98,5 +141,28 @@ abstract class Two_Factor_Provider {
 			$code .= substr( $chars, wp_rand( 0, strlen( $chars ) - 1 ), 1 );
 		}
 		return $code;
+	}
+
+	/**
+	 * Sanitizes a numeric code to be used as an auth code.
+	 *
+	 * @param string $field  The _REQUEST field to check for the code.
+	 * @param int    $length The valid expected length of the field.
+	 * @return false|string Auth code on success, false if the field is not set or not expected length.
+	 */
+	public static function sanitize_code_from_request( $field, $length = 0 ) {
+		if ( empty( $_REQUEST[ $field ] ) ) {
+			return false;
+		}
+
+		$code = wp_unslash( $_REQUEST[ $field ] ); // phpcs:ignore WordPress.Security.NonceVerification.Recommended, handled by the core method already.
+		$code = preg_replace( '/\s+/', '', $code );
+
+		// Maybe validate the length.
+		if ( $length && strlen( $code ) !== $length ) {
+			return false;
+		}
+
+		return (string) $code;
 	}
 }
