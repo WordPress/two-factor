@@ -40,3 +40,7 @@
 	display: block;
 	font-weight: 700;
 }
+
+#two-factor-options table.form-table td {
+	padding: 0;
+}

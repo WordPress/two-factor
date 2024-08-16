@@ -1405,7 +1405,7 @@ class Two_Factor_Core {
 		) );
 
 		do_action( 'two_factor_user_revalidated', $user, $provider );
-		
+
 		// Must be global because that's how login_header() uses it.
 		global $interim_login;
 		$interim_login = isset( $_REQUEST['interim-login'] ); // phpcs:ignore WordPress.WP.GlobalVariablesOverride.Prohibited,WordPress.Security.NonceVerification.Recommended
@@ -1721,12 +1721,10 @@ class Two_Factor_Core {
 
 		wp_nonce_field( 'user_two_factor_options', '_nonce_user_two_factor_options', false );
 		?>
+		<h3><?php esc_html_e( 'Two-Factor Options', 'two-factor' ); ?></h3>
 		<input type="hidden" name="<?php echo esc_attr( self::ENABLED_PROVIDERS_USER_META_KEY ); ?>[]" value="<?php /* Dummy input so $_POST value is passed when no providers are enabled. */ ?>" />
 		<table class="form-table">
 			<tr>
-				<th>
-					<?php esc_html_e( 'Two-Factor Options', 'two-factor' ); ?>
-				</th>
 				<td>
 					<table class="two-factor-methods-table">
 						<thead>
