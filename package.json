@@ -4,7 +4,7 @@
   "private": true,
   "engineStrict": true,
   "engines": {
-    "node": ">=16"
+    "node": ">=20"
   },
   "homepage": "https://github.com/wordpress/two-factor",
   "scripts": {
@@ -21,7 +21,7 @@
     "format:css": "npm run lint:css -- --fix",
     "test": "npm run composer test",
     "test:watch": "npm run composer test:watch",
-    "composer": "wp-env run cli --env-cwd=wp-content/plugins/two-factor composer",
+    "composer": "wp-env run tests-cli --env-cwd=wp-content/plugins/two-factor composer",
     "preinstall": "composer install"
   },
   "repository": {
