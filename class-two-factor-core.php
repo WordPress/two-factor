@@ -1723,44 +1723,38 @@ class Two_Factor_Core {
 		?>
 		<h3><?php esc_html_e( 'Two-Factor Options', 'two-factor' ); ?></h3>
 		<input type="hidden" name="<?php echo esc_attr( self::ENABLED_PROVIDERS_USER_META_KEY ); ?>[]" value="<?php /* Dummy input so $_POST value is passed when no providers are enabled. */ ?>" />
-		<table class="form-table">
-			<tr>
-				<td>
-					<table class="two-factor-methods-table">
-						<thead>
-							<tr>
-								<th class="col-enabled" scope="col"><?php esc_html_e( 'Enabled', 'two-factor' ); ?></th>
-								<th class="col-primary" scope="col"><?php esc_html_e( 'Primary', 'two-factor' ); ?></th>
-								<th class="col-name" scope="col"><?php esc_html_e( 'Type', 'two-factor' ); ?></th>
-							</tr>
-						</thead>
-						<tbody>
-						<?php foreach ( self::get_providers() as $provider_key => $object ) : ?>
-							<tr>
-								<th scope="row"><input id="enabled-<?php echo esc_attr( $provider_key ); ?>" type="checkbox" name="<?php echo esc_attr( self::ENABLED_PROVIDERS_USER_META_KEY ); ?>[]" value="<?php echo esc_attr( $provider_key ); ?>" <?php checked( in_array( $provider_key, $enabled_providers, true ) ); ?> /></th>
-								<th scope="row"><input type="radio" name="<?php echo esc_attr( self::PROVIDER_USER_META_KEY ); ?>" value="<?php echo esc_attr( $provider_key ); ?>" <?php checked( $provider_key, $primary_provider_key ); ?> /></th>
-								<td>
-									<label class="two-factor-method-label" for="enabled-<?php echo esc_attr( $provider_key ); ?>"><?php echo esc_html( $object->get_label() ); ?></label>
-									<?php
-										/**
-										 * Fires after user options are shown.
-										 *
-										 * Use the {@see 'two_factor_user_options_' . $provider_key } hook instead.
-										 *
-										 * @deprecated 0.7.0
-										 *
-										 * @param WP_User $user The user.
-										 */
-										do_action_deprecated( 'two-factor-user-options-' . $provider_key, array( $user ), '0.7.0', 'two_factor_user_options_' . $provider_key );
-										do_action( 'two_factor_user_options_' . $provider_key, $user );
-									?>
-								</td>
-							</tr>
-						<?php endforeach; ?>
-						</tbody>
-					</table>
-				</td>
-			</tr>
+		<table class="two-factor-methods-table">
+			<thead>
+				<tr>
+					<th class="col-enabled" scope="col"><?php esc_html_e( 'Enabled', 'two-factor' ); ?></th>
+					<th class="col-primary" scope="col"><?php esc_html_e( 'Primary', 'two-factor' ); ?></th>
+					<th class="col-name" scope="col"><?php esc_html_e( 'Type', 'two-factor' ); ?></th>
+				</tr>
+			</thead>
+			<tbody>
+			<?php foreach ( self::get_providers() as $provider_key => $object ) : ?>
+				<tr>
+					<th scope="row"><input id="enabled-<?php echo esc_attr( $provider_key ); ?>" type="checkbox" name="<?php echo esc_attr( self::ENABLED_PROVIDERS_USER_META_KEY ); ?>[]" value="<?php echo esc_attr( $provider_key ); ?>" <?php checked( in_array( $provider_key, $enabled_providers, true ) ); ?> /></th>
+					<th scope="row"><input type="radio" name="<?php echo esc_attr( self::PROVIDER_USER_META_KEY ); ?>" value="<?php echo esc_attr( $provider_key ); ?>" <?php checked( $provider_key, $primary_provider_key ); ?> /></th>
+					<td>
+						<label class="two-factor-method-label" for="enabled-<?php echo esc_attr( $provider_key ); ?>"><?php echo esc_html( $object->get_label() ); ?></label>
+						<?php
+						/**
+						 * Fires after user options are shown.
+						 *
+						 * Use the {@see 'two_factor_user_options_' . $provider_key } hook instead.
+						 *
+						 * @deprecated 0.7.0
+						 *
+						 * @param WP_User $user The user.
+						 */
+						do_action_deprecated( 'two-factor-user-options-' . $provider_key, array( $user ), '0.7.0', 'two_factor_user_options_' . $provider_key );
+						do_action( 'two_factor_user_options_' . $provider_key, $user );
+						?>
+					</td>
+				</tr>
+			<?php endforeach; ?>
+			</tbody>
 		</table>
 		</fieldset>
 		<?php

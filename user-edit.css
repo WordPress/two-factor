@@ -3,6 +3,7 @@
 	background-color: #fff;
 	border: 1px solid #e5e5e5;
 	border-spacing: 0;
+	width: 100%;
 }
 
 .two-factor-methods-table thead,
@@ -39,8 +40,4 @@
 .two-factor-methods-table .two-factor-method-label {
 	display: block;
 	font-weight: 700;
-}
-
-#two-factor-options table.form-table td {
-	padding: 0;
 }
