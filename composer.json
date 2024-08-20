@@ -11,9 +11,6 @@
   },
   "config": {
     "sort-packages": true,
-    "platform": {
-      "php": "7.2"
-    },
     "allow-plugins": {
       "dealerdirect/phpcodesniffer-composer-installer": true
     }
@@ -21,7 +18,7 @@
   "minimum-stability": "dev",
   "prefer-stable" : true,
   "require": {
-    "php": ">=7.2"
+    "php": ">=7.2.24"
   },
   "require-dev": {
     "automattic/vipwpcs": "^3.0",
