@@ -63,18 +63,25 @@ jobs:
         name: Test PHP ${{ matrix.php }} ${{ matrix.wp != '' && format( ' (WP {0}) ', matrix.wp ) || '' }}
         runs-on: ubuntu-latest
         strategy:
-             matrix:
+            matrix:
                 php:
-                    - '8.3'
-                    - '8.2'
-                    - '8.1'
-                    - '8.0'
-                    - '7.4'
-                    - '7.3'
-                    - '7.2'
+                  - '8.3'
+                  - '8.2'
+                  - '8.1'
+                  - '8.0'
+                  - '7.4'
+                  - '7.3'
+                  - '7.2'
                 wp:
-                    - latest
-                    - trunk
+                  - latest
+                  - trunk
+                include:
+                  - wp: '4.6'
+                    php: '7.1'
+                  - wp: '4.6'
+                    php: '7.0'
+                  - wp: '4.6'
+                    php: '5.6'
         env:
             WP_ENV_PHP_VERSION: ${{ matrix.php }}
             WP_ENV_CORE: ${{ matrix.wp == 'trunk' && 'WordPress/WordPress' || format( 'https://wordpress.org/wordpress-{0}.zip', matrix.wp ) }}
