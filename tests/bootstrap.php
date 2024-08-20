@@ -41,12 +41,22 @@ tests_add_filter(
 	}
 );
 
+// Ensure that emails can be sent.
+tests_add_filter(
+	'wp_mail_from',
+	function( $email ) {
+		if ( false !== strpos( $email, '@localhost' ) ) {
+			$email = str_replace( '@localhost', '@example.org', $email );
+		}
+
+		return $email;
+	}
+);
+
 /**
- * Don't try to redirect in tests, just output..
+ * Don't try to redirect in tests, unsure why this is needed..
  */
 function wp_redirect( $location, $status = 302, $x_redirect_by = 'WordPress' ) {
-	fwrite( STDERR, "wp_redirect( $location, $status, $x_redirect_by );\n" );
-
 	return (bool) apply_filters( 'wp_redirect', $location, $status );
 }
 
