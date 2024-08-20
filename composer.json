@@ -29,10 +29,7 @@
     "php-coveralls/php-coveralls": "^2.5",
     "phpcompatibility/php-compatibility": "10.x-dev as 9.99.99",
     "phpcompatibility/phpcompatibility-wp": "^2.1",
-    "phpunit/phpunit": "^9.5",
-    "spatie/phpunit-watcher": "^1.23",
     "wp-coding-standards/wpcs": "^3.1",
-    "wp-phpunit/wp-phpunit": "~6.0",
     "yoast/phpunit-polyfills": "^2.0"
   },
   "scripts": {
