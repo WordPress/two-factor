@@ -11,16 +11,6 @@ module.exports = function( grunt ) {
 		invert: true,
 	} );
 
-	/**
-	 * Check if CLI input appears to indicate a truthy value.
-	 *
-	 * @param {string} input Value to check.
-	 * @return {boolean} If value appears to be truthy.
-	 */
-	function isTruthy( input ) {
-		return ( '1' === input || 'true' === input );
-	}
-
 	grunt.initConfig( {
 		pkg: grunt.file.readJSON( 'package.json' ),
 
