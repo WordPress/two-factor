@@ -2,13 +2,10 @@
 /**
  * Bootstrap the PHPUnit tests.
  *
- * The `WP_PHPUNIT__DIR` constant is defined in the phpunit.xml file
- * in the project root directory.
- *
  * @package two-factor
  */
 
-// Composer autoloader must be loaded before WP_PHPUNIT__DIR will be available.
+// Composer autoloader must be loaded before phpunit will be available.
 require_once dirname( __DIR__ ) . '/vendor/autoload.php';
 
 // Determine the tests directory (from a WP dev checkout).

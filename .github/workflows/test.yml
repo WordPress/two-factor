@@ -57,7 +57,7 @@ jobs:
               run: npm run lint:php || true # Ignore for now.
 
             - name: Lint PHP Compatibility
-              run: composer lint-compat
+              run: npm run composer lint-compat
 
     test-php:
         name: Test PHP ${{ matrix.php }} ${{ matrix.wordpress != '' && format( ' (WP {0}) ', matrix.wordpress ) || '' }}
@@ -71,16 +71,16 @@ jobs:
                     - '8.1'
                     - '8.2'
                 wordpress:
-                    - WordPress/WordPress
+                    - latest
         env:
             WP_ENV_PHP_VERSION: ${{ matrix.php }}
-            WP_ENV_CORE: ${{ matrix.wordpress }}
+            WP_ENV_CORE: ${{ matrix.wp == 'trunk' && 'WordPress/WordPress' || format( 'https://wordpress.org/wordpress-{0}.zip', matrix.wp ) }}
 
         steps:
             - name: Checkout
               uses: actions/checkout@v3
 
-            - name: Setup PHP and Composer
+            - name: Setup PHP
               uses: shivammathur/setup-php@v2
               with:
                 php-version: '8.2'
@@ -97,6 +97,9 @@ jobs:
             - name: Start the Docker testing environment
               run: npm run env start --xdebug=coverage
 
+            - name: Composer install
+              run: npm run composer install
+
             - name: Test
               run: npm run test
 
@@ -107,7 +110,7 @@ jobs:
             - name: Checkout
               uses: actions/checkout@v3
 
-            - name: Setup PHP and Composer
+            - name: Setup PHP
               uses: shivammathur/setup-php@v2
               with:
                 php-version: '8.2'

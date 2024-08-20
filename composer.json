@@ -15,13 +15,13 @@
       "dealerdirect/phpcodesniffer-composer-installer": true
     },
     "platform": {
-      "php": "7.4"
+      "php": "7.2.24"
     }
   },
   "minimum-stability": "dev",
   "prefer-stable" : true,
   "require": {
-    "php": ">=7.2.24"
+    "php": ">=7.2.24|^8"
   },
   "require-dev": {
     "automattic/vipwpcs": "^3.0",
