@@ -53,12 +53,5 @@ tests_add_filter(
 	}
 );
 
-/**
- * Don't try to redirect in tests, unsure why this is needed..
- */
-function wp_redirect( $location, $status = 302, $x_redirect_by = 'WordPress' ) {
-	return (bool) apply_filters( 'wp_redirect', $location, $status );
-}
-
 // Start up the WP testing environment.
 require_once $_tests_dir . '/includes/bootstrap.php';
