@@ -31,6 +31,9 @@ When you're ready, open [a pull request](https://help.github.com/articles/creati
 
 1. Run `npm test` or `npm run test:watch`.
 
+To generate a code coverage report, be sure to start the testing environment with coverage support enabled:
+    npm run env start -- --xdebug=coverage
+
 To view the code coverage report, you can open a web browser, go to `File > Open file...`, and then select `{path to two-factor}/tests/logs/html/index.html`.
 
 ## Deployments
