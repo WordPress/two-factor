@@ -18,7 +18,7 @@
     "format:php": "composer format",
     "format:js": "npm run lint:js -- --fix",
     "format:css": "npm run lint:css -- --fix",
-    "test": "npm run tests-cli --env-cwd=wp-content/plugins/two-factor vendor/bin/phpunit --",
+    "test": "wp-env run tests-cli --env-cwd=wp-content/plugins/two-factor vendor/bin/phpunit --",
     "test:watch": "npm run composer test:watch",
     "composer": "wp-env run tests-cli --env-cwd=wp-content/plugins/two-factor composer --",
     "preinstall": "composer install"
