@@ -9,7 +9,6 @@
   "homepage": "https://github.com/wordpress/two-factor",
   "scripts": {
     "env": "wp-env",
-    "deploy": "grunt deploy",
     "build": "grunt build",
     "lint": "npm-run-all lint:*",
     "lint:php": "composer lint",
