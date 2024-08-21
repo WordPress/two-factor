@@ -103,7 +103,7 @@ jobs:
               with:
                 timeout_minutes: 10
                 max_attempts: 3
-                command: npm run env start -- --xdebug=coverage
+                command: npm run env start
 
             - name: Composer install
               run: npm run composer install
