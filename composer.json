@@ -11,17 +11,17 @@
   },
   "config": {
     "sort-packages": true,
-    "allow-plugins": {
-      "dealerdirect/phpcodesniffer-composer-installer": true
-    },
     "platform": {
       "php": "7.2.24"
+    },
+    "allow-plugins": {
+      "dealerdirect/phpcodesniffer-composer-installer": true
     }
   },
   "minimum-stability": "dev",
   "prefer-stable" : true,
   "require": {
-    "php": ">=5.6|^7|^8"
+    "php": ">=7.2.24|^8"
   },
   "require-dev": {
     "automattic/vipwpcs": "^3.0",
