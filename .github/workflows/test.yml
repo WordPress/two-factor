@@ -106,7 +106,9 @@ jobs:
                 command: npm run env start
 
             - name: Composer install
-              run: npm run composer install
+              run: |
+                rm composer.lock || true # We need to install fresh.
+                npm run composer install
 
             - name: Versions
               run: |
