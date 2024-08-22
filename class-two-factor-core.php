@@ -209,7 +209,7 @@ class Two_Factor_Core {
 	 * @return array
 	 */
 	public static function enable_dummy_method_for_debug( $methods ) {
-		if ( ! self::is_wp_debug() && ! self::is_tests() ) {
+		if ( ! self::is_wp_debug() ) {
 			unset( $methods['Two_Factor_Dummy'] );
 		}
 
@@ -223,15 +223,6 @@ class Two_Factor_Core {
 	 */
 	protected static function is_wp_debug() {
 		return ( defined( 'WP_DEBUG' ) && WP_DEBUG );
-	}
-
-	/**
-	 * Check if we're running within Unit Tests.
-	 *
-	 * @return boolean
-	 */
-	protected static function is_tests() {
-		return defined( 'DIR_TESTDATA' ) && function_exists( 'tests_add_filter' );
 	}
 
 	/**
