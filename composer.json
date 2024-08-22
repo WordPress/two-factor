@@ -25,7 +25,7 @@
   "minimum-stability": "dev",
   "prefer-stable" : true,
   "require": {
-    "php": ">=5.6"
+    "php": ">=7.2.24|^8"
   },
   "require-dev": {
     "automattic/vipwpcs": "^3.0",
@@ -43,7 +43,7 @@
   },
   "scripts": {
     "lint": "phpcs",
-    "lint-compat": "phpcs -p --standard=PHPCompatibilityWP --runtime-set testVersion 5.6- --extensions=php --ignore='tests/,dist/,includes/Yubico/,vendor/,wordpress/,node_modules/' .",
+    "lint-compat": "phpcs -p --standard=PHPCompatibilityWP --runtime-set testVersion 7.2- --extensions=php --ignore='tests/,dist/,includes/Yubico/,vendor/,wordpress/,node_modules/' .",
     "test": "phpunit",
     "test:watch": [
       "Composer\\Config::disableProcessTimeout",
