@@ -29,22 +29,10 @@ When you're ready, open [a pull request](https://help.github.com/articles/creati
 
 ## Testing
 
-### Running tests in Docker
+1. Run `npm test` or `npm run test:watch`.
 
-1. Run `npm run env start`
-1. Run `npm run test` or `npm run test:watch`.
-
-### Running tests locally
-
-1. Create a MySQL database for the tests. Don't reuse an existing database, because all of the data will be deleted every time the tests are run.
-1. Add the following to your `~/.bashrc`, with the values for the database you created above:
-	```
-	export WORDPRESS_DB_NAME=wp_tests
-	export WORDPRESS_DB_USER=wp_tests
-	export WORDPRESS_DB_PASSWORD=wp_tests
-	```
-1. `source ~/.bashrc`
-1. Run `composer run test` or `composer run test:watch`.
+To generate a code coverage report, be sure to start the testing environment with coverage support enabled:
+    npm run env start -- --xdebug=coverage
 
 To view the code coverage report, you can open a web browser, go to `File > Open file...`, and then select `{path to two-factor}/tests/logs/html/index.html`.
 

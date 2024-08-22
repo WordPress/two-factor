@@ -4,12 +4,11 @@
   "private": true,
   "engineStrict": true,
   "engines": {
-    "node": ">=16"
+    "node": ">=20"
   },
   "homepage": "https://github.com/wordpress/two-factor",
   "scripts": {
     "env": "wp-env",
-    "deploy": "grunt deploy",
     "build": "grunt build",
     "lint": "npm-run-all lint:*",
     "lint:php": "composer lint",
@@ -19,9 +18,9 @@
     "format:php": "composer format",
     "format:js": "npm run lint:js -- --fix",
     "format:css": "npm run lint:css -- --fix",
-    "test": "npm run composer test",
+    "test": "wp-env run tests-cli --env-cwd=wp-content/plugins/two-factor vendor/bin/phpunit --",
     "test:watch": "npm run composer test:watch",
-    "composer": "wp-env run phpunit composer --working-dir=/var/www/html/wp-content/plugins/two-factor",
+    "composer": "wp-env run tests-cli --env-cwd=wp-content/plugins/two-factor composer --",
     "preinstall": "composer install"
   },
   "repository": {
@@ -34,14 +33,13 @@
     "qrcode-generator": "^1.4.4"
   },
   "devDependencies": {
-    "@wordpress/env": "^5.4.0",
-    "@wordpress/eslint-plugin": "^13.3.0",
-    "@wordpress/scripts": "^27.7.0",
-    "grunt": "^1.5.3",
-    "grunt-cli": "^1.4.3",
+    "@wordpress/env": "^10.5.0",
+    "@wordpress/eslint-plugin": "^20.2.0",
+    "@wordpress/scripts": "^28.5.0",
+    "grunt": "^1.6.1",
+    "grunt-cli": "^1.5.0",
     "grunt-contrib-clean": "^2.0.1",
     "grunt-contrib-copy": "^1.0.0",
-    "grunt-wp-deploy": "^2.1.2",
     "load-grunt-tasks": "^5.1.0",
     "npm-run-all": "^4.1.5",
     "parse-gitignore": "^0.5.1"
