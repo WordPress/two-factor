@@ -38,17 +38,5 @@ tests_add_filter(
 	}
 );
 
-// Ensure that emails can be sent.
-tests_add_filter(
-	'wp_mail_from',
-	function( $email ) {
-		if ( false !== strpos( $email, '@localhost' ) ) {
-			$email = str_replace( '@localhost', '@example.org', $email );
-		}
-
-		return $email;
-	}
-);
-
 // Start up the WP testing environment.
 require_once $_tests_dir . '/includes/bootstrap.php';
