@@ -18,7 +18,6 @@ To use the provided development environment, you'll first need to install and la
 
     $ git clone https://github.com/wordpress/two-factor.git
     $ cd two-factor
-    $ composer install
     $ npm install
     $ npm run build
     $ npm run env start
