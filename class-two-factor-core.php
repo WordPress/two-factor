@@ -1723,7 +1723,7 @@ class Two_Factor_Core {
 		?>
 		<h3><?php esc_html_e( 'Two-Factor Options', 'two-factor' ); ?></h3>
 		<input type="hidden" name="<?php echo esc_attr( self::ENABLED_PROVIDERS_USER_META_KEY ); ?>[]" value="<?php /* Dummy input so $_POST value is passed when no providers are enabled. */ ?>" />
-		<table class="two-factor-methods-table">
+		<table class="wp-list-table widefat fixed striped table-view-list two-factor-methods-table">
 			<thead>
 				<tr>
 					<th class="col-enabled" scope="col"><?php esc_html_e( 'Enabled', 'two-factor' ); ?></th>
