@@ -163,6 +163,8 @@ class Two_Factor_Core {
 	 * @return array
 	 */
 	public static function get_providers() {
+		$providers = self::get_providers_registered();
+
 		/**
 		 * Filter the supplied providers.
 		 *
@@ -172,7 +174,7 @@ class Two_Factor_Core {
 		 * @param array $providers A key-value array where the key is the class name, and
 		 *                         the value is the path to the file containing the class.
 		 */
-		$providers = apply_filters( 'two_factor_providers', self::get_providers_registered() );
+		$providers = apply_filters( 'two_factor_providers', $providers );
 
 		// FIDO U2F is PHP 5.3+ only.
 		if ( isset( $providers['Two_Factor_FIDO_U2F'] ) && version_compare( PHP_VERSION, '5.3.0', '<' ) ) {
