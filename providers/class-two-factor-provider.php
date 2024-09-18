@@ -178,6 +178,8 @@ abstract class Two_Factor_Provider {
 	/**
 	 * Return the option keys that need to be deleted on plugin uninstall.
 	 *
+	 * Note: this method doesn't have access to the instantiated provider object.
+	 *
 	 * @return array
 	 */
 	public static function uninstall_options() {
