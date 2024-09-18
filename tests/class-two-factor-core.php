@@ -812,6 +812,61 @@ class Test_ClassTwoFactorCore extends WP_UnitTestCase {
 	}
 
 	/**
+	 * @covers Two_Factor_Core::enable_provider_for_user()
+	 * @covers Two_Factor_Core::disable_provider_for_user()
+	 */
+	public function test_enable_disable_provider_for_user() {
+		$user              = self::factory()->user->create_and_get();
+		$enabled_providers = Two_Factor_Core::get_enabled_providers_for_user( $user->ID );
+		$this->assertEmpty( $enabled_providers );
+
+		// Disabling one that's already disabled should succeed.
+		$totp_disabled = Two_Factor_Core::disable_provider_for_user( $user->ID, 'Two_Factor_Totp' );
+		$this->assertTrue( $totp_disabled );
+
+		// Disabling one that doesn't exist should fail.
+		$nonexistent_enabled = Two_Factor_Core::enable_provider_for_user( $user->ID, 'Nonexistent_Provider' );
+		$enabled_providers = Two_Factor_Core::get_enabled_providers_for_user( $user->ID );
+		$this->assertFalse( $nonexistent_enabled );
+		$this->assertEmpty( $enabled_providers );
+		$this->assertNull( Two_Factor_Core::get_primary_provider_for_user( $user->ID ) );
+
+		// Enabling a valid one should succeed. The first one that's enabled and configured should be the default primary.
+		$totp = Two_Factor_Totp::get_instance();
+		$totp->set_user_totp_key( $user->ID, 'foo' );
+		$totp_enabled = Two_Factor_Core::enable_provider_for_user( $user->ID, 'Two_Factor_Totp' );
+		$enabled_providers = Two_Factor_Core::get_enabled_providers_for_user( $user->ID );
+		$this->assertTrue( $totp_enabled );
+		$this->assertSame( array( 'Two_Factor_Totp' ), $enabled_providers );
+		$this->assertSame( 'Two_Factor_Totp', Two_Factor_Core::get_primary_provider_for_user( $user->ID )->get_key() );
+
+		// Enabling one that's already enabled should succeed.
+		$totp_enabled = Two_Factor_Core::enable_provider_for_user( $user->ID, 'Two_Factor_Totp' );
+		$this->assertTrue( $totp_enabled );
+
+		// Enabling another should succeed, and not change the primary.
+		$dummy_enabled = Two_Factor_Core::enable_provider_for_user( $user->ID, 'Two_Factor_Dummy' );
+		$enabled_providers = Two_Factor_Core::get_enabled_providers_for_user( $user->ID );
+		$this->assertTrue( $dummy_enabled );
+		$this->assertSame( array( 'Two_Factor_Totp', 'Two_Factor_Dummy' ), $enabled_providers );
+		$this->assertSame( 'Two_Factor_Totp', Two_Factor_Core::get_primary_provider_for_user( $user->ID )->get_key() );
+
+		// Disabling one that doesn't exist should fail.
+		$nonexistent_disabled = Two_Factor_Core::disable_provider_for_user( $user->ID, 'Nonexistent_Provider' );
+		$enabled_providers = Two_Factor_Core::get_enabled_providers_for_user( $user->ID );
+		$this->assertFalse( $nonexistent_disabled );
+		$this->assertSame( array( 'Two_Factor_Totp', 'Two_Factor_Dummy' ), $enabled_providers );
+		$this->assertSame( 'Two_Factor_Totp', Two_Factor_Core::get_primary_provider_for_user( $user->ID )->get_key() );
+
+		// Disabling one that's enabled should succeed, and change the primary to the next available one.
+		$totp_disabled = Two_Factor_Core::disable_provider_for_user( $user->ID, 'Two_Factor_Totp' );
+		$enabled_providers = Two_Factor_Core::get_enabled_providers_for_user( $user->ID );
+		$this->assertTrue( $totp_disabled ); //todo enable and fix
+		$this->assertSame( array( 1 => 'Two_Factor_Dummy' ), $enabled_providers );
+		$this->assertSame( 'Two_Factor_Dummy', Two_Factor_Core::get_primary_provider_for_user( $user->ID )->get_key() );
+	}
+
+	/**
 	 * Ensure that when a user enables two factor, that they are able to continue to change settings.
 	 *
 	 * @covers Two_Factor_Core::current_user_can_update_two_factor_options()
@@ -1049,15 +1104,26 @@ class Test_ClassTwoFactorCore extends WP_UnitTestCase {
 		// Revalidate.
 		// Simulate displaying it.
 		ob_start();
-		Two_Factor_Core::_login_form_revalidate_2fa( 'Two_Factor_Dummy', '', false );
+		Two_Factor_Core::_login_form_revalidate_2fa( '', 'Two_Factor_Dummy', '', false );
+		ob_end_clean();
+
+		// Check it's still expired.
+		$this->assertLessThan( time(), Two_Factor_Core::is_current_user_session_two_factor() );
+
+		// Simulate clicking it with an incorrect nonce.
+		$bad_nonce = '__BAD_NONCE__';
+		ob_start();
+		Two_Factor_Core::_login_form_revalidate_2fa( $bad_nonce, 'Two_Factor_Dummy', '', true );
 		ob_end_clean();
 
 		// Check it's still expired.
 		$this->assertLessThan( time(), Two_Factor_Core::is_current_user_session_two_factor() );
 
 		// Simulate clicking it.
+		$login_nonce = wp_create_nonce( 'two_factor_revalidate_' . $user->ID );
+
 		ob_start();
-		Two_Factor_Core::_login_form_revalidate_2fa( 'Two_Factor_Dummy', '', true );
+		Two_Factor_Core::_login_form_revalidate_2fa( $login_nonce, 'Two_Factor_Dummy', '', true );
 		ob_end_clean();
 
 		// Validate that the session is flagged as 2FA, and set to now-ish.
@@ -1259,4 +1325,234 @@ class Test_ClassTwoFactorCore extends WP_UnitTestCase {
 		);
 	}
 
+	/**
+	 * Test that session information related to Two-Factor sync's to new sessions created in the context of the user.
+	 *
+	 * @covers Two_Factor_Core::filter_session_information
+	 */
+	public function test_filter_session_information() {
+		$user = $this->get_dummy_user( array( 'Two_Factor_Dummy' => 'Two_Factor_Dummy' ) );
+
+		// Assert no cookies are set.
+		$this->assertArrayNotHasKey( AUTH_COOKIE, $_COOKIE );
+		$this->assertArrayNotHasKey( LOGGED_IN_COOKIE, $_COOKIE );
+
+		// Assert user not logged in is false.
+		$this->assertFalse( Two_Factor_Core::is_current_user_session_two_factor() );
+
+		// Display it.
+		$login_nonce = Two_Factor_Core::create_login_nonce( $user->ID );
+		$this->assertNotFalse( $login_nonce );
+
+		// Process it.
+		ob_start();
+		Two_Factor_Core::_login_form_validate_2fa( $user, $login_nonce['key'], 'Two_Factor_Dummy', '', true );
+		ob_end_clean();
+
+		$this->assertNotEmpty( $_COOKIE[ AUTH_COOKIE ] );
+		$this->assertNotEmpty( $_COOKIE[ LOGGED_IN_COOKIE ] );
+
+		// Boilerplate ends here.
+
+		// Add a custom meta item to the session
+		Two_Factor_Core::update_current_user_session( [
+			'two-factor-test-key1' => 'test-value',
+			'two-factor-test-key2' => 'test-value',
+			'tests-key'            => 'test-value',
+		] );
+
+		$session = Two_Factor_Core::get_current_user_session();
+		$this->assertArrayHasKey( 'two-factor-test-key1', $session );
+		$this->assertArrayHasKey( 'two-factor-test-key2', $session );
+		$this->assertArrayHasKey( 'tests-key', $session );
+
+		// Create a new user session.
+		$manager = WP_Session_Tokens::get_instance( $user->ID );
+		$token   = $manager->create( time() + DAY_IN_SECONDS );
+		$session = $manager->get( $token );
+
+		$this->assertNotSame( $token, wp_get_session_token() );
+
+		// Validate that the two-factor-* key(s) sync over.
+		$this->assertArrayHasKey( 'two-factor-test-key1', $session );
+		$this->assertArrayHasKey( 'two-factor-test-key2', $session );
+		$this->assertArrayNotHasKey( 'tests-key', $session );
+
+		// Validate that it only applies to new sessions created for this user from this user session.
+
+		// Simulate a new browser session.
+		unset( $_COOKIE[ AUTH_COOKIE ], $_COOKIE[ LOGGED_IN_COOKIE ] );
+		wp_set_current_user( 0 );
+
+		$this->assertEmpty( wp_get_session_token() );
+
+		$token2  = $manager->create( time() + DAY_IN_SECONDS );
+		$session = $manager->get( $token2 );
+
+		$this->assertNotSame( $token, wp_get_session_token() );
+		$this->assertNotSame( $token, $token2 );
+
+		$this->assertArrayNotHasKey( 'two-factor-test-key1', $session );
+		$this->assertArrayNotHasKey( 'two-factor-test-key2', $session );
+		$this->assertArrayNotHasKey( 'tests-key', $session );
+	}
+
+
+	/**
+	 * Validate that other sessions are destroyed once Two-Factor is enabled.
+	 *
+	 * @covers Two_Factor_Core::user_two_factor_options_update
+	 */
+	public function test_other_sessions_destroyed_when_enabling_2fa() {
+		$user_id = self::factory()->user->create(
+			array(
+				'user_login' => 'username',
+				'user_pass'  => 'password',
+			)
+		);
+
+		$user = new WP_User( $user_id );
+
+		$session_manager = WP_Session_Tokens::get_instance( $user->ID );
+
+		$this->assertCount( 0, $session_manager->get_all(), 'No user sessions are present first' );
+
+		// Generate multiple existing sessions.
+		$session_manager->create( time() + HOUR_IN_SECONDS );
+		$session_manager->create( time() + DAY_IN_SECONDS  );
+		$this->assertCount( 2, $session_manager->get_all(), 'Can fetch active sessions' );
+
+		// Shim the cookie... this allows for functions that use sessions to know the current session.
+		add_action( 'set_logged_in_cookie', function( $logged_in_cookie ) {
+			$_COOKIE[ LOGGED_IN_COOKIE ] = $logged_in_cookie;
+		} );
+
+		$user_authenticated = wp_signon(
+			array(
+				'user_login'    => 'username',
+				'user_password' => 'password',
+			)
+		);
+		$this->assertEquals( $user_authenticated, $user, 'User can authenticate' );
+
+		// Enable Two-Factor for the user.
+		wp_set_current_user( $user->ID );
+
+		$key              = '_nonce_user_two_factor_options';
+		$nonce            = wp_create_nonce( 'user_two_factor_options' );
+		$_POST[ $key ]    = $nonce;
+		$_REQUEST[ $key ] = $nonce;
+
+		$_POST[ Two_Factor_Core::ENABLED_PROVIDERS_USER_META_KEY ] = array(
+			'Two_Factor_Dummy' => 'Two_Factor_Dummy'
+		);
+
+		Two_Factor_Core::user_two_factor_options_update( $user->ID );
+
+		// Validate that Two-Factor is now enabled.
+		$this->assertCount( 1, Two_Factor_Core::get_available_providers_for_user( $user->ID ) );
+		$this->assertCount( 1, Two_Factor_Core::get_enabled_providers_for_user( $user->ID ) );
+
+		// Validate that only the current session still exists.
+		$this->assertCount( 1, $session_manager->get_all(), 'All known authentication sessions have been destroyed' );
+
+		// Create another session, activate another provider, verify sessions are still valid.
+		$session_manager->create( time() + DAY_IN_SECONDS  );
+		$this->assertCount( 2, $session_manager->get_all(), 'Failed to create another session' );
+
+		$_POST[ Two_Factor_Core::ENABLED_PROVIDERS_USER_META_KEY ] = array(
+			'Two_Factor_Dummy' => 'Two_Factor_Dummy',
+			'Two_Factor_Email' => 'Two_Factor_Email',
+		);
+
+		Two_Factor_Core::user_two_factor_options_update( $user->ID );
+
+		// Validate that Two-Factor is now enabled with two providers.
+		$this->assertCount( 2, Two_Factor_Core::get_available_providers_for_user( $user->ID ) );
+		$this->assertCount( 2, Two_Factor_Core::get_enabled_providers_for_user( $user->ID ) );
+
+		$this->assertCount( 2, $session_manager->get_all(), 'Adding an additional provider should not destroy other sessions.' );
+
+		// Disable a provider, verify other sessions are destroyed.
+		$_POST[ Two_Factor_Core::ENABLED_PROVIDERS_USER_META_KEY ] = array(
+			'Two_Factor_Dummy' => 'Two_Factor_Dummy',
+		);
+
+		Two_Factor_Core::user_two_factor_options_update( $user->ID );
+
+		// Validate that Two-Factor is now enabled with two providers.
+		$this->assertCount( 1, Two_Factor_Core::get_available_providers_for_user( $user->ID ) );
+		$this->assertCount( 1, Two_Factor_Core::get_enabled_providers_for_user( $user->ID ) );
+
+		$this->assertCount( 1, $session_manager->get_all(), 'All known authentication sessions have been destroyed' );
+
+		// Create another session, deactivate two-factor, verify sessions are still valid.
+		$session_manager->create( time() + DAY_IN_SECONDS  );
+		$this->assertCount( 2, $session_manager->get_all(), 'Failed to create another session' );
+
+		$_POST[ Two_Factor_Core::ENABLED_PROVIDERS_USER_META_KEY ] = array();
+
+		Two_Factor_Core::user_two_factor_options_update( $user->ID );
+
+		// Validate that Two-Factor is now disabled.
+		$this->assertCount( 0, Two_Factor_Core::get_available_providers_for_user( $user->ID ) );
+		$this->assertCount( 0, Two_Factor_Core::get_enabled_providers_for_user( $user->ID ) );
+
+		$this->assertCount( 2, $session_manager->get_all(), 'All known authentication sessions have been destroyed' );
+	}
+
+	/**
+	 * Validate the current users sessions are not modified when modifying another user.
+	 *
+	 * @covers Two_Factor_Core::user_two_factor_options_update
+	 */
+	public function test_all_sessions_destroyed_when_enabling_2fa_by_admin() {
+		$admin_id = self::factory()->user->create(
+			array(
+				'role' => 'administrator'
+			)
+		);
+		wp_set_current_user( $admin_id );
+
+		// Create an admin session,.
+		$admin_session_manager = WP_Session_Tokens::get_instance( $admin_id );
+
+		$admin_session_manager->create( time() + DAY_IN_SECONDS  );
+		$this->assertCount( 1, $admin_session_manager->get_all(), 'No admin sessions are present first' );
+
+		// Create the target user.
+		$user_id = self::factory()->user->create(
+			array(
+				'user_login' => 'username',
+				'user_pass'  => 'password',
+			)
+		);
+
+		$session_manager = WP_Session_Tokens::get_instance( $user_id );
+
+		$this->assertCount( 0, $session_manager->get_all(), 'No user sessions are present first' );
+
+		// Generate multiple existing sessions.
+		$session_manager->create( time() + DAY_IN_SECONDS  );
+		$this->assertCount( 1, $session_manager->get_all(), 'Can fetch active sessions' );
+
+		$key              = '_nonce_user_two_factor_options';
+		$nonce            = wp_create_nonce( 'user_two_factor_options' );
+		$_POST[ $key ]    = $nonce;
+		$_REQUEST[ $key ] = $nonce;
+
+		$_POST[ Two_Factor_Core::ENABLED_PROVIDERS_USER_META_KEY ] = array( 'Two_Factor_Dummy' => 'Two_Factor_Dummy' );
+
+		Two_Factor_Core::user_two_factor_options_update( $user_id );
+
+		// Validate that Two-Factor is now enabled.
+		$this->assertCount( 1, Two_Factor_Core::get_available_providers_for_user( $user_id ) );
+		$this->assertCount( 1, Two_Factor_Core::get_enabled_providers_for_user( $user_id ) );
+
+		// Validate the User has no sessions.
+		$this->assertCount( 0, $session_manager->get_all(), 'All known authentication sessions have been destroyed' );
+
+		// Validate that the Admin still has a session.
+		$this->assertCount( 1, $admin_session_manager->get_all(), 'No admin sessions are present first' );
+	}
 }

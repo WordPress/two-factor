@@ -18,7 +18,6 @@ To use the provided development environment, you'll first need to install and la
 
     $ git clone https://github.com/wordpress/two-factor.git
     $ cd two-factor
-    $ composer install
     $ npm install
     $ npm run build
     $ npm run env start
@@ -29,28 +28,16 @@ When you're ready, open [a pull request](https://help.github.com/articles/creati
 
 ## Testing
 
-### Running tests in Docker
+1. Run `npm test` or `npm run test:watch`.
 
-1. Run `npm run env start`
-1. Run `npm run test` or `npm run test:watch`.
-
-### Running tests locally
-
-1. Create a MySQL database for the tests. Don't reuse an existing database, because all of the data will be deleted every time the tests are run.
-1. Add the following to your `~/.bashrc`, with the values for the database you created above:
-	```
-	export WORDPRESS_DB_NAME=wp_tests
-	export WORDPRESS_DB_USER=wp_tests
-	export WORDPRESS_DB_PASSWORD=wp_tests
-	```
-1. `source ~/.bashrc`
-1. Run `composer run test` or `composer run test:watch`.
+To generate a code coverage report, be sure to start the testing environment with coverage support enabled:
+    npm run env start -- --xdebug=coverage
 
 To view the code coverage report, you can open a web browser, go to `File > Open file...`, and then select `{path to two-factor}/tests/logs/html/index.html`.
 
 ## Deployments
 
-Deployments [to WP.org plugin repository](https://wordpress.org/plugins/two-factor/) are handled automatically by the GitHub action [.github/workflows/deploy.yml](.github/workflows/deploy.yml). All merges to the `master` branch are commited to the [`trunk` directory](https://plugins.trac.wordpress.org/browser/two-factor/trunk) while all [Git tags](https://github.com/WordPress/two-factor/tags) are pushed as versioned releases [under the `tags` directory](https://plugins.trac.wordpress.org/browser/two-factor/tags).
+Deployments [to WP.org plugin repository](https://wordpress.org/plugins/two-factor/) are handled automatically by the GitHub action [.github/workflows/deploy.yml](.github/workflows/deploy.yml). All merges to the `master` branch are committed to the [`trunk` directory](https://plugins.trac.wordpress.org/browser/two-factor/trunk) while all [Git tags](https://github.com/WordPress/two-factor/tags) are pushed as versioned releases [under the `tags` directory](https://plugins.trac.wordpress.org/browser/two-factor/tags).
 
 ## Known Issues
 

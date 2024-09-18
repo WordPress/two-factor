@@ -1,12 +1,12 @@
 === Two-Factor ===
-Contributors:      georgestephanis, valendesigns, stevenkword, extendwings, sgrant, aaroncampbell, johnbillion, stevegrunwell, netweb, kasparsd, alihusnainarshad, passoniate
-Tags:              two factor, two step, authentication, login, totp email, backup codes, 2fa, yubikey
-Requires at least: 4.3
-Tested up to:      6.2
-Requires PHP:      5.6
-Stable tag:        0.8.1
+Contributors: georgestephanis, valendesigns, stevenkword, extendwings, sgrant, aaroncampbell, johnbillion, stevegrunwell, netweb, kasparsd, alihusnainarshad, passoniate
+Tags:         2fa, mfa, totp, authentication, security
+Tested up to: 6.6
+Stable tag:   0.9.1
+License:      GPL-2.0-or-later
+License URI:  https://spdx.org/licenses/GPL-2.0-or-later.html
 
-Enable Two-Factor Authentication using time-based one-time passwords (OTP, Google Authenticator), email and backup verification codes.
+Enable Two-Factor Authentication using time-based one-time passwords, email, and backup verification codes.
 
 == Description ==
 
