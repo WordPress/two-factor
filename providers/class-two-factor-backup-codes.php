@@ -40,7 +40,7 @@ class Two_Factor_Backup_Codes extends Two_Factor_Provider {
 		add_action( 'two_factor_user_options_' . __CLASS__, array( $this, 'user_options' ) );
 		add_action( 'admin_notices', array( $this, 'admin_notices' ) );
 
-		return parent::__construct();
+		parent::__construct();
 	}
 
 	/**
