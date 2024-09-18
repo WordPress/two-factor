@@ -196,8 +196,9 @@ class Two_Factor_Core {
 		 * @param array $providers A key-value array where the key is the class name, and
 		 *                         the value is the path to the file containing the class.
 		 */
-		$additional_providers = apply_filters( 'two_factor_providers', array() );
+		$additional_providers = apply_filters( 'two_factor_providers', $providers );
 
+		// Merge them with the default providers.
 		if ( ! empty( $additional_providers ) ) {
 			return array_merge( $providers, $additional_providers );
 		}
@@ -242,7 +243,7 @@ class Two_Factor_Core {
 	}
 
 	/**
-	 * For each provider, include it and then instantiate it.
+	 * Get all enabled two-factor providers.
 	 *
 	 * @since 0.1-dev
 	 *
