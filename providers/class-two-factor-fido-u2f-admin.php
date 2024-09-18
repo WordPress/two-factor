@@ -230,7 +230,7 @@ class Two_Factor_FIDO_U2F_Admin {
 	 * @static
 	 *
 	 * @param int $user_id User ID.
-	 * @return false
+	 * @return void|never
 	 */
 	public static function catch_submission( $user_id ) {
 		if ( ! empty( $_REQUEST['do_new_security_key'] ) ) {
@@ -243,7 +243,7 @@ class Two_Factor_FIDO_U2F_Admin {
 
 				Two_Factor_FIDO_U2F::add_security_key( $user_id, $reg );
 			} catch ( Exception $e ) {
-				return false;
+				return;
 			}
 
 			delete_user_meta( $user_id, self::REGISTER_DATA_USER_META_KEY );
