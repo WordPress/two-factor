@@ -50,3 +50,6 @@ require_once TWO_FACTOR_DIR . 'class-two-factor-compat.php';
 $two_factor_compat = new Two_Factor_Compat();
 
 Two_Factor_Core::add_hooks( $two_factor_compat );
+
+// Delete our options and user meta during uninstall.
+register_uninstall_hook( __FILE__, array( Two_Factor_Core::class, 'uninstall' ) );

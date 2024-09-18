@@ -132,6 +132,43 @@ class Two_Factor_Core {
 	}
 
 	/**
+	 * Delete all plugin data on uninstall.
+	 *
+	 * @return void
+	 */
+	public static function uninstall() {
+		// Keep this updated as user meta keys are added or removed.
+		$user_meta_keys = array(
+			self::PROVIDER_USER_META_KEY,
+			self::ENABLED_PROVIDERS_USER_META_KEY,
+			self::USER_META_NONCE_KEY,
+			self::USER_RATE_LIMIT_KEY,
+			self::USER_FAILED_LOGIN_ATTEMPTS_KEY,
+			self::USER_PASSWORD_WAS_RESET_KEY,
+		);
+
+		// Merge with any provider-specific user meta keys.
+		$user_meta_keys = array_merge(
+			$user_meta_keys,
+			self::get_providers_uninstall_user_meta_keys()
+		);
+
+		$user_ids = get_users(
+			array(
+				'blog_id' => 0, // Return all users.
+				'fields' => 'ID',
+				'number' => -1, // This might take a while on larger sites but we have only one uninstall hook to run this.
+			)
+		);
+
+		foreach ( $user_ids as $user_id ) {
+			foreach ( $user_meta_keys as $meta_key ) {
+				delete_user_meta( $user_id, $meta_key );
+			}
+		}
+	}
+
+	/**
 	 * Get the registered providers of which some might not be enabled.
 	 *
 	 * @return array List of provider keys and paths to class files.
