@@ -1721,7 +1721,7 @@ class Two_Factor_Core {
 
 		wp_nonce_field( 'user_two_factor_options', '_nonce_user_two_factor_options', false );
 		?>
-		<h3><?php esc_html_e( 'Two-Factor Options', 'two-factor' ); ?></h3>
+		<h2><?php esc_html_e( 'Two-Factor Options', 'two-factor' ); ?></h2>
 		<input type="hidden" name="<?php echo esc_attr( self::ENABLED_PROVIDERS_USER_META_KEY ); ?>[]" value="<?php /* Dummy input so $_POST value is passed when no providers are enabled. */ ?>" />
 		<table class="wp-list-table widefat fixed striped table-view-list two-factor-methods-table">
 			<thead>
