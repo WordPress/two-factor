@@ -182,23 +182,8 @@ class Two_Factor_Core {
 			}
 		}
 
-		/**
-		 * Get all user IDs to delete their user meta.
-		 *
-		 * Consider replacing this with a direct SQL query to speed up the process.
-		 */
-		$user_ids = get_users(
-			array(
-				'blog_id' => 0, // Return all users.
-				'fields' => 'ID',
-				'number' => -1, // This might take a while on larger sites but we have only one uninstall hook to run this.
-			)
-		);
-
-		foreach ( $user_ids as $user_id ) {
-			foreach ( $user_meta_keys as $meta_key ) {
-				delete_user_meta( $user_id, $meta_key );
-			}
+		foreach ( $user_meta_keys as $meta_key ) {
+			delete_metadata( 'user', null, $meta_key, null, true );
 		}
 	}
 
