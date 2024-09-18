@@ -275,7 +275,7 @@ class Two_Factor_Core {
 			);
 		}
 
-		// Get the classes for the enabled providers.
+		// Map provider keys to classes so that we can instantiate them.
 		$providers = array_intersect_key( self::get_providers_classes(), $providers );
 
 		foreach ( $providers as $provider_key => $provider_class ) {
