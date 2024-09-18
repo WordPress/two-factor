@@ -147,8 +147,10 @@ class Two_Factor_Core {
 			self::USER_PASSWORD_WAS_RESET_KEY,
 		);
 
-		// Merge with any provider-specific user meta keys.
+		$option_keys = array();
+
 		foreach ( self::get_providers_classes() as $provider_class ) {
+			// Merge with provider-specific user meta keys.
 			if ( method_exists( $provider_class, 'uninstall_user_meta_keys' ) ) {
 				try {
 					$user_meta_keys = array_merge(
@@ -159,8 +161,32 @@ class Two_Factor_Core {
 					// Do nothing.
 				}
 			}
+
+			// Merge with provider-specific option keys.
+			if ( method_exists( $provider_class, 'uninstall_options' ) ) {
+				try {
+					$option_keys = array_merge(
+						$option_keys,
+						call_user_func( array( $provider_class, 'uninstall_options' ) )
+					);
+				} catch ( Exception $e ) {
+					// Do nothing.
+				}
+			}
 		}
 
+		// Delete options first since that is faster.
+		if ( ! empty( $option_keys ) ) {
+			foreach ( $option_keys as $option_key ) {
+				delete_option( $option_key );
+			}
+		}
+
+		/**
+		 * Get all user IDs to delete their user meta.
+		 *
+		 * Consider replacing this with a direct SQL query to speed up the process.
+		 */
 		$user_ids = get_users(
 			array(
 				'blog_id' => 0, // Return all users.
