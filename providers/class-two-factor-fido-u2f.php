@@ -398,6 +398,7 @@ class Two_Factor_FIDO_U2F extends Two_Factor_Provider {
 		return array(
 			self::REGISTERED_KEY_USER_META_KEY,
 			self::AUTH_DATA_USER_META_KEY,
+			Two_Factor_FIDO_U2F_Admin::REGISTER_DATA_USER_META_KEY,
 		);
 	}
 }
