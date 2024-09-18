@@ -1161,6 +1161,7 @@ class Two_Factor_Core {
 		 * Return a falsey value (false, 0) if you wish to never require revalidation.
 		 *
 		 * @param int    $two_factor_revalidate_time The grace time between last validation time and when it'll be accepted. Default 10 minutes (in seconds).
+		 * @param int    $user_id                    The user ID.
 		 * @param string $context                    The context in use, 'display' or 'save'. Save has twice the grace time.
 		 */
 		$two_factor_revalidate_time = apply_filters( 'two_factor_revalidate_time', 10 * MINUTE_IN_SECONDS, $user_id, $context );
@@ -1721,7 +1722,7 @@ class Two_Factor_Core {
 
 		wp_nonce_field( 'user_two_factor_options', '_nonce_user_two_factor_options', false );
 		?>
-		<h3><?php esc_html_e( 'Two-Factor Options', 'two-factor' ); ?></h3>
+		<h2><?php esc_html_e( 'Two-Factor Options', 'two-factor' ); ?></h2>
 		<input type="hidden" name="<?php echo esc_attr( self::ENABLED_PROVIDERS_USER_META_KEY ); ?>[]" value="<?php /* Dummy input so $_POST value is passed when no providers are enabled. */ ?>" />
 		<table class="wp-list-table widefat fixed striped table-view-list two-factor-methods-table">
 			<thead>
