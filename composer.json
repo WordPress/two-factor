@@ -38,7 +38,7 @@
   "scripts": {
     "lint": "phpcs",
     "lint-compat": "phpcs -p --standard=PHPCompatibilityWP --runtime-set testVersion 7.2- --extensions=php --ignore='tests/,dist/,includes/Yubico/,vendor/,node_modules/' .",
-    "lint-phpstan": "phpstan analyse --memory-limit=1G",
+    "lint-phpstan": "phpstan analyse --verbose --memory-limit=1G",
     "test": "vendor/bin/phpunit",
     "test:watch": [
       "Composer\\Config::disableProcessTimeout",
