@@ -145,11 +145,79 @@ class Two_Factor_Core {
 			'Two_Factor_Dummy'        => TWO_FACTOR_DIR . 'providers/class-two-factor-dummy.php',
 		);
 
-		// Get providers registered by other plugins.
+		/**
+		 * Filter the supplied providers.
+		 *
+		 * @param array $providers A key-value array where the key is the class name, and
+		 *                         the value is the path to the file containing the class.
+		 */
 		$additional_providers = apply_filters( 'two_factor_providers', array() );
 
-		if ( ! empty( $additional_providers ) )
+		if ( ! empty( $additional_providers ) ) {
 			return array_merge( $providers, $additional_providers );
+		}
+
+		return $providers;
+	}
+
+	/**
+	 * Get the user meta keys to delete when uninstalling from each provider.
+	 *
+	 * This attempts to get keys also from methods that are not enabled to
+	 * ensure that all meta keys ever used are removed.
+	 *
+	 * @return array List of user meta keys to delete.
+	 */
+	private static function get_providers_uninstall_user_meta_keys() {
+		$user_meta_keys = array();
+
+		foreach ( self::get_providers_classes() as $provider_class ) {
+			if ( method_exists( $provider_class, 'uninstall_user_meta_keys' ) ) {
+				try {
+					$user_meta_keys = array_merge(
+						$user_meta_keys,
+						call_user_func( array( $provider_class, 'uninstall_user_meta_keys' ) )
+					);
+				} catch ( Exception $e ) {
+					// Do nothing.
+				}
+			}
+		}
+
+		return $user_meta_keys;
+	}
+
+	/**
+	 * Get the classnames for all registered providers.
+	 *
+	 * Note some of these providers might not be enabled.
+	 *
+	 * @return array List of provider keys and classnames.
+	 */
+	private static function get_providers_classes() {
+		$providers = self::get_providers_registered();
+
+		foreach ( $providers as $provider_key => $path ) {
+			require_once $path;
+
+			$class = $provider_key;
+
+			/**
+			 * Filters the classname for a provider. The dynamic portion of the filter is the defined providers key.
+			 *
+			 * @param string $class The PHP Classname of the provider.
+			 * @param string $path  The provided provider path to be included.
+			 */
+			$class = apply_filters( "two_factor_provider_classname_{$provider_key}", $class, $path );
+
+			/**
+			 * Confirm that it's been successfully included before instantiating.
+			 */
+			if ( method_exists( $class, 'get_instance' ) ) {
+				$providers[ $provider_key ] = $class;
+			} else {
+				unset( $providers[ $provider_key ] );
+			}
 		}
 
 		return $providers;
@@ -188,28 +256,13 @@ class Two_Factor_Core {
 			);
 		}
 
-		/**
-		 * For each filtered provider,
-		 */
-		foreach ( $providers as $provider_key => $path ) {
-			require_once $path;
+		// Get the classes for the enabled providers.
+		$providers = array_intersect_key( self::get_providers_classes(), $providers );
 
-			$class = $provider_key;
-
-			/**
-			 * Filters the classname for a provider. The dynamic portion of the filter is the defined providers key.
-			 *
-			 * @param string $class The PHP Classname of the provider.
-			 * @param string $path  The provided provider path to be included.
-			 */
-			$class = apply_filters( "two_factor_provider_classname_{$provider_key}", $class, $path );
-
-			/**
-			 * Confirm that it's been successfully included before instantiating.
-			 */
-			if ( class_exists( $class ) ) {
+		foreach ( $providers as $provider_key => $provider_class ) {
+			if ( method_exists( $provider_class, 'get_instance' ) ) {
 				try {
-					$providers[ $provider_key ] = call_user_func( array( $class, 'get_instance' ) );
+					$providers[ $provider_key ] = call_user_func( array( $provider_class, 'get_instance' ) );
 				} catch ( Exception $e ) {
 					unset( $providers[ $provider_key ] );
 				}
