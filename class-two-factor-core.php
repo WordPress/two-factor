@@ -148,10 +148,18 @@ class Two_Factor_Core {
 		);
 
 		// Merge with any provider-specific user meta keys.
-		$user_meta_keys = array_merge(
-			$user_meta_keys,
-			self::get_providers_uninstall_user_meta_keys()
-		);
+		foreach ( self::get_providers_classes() as $provider_class ) {
+			if ( method_exists( $provider_class, 'uninstall_user_meta_keys' ) ) {
+				try {
+					$user_meta_keys = array_merge(
+						$user_meta_keys,
+						call_user_func( array( $provider_class, 'uninstall_user_meta_keys' ) )
+					);
+				} catch ( Exception $e ) {
+					// Do nothing.
+				}
+			}
+		}
 
 		$user_ids = get_users(
 			array(
@@ -195,33 +203,6 @@ class Two_Factor_Core {
 		}
 
 		return $providers;
-	}
-
-	/**
-	 * Get the user meta keys to delete when uninstalling from each provider.
-	 *
-	 * This attempts to get keys also from methods that are not enabled to
-	 * ensure that all meta keys ever used are removed.
-	 *
-	 * @return array List of user meta keys to delete.
-	 */
-	private static function get_providers_uninstall_user_meta_keys() {
-		$user_meta_keys = array();
-
-		foreach ( self::get_providers_classes() as $provider_class ) {
-			if ( method_exists( $provider_class, 'uninstall_user_meta_keys' ) ) {
-				try {
-					$user_meta_keys = array_merge(
-						$user_meta_keys,
-						call_user_func( array( $provider_class, 'uninstall_user_meta_keys' ) )
-					);
-				} catch ( Exception $e ) {
-					// Do nothing.
-				}
-			}
-		}
-
-		return $user_meta_keys;
 	}
 
 	/**
