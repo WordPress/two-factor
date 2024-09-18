@@ -1,0 +1,16 @@
+.webauthn-retry,
+.webauthn-unsupported {
+	display:none;
+	margin-top:13px;
+}
+.webauthn-retry.visible,
+.webauthn-unsupported.visible{
+	display:block;
+}
+.webauthn-retry p,
+.webauthn-unsupported p {
+	font-style:italic;
+}
+.webauthn-retry .button{
+	float:right;
+}
