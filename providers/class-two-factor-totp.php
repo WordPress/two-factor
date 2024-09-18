@@ -318,6 +318,15 @@ class Two_Factor_Totp extends Two_Factor_Provider {
 						qr.make();
 
 						document.querySelector( '#two-factor-qr-code a' ).innerHTML = qr.createSvgTag( 5 );
+
+						// For accessibility, markup the SVG with a title and role.
+						var svg = document.querySelector( '#two-factor-qr-code a svg' ),
+							title = document.createElement( 'title' );
+
+						svg.role = 'image';
+						svg.ariaLabel = <?php echo wp_json_encode( __( 'Authenticator App QR Code', 'two-factor' ) ); ?>;
+						title.innerText = svg.ariaLabel;
+						svg.appendChild( title );
 					};
 
 					// Run now if the document is loaded, otherwise on DOMContentLoaded.

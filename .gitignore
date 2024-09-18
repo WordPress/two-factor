@@ -4,5 +4,4 @@
 /vendor/
 /dist/
 /tests/logs/
-/wordpress/
 .phpunit.result.cache
