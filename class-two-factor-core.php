@@ -132,13 +132,11 @@ class Two_Factor_Core {
 	}
 
 	/**
-	 * For each provider, include it and then instantiate it.
+	 * Get the registered providers of which some might not be enabled.
 	 *
-	 * @since 0.1-dev
-	 *
-	 * @return array
+	 * @return array List of provider keys and paths to class files.
 	 */
-	public static function get_providers() {
+	public static function get_providers_registered() {
 		$providers = array(
 			'Two_Factor_Email'        => TWO_FACTOR_DIR . 'providers/class-two-factor-email.php',
 			'Two_Factor_Totp'         => TWO_FACTOR_DIR . 'providers/class-two-factor-totp.php',
@@ -147,6 +145,24 @@ class Two_Factor_Core {
 			'Two_Factor_Dummy'        => TWO_FACTOR_DIR . 'providers/class-two-factor-dummy.php',
 		);
 
+		// Get providers registered by other plugins.
+		$additional_providers = apply_filters( 'two_factor_providers', array() );
+
+		if ( ! empty( $additional_providers ) )
+			return array_merge( $providers, $additional_providers );
+		}
+
+		return $providers;
+	}
+
+	/**
+	 * For each provider, include it and then instantiate it.
+	 *
+	 * @since 0.1-dev
+	 *
+	 * @return array
+	 */
+	public static function get_providers() {
 		/**
 		 * Filter the supplied providers.
 		 *
@@ -156,7 +172,7 @@ class Two_Factor_Core {
 		 * @param array $providers A key-value array where the key is the class name, and
 		 *                         the value is the path to the file containing the class.
 		 */
-		$providers = apply_filters( 'two_factor_providers', $providers );
+		$providers = apply_filters( 'two_factor_providers', self::get_providers_registered() );
 
 		// FIDO U2F is PHP 5.3+ only.
 		if ( isset( $providers['Two_Factor_FIDO_U2F'] ) && version_compare( PHP_VERSION, '5.3.0', '<' ) ) {
