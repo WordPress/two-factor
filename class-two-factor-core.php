@@ -1893,11 +1893,18 @@ class Two_Factor_Core {
 	 * @return bool True if the provider was enabled, false otherwise.
 	 */
 	public static function enable_provider_for_user( $user_id, $new_provider ) {
+		if ( ! in_array( $new_provider, self::get_providers_classes(), true ) ) {
+			return false;
+		}
+
 		$enabled_providers = self::get_enabled_providers_for_user( $user_id );
 
-		if ( ! in_array( $new_provider, $enabled_providers ) ) {
-			$enabled_providers[] = $new_provider;
+		// Check if this is enabled already.
+		if ( in_array( $new_provider, $enabled_providers ) ) {
+			return true;
 		}
+
+		$enabled_providers[] = $new_provider;
 
 		// Add as primary if none set.
 		if ( ! self::get_primary_provider_for_user( $user_id ) ) {
@@ -1921,6 +1928,11 @@ class Two_Factor_Core {
 	 * @return bool True if the provider was disabled, false otherwise.
 	 */
 	public static function disable_provider_for_user( $user_id, $provider_to_delete ) {
+		// Check if the provider is even enabled.
+		if ( ! in_array( $provider_to_delete, self::get_providers_classes(), true ) ) {
+			return false;
+		}
+
 		$enabled_providers = self::get_enabled_providers_for_user( $user_id );
 
 		// Check if this is disabled already.
