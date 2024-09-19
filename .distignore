@@ -14,5 +14,6 @@
 /package-lock.json
 /phpcs*
 /phpunit*
+/phpstan.*
 /readme.md
 /SECURITY.md

@@ -93,7 +93,7 @@ class Two_Factor_Core {
 	 * @since 0.1-dev
 	 */
 	public static function add_hooks( $compat ) {
-		add_action( 'init', array( __CLASS__, 'get_providers' ) );
+		add_action( 'init', array( __CLASS__, 'get_providers' ) ); // @phpstan-ignore return.void
 		add_action( 'wp_login', array( __CLASS__, 'wp_login' ), 10, 2 );
 		add_filter( 'wp_login_errors', array( __CLASS__, 'maybe_show_reset_password_notice' ) );
 		add_action( 'after_password_reset', array( __CLASS__, 'clear_password_reset_notice' ) );

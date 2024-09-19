@@ -12,6 +12,7 @@
     "build": "grunt build",
     "lint": "npm-run-all lint:*",
     "lint:php": "composer lint",
+    "lint:phpstan": "composer lint-phpstan",
     "lint:css": "wp-scripts lint-style ./user-edit.css ./providers/css/",
     "lint:js": "wp-scripts lint-js ./Gruntfile.js ./providers/js/",
     "format": "npm-run-all format:*",
