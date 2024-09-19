@@ -29,6 +29,10 @@ Here is a list of action and filter hooks provided by the plugin:
 - `two_factor_user_authenticated` action which receives the logged in `WP_User` object as the first argument for determining the logged in user right after the authentication workflow.
 - `two_factor_token_ttl` filter overrides the time interval in seconds that an email token is considered after generation. Accepts the time in seconds as the first argument and the ID of the `WP_User` object being authenticated.
 
+= PHP and WordPress Version Support =
+
+Starting from version 1.0.0 of this plugin, it will maintain compatibility with WordPress core versions that are up to one year old, as well as the minimum PHP version supported by those WordPress versions.
+
 == Frequently Asked Questions ==
 
 = How can I send feedback or get help with a bug? =
@@ -46,6 +50,13 @@ To report a security issue, please visit the [WordPress HackerOne](https://hacke
 1. Two-factor options under User Profile.
 2. U2F Security Keys section under User Profile.
 3. Email Code Authentication during WordPress Login.
+
+== Upgrade Notice ==
+
+<!-- Keep this in sync with the next version up until 1.0.0. -->
+= 0.10.0 =
+
+From version 1.0.0, this plugin will support WordPress versions up to one year old and the minimum PHP version they require.
 
 == Changelog ==
 
