@@ -368,6 +368,7 @@ class Two_Factor_Totp extends Two_Factor_Provider {
 								user_id: <?php echo wp_json_encode( $user->ID ); ?>,
 								key: key,
 								code: code,
+								enable_provider: true,
 							}
 						} ).fail( function( response, status ) {
 							var errorMessage = response.responseJSON.message || status,
