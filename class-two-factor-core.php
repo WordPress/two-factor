@@ -1906,11 +1906,6 @@ class Two_Factor_Core {
 
 		$enabled_providers[] = $new_provider;
 
-		// Add as primary if none set.
-		if ( ! self::get_primary_provider_for_user( $user_id ) ) {
-			update_user_meta( $user_id, self::PROVIDER_USER_META_KEY, $new_provider );
-		}
-
 		return (bool) update_user_meta( $user_id, self::ENABLED_PROVIDERS_USER_META_KEY, $enabled_providers );
 	}
 
