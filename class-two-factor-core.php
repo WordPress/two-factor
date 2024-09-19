@@ -1793,9 +1793,13 @@ class Two_Factor_Core {
 		$enabled_providers = array_keys( self::get_available_providers_for_user( $user ) );
 		$primary_provider  = self::get_primary_provider_for_user( $user->ID );
 
-		if ( ! empty( $primary_provider ) && is_object( $primary_provider ) ) {
+		$primary_provider_key = null;
+		if ( is_object( $primary_provider ) ) {
 			$primary_provider_key = $primary_provider->get_key();
-		} else {
+		}
+
+		// Reset the primary if it isn't set to one of the enabled providers.
+		if ( ! in_array( $primary_provider_key, $enabled_providers ) ) {
 			$primary_provider_key = null;
 		}
 
