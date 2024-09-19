@@ -3,7 +3,7 @@
  * Two Factor
  *
  * @package     Two_Factor
- * @author      Plugin Contributors
+ * @author      WordPress.org Contributors
  * @copyright   2020 Plugin Contributors
  * @license     GPL-2.0-or-later
  *
@@ -14,7 +14,7 @@
  * Version:           0.9.1
  * Requires at least: 6.3
  * Requires PHP:      7.2
- * Author:            Plugin Contributors
+ * Author:            WordPress.org Contributors
  * Author URI:        https://github.com/wordpress/two-factor/graphs/contributors
  * License:           GPL-2.0-or-later
  * License URI:       https://spdx.org/licenses/GPL-2.0-or-later.html
