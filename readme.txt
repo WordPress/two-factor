@@ -31,7 +31,7 @@ Here is a list of action and filter hooks provided by the plugin:
 
 = PHP and WordPress Version Support =
 
-Starting from version 1.0.0 of this plugin, it will maintain compatibility with WordPress core versions that are up to one year old, as well as the minimum PHP version supported by those WordPress versions.
+Starting from version 1.0.0 of this plugin, it will maintain compatibility with WordPress core versions that are up to one year old, as well as <a href="https://make.wordpress.org/core/handbook/references/php-compatibility-and-wordpress-versions/">the minimum PHP version supported by those WordPress versions</a>.
 
 == Frequently Asked Questions ==
 
