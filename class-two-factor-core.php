@@ -1821,9 +1821,21 @@ class Two_Factor_Core {
 			$show_2fa_options ? '' : 'disabled="disabled"'
 		);
 
-		wp_nonce_field( 'user_two_factor_options', '_nonce_user_two_factor_options', false );
+		$notices = [];
+		if ( empty( $enabled_providers ) ) {
+			$notices[] = __( 'Configure a primary two-factor method along with a backup method, such as Recovery Codes, to avoid being locked out if you lose access to your primary method.', 'two-factor' );
+		} elseif ( 1 === count( $enabled_providers ) ) {
+			$notices['warning'] = __( 'To prevent being locked out of your account, consider enabling a backup method like Recovery Codes in case you lose access to your primary authentication method.', 'two-factor' );
+		}
+
 		?>
 		<h2><?php esc_html_e( 'Two-Factor Options', 'two-factor' ); ?></h2>
+		<?php foreach ( $notices as $notice_type => $notice ) : ?>
+		<div class="<?php echo esc_attr( $notice_type ? 'notice inline notice-' . $notice_type : '' ); ?>">
+			<p><?php echo esc_html( $notice ); ?></p>
+		</div>
+		<?php endforeach; ?>
+		<?php wp_nonce_field( 'user_two_factor_options', '_nonce_user_two_factor_options', false ); ?>
 		<input type="hidden" name="<?php echo esc_attr( self::ENABLED_PROVIDERS_USER_META_KEY ); ?>[]" value="<?php /* Dummy input so $_POST value is passed when no providers are enabled. */ ?>" />
 		<table class="wp-list-table widefat fixed striped table-view-list two-factor-methods-table">
 			<thead>
