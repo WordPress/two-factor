@@ -132,13 +132,67 @@ class Two_Factor_Core {
 	}
 
 	/**
-	 * For each provider, include it and then instantiate it.
+	 * Delete all plugin data on uninstall.
 	 *
-	 * @since 0.1-dev
-	 *
-	 * @return array
+	 * @return void
 	 */
-	public static function get_providers() {
+	public static function uninstall() {
+		// Keep this updated as user meta keys are added or removed.
+		$user_meta_keys = array(
+			self::PROVIDER_USER_META_KEY,
+			self::ENABLED_PROVIDERS_USER_META_KEY,
+			self::USER_META_NONCE_KEY,
+			self::USER_RATE_LIMIT_KEY,
+			self::USER_FAILED_LOGIN_ATTEMPTS_KEY,
+			self::USER_PASSWORD_WAS_RESET_KEY,
+		);
+
+		$option_keys = array();
+
+		foreach ( self::get_providers_classes() as $provider_class ) {
+			// Merge with provider-specific user meta keys.
+			if ( method_exists( $provider_class, 'uninstall_user_meta_keys' ) ) {
+				try {
+					$user_meta_keys = array_merge(
+						$user_meta_keys,
+						call_user_func( array( $provider_class, 'uninstall_user_meta_keys' ) )
+					);
+				} catch ( Exception $e ) {
+					// Do nothing.
+				}
+			}
+
+			// Merge with provider-specific option keys.
+			if ( method_exists( $provider_class, 'uninstall_options' ) ) {
+				try {
+					$option_keys = array_merge(
+						$option_keys,
+						call_user_func( array( $provider_class, 'uninstall_options' ) )
+					);
+				} catch ( Exception $e ) {
+					// Do nothing.
+				}
+			}
+		}
+
+		// Delete options first since that is faster.
+		if ( ! empty( $option_keys ) ) {
+			foreach ( $option_keys as $option_key ) {
+				delete_option( $option_key );
+			}
+		}
+
+		foreach ( $user_meta_keys as $meta_key ) {
+			delete_metadata( 'user', null, $meta_key, null, true );
+		}
+	}
+
+	/**
+	 * Get the registered providers of which some might not be enabled.
+	 *
+	 * @return array List of provider keys and paths to class files.
+	 */
+	public static function get_providers_registered() {
 		$providers = array(
 			'Two_Factor_Email'        => TWO_FACTOR_DIR . 'providers/class-two-factor-email.php',
 			'Two_Factor_Totp'         => TWO_FACTOR_DIR . 'providers/class-two-factor-totp.php',
@@ -146,6 +200,68 @@ class Two_Factor_Core {
 			'Two_Factor_Backup_Codes' => TWO_FACTOR_DIR . 'providers/class-two-factor-backup-codes.php',
 			'Two_Factor_Dummy'        => TWO_FACTOR_DIR . 'providers/class-two-factor-dummy.php',
 		);
+
+		/**
+		 * Filter the supplied providers.
+		 *
+		 * @param array $providers A key-value array where the key is the class name, and
+		 *                         the value is the path to the file containing the class.
+		 */
+		$additional_providers = apply_filters( 'two_factor_providers', $providers );
+
+		// Merge them with the default providers.
+		if ( ! empty( $additional_providers ) ) {
+			return array_merge( $providers, $additional_providers );
+		}
+
+		return $providers;
+	}
+
+	/**
+	 * Get the classnames for all registered providers.
+	 *
+	 * Note some of these providers might not be enabled.
+	 *
+	 * @return array List of provider keys and classnames.
+	 */
+	private static function get_providers_classes() {
+		$providers = self::get_providers_registered();
+
+		foreach ( $providers as $provider_key => $path ) {
+			require_once $path;
+
+			$class = $provider_key;
+
+			/**
+			 * Filters the classname for a provider. The dynamic portion of the filter is the defined providers key.
+			 *
+			 * @param string $class The PHP Classname of the provider.
+			 * @param string $path  The provided provider path to be included.
+			 */
+			$class = apply_filters( "two_factor_provider_classname_{$provider_key}", $class, $path );
+
+			/**
+			 * Confirm that it's been successfully included before instantiating.
+			 */
+			if ( method_exists( $class, 'get_instance' ) ) {
+				$providers[ $provider_key ] = $class;
+			} else {
+				unset( $providers[ $provider_key ] );
+			}
+		}
+
+		return $providers;
+	}
+
+	/**
+	 * Get all enabled two-factor providers.
+	 *
+	 * @since 0.1-dev
+	 *
+	 * @return array
+	 */
+	public static function get_providers() {
+		$providers = self::get_providers_registered();
 
 		/**
 		 * Filter the supplied providers.
@@ -170,28 +286,13 @@ class Two_Factor_Core {
 			);
 		}
 
-		/**
-		 * For each filtered provider,
-		 */
-		foreach ( $providers as $provider_key => $path ) {
-			require_once $path;
+		// Map provider keys to classes so that we can instantiate them.
+		$providers = array_intersect_key( self::get_providers_classes(), $providers );
 
-			$class = $provider_key;
-
-			/**
-			 * Filters the classname for a provider. The dynamic portion of the filter is the defined providers key.
-			 *
-			 * @param string $class The PHP Classname of the provider.
-			 * @param string $path  The provided provider path to be included.
-			 */
-			$class = apply_filters( "two_factor_provider_classname_{$provider_key}", $class, $path );
-
-			/**
-			 * Confirm that it's been successfully included before instantiating.
-			 */
-			if ( class_exists( $class ) ) {
+		foreach ( $providers as $provider_key => $provider_class ) {
+			if ( method_exists( $provider_class, 'get_instance' ) ) {
 				try {
-					$providers[ $provider_key ] = call_user_func( array( $class, 'get_instance' ) );
+					$providers[ $provider_key ] = call_user_func( array( $provider_class, 'get_instance' ) );
 				} catch ( Exception $e ) {
 					unset( $providers[ $provider_key ] );
 				}

@@ -771,4 +771,16 @@ class Two_Factor_Totp extends Two_Factor_Provider {
 		}
 		return ( $a < $b ) ? -1 : 1;
 	}
+
+	/**
+	 * Return user meta keys to delete during plugin uninstall.
+	 *
+	 * @return array
+	 */
+	public static function uninstall_user_meta_keys() {
+		return array(
+			self::SECRET_META_KEY,
+			self::LAST_SUCCESSFUL_LOGIN_META_KEY,
+		);
+	}
 }

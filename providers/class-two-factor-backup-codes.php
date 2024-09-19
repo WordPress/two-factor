@@ -399,4 +399,15 @@ class Two_Factor_Backup_Codes extends Two_Factor_Provider {
 		// Update the backup code master list.
 		update_user_meta( $user->ID, self::BACKUP_CODES_META_KEY, $backup_codes );
 	}
+
+	/**
+	 * Return user meta keys to delete during plugin uninstall.
+	 *
+	 * @return array
+	 */
+	public static function uninstall_user_meta_keys() {
+		return array(
+			self::BACKUP_CODES_META_KEY,
+		);
+	}
 }

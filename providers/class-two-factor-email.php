@@ -351,4 +351,16 @@ class Two_Factor_Email extends Two_Factor_Provider {
 		</div>
 		<?php
 	}
+
+	/**
+	 * Return user meta keys to delete during plugin uninstall.
+	 *
+	 * @return array
+	 */
+	public static function uninstall_user_meta_keys() {
+		return array(
+			self::TOKEN_META_KEY,
+			self::TOKEN_META_KEY_TIMESTAMP,
+		);
+	}
 }

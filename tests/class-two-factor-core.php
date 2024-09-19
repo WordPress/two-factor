@@ -1555,4 +1555,30 @@ class Test_ClassTwoFactorCore extends WP_UnitTestCase {
 		// Validate that the Admin still has a session.
 		$this->assertCount( 1, $admin_session_manager->get_all(), 'No admin sessions are present first' );
 	}
+
+	/**
+	 * Plugin uninstall removes all user meta.
+	 *
+	 * @covers Two_Factor_Core::uninstall
+	 */
+	public function test_uninstall_removes_user_meta() {
+		$user = self::factory()->user->create_and_get();
+
+		// Enable a provider for the user.
+		Two_Factor_Core::enable_provider_for_user( $user->ID, 'Two_Factor_Totp' );
+
+		$this->assertContains(
+			'Two_Factor_Totp',
+			Two_Factor_Core::get_enabled_providers_for_user( $user->ID ),
+			'Sample provider was enabled'
+		);
+
+		Two_Factor_Core::uninstall();
+
+		$this->assertNotContains(
+			'Two_Factor_Totp',
+			Two_Factor_Core::get_enabled_providers_for_user( $user->ID ),
+			'Provider was disabled due to uninstall'
+		);
+	}
 }
