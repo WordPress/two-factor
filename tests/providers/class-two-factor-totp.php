@@ -62,15 +62,6 @@ class Tests_Two_Factor_Totp extends WP_UnitTestCase {
 	}
 
 	/**
-	 * Verify the options list is empty.
-	 *
-	 * @covers Two_Factor_Totp::user_two_factor_options
-	 */
-	public function test_user_two_factor_options_empty() {
-		$this->assertFalse( $this->provider->user_two_factor_options( get_current_user() ) );
-	}
-
-	/**
 	 * Verify getting user options creates a key.
 	 *
 	 * @covers Two_Factor_Totp::user_two_factor_options

@@ -57,7 +57,7 @@ class Two_Factor_Core {
 	const USER_PASSWORD_WAS_RESET_KEY = '_two_factor_password_was_reset';
 
 	/**
-	 * URL query paramater used for our custom actions.
+	 * URL query parameter used for our custom actions.
 	 *
 	 * @var string
 	 */
@@ -93,7 +93,6 @@ class Two_Factor_Core {
 	 * @since 0.1-dev
 	 */
 	public static function add_hooks( $compat ) {
-		add_action( 'plugins_loaded', array( __CLASS__, 'load_textdomain' ) );
 		add_action( 'init', array( __CLASS__, 'get_providers' ) );
 		add_action( 'wp_login', array( __CLASS__, 'wp_login' ), 10, 2 );
 		add_filter( 'wp_login_errors', array( __CLASS__, 'maybe_show_reset_password_notice' ) );
@@ -125,20 +124,11 @@ class Two_Factor_Core {
 		add_filter( 'authenticate', array( __CLASS__, 'filter_authenticate_block_cookies' ), PHP_INT_MAX );
 
 		add_filter( 'attach_session_information', array( __CLASS__, 'filter_session_information' ), 10, 2 );
-		
+
 		add_action( 'admin_init', array( __CLASS__, 'trigger_user_settings_action' ) );
 		add_filter( 'two_factor_providers', array( __CLASS__, 'enable_dummy_method_for_debug' ) );
 
 		$compat->init();
-	}
-
-	/**
-	 * Loads the plugin's text domain.
-	 *
-	 * Sites on WordPress 4.6+ benefit from just-in-time loading of translations.
-	 */
-	public static function load_textdomain() {
-		load_plugin_textdomain( 'two-factor' );
 	}
 
 	/**
@@ -184,7 +174,7 @@ class Two_Factor_Core {
 		 * For each filtered provider,
 		 */
 		foreach ( $providers as $provider_key => $path ) {
-			include_once $path;
+			require_once $path;
 
 			$class = $provider_key;
 
@@ -399,7 +389,7 @@ class Two_Factor_Core {
 	/**
 	 * Get all Two-Factor Auth providers that are enabled for the specified|current user.
 	 *
-	 * @param int|WP_User $user Optonal. User ID, or WP_User object of the the user. Defaults to current user.
+	 * @param int|WP_User $user Optional. User ID, or WP_User object of the the user. Defaults to current user.
 	 * @return array
 	 */
 	public static function get_enabled_providers_for_user( $user = null ) {
@@ -427,7 +417,7 @@ class Two_Factor_Core {
 	/**
 	 * Get all Two-Factor Auth providers that are both enabled and configured for the specified|current user.
 	 *
-	 * @param int|WP_User $user Optonal. User ID, or WP_User object of the the user. Defaults to current user.
+	 * @param int|WP_User $user Optional. User ID, or WP_User object of the the user. Defaults to current user.
 	 * @return array|WP_Error
 	 */
 	public static function get_available_providers_for_user( $user = null ) {
@@ -477,7 +467,7 @@ class Two_Factor_Core {
 	/**
 	 * Fetch the provider for the request based on the user preferences.
 	 *
-	 * @param int|WP_User $user Optonal. User ID, or WP_User object of the the user. Defaults to current user.
+	 * @param int|WP_User $user Optional. User ID, or WP_User object of the the user. Defaults to current user.
 	 * @param null|string|object $preferred_provider Optional. The name of the provider, the provider, or empty.
 	 * @return null|object The provider
 	 */
@@ -515,7 +505,7 @@ class Two_Factor_Core {
 	 *
 	 * @since 0.1-dev
 	 *
-	 * @param int|WP_User $user Optonal. User ID, or WP_User object of the the user. Defaults to current user.
+	 * @param int|WP_User $user Optional. User ID, or WP_User object of the the user. Defaults to current user.
 	 * @return object|null
 	 */
 	public static function get_primary_provider_for_user( $user = null ) {
@@ -564,7 +554,7 @@ class Two_Factor_Core {
 	 *
 	 * @since 0.1-dev
 	 *
-	 * @param int|WP_User $user Optonal. User ID, or WP_User object of the the user. Defaults to current user.
+	 * @param int|WP_User $user Optional. User ID, or WP_User object of the the user. Defaults to current user.
 	 * @return bool
 	 */
 	public static function is_user_using_two_factor( $user = null ) {
@@ -721,8 +711,8 @@ class Two_Factor_Core {
 			echo '<div id="login_notice" class="message"><strong>';
 			printf(
 				_n(
-					'WARNING: Your account has attempted to login without providing a valid two factor token. The last failed login occured %2$s ago. If this wasn\'t you, you should reset your password.',
-					'WARNING: Your account has attempted to login %1$s times without providing a valid two factor token. The last failed login occured %2$s ago. If this wasn\'t you, you should reset your password.',
+					'WARNING: Your account has attempted to login without providing a valid two factor token. The last failed login occurred %2$s ago. If this wasn\'t you, you should reset your password.',
+					'WARNING: Your account has attempted to login %1$s times without providing a valid two factor token. The last failed login occurred %2$s ago. If this wasn\'t you, you should reset your password.',
 					$failed_login_count,
 					'two-factor'
 				),
@@ -818,7 +808,7 @@ class Two_Factor_Core {
 
 		if ( ! function_exists( 'login_header' ) ) {
 			// We really should migrate login_header() out of `wp-login.php` so it can be called from an includes file.
-			include_once TWO_FACTOR_DIR . 'includes/function.login-header.php';
+			require_once TWO_FACTOR_DIR . 'includes/function.login-header.php';
 		}
 
 		// Disable the language switcher.
@@ -946,7 +936,7 @@ class Two_Factor_Core {
 		</script>
 		<?php
 		if ( ! function_exists( 'login_footer' ) ) {
-			include_once TWO_FACTOR_DIR . 'includes/function.login-footer.php';
+			require_once TWO_FACTOR_DIR . 'includes/function.login-footer.php';
 		}
 
 			login_footer();
@@ -1204,6 +1194,7 @@ class Two_Factor_Core {
 		 * Return a falsey value (false, 0) if you wish to never require revalidation.
 		 *
 		 * @param int    $two_factor_revalidate_time The grace time between last validation time and when it'll be accepted. Default 10 minutes (in seconds).
+		 * @param int    $user_id                    The user ID.
 		 * @param string $context                    The context in use, 'display' or 'save'. Save has twice the grace time.
 		 */
 		$two_factor_revalidate_time = apply_filters( 'two_factor_revalidate_time', 10 * MINUTE_IN_SECONDS, $user_id, $context );
@@ -1447,6 +1438,8 @@ class Two_Factor_Core {
 			'two-factor-login'    => time(),
 		) );
 
+		do_action( 'two_factor_user_revalidated', $user, $provider );
+
 		// Must be global because that's how login_header() uses it.
 		global $interim_login;
 		$interim_login = isset( $_REQUEST['interim-login'] ); // phpcs:ignore WordPress.WP.GlobalVariablesOverride.Prohibited,WordPress.Security.NonceVerification.Recommended
@@ -1477,13 +1470,13 @@ class Two_Factor_Core {
 	 * @param object  $provider        The Two Factor Provider.
 	 * @param WP_User $user            The user being authenticated.
 	 * @param bool    $is_post_request Whether the request is a POST request.
-	 * @return false|WP_Error|true WP_Error when an error occurs, true when the user is authenticated, false if no action occured.
+	 * @return false|WP_Error|true WP_Error when an error occurs, true when the user is authenticated, false if no action occurred.
 	 */
 	public static function process_provider( $provider, $user, $is_post_request ) {
 		if ( ! $provider ) {
 			return new WP_Error(
 				'two_factor_provider_missing',
-				__( 'Cheatin&#8217; uh?', 'two-factor' ),
+				__( 'Cheatin&#8217; uh?', 'two-factor' )
 			);
 		}
 
@@ -1513,7 +1506,7 @@ class Two_Factor_Core {
 
 		// Ask the provider to verify the second factor.
 		if ( true !== $provider->validate_authentication( $user ) ) {
-			// Store the last time a failed login occured.
+			// Store the last time a failed login occurred.
 			update_user_meta( $user->ID, self::USER_RATE_LIMIT_KEY, time() );
 
 			// Store the number of failed login attempts.
@@ -1764,53 +1757,52 @@ class Two_Factor_Core {
 
 		printf(
 			'<fieldset id="two-factor-options" %s>',
-			$show_2fa_options ? '' : 'disabled="disabled"',
+			$show_2fa_options ? '' : 'disabled="disabled"'
 		);
 
 		wp_nonce_field( 'user_two_factor_options', '_nonce_user_two_factor_options', false );
 		?>
+		<h2><?php esc_html_e( 'Two-Factor Options', 'two-factor' ); ?></h2>
 		<input type="hidden" name="<?php echo esc_attr( self::ENABLED_PROVIDERS_USER_META_KEY ); ?>[]" value="<?php /* Dummy input so $_POST value is passed when no providers are enabled. */ ?>" />
-		<table class="form-table">
-			<tr>
-				<th>
-					<?php esc_html_e( 'Two-Factor Options', 'two-factor' ); ?>
-				</th>
-				<td>
-					<table class="two-factor-methods-table">
-						<thead>
-							<tr>
-								<th class="col-enabled" scope="col"><?php esc_html_e( 'Enabled', 'two-factor' ); ?></th>
-								<th class="col-primary" scope="col"><?php esc_html_e( 'Primary', 'two-factor' ); ?></th>
-								<th class="col-name" scope="col"><?php esc_html_e( 'Type', 'two-factor' ); ?></th>
-							</tr>
-						</thead>
-						<tbody>
-						<?php foreach ( self::get_providers() as $provider_key => $object ) : ?>
-							<tr>
-								<th scope="row"><input id="enabled-<?php echo esc_attr( $provider_key ); ?>" type="checkbox" name="<?php echo esc_attr( self::ENABLED_PROVIDERS_USER_META_KEY ); ?>[]" value="<?php echo esc_attr( $provider_key ); ?>" <?php checked( in_array( $provider_key, $enabled_providers, true ) ); ?> /></th>
-								<th scope="row"><input type="radio" name="<?php echo esc_attr( self::PROVIDER_USER_META_KEY ); ?>" value="<?php echo esc_attr( $provider_key ); ?>" <?php checked( $provider_key, $primary_provider_key ); ?> /></th>
-								<td>
-									<label class="two-factor-method-label" for="enabled-<?php echo esc_attr( $provider_key ); ?>"><?php echo esc_html( $object->get_label() ); ?></label>
-									<?php
-										/**
-										 * Fires after user options are shown.
-										 *
-										 * Use the {@see 'two_factor_user_options_' . $provider_key } hook instead.
-										 *
-										 * @deprecated 0.7.0
-										 *
-										 * @param WP_User $user The user.
-										 */
-										do_action_deprecated( 'two-factor-user-options-' . $provider_key, array( $user ), '0.7.0', 'two_factor_user_options_' . $provider_key );
-										do_action( 'two_factor_user_options_' . $provider_key, $user );
-									?>
-								</td>
-							</tr>
-						<?php endforeach; ?>
-						</tbody>
-					</table>
-				</td>
-			</tr>
+		<table class="wp-list-table widefat fixed striped table-view-list two-factor-methods-table">
+			<thead>
+				<tr>
+					<th class="col-enabled" scope="col"><?php esc_html_e( 'Enabled', 'two-factor' ); ?></th>
+					<th class="col-primary" scope="col"><?php esc_html_e( 'Primary', 'two-factor' ); ?></th>
+					<th class="col-name" scope="col"><?php esc_html_e( 'Type', 'two-factor' ); ?></th>
+				</tr>
+			</thead>
+			<tbody>
+			<?php foreach ( self::get_providers() as $provider_key => $object ) : ?>
+				<tr>
+					<th scope="row"><input id="enabled-<?php echo esc_attr( $provider_key ); ?>" type="checkbox" name="<?php echo esc_attr( self::ENABLED_PROVIDERS_USER_META_KEY ); ?>[]" value="<?php echo esc_attr( $provider_key ); ?>" <?php checked( in_array( $provider_key, $enabled_providers, true ) ); ?> /></th>
+					<th scope="row"><input type="radio" name="<?php echo esc_attr( self::PROVIDER_USER_META_KEY ); ?>" value="<?php echo esc_attr( $provider_key ); ?>" <?php checked( $provider_key, $primary_provider_key ); ?> /></th>
+					<td>
+						<label class="two-factor-method-label" for="enabled-<?php echo esc_attr( $provider_key ); ?>"><?php echo esc_html( $object->get_label() ); ?></label>
+						<?php
+						/**
+						 * Fires after user options are shown.
+						 *
+						 * Use the {@see 'two_factor_user_options_' . $provider_key } hook instead.
+						 *
+						 * @deprecated 0.7.0
+						 *
+						 * @param WP_User $user The user.
+						 */
+						do_action_deprecated( 'two-factor-user-options-' . $provider_key, array( $user ), '0.7.0', 'two_factor_user_options_' . $provider_key );
+						do_action( 'two_factor_user_options_' . $provider_key, $user );
+						?>
+					</td>
+				</tr>
+			<?php endforeach; ?>
+			</tbody>
+			<tfoot>
+				<tr>
+					<th class="col-enabled" scope="col"><?php esc_html_e( 'Enabled', 'two-factor' ); ?></th>
+					<th class="col-primary" scope="col"><?php esc_html_e( 'Primary', 'two-factor' ); ?></th>
+					<th class="col-name" scope="col"><?php esc_html_e( 'Type', 'two-factor' ); ?></th>
+				</tr>
+			</tfoot>
 		</table>
 		</fieldset>
 		<?php
@@ -1827,6 +1819,8 @@ class Two_Factor_Core {
 
 	/**
 	 * Enable a provider for a user.
+	 *
+	 * The caller is responsible for checking the user has permission to do this.
 	 *
 	 * @param int    $user_id      The ID of the user.
 	 * @param string $new_provider The name of the provider class.
@@ -1858,6 +1852,39 @@ class Two_Factor_Core {
 		}
 
 		return $enabled && $has_primary;
+	}
+
+	/**
+	 * Disable a provider for a user.
+	 *
+	 * This intentionally doesn't set a new primary provider when disabling the current primary provider, because
+	 * `get_primary_provider_for_user()` will pick a new one automatically.
+	 *
+	 * The caller is responsible for checking the user has permission to do this.
+	 *
+	 * @param int    $user_id  The ID of the user.
+	 * @param string $provider The name of the provider class.
+	 *
+	 * @return bool True if the provider was disabled, false otherwise.
+	 */
+	public static function disable_provider_for_user( $user_id, $provider_to_delete ) {
+		$is_registered = array_key_exists( $provider_to_delete, self::get_providers() );
+
+		if ( ! $is_registered ) {
+			return false;
+		}
+
+		$old_enabled_providers = self::get_enabled_providers_for_user( $user_id );
+		$is_enabled            = in_array( $provider_to_delete, $old_enabled_providers );
+
+		if ( ! $is_enabled ) {
+			return true;
+		}
+
+		$new_enabled_providers     = array_diff( $old_enabled_providers, array( $provider_to_delete ) );
+		$was_disabled              = update_user_meta( $user_id, self::ENABLED_PROVIDERS_USER_META_KEY, $new_enabled_providers );
+
+		return (bool) $was_disabled;
 	}
 
 	/**
@@ -1911,6 +1938,22 @@ class Two_Factor_Core {
 						'two-factor-provider' => null,
 						'two-factor-login'    => null,
 					) );
+				}
+			}
+
+			// Destroy other sessions if setup 2FA for the first time, or deactivated a provider
+			if (
+				// No providers, enabling one (or more)
+				( ! $existing_providers && $enabled_providers ) ||
+				// Has providers, and is disabling one (or more), but remaining with 2FA.
+				( $existing_providers && $enabled_providers && array_diff( $existing_providers, $enabled_providers ) )
+			) {
+				if ( $user_id === get_current_user_id() ) {
+					// Keep the current session, destroy others sessions for this user.
+					wp_destroy_other_sessions();
+				} else {
+					// Destroy all sessions for the user.
+					WP_Session_Tokens::get_instance( $user_id )->destroy_all();
 				}
 			}
 		}

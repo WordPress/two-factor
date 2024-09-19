@@ -42,7 +42,7 @@ class Two_Factor_Email extends Two_Factor_Provider {
 	 */
 	protected function __construct() {
 		add_action( 'two_factor_user_options_' . __CLASS__, array( $this, 'user_options' ) );
-		return parent::__construct();
+		parent::__construct();
 	}
 
 	/**
@@ -287,7 +287,7 @@ class Two_Factor_Email extends Two_Factor_Provider {
 	 * Send the email code if missing or requested. Stop the authentication
 	 * validation if a new token has been generated and sent.
 	 *
-	 * @param  WP_USer $user WP_User object of the logged-in user.
+	 * @param  WP_User $user WP_User object of the logged-in user.
 	 * @return boolean
 	 */
 	public function pre_process_authentication( $user ) {
