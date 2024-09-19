@@ -1889,30 +1889,18 @@ class Two_Factor_Core {
 	 * @return bool True if the provider was enabled, false otherwise.
 	 */
 	public static function enable_provider_for_user( $user_id, $new_provider ) {
-		$available_providers = self::get_providers();
+		$enabled_providers = self::get_enabled_providers_for_user( $user_id );
 
-		if ( ! array_key_exists( $new_provider, $available_providers ) ) {
-			return false;
+		if ( ! in_array( $new_provider, $enabled_providers ) ) {
+			$enabled_providers[] = $new_provider;
 		}
 
-		$user              = get_userdata( $user_id );
-		$enabled_providers = self::get_enabled_providers_for_user( $user );
-
-		if ( in_array( $new_provider, $enabled_providers ) ) {
-			return true;
+		// Add as primary if none set.
+		if ( ! self::get_primary_provider_for_user( $user_id ) ) {
+			update_user_meta( $user_id, self::PROVIDER_USER_META_KEY, $new_provider );
 		}
 
-		$enabled_providers[] = $new_provider;
-		$enabled             = update_user_meta( $user_id, self::ENABLED_PROVIDERS_USER_META_KEY, $enabled_providers );
-
-		// Primary provider must be enabled.
-		$has_primary = is_object( self::get_primary_provider_for_user( $user_id ) );
-
-		if ( ! $has_primary ) {
-			$has_primary = update_user_meta( $user_id, self::PROVIDER_USER_META_KEY, $new_provider );
-		}
-
-		return $enabled && $has_primary;
+		return (bool) update_user_meta( $user_id, self::ENABLED_PROVIDERS_USER_META_KEY, $enabled_providers );
 	}
 
 	/**
@@ -1929,23 +1917,22 @@ class Two_Factor_Core {
 	 * @return bool True if the provider was disabled, false otherwise.
 	 */
 	public static function disable_provider_for_user( $user_id, $provider_to_delete ) {
-		$is_registered = array_key_exists( $provider_to_delete, self::get_providers() );
+		$enabled_providers = self::get_enabled_providers_for_user( $user_id );
 
-		if ( ! $is_registered ) {
-			return false;
-		}
-
-		$old_enabled_providers = self::get_enabled_providers_for_user( $user_id );
-		$is_enabled            = in_array( $provider_to_delete, $old_enabled_providers );
-
-		if ( ! $is_enabled ) {
+		// Check if this is disabled already.
+		if ( ! in_array( $provider_to_delete, $enabled_providers ) ) {
 			return true;
 		}
 
-		$new_enabled_providers     = array_diff( $old_enabled_providers, array( $provider_to_delete ) );
-		$was_disabled              = update_user_meta( $user_id, self::ENABLED_PROVIDERS_USER_META_KEY, $new_enabled_providers );
+		$enabled_providers = array_diff( $enabled_providers, array( $provider_to_delete ) );
 
-		return (bool) $was_disabled;
+		// Remove this from being a primary provider, if set.
+		$primary_provider = self::get_primary_provider_for_user( $user_id );
+		if ( $primary_provider && $primary_provider->get_key() === $provider_to_delete ) {
+			delete_user_meta( $user_id, self::PROVIDER_USER_META_KEY );
+		}
+
+		return (bool) update_user_meta( $user_id, self::ENABLED_PROVIDERS_USER_META_KEY, $enabled_providers );
 	}
 
 	/**
