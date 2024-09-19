@@ -59,6 +59,9 @@ jobs:
             - name: Lint PHP Compatibility
               run: composer lint-compat
 
+            - name: PHPStan
+              run: npm run lint:phpstan
+
     test-php:
         name: Test PHP ${{ matrix.php }} ${{ matrix.wp != '' && format( ' (WP {0}) ', matrix.wp ) || '' }}
         runs-on: ubuntu-latest
