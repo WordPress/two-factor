@@ -818,52 +818,52 @@ class Test_ClassTwoFactorCore extends WP_UnitTestCase {
 	public function test_enable_disable_provider_for_user() {
 		$user              = self::factory()->user->create_and_get();
 		$enabled_providers = Two_Factor_Core::get_enabled_providers_for_user( $user->ID );
-		$this->assertEmpty( $enabled_providers );
+		$this->assertEmpty( $enabled_providers, 'No providers are enabled by default' );
 
 		// Disabling one that's already disabled should succeed.
 		$totp_disabled = Two_Factor_Core::disable_provider_for_user( $user->ID, 'Two_Factor_Totp' );
-		$this->assertTrue( $totp_disabled );
+		$this->assertTrue( $totp_disabled, 'Disabling something that wasn\'t enabled should succeed' );
 
 		// Disabling one that doesn't exist should fail.
 		$nonexistent_enabled = Two_Factor_Core::enable_provider_for_user( $user->ID, 'Nonexistent_Provider' );
 		$enabled_providers = Two_Factor_Core::get_enabled_providers_for_user( $user->ID );
-		$this->assertFalse( $nonexistent_enabled );
-		$this->assertEmpty( $enabled_providers );
-		$this->assertNull( Two_Factor_Core::get_primary_provider_for_user( $user->ID ) );
+		$this->assertFalse( $nonexistent_enabled, 'Nonexistent shouldn\'t be allowed to be enabled' );
+		$this->assertEmpty( $enabled_providers, 'Nonexistent wasn\'t enabled' );
+		$this->assertNull( Two_Factor_Core::get_primary_provider_for_user( $user->ID ), 'Nonexistent wasn\'t set as primary' );
 
 		// Enabling a valid one should succeed. The first one that's enabled and configured should be the default primary.
 		$totp = Two_Factor_Totp::get_instance();
 		$totp->set_user_totp_key( $user->ID, 'foo' );
 		$totp_enabled = Two_Factor_Core::enable_provider_for_user( $user->ID, 'Two_Factor_Totp' );
 		$enabled_providers = Two_Factor_Core::get_enabled_providers_for_user( $user->ID );
-		$this->assertTrue( $totp_enabled );
-		$this->assertSame( array( 'Two_Factor_Totp' ), $enabled_providers );
-		$this->assertSame( 'Two_Factor_Totp', Two_Factor_Core::get_primary_provider_for_user( $user->ID )->get_key() );
+		$this->assertTrue( $totp_enabled, 'Can enable a valid provider' );
+		$this->assertSame( array( 'Two_Factor_Totp' ), $enabled_providers, 'Enabled provider is now listed as enabled' );
+		$this->assertSame( 'Two_Factor_Totp', Two_Factor_Core::get_primary_provider_for_user( $user->ID )->get_key(), 'Primary is now the only enabled provider' );
 
 		// Enabling one that's already enabled should succeed.
 		$totp_enabled = Two_Factor_Core::enable_provider_for_user( $user->ID, 'Two_Factor_Totp' );
-		$this->assertTrue( $totp_enabled );
+		$this->assertTrue( $totp_enabled, 'Can enable a provider that is already enabled' );
 
 		// Enabling another should succeed, and not change the primary.
 		$dummy_enabled = Two_Factor_Core::enable_provider_for_user( $user->ID, 'Two_Factor_Dummy' );
 		$enabled_providers = Two_Factor_Core::get_enabled_providers_for_user( $user->ID );
-		$this->assertTrue( $dummy_enabled );
-		$this->assertSame( array( 'Two_Factor_Totp', 'Two_Factor_Dummy' ), $enabled_providers );
-		$this->assertSame( 'Two_Factor_Totp', Two_Factor_Core::get_primary_provider_for_user( $user->ID )->get_key() );
+		$this->assertTrue( $dummy_enabled, 'Can enable valid provider' );
+		$this->assertSame( array( 'Two_Factor_Totp', 'Two_Factor_Dummy' ), $enabled_providers, 'Multiple can be enabled at the same time' );
+		$this->assertSame( 'Two_Factor_Totp', Two_Factor_Core::get_primary_provider_for_user( $user->ID )->get_key(), 'The primary not changed upon additional providers being enabled' );
 
 		// Disabling one that doesn't exist should fail.
 		$nonexistent_disabled = Two_Factor_Core::disable_provider_for_user( $user->ID, 'Nonexistent_Provider' );
 		$enabled_providers = Two_Factor_Core::get_enabled_providers_for_user( $user->ID );
-		$this->assertFalse( $nonexistent_disabled );
-		$this->assertSame( array( 'Two_Factor_Totp', 'Two_Factor_Dummy' ), $enabled_providers );
-		$this->assertSame( 'Two_Factor_Totp', Two_Factor_Core::get_primary_provider_for_user( $user->ID )->get_key() );
+		$this->assertFalse( $nonexistent_disabled, 'Unavailable provider can\'t be disabled' );
+		$this->assertSame( array( 'Two_Factor_Totp', 'Two_Factor_Dummy' ), $enabled_providers, 'Unavailable wasn\'t added to the list of enabled proviers' );
+		$this->assertSame( 'Two_Factor_Totp', Two_Factor_Core::get_primary_provider_for_user( $user->ID )->get_key(), 'The primary is still the same after unavailable disable attempt' );
 
 		// Disabling one that's enabled should succeed, and change the primary to the next available one.
 		$totp_disabled = Two_Factor_Core::disable_provider_for_user( $user->ID, 'Two_Factor_Totp' );
 		$enabled_providers = Two_Factor_Core::get_enabled_providers_for_user( $user->ID );
-		$this->assertTrue( $totp_disabled ); //todo enable and fix
-		$this->assertSame( array( 1 => 'Two_Factor_Dummy' ), $enabled_providers );
-		$this->assertSame( 'Two_Factor_Dummy', Two_Factor_Core::get_primary_provider_for_user( $user->ID )->get_key() );
+		$this->assertTrue( $totp_disabled, 'Can disable a provider that is enabled' );
+		$this->assertSame( array( 1 => 'Two_Factor_Dummy' ), $enabled_providers, 'The other providers are kept enabled' );
+		$this->assertSame( 'Two_Factor_Dummy', Two_Factor_Core::get_primary_provider_for_user( $user->ID )->get_key(), 'Primary is updated to the first available' );
 	}
 
 	/**
