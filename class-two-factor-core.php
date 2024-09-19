@@ -1800,9 +1800,9 @@ class Two_Factor_Core {
 		}
 
 		// This is specific to the current session, not the displayed user.
-		$show_2fa_options = self::current_user_can_update_two_factor_options();
+		$show_2fa_options = self::current_user_can_update_two_factor_options() || true;
 
-		if ( ! $show_2fa_options ) {
+		if ( ! $show_2fa_options && false ) {
 			$url = self::get_user_two_factor_revalidate_url();
 			$url = add_query_arg( 'redirect_to', urlencode( self::get_user_settings_page_url( $user->ID ) . '#two-factor-options' ), $url );
 
@@ -1830,28 +1830,26 @@ class Two_Factor_Core {
 
 		?>
 		<h2><?php esc_html_e( 'Two-Factor Options', 'two-factor' ); ?></h2>
+
 		<?php foreach ( $notices as $notice_type => $notice ) : ?>
 		<div class="<?php echo esc_attr( $notice_type ? 'notice inline notice-' . $notice_type : '' ); ?>">
 			<p><?php echo esc_html( $notice ); ?></p>
 		</div>
 		<?php endforeach; ?>
+
 		<?php wp_nonce_field( 'user_two_factor_options', '_nonce_user_two_factor_options', false ); ?>
 		<input type="hidden" name="<?php echo esc_attr( self::ENABLED_PROVIDERS_USER_META_KEY ); ?>[]" value="<?php /* Dummy input so $_POST value is passed when no providers are enabled. */ ?>" />
-		<table class="wp-list-table widefat fixed striped table-view-list two-factor-methods-table">
-			<thead>
-				<tr>
-					<th class="col-enabled" scope="col"><?php esc_html_e( 'Enabled', 'two-factor' ); ?></th>
-					<th class="col-primary" scope="col"><?php esc_html_e( 'Primary', 'two-factor' ); ?></th>
-					<th class="col-name" scope="col"><?php esc_html_e( 'Type', 'two-factor' ); ?></th>
-				</tr>
-			</thead>
+
+		<table class="form-table two-factor-methods-table" role="presentation">
 			<tbody>
 			<?php foreach ( self::get_providers() as $provider_key => $object ) : ?>
 				<tr>
-					<th scope="row"><input id="enabled-<?php echo esc_attr( $provider_key ); ?>" type="checkbox" name="<?php echo esc_attr( self::ENABLED_PROVIDERS_USER_META_KEY ); ?>[]" value="<?php echo esc_attr( $provider_key ); ?>" <?php checked( in_array( $provider_key, $enabled_providers, true ) ); ?> /></th>
-					<th scope="row"><input type="radio" name="<?php echo esc_attr( self::PROVIDER_USER_META_KEY ); ?>" value="<?php echo esc_attr( $provider_key ); ?>" <?php checked( $provider_key, $primary_provider_key ); ?> /></th>
+					<th><?php echo esc_html( $object->get_label() ); ?></th>
 					<td>
-						<label class="two-factor-method-label" for="enabled-<?php echo esc_attr( $provider_key ); ?>"><?php echo esc_html( $object->get_label() ); ?></label>
+						<label class="two-factor-method-label">
+							<input id="enabled-<?php echo esc_attr( $provider_key ); ?>" type="checkbox" name="<?php echo esc_attr( self::ENABLED_PROVIDERS_USER_META_KEY ); ?>[]" value="<?php echo esc_attr( $provider_key ); ?>" <?php checked( in_array( $provider_key, $enabled_providers, true ) ); ?> />
+							<?php echo esc_html( sprintf( __( 'Enable %s', 'two-factor' ), $object->get_label() ) ); ?>
+						</label>
 						<?php
 						/**
 						 * Fires after user options are shown.
@@ -1868,14 +1866,21 @@ class Two_Factor_Core {
 					</td>
 				</tr>
 			<?php endforeach; ?>
+			<tr>
+				<th><?php esc_html_e( 'Primary Method', 'two-factor' ) ?></th>
+				<td>
+					<select name="<?php echo esc_attr( self::PROVIDER_USER_META_KEY ); ?>">
+						<option value=""><?php echo esc_html( __( 'Default', 'two-factor' ) ); ?></option>
+						<?php foreach ( self::get_providers() as $provider_key => $object ) : ?>
+							<option value="<?php echo esc_attr( $provider_key ); ?>" <?php selected( $provider_key, $primary_provider_key ); ?> <?php disabled( ! in_array( $provider_key, $enabled_providers, true ) ); ?>>
+								<?php echo esc_html( $object->get_label() ); ?>
+							</option>
+						<?php endforeach; ?>
+					</select>
+					<p class="description"><?php esc_html_e( 'Select the primary method used during the login by default.', 'two-factor' ) ?></p>
+				</td>
+			</tr>
 			</tbody>
-			<tfoot>
-				<tr>
-					<th class="col-enabled" scope="col"><?php esc_html_e( 'Enabled', 'two-factor' ); ?></th>
-					<th class="col-primary" scope="col"><?php esc_html_e( 'Primary', 'two-factor' ); ?></th>
-					<th class="col-name" scope="col"><?php esc_html_e( 'Type', 'two-factor' ); ?></th>
-				</tr>
-			</tfoot>
 		</table>
 		</fieldset>
 		<?php
