@@ -384,8 +384,10 @@ class Two_Factor_Totp extends Two_Factor_Provider {
 
 							$error.find('p').text( errorMessage );
 
+							$( '#enabled-Two_Factor_Totp' ).prop( 'checked', false );
 							$('#two-factor-totp-authcode').val('');
 						} ).then( function( response ) {
+							$( '#enabled-Two_Factor_Totp' ).prop( 'checked', true );
 							$( '#two-factor-totp-options' ).html( response.html );
 						} );
 					} );
@@ -412,6 +414,7 @@ class Two_Factor_Totp extends Two_Factor_Provider {
 									user_id: <?php echo wp_json_encode( $user->ID ); ?>,
 								}
 							} ).then( function( response ) {
+								$( '#enabled-Two_Factor_Totp' ).prop( 'checked', false );
 								$( '#two-factor-totp-options' ).html( response.html );
 							} );
 						} );
