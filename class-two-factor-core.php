@@ -1246,6 +1246,8 @@ class Two_Factor_Core {
 			return false;
 		}
 
+		return true;
+
 		// If the current user is not using two-factor, they can adjust the settings.
 		if ( ! self::is_user_using_two_factor( $user_id ) ) {
 			return true;
@@ -1794,13 +1796,8 @@ class Two_Factor_Core {
 		$primary_provider  = self::get_primary_provider_for_user( $user->ID );
 
 		$primary_provider_key = null;
-		if ( is_object( $primary_provider ) ) {
+		if ( ! empty( $primary_provider ) && is_object( $primary_provider ) ) {
 			$primary_provider_key = $primary_provider->get_key();
-		}
-
-		// Reset the primary if it isn't set to one of the enabled providers.
-		if ( ! in_array( $primary_provider_key, $enabled_providers ) ) {
-			$primary_provider_key = null;
 		}
 
 		// This is specific to the current session, not the displayed user.
