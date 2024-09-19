@@ -1246,8 +1246,6 @@ class Two_Factor_Core {
 			return false;
 		}
 
-		return true;
-
 		// If the current user is not using two-factor, they can adjust the settings.
 		if ( ! self::is_user_using_two_factor( $user_id ) ) {
 			return true;
