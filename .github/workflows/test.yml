@@ -79,6 +79,9 @@ jobs:
                   - latest
                   - trunk
                   - '6.3'
+                include:
+                    - php: '5.6'
+                      wp: '4.6'
         env:
             WP_ENV_PHP_VERSION: ${{ matrix.php }}
             WP_ENV_CORE: ${{ matrix.wp == 'trunk' && 'WordPress/WordPress' || format( 'https://wordpress.org/wordpress-{0}.zip', matrix.wp ) }}
