@@ -833,9 +833,16 @@ class Two_Factor_Core {
 				}
 			}
 
-			/*
-			* Allow plugins to add links to the two-factor login form.
-			*/
+			/**
+			 * Filters the backup links displayed on the two-factor login form.
+			 *
+			 * Plugins can use this filter to modify or add links to the two-factor authentication
+			 * login form, allowing users to select backup methods for authentication.
+			 *
+			 * @since 0.9.2
+			 *
+			 * @param array $links An array of backup links displayed on the two-factor login form.
+			 */
 			$links = apply_filters( 'two_factor_login_backup_links', $links );
 		?>
 
