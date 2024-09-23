@@ -826,7 +826,7 @@ class Two_Factor_Core {
 				foreach ( $backup_providers as $backup_provider_key => $backup_provider ) {
 					$backup_link_args['provider'] = $backup_provider_key;
 					$links[] = sprintf(
-						'<li><a href="%1$s">%2$s</a></li>',
+						'<a href="%1$s">%2$s</a>',
 						esc_url( self::login_url( $backup_link_args ) ),
 						esc_html( $backup_provider->get_alternative_provider_label() )
 					);
@@ -834,14 +834,14 @@ class Two_Factor_Core {
 			}
 
 			/**
-			 * Filters the backup links displayed on the two-factor login form.
+			 * Filters the html links displayed on the two-factor login form.
 			 *
 			 * Plugins can use this filter to modify or add links to the two-factor authentication
-			 * login form, allowing users to select backup methods for authentication.
+			 * login form, allowing users to select backup methods for authentication or provide documentation links.
 			 *
 			 * @since 0.9.2
 			 *
-			 * @param array $links An array of backup links displayed on the two-factor login form.
+			 * @param array<string> $links An array of links displayed on the two-factor login form.
 			 */
 			$links = apply_filters( 'two_factor_login_backup_links', $links );
 		?>
@@ -854,7 +854,7 @@ class Two_Factor_Core {
 				<ul>
 				<?php
 					foreach ( $links as $link ) {
-						echo $link;
+						echo  '<li>' . $link . '</li>';
 					}
 				?>
 				</ul>
