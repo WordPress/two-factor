@@ -359,7 +359,7 @@ class Two_Factor_Totp extends Two_Factor_Provider {
 					// Focus the auth code input when the checkbox is clicked.
 					document.getElementById('enabled-Two_Factor_Totp').addEventListener('click', function(e) {
 						if ( e.target.checked ) {
-							document.getElementById('two-factor-totp-augthcode').focus();
+							document.getElementById('two-factor-totp-authcode').focus();
 						}
 					});
 
