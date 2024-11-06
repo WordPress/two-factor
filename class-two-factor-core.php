@@ -257,10 +257,12 @@ class Two_Factor_Core {
 	 * Get all enabled two-factor providers.
 	 *
 	 * @since 0.1-dev
+	 * @since 0.10.0 Added the $user_id parameter.
 	 *
+	 * @param int|null $user_id Optional. User ID.
 	 * @return array
 	 */
-	public static function get_providers() {
+	public static function get_providers( $user_id = null ) {
 		$providers = self::get_providers_registered();
 
 		/**
@@ -269,10 +271,11 @@ class Two_Factor_Core {
 		 * This lets third-parties either remove providers (such as Email), or
 		 * add their own providers (such as text message or Clef).
 		 *
-		 * @param array $providers A key-value array where the key is the class name, and
-		 *                         the value is the path to the file containing the class.
+		 * @param array    $providers A key-value array where the key is the class name, and
+		 *                            the value is the path to the file containing the class.
+		 * @param int|null $user_id   The user ID.
 		 */
-		$providers = apply_filters( 'two_factor_providers', $providers );
+		$providers = apply_filters( 'two_factor_providers', $providers, $user_id );
 
 		// FIDO U2F is PHP 5.3+ only.
 		if ( isset( $providers['Two_Factor_FIDO_U2F'] ) && version_compare( PHP_VERSION, '5.3.0', '<' ) ) {
@@ -499,7 +502,7 @@ class Two_Factor_Core {
 			return array();
 		}
 
-		$providers         = self::get_providers();
+		$providers         = self::get_providers( $user->ID );
 		$enabled_providers = get_user_meta( $user->ID, self::ENABLED_PROVIDERS_USER_META_KEY, true );
 		if ( empty( $enabled_providers ) ) {
 			$enabled_providers = array();
@@ -527,7 +530,7 @@ class Two_Factor_Core {
 			return array();
 		}
 
-		$providers            = self::get_providers();
+		$providers            = self::get_providers( $user->ID );
 		$enabled_providers    = self::get_enabled_providers_for_user( $user );
 		$configured_providers = array();
 
@@ -590,7 +593,7 @@ class Two_Factor_Core {
 			return null;
 		}
 
-		$providers           = self::get_providers();
+		$providers           = self::get_providers( $user->ID);
 		$available_providers = self::get_available_providers_for_user( $user );
 
 		// If there's only one available provider, force that to be the primary.
@@ -1834,7 +1837,7 @@ class Two_Factor_Core {
 				</tr>
 			</thead>
 			<tbody>
-			<?php foreach ( self::get_providers() as $provider_key => $object ) : ?>
+			<?php foreach ( self::get_providers( $user->ID ) as $provider_key => $object ) : ?>
 				<tr>
 					<th scope="row"><input id="enabled-<?php echo esc_attr( $provider_key ); ?>" type="checkbox" name="<?php echo esc_attr( self::ENABLED_PROVIDERS_USER_META_KEY ); ?>[]" value="<?php echo esc_attr( $provider_key ); ?>" <?php checked( in_array( $provider_key, $enabled_providers, true ) ); ?> /></th>
 					<th scope="row"><input type="radio" name="<?php echo esc_attr( self::PROVIDER_USER_META_KEY ); ?>" value="<?php echo esc_attr( $provider_key ); ?>" <?php checked( $provider_key, $primary_provider_key ); ?> /></th>
@@ -1889,7 +1892,7 @@ class Two_Factor_Core {
 	 * @return bool True if the provider was enabled, false otherwise.
 	 */
 	public static function enable_provider_for_user( $user_id, $new_provider ) {
-		$available_providers = self::get_providers();
+		$available_providers = self::get_providers( $user_id );
 
 		if ( ! array_key_exists( $new_provider, $available_providers ) ) {
 			return false;
@@ -1929,7 +1932,7 @@ class Two_Factor_Core {
 	 * @return bool True if the provider was disabled, false otherwise.
 	 */
 	public static function disable_provider_for_user( $user_id, $provider_to_delete ) {
-		$is_registered = array_key_exists( $provider_to_delete, self::get_providers() );
+		$is_registered = array_key_exists( $provider_to_delete, self::get_providers( $user_id ) );
 
 		if ( ! $is_registered ) {
 			return false;
@@ -1970,7 +1973,7 @@ class Two_Factor_Core {
 				return;
 			}
 
-			$providers          = self::get_providers();
+			$providers          = self::get_providers( $user_id );
 			$enabled_providers  = $_POST[ self::ENABLED_PROVIDERS_USER_META_KEY ];
 			$existing_providers = self::get_enabled_providers_for_user( $user_id );
 
