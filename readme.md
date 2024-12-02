@@ -12,7 +12,7 @@ See the [readme.txt](readme.txt) for installation and usage instructions.
 
 Please [report (non-security) issues](https://github.com/WordPress/two-factor/issues) and [open pull requests](https://github.com/WordPress/two-factor/pulls) on GitHub. See below for information on reporting potential security/privacy vulnerabilities.
 
-Join the `#core-passwords` channel [on WordPress Slack](http://wordpress.slack.com) ([sign up here](http://chat.wordpress.org)).
+Please join the `#core-passwords` channel [on WordPress Slack](http://wordpress.slack.com) ([sign up here](http://chat.wordpress.org)).
 
 To use the provided development environment, you'll first need to install and launch Docker. Once it's running, the next steps are:
 
