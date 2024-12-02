@@ -241,9 +241,9 @@ class Two_Factor_Core {
 			$class = apply_filters( "two_factor_provider_classname_{$provider_key}", $class, $path );
 
 			/**
-			 * Confirm that it's been successfully included before instantiating.
+			 * Confirm that it's been successfully included.
 			 */
-			if ( method_exists( $class, 'get_instance' ) ) {
+			if ( class_exists( $class ) ) {
 				$providers[ $provider_key ] = $class;
 			} else {
 				unset( $providers[ $provider_key ] );
