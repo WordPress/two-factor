@@ -28,6 +28,7 @@ Here is a list of action and filter hooks provided by the plugin:
 - `two_factor_enabled_providers_for_user` filter overrides the list of two-factor providers enabled for a user. First argument is an array of enabled provider classnames as values, the second argument is the user ID.
 - `two_factor_user_authenticated` action which receives the logged in `WP_User` object as the first argument for determining the logged in user right after the authentication workflow.
 - `two_factor_token_ttl` filter overrides the time interval in seconds that an email token is considered after generation. Accepts the time in seconds as the first argument and the ID of the `WP_User` object being authenticated.
+- `two_factor_token_length` filter overrides the default 8 character count for email tokens.
 
 == Frequently Asked Questions ==
 
