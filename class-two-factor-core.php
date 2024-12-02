@@ -1788,6 +1788,8 @@ class Two_Factor_Core {
 	 * @param WP_User $user WP_User object of the logged-in user.
 	 */
 	public static function user_two_factor_options( $user ) {
+		$notices = [];
+
 		wp_enqueue_style( 'user-edit-2fa', plugins_url( 'user-edit.css', __FILE__ ), array(), TWO_FACTOR_VERSION );
 
 		$enabled_providers = array_keys( self::get_available_providers_for_user( $user ) );
@@ -1803,16 +1805,16 @@ class Two_Factor_Core {
 		$show_2fa_options = self::current_user_can_update_two_factor_options();
 
 		if ( ! $show_2fa_options ) {
-			$url = self::get_user_two_factor_revalidate_url();
-			$url = add_query_arg( 'redirect_to', urlencode( self::get_user_settings_page_url( $user->ID ) . '#two-factor-options' ), $url );
+			$url = add_query_arg(
+				'redirect_to',
+				urlencode( self::get_user_settings_page_url( $user->ID ) . '#two-factor-options' ),
+				self::get_user_two_factor_revalidate_url()
+			);
 
-			printf(
-				'<div class="notice notice-warning inline"><p>%s</p></div>',
-				sprintf(
-					__( 'To update your Two-Factor options, you must first revalidate your session.', 'two-factor' ) .
-					'<br><a class="button" href="%s">' . __( 'Revalidate now', 'two-factor' ) . '</a>',
+			$notices['warning two-factor-warning-revalidate-session'] = sprintf(
+					esc_html__( 'To update your Two-Factor options, you must first revalidate your session.', 'two-factor' ) .
+					' <a class="button" href="%s">' . esc_html__( 'Revalidate now', 'two-factor' ) . '</a>',
 					esc_url( $url )
-				)
 			);
 		}
 
@@ -1821,9 +1823,20 @@ class Two_Factor_Core {
 			$show_2fa_options ? '' : 'disabled="disabled"'
 		);
 
-		wp_nonce_field( 'user_two_factor_options', '_nonce_user_two_factor_options', false );
+		if ( 1 === count( $enabled_providers ) ) {
+			$notices['warning two-factor-warning-suggest-backup'] = esc_html__( 'To prevent being locked out of your account, consider enabling a backup method like Recovery Codes in case you lose access to your primary authentication method.', 'two-factor' );
+		}
 		?>
 		<h2><?php esc_html_e( 'Two-Factor Options', 'two-factor' ); ?></h2>
+		<?php foreach ( $notices as $notice_type => $notice ) : ?>
+		<div class="<?php echo esc_attr( $notice_type ? 'notice inline notice-' . $notice_type : '' ); ?>">
+			<p><?php echo wp_kses_post( $notice ); ?></p>
+		</div>
+		<?php endforeach; ?>
+		<p>
+			<?php  esc_html_e( 'Configure a primary two-factor method along with a backup method, such as Recovery Codes, to avoid being locked out if you lose access to your primary method.', 'two-factor' ); ?>
+		</p>
+		<?php wp_nonce_field( 'user_two_factor_options', '_nonce_user_two_factor_options', false ); ?>
 		<input type="hidden" name="<?php echo esc_attr( self::ENABLED_PROVIDERS_USER_META_KEY ); ?>[]" value="<?php /* Dummy input so $_POST value is passed when no providers are enabled. */ ?>" />
 		<table class="wp-list-table widefat fixed striped table-view-list two-factor-methods-table">
 			<thead>
