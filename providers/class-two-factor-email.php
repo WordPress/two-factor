@@ -72,7 +72,9 @@ class Two_Factor_Email extends Two_Factor_Provider {
 	 * @return string
 	 */
 	public function generate_token( $user_id ) {
-		$token = $this->get_code();
+		$token_length = (int) apply_filters( 'two_factor_token_length', 8 );
+
+		$token = $this->get_code( $token_length );
 
 		update_user_meta( $user_id, self::TOKEN_META_KEY_TIMESTAMP, time() );
 		update_user_meta( $user_id, self::TOKEN_META_KEY, wp_hash( $token ) );
