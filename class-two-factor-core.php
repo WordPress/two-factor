@@ -1830,7 +1830,7 @@ class Two_Factor_Core {
 		<h2><?php esc_html_e( 'Two-Factor Options', 'two-factor' ); ?></h2>
 		<?php foreach ( $notices as $notice_type => $notice ) : ?>
 		<div class="<?php echo esc_attr( $notice_type ? 'notice inline notice-' . $notice_type : '' ); ?>">
-			<p><?php echo $notice; ?></p>
+			<p><?php echo wp_kses_post( $notice ); ?></p>
 		</div>
 		<?php endforeach; ?>
 		<p>
