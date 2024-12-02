@@ -151,6 +151,10 @@ class Two_Factor_Totp extends Two_Factor_Provider {
 
 		$this->delete_user_totp_key( $user_id );
 
+		if ( ! Two_Factor_Core::disable_provider_for_user( $user_id, 'Two_Factor_Totp' ) ) {
+			return new WP_Error( 'db_error', __( 'Unable to disable TOTP provider for this user.', 'two-factor' ), array( 'status' => 500 ) );
+		}
+
 		ob_start();
 		$this->user_two_factor_options( $user );
 		$html = ob_get_clean();
@@ -375,6 +379,7 @@ class Two_Factor_Totp extends Two_Factor_Provider {
 								user_id: <?php echo wp_json_encode( $user->ID ); ?>,
 								key: key,
 								code: code,
+								enable_provider: true,
 							}
 						} ).fail( function( response, status ) {
 							var errorMessage = response.responseJSON.message || status,
@@ -386,8 +391,10 @@ class Two_Factor_Totp extends Two_Factor_Provider {
 
 							$error.find('p').text( errorMessage );
 
+							$( '#enabled-Two_Factor_Totp' ).prop( 'checked', false );
 							$('#two-factor-totp-authcode').val('');
 						} ).then( function( response ) {
+							$( '#enabled-Two_Factor_Totp' ).prop( 'checked', true );
 							$( '#two-factor-totp-options' ).html( response.html );
 						} );
 					} );
@@ -414,6 +421,7 @@ class Two_Factor_Totp extends Two_Factor_Provider {
 									user_id: <?php echo wp_json_encode( $user->ID ); ?>,
 								}
 							} ).then( function( response ) {
+								$( '#enabled-Two_Factor_Totp' ).prop( 'checked', false );
 								$( '#two-factor-totp-options' ).html( response.html );
 							} );
 						} );
