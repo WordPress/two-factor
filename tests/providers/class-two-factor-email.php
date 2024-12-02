@@ -352,4 +352,24 @@ class Tests_Two_Factor_Email extends WP_UnitTestCase {
 		);
 	}
 
+	public function test_custom_token_length() {
+		$user_id = self::factory()->user->create();
+
+		$default_token = $this->provider->generate_token( $user_id );
+
+		add_filter(
+			'two_factor_token_length',
+			function() {
+				return 15;
+			}
+		);
+
+		$custom_token = $this->provider->generate_token( $user_id );
+
+		$this->assertNotEquals( strlen( $default_token ), strlen( $custom_token ), 'Token length is different due to filter' );
+		$this->assertEquals( 15, strlen( $custom_token ), 'Token length matches the filter value' );
+
+		remove_all_filters( 'two_factor_token_length' );
+	}
+
 }
