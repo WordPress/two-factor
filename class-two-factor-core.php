@@ -161,7 +161,7 @@ class Two_Factor_Core {
 
 		// Merge them with the default providers.
 		if ( ! empty( $additional_providers ) ) {
-			return array_merge( $providers, $additional_providers );
+			$providers = array_merge( $providers, $additional_providers );
 		}
 
 		foreach ( self::get_providers_classes( $providers ) as $provider_class ) {
