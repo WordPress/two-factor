@@ -356,6 +356,13 @@ class Two_Factor_Totp extends Two_Factor_Provider {
 
 			<script>
 				(function($){
+					// Focus the auth code input when the checkbox is clicked.
+					document.getElementById('enabled-Two_Factor_Totp').addEventListener('click', function(e) {
+						if ( e.target.checked ) {
+							document.getElementById('two-factor-totp-authcode').focus();
+						}
+					});
+
 					$('.totp-submit').click( function( e ) {
 						e.preventDefault();
 						var key = $('#two-factor-totp-key').val(),
