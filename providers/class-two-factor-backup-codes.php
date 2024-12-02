@@ -239,8 +239,16 @@ class Two_Factor_Backup_Codes extends Two_Factor_Provider {
 			$codes_hashed = (array) get_user_meta( $user->ID, self::BACKUP_CODES_META_KEY, true );
 		}
 
+		/**
+		 * Customize the character count of the backup codes.
+		 *
+		 * @var int $code_length Length of the backup code.
+		 * @var WP_User $user User object.
+		 */
+		$code_length = (int) apply_filters( 'two_factor_backup_code_length', 8, $user );
+
 		for ( $i = 0; $i < $num_codes; $i++ ) {
-			$code           = $this->get_code();
+			$code           = $this->get_code( $code_length );
 			$codes_hashed[] = wp_hash_password( $code );
 			$codes[]        = $code;
 			unset( $code );
