@@ -218,17 +218,17 @@ class Two_Factor_Core {
 	}
 
 	/**
-	 * Get the classnames for all registered providers.
+	 * Get the classnames for specific providers.
 	 *
-	 * Note some of these providers might not be enabled.
+	 * @param array $providers List of paths to provider class files indexed by class names.
 	 *
 	 * @return array List of provider keys and classnames.
 	 */
-	private static function get_providers_classes() {
-		$providers = self::get_providers_registered();
-
+	private static function get_providers_classes( $providers ) {
 		foreach ( $providers as $provider_key => $path ) {
-			require_once $path;
+			if ( ! empty( $path ) && is_readable( $path ) ) {
+				require_once $path;
+			}
 
 			$class = $provider_key;
 
@@ -287,15 +287,13 @@ class Two_Factor_Core {
 		}
 
 		// Map provider keys to classes so that we can instantiate them.
-		$providers = array_intersect_key( self::get_providers_classes(), $providers );
+		$providers = self::get_providers_classes( $providers );
 
 		foreach ( $providers as $provider_key => $provider_class ) {
-			if ( method_exists( $provider_class, 'get_instance' ) ) {
-				try {
-					$providers[ $provider_key ] = call_user_func( array( $provider_class, 'get_instance' ) );
-				} catch ( Exception $e ) {
-					unset( $providers[ $provider_key ] );
-				}
+			try {
+				$providers[ $provider_key ] = call_user_func( array( $provider_class, 'get_instance' ) );
+			} catch ( Exception $e ) {
+				unset( $providers[ $provider_key ] );
 			}
 		}
 
