@@ -149,7 +149,22 @@ class Two_Factor_Core {
 
 		$option_keys = array();
 
-		foreach ( self::get_providers_classes() as $provider_class ) {
+		$providers = self::get_default_providers();
+
+		/**
+		 * Include additional providers to be uninstalled.
+		 *
+		 * @param array $providers A key-value array where the key is the class name, and
+		 *                         the value is the path to the file containing the class.
+		 */
+		$additional_providers = apply_filters( 'two_factor_providers', $providers );
+
+		// Merge them with the default providers.
+		if ( ! empty( $additional_providers ) ) {
+			return array_merge( $providers, $additional_providers );
+		}
+
+		foreach ( self::get_providers_classes( $providers ) as $provider_class ) {
 			// Merge with provider-specific user meta keys.
 			if ( method_exists( $provider_class, 'uninstall_user_meta_keys' ) ) {
 				try {
@@ -192,29 +207,14 @@ class Two_Factor_Core {
 	 *
 	 * @return array List of provider keys and paths to class files.
 	 */
-	public static function get_providers_registered() {
-		$providers = array(
+	private static function get_default_providers() {
+		return array(
 			'Two_Factor_Email'        => TWO_FACTOR_DIR . 'providers/class-two-factor-email.php',
 			'Two_Factor_Totp'         => TWO_FACTOR_DIR . 'providers/class-two-factor-totp.php',
 			'Two_Factor_FIDO_U2F'     => TWO_FACTOR_DIR . 'providers/class-two-factor-fido-u2f.php',
 			'Two_Factor_Backup_Codes' => TWO_FACTOR_DIR . 'providers/class-two-factor-backup-codes.php',
 			'Two_Factor_Dummy'        => TWO_FACTOR_DIR . 'providers/class-two-factor-dummy.php',
 		);
-
-		/**
-		 * Filter the supplied providers.
-		 *
-		 * @param array $providers A key-value array where the key is the class name, and
-		 *                         the value is the path to the file containing the class.
-		 */
-		$additional_providers = apply_filters( 'two_factor_providers', $providers );
-
-		// Merge them with the default providers.
-		if ( ! empty( $additional_providers ) ) {
-			return array_merge( $providers, $additional_providers );
-		}
-
-		return $providers;
 	}
 
 	/**
@@ -261,7 +261,7 @@ class Two_Factor_Core {
 	 * @return array
 	 */
 	public static function get_providers() {
-		$providers = self::get_providers_registered();
+		$providers = self::get_default_providers();
 
 		/**
 		 * Filter the supplied providers.
