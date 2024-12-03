@@ -1802,7 +1802,7 @@ class Two_Factor_Core {
 		}
 
 		// This is specific to the current session, not the displayed user.
-		$show_2fa_options = self::current_user_can_update_two_factor_options() || true;
+		$show_2fa_options = self::current_user_can_update_two_factor_options();
 
 		if ( ! $show_2fa_options ) {
 			$url = add_query_arg(
