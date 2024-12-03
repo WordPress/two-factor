@@ -72,7 +72,7 @@ class Two_Factor_Totp extends Two_Factor_Provider {
 	 *
 	 * @param int $now Timestamp to use when overriding time().
 	 */
-	public static function __set_time( $now ) {
+	public static function set_time( $now ) {
 		self::$now = $now;
 	}
 

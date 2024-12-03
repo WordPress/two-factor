@@ -343,7 +343,7 @@ class Tests_Two_Factor_Totp extends WP_UnitTestCase {
 		$token = $provider->base32_encode( self::$token );
 
 		foreach (self::$vectors as $time => $vector) {
-			$provider::__set_time( (int) $time );
+			$provider::set_time( (int) $time );
 			$this->assertEquals( $vector[0], $provider::calc_totp( $token, false, 8, $hash, self::$step ) );
 			$this->assertEquals( substr( $vector[0], 2 ), $provider::calc_totp( $token, false, 6, $hash, self::$step ) );
 		}
@@ -363,7 +363,7 @@ class Tests_Two_Factor_Totp extends WP_UnitTestCase {
 		$token = $provider->base32_encode( self::$token );
 
 		foreach ( self::$vectors as $time => $vector ) {
-			$provider::__set_time( (int) $time );
+			$provider::set_time( (int) $time );
 			$this->assertTrue( $provider::is_valid_authcode( $token, $vector[0], $hash ) );
 			$this->assertTrue( $provider::is_valid_authcode( $token, substr( $vector[0], 2 ), $hash ) );
 		}
@@ -382,7 +382,7 @@ class Tests_Two_Factor_Totp extends WP_UnitTestCase {
 		$token = $provider->base32_encode( self::$token );
 
 		foreach ( self::$vectors as $time => $vector ) {
-			$provider::__set_time( (int) $time );
+			$provider::set_time( (int) $time );
 			$this->assertEquals( $vector[1], $provider::calc_totp( $token, false, 8, $hash, self::$step ) );
 			$this->assertEquals( substr( $vector[1], 2 ), $provider::calc_totp( $token, false, 6, $hash, self::$step ) );
 		}
@@ -402,7 +402,7 @@ class Tests_Two_Factor_Totp extends WP_UnitTestCase {
 		$token = $provider->base32_encode( self::$token );
 
 		foreach ( self::$vectors as $time => $vector ) {
-			$provider::__set_time( (int) $time );
+			$provider::set_time( (int) $time );
 			$this->assertTrue( $provider::is_valid_authcode( $token, $vector[1], $hash ) );
 			$this->assertTrue( $provider::is_valid_authcode( $token, substr( $vector[1], 2 ), $hash ) );
 		}
@@ -421,7 +421,7 @@ class Tests_Two_Factor_Totp extends WP_UnitTestCase {
 		$token = $provider->base32_encode( self::$token );
 
 		foreach ( self::$vectors as $time => $vector ) {
-			$provider::__set_time( (int) $time );
+			$provider::set_time( (int) $time );
 			$this->assertEquals( $vector[2], $provider::calc_totp( $token, false, 8, $hash, self::$step ) );
 			$this->assertEquals( substr($vector[2], 2 ), $provider::calc_totp( $token, false, 6, $hash, self::$step ) );
 		}
@@ -441,7 +441,7 @@ class Tests_Two_Factor_Totp extends WP_UnitTestCase {
 		$token = $provider->base32_encode( self::$token );
 
 		foreach ( self::$vectors as $time => $vector ) {
-			$provider::__set_time( (int) $time );
+			$provider::set_time( (int) $time );
 			$this->assertTrue( $provider::is_valid_authcode( $token, $vector[2], $hash ) );
 			$this->assertTrue( $provider::is_valid_authcode( $token, substr( $vector[2], 2 ), $hash ) );
 		}
