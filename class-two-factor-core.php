@@ -1991,6 +1991,8 @@ class Two_Factor_Core {
 			$new_provider = isset( $_POST[ self::PROVIDER_USER_META_KEY ] ) ? $_POST[ self::PROVIDER_USER_META_KEY ] : '';
 			if ( ! empty( $new_provider ) && in_array( $new_provider, $enabled_providers, true ) ) {
 				update_user_meta( $user_id, self::PROVIDER_USER_META_KEY, $new_provider );
+			} else {
+				delete_user_meta( $user_id, self::PROVIDER_USER_META_KEY );
 			}
 
 			// Have we changed the two-factor settings for the current user? Alter their session metadata.
