@@ -577,6 +577,25 @@ class Two_Factor_Core {
 	}
 
 	/**
+	 * Get the name of the primary provider selected by the user
+	 * and enabled for the user.
+	 *
+	 * @param WP_User|int $user User ID or instance.
+	 *
+	 * @return string|null
+	 */
+	private static function get_primary_provider_key_selected_for_user( $user ) {
+		$primary_provider    = get_user_meta( $user->ID, self::PROVIDER_USER_META_KEY, true );
+		$available_providers = self::get_available_providers_for_user( $user );
+
+		if ( ! empty( $primary_provider ) && ! empty( $available_providers[ $primary_provider ] ) ) {
+			return $primary_provider;
+		}
+
+		return null;
+	}
+
+	/**
 	 * Gets the Two-Factor Auth provider for the specified|current user.
 	 *
 	 * @since 0.1-dev
@@ -599,7 +618,7 @@ class Two_Factor_Core {
 		} elseif ( 1 === count( $available_providers ) ) {
 			$provider = key( $available_providers );
 		} else {
-			$provider = get_user_meta( $user->ID, self::PROVIDER_USER_META_KEY, true );
+			$provider = self::get_primary_provider_key_selected_for_user( $user );
 
 			// If the provider specified isn't enabled, just grab the first one that is.
 			if ( ! isset( $available_providers[ $provider ] ) ) {
@@ -1793,13 +1812,7 @@ class Two_Factor_Core {
 		wp_enqueue_style( 'user-edit-2fa', plugins_url( 'user-edit.css', __FILE__ ), array(), TWO_FACTOR_VERSION );
 
 		$enabled_providers = array_keys( self::get_available_providers_for_user( $user ) );
-		$primary_provider  = self::get_primary_provider_for_user( $user->ID );
-
-		if ( ! empty( $primary_provider ) && is_object( $primary_provider ) ) {
-			$primary_provider_key = $primary_provider->get_key();
-		} else {
-			$primary_provider_key = null;
-		}
+		$primary_provider_key  = self::get_primary_provider_key_selected_for_user( $user );
 
 		// This is specific to the current session, not the displayed user.
 		$show_2fa_options = self::current_user_can_update_two_factor_options();
