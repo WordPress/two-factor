@@ -1934,7 +1934,7 @@ class Two_Factor_Core {
 
 		$enabled_providers[] = $new_provider;
 
-		return update_user_meta( $user_id, self::ENABLED_PROVIDERS_USER_META_KEY, $enabled_providers );
+		return (bool) update_user_meta( $user_id, self::ENABLED_PROVIDERS_USER_META_KEY, $enabled_providers );
 	}
 
 	/**
