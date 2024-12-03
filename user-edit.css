@@ -1,16 +1,3 @@
-.two-factor-methods-table .col-primary,
-.two-factor-methods-table .col-enabled {
-	width: 5%;
-}
-
-.two-factor-methods-table .col-name {
-	width: 90%;
-}
-
-.two-factor-methods-table tbody th {
-	text-align: center;
-}
-
 .two-factor-methods-table tbody th,
 .two-factor-methods-table tbody td {
 	vertical-align: top;
