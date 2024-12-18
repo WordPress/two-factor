@@ -289,6 +289,7 @@ class Two_Factor_Core {
 		// Map provider keys to classes so that we can instantiate them.
 		$providers = self::get_providers_classes( $providers );
 
+		// TODO: Refactor this to avoid instantiating the provider instances every time this method is called.
 		foreach ( $providers as $provider_key => $provider_class ) {
 			try {
 				$providers[ $provider_key ] = call_user_func( array( $provider_class, 'get_instance' ) );
