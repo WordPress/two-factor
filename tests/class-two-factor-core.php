@@ -1587,7 +1587,7 @@ class Test_ClassTwoFactorCore extends WP_UnitTestCase {
 
 		add_filter(
 			'two_factor_providers',
-			function( $providers ) {
+			function ( $providers ) {
 				return array_diff_key( $providers, array( 'Two_Factor_Email' => null ) );
 			}
 		);
@@ -1616,7 +1616,7 @@ class Test_ClassTwoFactorCore extends WP_UnitTestCase {
 
 		add_filter(
 			'two_factor_providers',
-			function( $providers ) {
+			function ( $providers ) {
 				return array_diff_key( $providers, array( 'Two_Factor_Totp' => null ) );
 			}
 		);
