@@ -1581,4 +1581,56 @@ class Test_ClassTwoFactorCore extends WP_UnitTestCase {
 			'Provider was disabled due to uninstall'
 		);
 	}
+
+	public function test_can_disable_default_providers() {
+		$this->assertContains( 'Two_Factor_Email', array_keys( Two_Factor_Core::get_providers() ), 'Email provider is enabled by default' );
+
+		add_filter(
+			'two_factor_providers',
+			function ( $providers ) {
+				return array_diff_key( $providers, array( 'Two_Factor_Email' => null ) );
+			}
+		);
+
+		$this->assertNotContains( 'Two_Factor_Email', array_keys( Two_Factor_Core::get_providers() ), 'Default provider can be disabled via a filter' );
+
+		remove_all_filters( 'two_factor_providers' );
+	}
+
+	/**
+	 * Plugin uninstall removes all user meta even for disabled providers.
+	 *
+	 * @covers Two_Factor_Core::uninstall
+	 */
+	public function test_uninstall_removes_disabled_provider_user_meta() {
+		$user = self::factory()->user->create_and_get();
+
+		// Enable a provider for the user.
+		Two_Factor_Core::enable_provider_for_user( $user->ID, 'Two_Factor_Totp' );
+
+		$totp_provider = Two_Factor_Totp::get_instance();
+
+		$totp_provider->set_user_totp_key( $user->ID, 'some_key' );
+
+		$this->assertEquals( 'some_key', $totp_provider->get_user_totp_key( $user->ID ), 'TOTP secret was set for user' );
+
+		add_filter(
+			'two_factor_providers',
+			function ( $providers ) {
+				return array_diff_key( $providers, array( 'Two_Factor_Totp' => null ) );
+			}
+		);
+
+		$this->assertNotContains(
+			'Two_Factor_Totp',
+			Two_Factor_Core::get_enabled_providers_for_user( $user->ID ),
+			'TOTP provider is disabled for everyone via filter'
+		);
+
+		Two_Factor_Core::uninstall();
+
+		$this->assertEmpty( $totp_provider->get_user_totp_key( $user->ID ), 'TOTP secret was deleted during uninstall' );
+
+		remove_all_filters( 'two_factor_providers' );
+	}
 }
