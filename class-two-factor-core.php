@@ -149,7 +149,17 @@ class Two_Factor_Core {
 
 		$option_keys = array();
 
-		foreach ( self::get_providers_classes() as $provider_class ) {
+		$providers = self::get_default_providers();
+
+		/** This filter is documented in the get_providers() method */
+		$additional_providers = apply_filters( 'two_factor_providers', $providers );
+
+		// Merge them with the default providers.
+		if ( ! empty( $additional_providers ) ) {
+			$providers = array_merge( $providers, $additional_providers );
+		}
+
+		foreach ( self::get_providers_classes( $providers ) as $provider_class ) {
 			// Merge with provider-specific user meta keys.
 			if ( method_exists( $provider_class, 'uninstall_user_meta_keys' ) ) {
 				try {
@@ -192,43 +202,28 @@ class Two_Factor_Core {
 	 *
 	 * @return array List of provider keys and paths to class files.
 	 */
-	public static function get_providers_registered() {
-		$providers = array(
+	private static function get_default_providers() {
+		return array(
 			'Two_Factor_Email'        => TWO_FACTOR_DIR . 'providers/class-two-factor-email.php',
 			'Two_Factor_Totp'         => TWO_FACTOR_DIR . 'providers/class-two-factor-totp.php',
 			'Two_Factor_FIDO_U2F'     => TWO_FACTOR_DIR . 'providers/class-two-factor-fido-u2f.php',
 			'Two_Factor_Backup_Codes' => TWO_FACTOR_DIR . 'providers/class-two-factor-backup-codes.php',
 			'Two_Factor_Dummy'        => TWO_FACTOR_DIR . 'providers/class-two-factor-dummy.php',
 		);
-
-		/**
-		 * Filter the supplied providers.
-		 *
-		 * @param array $providers A key-value array where the key is the class name, and
-		 *                         the value is the path to the file containing the class.
-		 */
-		$additional_providers = apply_filters( 'two_factor_providers', $providers );
-
-		// Merge them with the default providers.
-		if ( ! empty( $additional_providers ) ) {
-			return array_merge( $providers, $additional_providers );
-		}
-
-		return $providers;
 	}
 
 	/**
-	 * Get the classnames for all registered providers.
+	 * Get the classnames for specific providers.
 	 *
-	 * Note some of these providers might not be enabled.
+	 * @param array $providers List of paths to provider class files indexed by class names.
 	 *
 	 * @return array List of provider keys and classnames.
 	 */
-	private static function get_providers_classes() {
-		$providers = self::get_providers_registered();
-
+	private static function get_providers_classes( $providers ) {
 		foreach ( $providers as $provider_key => $path ) {
-			require_once $path;
+			if ( ! empty( $path ) && is_readable( $path ) ) {
+				require_once $path;
+			}
 
 			$class = $provider_key;
 
@@ -241,9 +236,9 @@ class Two_Factor_Core {
 			$class = apply_filters( "two_factor_provider_classname_{$provider_key}", $class, $path );
 
 			/**
-			 * Confirm that it's been successfully included before instantiating.
+			 * Confirm that it's been successfully included.
 			 */
-			if ( method_exists( $class, 'get_instance' ) ) {
+			if ( class_exists( $class ) ) {
 				$providers[ $provider_key ] = $class;
 			} else {
 				unset( $providers[ $provider_key ] );
@@ -261,7 +256,7 @@ class Two_Factor_Core {
 	 * @return array
 	 */
 	public static function get_providers() {
-		$providers = self::get_providers_registered();
+		$providers = self::get_default_providers();
 
 		/**
 		 * Filter the supplied providers.
@@ -287,15 +282,14 @@ class Two_Factor_Core {
 		}
 
 		// Map provider keys to classes so that we can instantiate them.
-		$providers = array_intersect_key( self::get_providers_classes(), $providers );
+		$providers = self::get_providers_classes( $providers );
 
+		// TODO: Refactor this to avoid instantiating the provider instances every time this method is called.
 		foreach ( $providers as $provider_key => $provider_class ) {
-			if ( method_exists( $provider_class, 'get_instance' ) ) {
-				try {
-					$providers[ $provider_key ] = call_user_func( array( $provider_class, 'get_instance' ) );
-				} catch ( Exception $e ) {
-					unset( $providers[ $provider_key ] );
-				}
+			try {
+				$providers[ $provider_key ] = call_user_func( array( $provider_class, 'get_instance' ) );
+			} catch ( Exception $e ) {
+				unset( $providers[ $provider_key ] );
 			}
 		}
 
