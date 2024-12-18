@@ -151,12 +151,7 @@ class Two_Factor_Core {
 
 		$providers = self::get_default_providers();
 
-		/**
-		 * Include additional providers to be uninstalled.
-		 *
-		 * @param array $providers A key-value array where the key is the class name, and
-		 *                         the value is the path to the file containing the class.
-		 */
+		/** This filter is documented in the get_providers() method */
 		$additional_providers = apply_filters( 'two_factor_providers', $providers );
 
 		// Merge them with the default providers.
