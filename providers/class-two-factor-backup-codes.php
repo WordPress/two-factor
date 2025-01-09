@@ -215,6 +215,25 @@ class Two_Factor_Backup_Codes extends Two_Factor_Provider {
 	}
 
 	/**
+	 * Get the backup code length for a user.
+	 *
+	 * @param WP_User $user User object.
+	 *
+	 * @return int Number of characters.
+	 */
+	private function get_backup_code_length( $user ) {
+		/**
+		 * Customize the character count of the backup codes.
+		 *
+		 * @var int $code_length Length of the backup code.
+		 * @var WP_User $user User object.
+		 */
+		$code_length = (int) apply_filters( 'two_factor_backup_code_length', 8, $user );
+
+		return $code_length;
+	}
+
+	/**
 	 * Generates backup codes & updates the user meta.
 	 *
 	 * @since 0.1-dev
@@ -239,8 +258,10 @@ class Two_Factor_Backup_Codes extends Two_Factor_Provider {
 			$codes_hashed = (array) get_user_meta( $user->ID, self::BACKUP_CODES_META_KEY, true );
 		}
 
+		$code_length = $this->get_backup_code_length( $user );
+
 		for ( $i = 0; $i < $num_codes; $i++ ) {
-			$code           = $this->get_code();
+			$code           = $this->get_code( $code_length );
 			$codes_hashed[] = wp_hash_password( $code );
 			$codes[]        = $code;
 			unset( $code );
@@ -326,11 +347,15 @@ class Two_Factor_Backup_Codes extends Two_Factor_Provider {
 	 */
 	public function authentication_page( $user ) {
 		require_once ABSPATH . '/wp-admin/includes/template.php';
+
+		$code_length = $this->get_backup_code_length( $user );
+		$code_placeholder = str_repeat( 'X', $code_length );
+
 		?>
-		<p class="two-factor-prompt"><?php esc_html_e( 'Enter a recovery code.', 'two-factor' ); ?></p><br/>
+		<p class="two-factor-prompt"><?php esc_html_e( 'Enter a recovery code.', 'two-factor' ); ?></p>
 		<p>
 			<label for="authcode"><?php esc_html_e( 'Recovery Code:', 'two-factor' ); ?></label>
-			<input type="text" inputmode="numeric" name="two-factor-backup-code" id="authcode" class="input authcode" value="" size="20" pattern="[0-9 ]*" placeholder="1234 5678" data-digits="8" />
+			<input type="text" inputmode="numeric" name="two-factor-backup-code" id="authcode" class="input authcode" value="" size="20" pattern="[0-9 ]*" placeholder="<?php echo esc_attr( $code_placeholder ); ?>" data-digits="<?php echo esc_attr( $code_length ); ?>" />
 		</p>
 		<?php
 		submit_button( __( 'Submit', 'two-factor' ) );

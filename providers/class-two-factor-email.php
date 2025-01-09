@@ -64,6 +64,22 @@ class Two_Factor_Email extends Two_Factor_Provider {
 	}
 
 	/**
+	 * Get the email token length.
+	 *
+	 * @return int Email token string length.
+	 */
+	private function get_token_length() {
+		/**
+		 * Number of characters in the email token.
+		 *
+		 * @param int $token_length Number of characters in the email token.
+		 */
+		$token_length = (int) apply_filters( 'two_factor_email_token_length', 8 );
+
+		return $token_length;
+	}
+
+	/**
 	 * Generate the user token.
 	 *
 	 * @since 0.1-dev
@@ -72,7 +88,7 @@ class Two_Factor_Email extends Two_Factor_Provider {
 	 * @return string
 	 */
 	public function generate_token( $user_id ) {
-		$token = $this->get_code();
+		$token = $this->get_code( $this->get_token_length() );
 
 		update_user_meta( $user_id, self::TOKEN_META_KEY_TIMESTAMP, time() );
 		update_user_meta( $user_id, self::TOKEN_META_KEY, wp_hash( $token ) );
@@ -146,10 +162,21 @@ class Two_Factor_Email extends Two_Factor_Provider {
 		 * Number of seconds the token is considered valid
 		 * after the generation.
 		 *
+		 * @deprecated 0.11.0 Use {@see 'two_factor_email_token_ttl'} instead.
+		 *
 		 * @param integer $token_ttl Token time-to-live in seconds.
 		 * @param integer $user_id User ID.
 		 */
-		return (int) apply_filters( 'two_factor_token_ttl', $token_ttl, $user_id );
+		$token_ttl = (int) apply_filters_deprecated( 'two_factor_token_ttl', array( $token_ttl, $user_id ), '0.11.0', 'two_factor_email_token_ttl' );
+
+		/**
+		 * Number of seconds the token is considered valid
+		 * after the generation.
+		 *
+		 * @param integer $token_ttl Token time-to-live in seconds.
+		 * @param integer $user_id User ID.
+		 */
+		return (int) apply_filters( 'two_factor_email_token_ttl', $token_ttl, $user_id );
 	}
 
 	/**
@@ -259,12 +286,15 @@ class Two_Factor_Email extends Two_Factor_Provider {
 			$this->generate_and_email_token( $user );
 		}
 
+		$token_length = $this->get_token_length();
+		$token_placeholder = str_repeat( 'X', $token_length );
+
 		require_once ABSPATH . '/wp-admin/includes/template.php';
 		?>
 		<p class="two-factor-prompt"><?php esc_html_e( 'A verification code has been sent to the email address associated with your account.', 'two-factor' ); ?></p>
 		<p>
 			<label for="authcode"><?php esc_html_e( 'Verification Code:', 'two-factor' ); ?></label>
-			<input type="text" inputmode="numeric" name="two-factor-email-code" id="authcode" class="input authcode" value="" size="20" pattern="[0-9 ]*" placeholder="1234 5678" data-digits="8" />
+			<input type="text" inputmode="numeric" name="two-factor-email-code" id="authcode" class="input authcode" value="" size="20" pattern="[0-9 ]*" autocomplete="one-time-code" placeholder="<?php echo esc_attr( $token_placeholder ); ?>" data-digits="<?php echo esc_attr( $token_length ); ?>" />
 			<?php submit_button( __( 'Log In', 'two-factor' ) ); ?>
 		</p>
 		<p class="two-factor-email-resend">
