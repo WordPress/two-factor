@@ -110,7 +110,7 @@ class Two_Factor_Totp extends Two_Factor_Provider {
 	 * Returns the name of the provider.
 	 */
 	public function get_label() {
-		return _x( 'Authenticator app', 'Provider Label', 'two-factor' );
+		return _x( 'Authenticator App', 'Provider Label', 'two-factor' );
 	}
 
 	/**
