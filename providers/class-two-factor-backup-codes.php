@@ -344,7 +344,7 @@ class Two_Factor_Backup_Codes extends Two_Factor_Provider {
 		$code_placeholder = str_repeat( 'X', $this->get_backup_code_length( $user ) );
 
 		?>
-		<p class="two-factor-prompt"><?php esc_html_e( 'Enter a recovery code.', 'two-factor' ); ?></p><br/>
+		<p class="two-factor-prompt"><?php esc_html_e( 'Enter a recovery code.', 'two-factor' ); ?></p>
 		<p>
 			<label for="authcode"><?php esc_html_e( 'Recovery Code:', 'two-factor' ); ?></label>
 			<input type="text" inputmode="numeric" name="two-factor-backup-code" id="authcode" class="input authcode" value="" size="20" pattern="[0-9 ]*" placeholder="<?php echo esc_attr( $code_placeholder ); ?>" data-digits="<?php esc_attr( self::NUMBER_OF_CODES ); ?>" />
