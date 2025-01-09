@@ -63,6 +63,11 @@ class Two_Factor_Email extends Two_Factor_Provider {
 		return __( 'Send a code to your email', 'two-factor' );
 	}
 
+	/**
+	 * Get the email token length.
+	 *
+	 * @return int Email token string length.
+	 */
 	private function get_token_length() {
 		/**
 		 * Number of characters in the email token.
