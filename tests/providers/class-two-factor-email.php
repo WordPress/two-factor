@@ -358,7 +358,7 @@ class Tests_Two_Factor_Email extends WP_UnitTestCase {
 		$default_token = $this->provider->generate_token( $user_id );
 
 		add_filter(
-			'two_factor_token_length',
+			'two_factor_email_token_length',
 			function() {
 				return 15;
 			}
@@ -369,7 +369,7 @@ class Tests_Two_Factor_Email extends WP_UnitTestCase {
 		$this->assertNotEquals( strlen( $default_token ), strlen( $custom_token ), 'Token length is different due to filter' );
 		$this->assertEquals( 15, strlen( $custom_token ), 'Token length matches the filter value' );
 
-		remove_all_filters( 'two_factor_token_length' );
+		remove_all_filters( 'two_factor_email_token_length' );
 	}
 
 }
