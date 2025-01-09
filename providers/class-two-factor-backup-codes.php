@@ -348,13 +348,14 @@ class Two_Factor_Backup_Codes extends Two_Factor_Provider {
 	public function authentication_page( $user ) {
 		require_once ABSPATH . '/wp-admin/includes/template.php';
 
-		$code_placeholder = str_repeat( 'X', $this->get_backup_code_length( $user ) );
+		$code_length = $this->get_backup_code_length( $user );
+		$code_placeholder = str_repeat( 'X', $code_length );
 
 		?>
 		<p class="two-factor-prompt"><?php esc_html_e( 'Enter a recovery code.', 'two-factor' ); ?></p>
 		<p>
 			<label for="authcode"><?php esc_html_e( 'Recovery Code:', 'two-factor' ); ?></label>
-			<input type="text" inputmode="numeric" name="two-factor-backup-code" id="authcode" class="input authcode" value="" size="20" pattern="[0-9 ]*" placeholder="<?php echo esc_attr( $code_placeholder ); ?>" data-digits="<?php esc_attr( self::NUMBER_OF_CODES ); ?>" />
+			<input type="text" inputmode="numeric" name="two-factor-backup-code" id="authcode" class="input authcode" value="" size="20" pattern="[0-9 ]*" placeholder="<?php echo esc_attr( $code_placeholder ); ?>" data-digits="<?php echo esc_attr( $code_length ); ?>" />
 		</p>
 		<?php
 		submit_button( __( 'Submit', 'two-factor' ) );
