@@ -1896,7 +1896,10 @@ class Two_Factor_Core {
 	 * @return bool True if the provider was enabled, false otherwise.
 	 */
 	public static function enable_provider_for_user( $user_id, $new_provider ) {
-		if ( ! in_array( $new_provider, self::get_providers_classes(), true ) ) {
+		$available_providers = self::get_providers();
+
+		// Ensure the provider is even available.
+		if ( isset( $available_providers[ $new_provider ] ) ) {
 			return false;
 		}
 
