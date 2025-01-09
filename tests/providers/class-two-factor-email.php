@@ -372,4 +372,47 @@ class Tests_Two_Factor_Email extends WP_UnitTestCase {
 		remove_all_filters( 'two_factor_email_token_length' );
 	}
 
+	/**
+	 * Test the email token TTL.
+	 *
+	 * @expectedDeprecated two_factor_token_ttl
+	 */
+	public function test_email_token_ttl() {
+		$this->assertEquals(
+			15 * MINUTE_IN_SECONDS,
+			$this->provider->user_token_ttl( 123 ),
+			'The email token matches the default TTL'
+		);
+
+		add_filter(
+			'two_factor_email_token_ttl',
+			function() {
+				return 42;
+			}
+		);
+
+		$this->assertEquals(
+			42,
+			$this->provider->user_token_ttl( 123 ),
+			'The email token ttl can be filtered'
+		);
+
+		remove_all_filters( 'two_factor_email_token_ttl' );
+
+		add_filter(
+			'two_factor_token_ttl',
+			function() {
+				return 66;
+			}
+		);
+
+		$this->assertEquals(
+			66,
+			$this->provider->user_token_ttl( 123 ),
+			'The email token matches can be filtered with the deprecated filter'
+		);
+
+		remove_all_filters( 'two_factor_token_ttl' );
+	}
+
 }
