@@ -119,7 +119,7 @@ class Two_Factor_Totp extends Two_Factor_Provider {
 	 * @since 0.9.0
 	 */
 	public function get_alternative_provider_label() {
-		return __( 'Use your authenticator app', 'two-factor' );
+		return __( 'Use your authenticator app for time-based one-time passwords (TOTP)', 'two-factor' );
 	}
 
 	/**
