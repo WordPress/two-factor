@@ -214,6 +214,13 @@ class Two_Factor_Backup_Codes extends Two_Factor_Provider {
 		<?php
 	}
 
+	/**
+	 * Get the backup code length for a user.
+	 *
+	 * @param WP_User $user User object.
+	 *
+	 * @return int Number of characters.
+	 */
 	private function get_backup_code_length( $user ) {
 		/**
 		 * Customize the character count of the backup codes.
