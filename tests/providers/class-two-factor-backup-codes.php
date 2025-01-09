@@ -194,4 +194,25 @@ class Tests_Two_Factor_Backup_Codes extends WP_UnitTestCase {
 		$this->provider->delete_code( $user, $backup_codes[0] );
 		$this->assertEquals( 1, $this->provider->codes_remaining_for_user( $user ) );
 	}
+
+	public function test_backup_code_length_filter() {
+		$user = new WP_User( self::factory()->user->create() );
+
+		$code_default = $this->provider->generate_codes( $user, array( 'number' => 1 ) );
+
+		add_filter(
+			'two_factor_backup_code_length',
+			function() {
+				return 7;
+			}
+		);
+
+		$code_custom_length = $this->provider->generate_codes( $user, array( 'number' => 1 ) );
+
+		$this->assertNotEquals( strlen( $code_custom_length[0] ), strlen( $code_default[0] ), 'Backup code length can be adjusted via filter' );
+
+		$this->assertEquals( 7, strlen( $code_custom_length[0] ), 'Backup code length matches the filtered length' );
+
+		remove_all_filters( 'two_factor_backup_code_length' );
+	}
 }
