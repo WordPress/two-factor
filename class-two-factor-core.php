@@ -1874,20 +1874,25 @@ class Two_Factor_Core {
 					</td>
 				</tr>
 			<?php endforeach; ?>
-			<tr>
-				<th><?php esc_html_e( 'Primary Method', 'two-factor' ) ?></th>
-				<td>
-					<select name="<?php echo esc_attr( self::PROVIDER_USER_META_KEY ); ?>">
-						<option value=""><?php echo esc_html( __( 'Default', 'two-factor' ) ); ?></option>
-						<?php foreach ( self::get_providers() as $provider_key => $object ) : ?>
-							<option value="<?php echo esc_attr( $provider_key ); ?>" <?php selected( $provider_key, $primary_provider_key ); ?> <?php disabled( ! in_array( $provider_key, $enabled_providers, true ) ); ?>>
-								<?php echo esc_html( $object->get_label() ); ?>
-							</option>
-						<?php endforeach; ?>
-					</select>
-					<p class="description"><?php esc_html_e( 'Select the primary method to use for two-factor authentication when signing into this site.', 'two-factor' ) ?></p>
-				</td>
-			</tr>
+			</tbody>
+		</table>
+		<hr />
+		<table class="form-table two-factor-primary-method-table" role="presentation">
+			<tbody>
+				<tr>
+					<th><?php esc_html_e( 'Primary Method', 'two-factor' ) ?></th>
+					<td>
+						<select name="<?php echo esc_attr( self::PROVIDER_USER_META_KEY ); ?>">
+							<option value=""><?php echo esc_html( __( 'Default', 'two-factor' ) ); ?></option>
+							<?php foreach ( self::get_providers() as $provider_key => $object ) : ?>
+								<option value="<?php echo esc_attr( $provider_key ); ?>" <?php selected( $provider_key, $primary_provider_key ); ?> <?php disabled( ! in_array( $provider_key, $enabled_providers, true ) ); ?>>
+									<?php echo esc_html( $object->get_label() ); ?>
+								</option>
+							<?php endforeach; ?>
+						</select>
+						<p class="description"><?php esc_html_e( 'Select the primary method to use for two-factor authentication when signing into this site.', 'two-factor' ) ?></p>
+					</td>
+				</tr>
 			</tbody>
 		</table>
 		</fieldset>
