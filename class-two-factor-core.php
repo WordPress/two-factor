@@ -249,7 +249,8 @@ class Two_Factor_Core {
 	}
 
 	/**
-	 * Get all enabled two-factor providers.
+	 * Get all enabled two-factor providers with keys as the original
+	 * provider class names and the values as the provider class instances.
 	 *
 	 * @since 0.1-dev
 	 *
