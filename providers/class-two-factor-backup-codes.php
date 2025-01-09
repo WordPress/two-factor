@@ -214,6 +214,18 @@ class Two_Factor_Backup_Codes extends Two_Factor_Provider {
 		<?php
 	}
 
+	private function get_backup_code_length( $user ) {
+		/**
+		 * Customize the character count of the backup codes.
+		 *
+		 * @var int $code_length Length of the backup code.
+		 * @var WP_User $user User object.
+		 */
+		$code_length = (int) apply_filters( 'two_factor_backup_code_length', 8, $user );
+
+		return $code_length;
+	}
+
 	/**
 	 * Generates backup codes & updates the user meta.
 	 *
@@ -239,13 +251,7 @@ class Two_Factor_Backup_Codes extends Two_Factor_Provider {
 			$codes_hashed = (array) get_user_meta( $user->ID, self::BACKUP_CODES_META_KEY, true );
 		}
 
-		/**
-		 * Customize the character count of the backup codes.
-		 *
-		 * @var int $code_length Length of the backup code.
-		 * @var WP_User $user User object.
-		 */
-		$code_length = (int) apply_filters( 'two_factor_backup_code_length', 8, $user );
+		$code_length = $this->get_backup_code_length( $user );
 
 		for ( $i = 0; $i < $num_codes; $i++ ) {
 			$code           = $this->get_code( $code_length );
@@ -335,7 +341,7 @@ class Two_Factor_Backup_Codes extends Two_Factor_Provider {
 	public function authentication_page( $user ) {
 		require_once ABSPATH . '/wp-admin/includes/template.php';
 
-		$code_placeholder = str_repeat( '0', self::NUMBER_OF_CODES );
+		$code_placeholder = str_repeat( 'X', $this->get_backup_code_length( $user ) );
 
 		?>
 		<p class="two-factor-prompt"><?php esc_html_e( 'Enter a recovery code.', 'two-factor' ); ?></p><br/>
