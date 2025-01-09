@@ -1885,7 +1885,7 @@ class Two_Factor_Core {
 							</option>
 						<?php endforeach; ?>
 					</select>
-					<p class="description"><?php esc_html_e( 'Select the primary method used during the login by default.', 'two-factor' ) ?></p>
+					<p class="description"><?php esc_html_e( 'Select the primary method to use for two-factor authentication when signing into this site.', 'two-factor' ) ?></p>
 				</td>
 			</tr>
 			</tbody>
