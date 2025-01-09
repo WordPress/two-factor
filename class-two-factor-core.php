@@ -1896,10 +1896,8 @@ class Two_Factor_Core {
 	 * @return bool True if the provider was enabled, false otherwise.
 	 */
 	public static function enable_provider_for_user( $user_id, $new_provider ) {
-		$available_providers = self::get_providers();
-
 		// Ensure the provider is even available.
-		if ( isset( $available_providers[ $new_provider ] ) ) {
+		if ( ! array_key_exists( $new_provider, self::get_providers() ) ) {
 			return false;
 		}
 
@@ -1930,7 +1928,7 @@ class Two_Factor_Core {
 	 */
 	public static function disable_provider_for_user( $user_id, $provider_to_delete ) {
 		// Check if the provider is even enabled.
-		if ( ! in_array( $provider_to_delete, self::get_providers_classes(), true ) ) {
+		if ( ! array_key_exists( $provider_to_delete, self::get_providers() ) ) {
 			return false;
 		}
 
