@@ -153,7 +153,7 @@ class Two_Factor_Email extends Two_Factor_Provider {
 		 * @param integer $token_ttl Token time-to-live in seconds.
 		 * @param integer $user_id User ID.
 		 */
-		$token_ttl = (int) apply_filters_deprecated( 'two_factor_token_ttl', array( $token_ttl, $user_id ), '0.7.0', 'two_factor_email_token_ttl' );
+		$token_ttl = (int) apply_filters_deprecated( 'two_factor_token_ttl', array( $token_ttl, $user_id ), '0.11.0', 'two_factor_email_token_ttl' );
 
 		/**
 		 * Number of seconds the token is considered valid
