@@ -148,10 +148,21 @@ class Two_Factor_Email extends Two_Factor_Provider {
 		 * Number of seconds the token is considered valid
 		 * after the generation.
 		 *
+		 * @deprecated 0.11.0 Use {@see 'two_factor_email_token_ttl'} instead.
+		 *
 		 * @param integer $token_ttl Token time-to-live in seconds.
 		 * @param integer $user_id User ID.
 		 */
-		return (int) apply_filters( 'two_factor_token_ttl', $token_ttl, $user_id );
+		$token_ttl = (int) apply_filters_deprecated( 'two_factor_token_ttl', array( $token_ttl, $user_id ), '0.7.0', 'two_factor_email_token_ttl' );
+
+		/**
+		 * Number of seconds the token is considered valid
+		 * after the generation.
+		 *
+		 * @param integer $token_ttl Token time-to-live in seconds.
+		 * @param integer $user_id User ID.
+		 */
+		return (int) apply_filters( 'two_factor_email_token_ttl', $token_ttl, $user_id );
 	}
 
 	/**
