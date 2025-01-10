@@ -94,7 +94,6 @@ class Two_Factor_Core {
 	 */
 	public static function add_hooks( $compat ) {
 		add_action( 'init', array( __CLASS__, 'get_providers' ) ); // @phpstan-ignore return.void
-		add_action( 'wp_login', array( __CLASS__, 'wp_login' ), 10, 2 );
 		add_filter( 'wp_login_errors', array( __CLASS__, 'maybe_show_reset_password_notice' ) );
 		add_action( 'after_password_reset', array( __CLASS__, 'clear_password_reset_notice' ) );
 		add_action( 'login_form_validate_2fa', array( __CLASS__, 'login_form_validate_2fa' ) );
@@ -710,6 +709,7 @@ class Two_Factor_Core {
 		 * rather than through an unsupported 3rd-party login process which this plugin doesn't support.
 		 */
 		if ( $user instanceof WP_User && self::is_user_using_two_factor( $user->ID ) && did_action( 'login_init' ) ) {
+			add_action( 'wp_login', array( __CLASS__, 'wp_login' ), 10, 2 );
 			add_filter( 'send_auth_cookies', '__return_false', PHP_INT_MAX );
 		}
 
