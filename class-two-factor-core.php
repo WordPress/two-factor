@@ -699,7 +699,7 @@ class Two_Factor_Core {
 			}
 
 			// Trigger the second-factor flow for valid users.
-			add_action( 'wp_login', array( __CLASS__, 'wp_login' ), 10, 2 );
+			add_action( 'wp_login', array( __CLASS__, 'wp_login' ), PHP_INT_MAX, 2 );
 		}
 
 		return $user;
