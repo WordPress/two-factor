@@ -388,6 +388,53 @@ class Test_ClassTwoFactorCore extends WP_UnitTestCase {
 	 *
 	 * @covers Two_Factor_Core::filter_authenticate
 	 */
+	public function test_filter_authenticate() {
+		$user_default     = new WP_User( self::factory()->user->create() );
+		$user_2fa_enabled = $this->get_dummy_user(); // User with a dummy two-factor method enabled.
+
+		$this->assertFalse( Two_Factor_Core::is_api_request(), 'Is not an API request by default' );
+
+		$this->assertInstanceOf(
+			'WP_User',
+			Two_Factor_Core::filter_authenticate( $user_default, '', '' ),
+			'Existing non-2FA user session should not trigger 2FA'
+		);
+
+		$this->assertInstanceOf(
+			'WP_User',
+			Two_Factor_Core::filter_authenticate( $user_default, 'username', '' ),
+			'Existing non-2FA user login attempts should not trigger 2FA'
+		);
+
+		$this->assertInstanceOf(
+			'WP_User',
+			Two_Factor_Core::filter_authenticate( $user_2fa_enabled, '', '' ),
+			'Existing 2FA user sessions should not trigger 2FA'
+		);
+
+		$this->assertFalse(
+			has_action( 'wp_login', array( 'Two_Factor_Core', 'wp_login' ) ),
+			'Requests with existing user sessions should not trigger the two-factor flow'
+		);
+
+		$this->assertInstanceOf(
+			'WP_User',
+			Two_Factor_Core::filter_authenticate( $user_2fa_enabled, 'user-name', 'password' ),
+			'Existing 2FA user session with username present should forward the user'
+		);
+
+		$this->assertNotFalse(
+			has_action( 'wp_login', array( 'Two_Factor_Core', 'wp_login' ) ),
+			'Existing 2FA user session with username present should trigger two-factor flow'
+		);
+	}
+
+	/**
+	 * Verify authentication filters.
+	 *
+	 * @covers Two_Factor_Core::filter_authenticate
+	 * @covers Two_Factor_Core::is_api_request
+	 */
 	public function test_filter_authenticate_api() {
 		$user_default     = new WP_User( self::factory()->user->create() );
 		$user_2fa_enabled = $this->get_dummy_user(); // User with a dummy two-factor method enabled.
