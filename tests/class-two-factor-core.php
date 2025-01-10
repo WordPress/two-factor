@@ -397,12 +397,12 @@ class Test_ClassTwoFactorCore extends WP_UnitTestCase {
 
 		$this->assertInstanceOf(
 			'WP_User',
-			Two_Factor_Core::filter_authenticate( $user_default )
+			Two_Factor_Core::filter_authenticate( $user_default, 'username', 'password' )
 		);
 
 		$this->assertInstanceOf(
 			'WP_Error',
-			Two_Factor_Core::filter_authenticate( $user_2fa_enabled )
+			Two_Factor_Core::filter_authenticate( $user_2fa_enabled, 'username', 'password' )
 		);
 	}
 
