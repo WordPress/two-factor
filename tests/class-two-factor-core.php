@@ -404,6 +404,12 @@ class Test_ClassTwoFactorCore extends WP_UnitTestCase {
 			'WP_Error',
 			Two_Factor_Core::filter_authenticate( $user_2fa_enabled, 'username', 'password' )
 		);
+
+		$this->assertInstanceOf(
+			'WP_User',
+			Two_Factor_Core::filter_authenticate( $user_2fa_enabled, '', null ),
+			'Existing user session without a username should not trigger 2FA'
+		);
 	}
 
 	/**
