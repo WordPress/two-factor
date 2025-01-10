@@ -397,12 +397,14 @@ class Test_ClassTwoFactorCore extends WP_UnitTestCase {
 
 		$this->assertInstanceOf(
 			'WP_User',
-			Two_Factor_Core::filter_authenticate( $user_default, 'username', 'password' )
+			Two_Factor_Core::filter_authenticate( $user_default, 'username', 'password' ),
+			'Non-2FA user should be able to authenticate during API requests'
 		);
 
 		$this->assertInstanceOf(
 			'WP_Error',
-			Two_Factor_Core::filter_authenticate( $user_2fa_enabled, 'username', 'password' )
+			Two_Factor_Core::filter_authenticate( $user_2fa_enabled, 'username', 'password' ),
+			'2FA user should not be able to authenticate during API requests'
 		);
 
 		$this->assertInstanceOf(
