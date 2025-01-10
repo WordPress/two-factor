@@ -698,7 +698,7 @@ class Two_Factor_Core {
 		}
 
 		// Trigger the second-factor flow only for login attempts.
-		if ( ! empty( $username ) && $user instanceof WP_User ) {
+		if ( strlen( $username ) && $user instanceof WP_User ) {
 			add_action( 'wp_login', array( __CLASS__, 'wp_login' ), PHP_INT_MAX, 2 );
 		}
 
