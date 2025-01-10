@@ -116,8 +116,13 @@ class Two_Factor_Core {
 		add_action( 'set_auth_cookie', array( __CLASS__, 'collect_auth_cookie_tokens' ) );
 		add_action( 'set_logged_in_cookie', array( __CLASS__, 'collect_auth_cookie_tokens' ) );
 
-		// Run only after the core wp_authenticate_username_password() check.
-		add_filter( 'authenticate', array( __CLASS__, 'filter_authenticate' ), 50 );
+		/**
+		 * Enable the two-factor workflow only for login requests with username
+		 * and without an existing user cookie.
+		 *
+		 * Run after core username/password and cookie checks.
+		 */
+		add_filter( 'authenticate', array( __CLASS__, 'filter_authenticate' ), 31, 3 );
 
 		// Run as late as possible to prevent other plugins from unintentionally bypassing.
 		add_filter( 'authenticate', array( __CLASS__, 'filter_authenticate_block_cookies' ), PHP_INT_MAX );
@@ -675,18 +680,26 @@ class Two_Factor_Core {
 	 * Prevent login through XML-RPC and REST API for users with at least one
 	 * two-factor method enabled.
 	 *
-	 * @param  WP_User|WP_Error $user Valid WP_User only if the previous filters
+	 * @param WP_User|WP_Error $user Valid WP_User only if the previous filters
 	 *                                have verified and confirmed the
 	 *                                authentication credentials.
+	 * @param string           $username The username.
+	 * @param string           $password The password.
 	 *
 	 * @return WP_User|WP_Error
 	 */
-	public static function filter_authenticate( $user ) {
-		if ( $user instanceof WP_User && self::is_api_request() && self::is_user_using_two_factor( $user->ID ) && ! self::is_user_api_login_enabled( $user->ID ) ) {
-			return new WP_Error(
-				'invalid_application_credentials',
-				__( 'Error: API login for user disabled.', 'two-factor' )
-			);
+	public static function filter_authenticate( $user, $username, $password ) {
+		if ( ! empty( $username ) && $user instanceof WP_User && self::is_user_using_two_factor( $user->ID ) ) {
+			// Disable authentication requests for API requests for users with two-factor enabled.
+			if ( self::is_api_request() && ! self::is_user_api_login_enabled( $user->ID ) ) {
+				return new WP_Error(
+					'invalid_application_credentials',
+					__( 'Error: API login for user disabled.', 'two-factor' )
+				);
+			}
+
+			// Trigger the second-factor flow for valid users.
+			add_action( 'wp_login', array( __CLASS__, 'wp_login' ), 10, 2 );
 		}
 
 		return $user;
@@ -709,7 +722,6 @@ class Two_Factor_Core {
 		 * rather than through an unsupported 3rd-party login process which this plugin doesn't support.
 		 */
 		if ( $user instanceof WP_User && self::is_user_using_two_factor( $user->ID ) && did_action( 'login_init' ) ) {
-			add_action( 'wp_login', array( __CLASS__, 'wp_login' ), 10, 2 );
 			add_filter( 'send_auth_cookies', '__return_false', PHP_INT_MAX );
 		}
 
