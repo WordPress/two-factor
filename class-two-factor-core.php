@@ -689,16 +689,16 @@ class Two_Factor_Core {
 	 * @return WP_User|WP_Error
 	 */
 	public static function filter_authenticate( $user, $username, $password ) {
-		if ( ! empty( $username ) && $user instanceof WP_User && self::is_user_using_two_factor( $user->ID ) ) {
-			// Disable authentication requests for API requests for users with two-factor enabled.
-			if ( self::is_api_request() && ! self::is_user_api_login_enabled( $user->ID ) ) {
-				return new WP_Error(
-					'invalid_application_credentials',
-					__( 'Error: API login for user disabled.', 'two-factor' )
-				);
-			}
+		// Disable authentication requests for API requests for users with two-factor enabled.
+		if ( $user instanceof WP_User && self::is_user_using_two_factor( $user->ID ) && self::is_api_request() && ! self::is_user_api_login_enabled( $user->ID ) ) {
+			return new WP_Error(
+				'invalid_application_credentials',
+				__( 'Error: API login for user disabled.', 'two-factor' )
+			);
+		}
 
-			// Trigger the second-factor flow for valid users.
+		// Trigger the second-factor flow only for login attempts.
+		if ( ! empty( $username ) && $user instanceof WP_User ) {
 			add_action( 'wp_login', array( __CLASS__, 'wp_login' ), PHP_INT_MAX, 2 );
 		}
 
