@@ -388,12 +388,14 @@ class Test_ClassTwoFactorCore extends WP_UnitTestCase {
 	 *
 	 * @covers Two_Factor_Core::filter_authenticate
 	 */
-	public function test_filter_authenticate() {
+	public function test_filter_authenticate_api() {
 		$user_default     = new WP_User( self::factory()->user->create() );
 		$user_2fa_enabled = $this->get_dummy_user(); // User with a dummy two-factor method enabled.
 
 		// TODO: Get Two_Factor_Core away from static methods to allow mocking this.
 		define( 'XMLRPC_REQUEST', true );
+
+		$this->assertTrue( Two_Factor_Core::is_api_request(), 'Can detect an API request' );
 
 		$this->assertInstanceOf(
 			'WP_User',
