@@ -124,9 +124,6 @@ class Two_Factor_Core {
 		 */
 		add_filter( 'authenticate', array( __CLASS__, 'filter_authenticate' ), 31, 3 );
 
-		// Run as late as possible to prevent other plugins from unintentionally bypassing.
-		add_filter( 'authenticate', array( __CLASS__, 'filter_authenticate_block_cookies' ), PHP_INT_MAX );
-
 		add_filter( 'attach_session_information', array( __CLASS__, 'filter_session_information' ), 10, 2 );
 
 		add_action( 'admin_init', array( __CLASS__, 'trigger_user_settings_action' ) );
@@ -699,31 +696,11 @@ class Two_Factor_Core {
 				);
 			}
 
+			// Disable core auth cookies because we must send them manually once the 2nd factor has been verified.
+			add_filter( 'send_auth_cookies', '__return_false', PHP_INT_MAX );
+
 			// Trigger the two-factor flow only for login attempts.
 			add_action( 'wp_login', array( __CLASS__, 'wp_login' ), PHP_INT_MAX, 2 );
-		}
-
-		return $user;
-	}
-
-	/**
-	 * Prevent login cookies being set on login for Two Factor users.
-	 *
-	 * This makes it so that Core never sends the auth cookies. `login_form_validate_2fa()` will send them manually once the 2nd factor has been verified.
-	 *
-	 * @param  WP_User|WP_Error $user Valid WP_User only if the previous filters
-	 *                                have verified and confirmed the
-	 *                                authentication credentials.
-	 *
-	 * @return WP_User|WP_Error
-	 */
-	public static function filter_authenticate_block_cookies( $user ) {
-		/*
-		 * NOTE: The `login_init` action is checked for here to ensure we're within the regular login flow,
-		 * rather than through an unsupported 3rd-party login process which this plugin doesn't support.
-		 */
-		if ( $user instanceof WP_User && self::is_user_using_two_factor( $user->ID ) && did_action( 'login_init' ) ) {
-			add_filter( 'send_auth_cookies', '__return_false', PHP_INT_MAX );
 		}
 
 		return $user;
@@ -1403,7 +1380,7 @@ class Two_Factor_Core {
 		/*
 		 * NOTE: This filter removal is not normally required, this is included for protection against
 		 * a plugin/two factor provider which runs the `authenticate` filter during it's validation.
-		 * Such a plugin would cause self::filter_authenticate_block_cookies() to run and add this filter.
+		 * Such a plugin would cause self::filter_authenticate() to run and add this filter.
 		 */
 		remove_filter( 'send_auth_cookies', '__return_false', PHP_INT_MAX );
 
