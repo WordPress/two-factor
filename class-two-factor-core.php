@@ -682,17 +682,11 @@ class Two_Factor_Core {
 	 * @return WP_User|WP_Error
 	 */
 	public static function filter_authenticate( $user ) {
-		if ( $user instanceof WP_User && self::is_user_using_two_factor( $user->ID ) ) {
-			// Trigger the second-factor flow if the password was correct.
-			add_action( 'wp_login', array( __CLASS__, 'wp_login' ), 10, 2 );
-
-			// Disable the XML-RPC and REST API for users with two-factor enabled.
-			if ( self::is_api_request() && ! self::is_user_api_login_enabled( $user->ID ) ) {
-				return new WP_Error(
-					'invalid_application_credentials',
-					__( 'Error: API login for user disabled.', 'two-factor' )
-				);
-			}
+		if ( $user instanceof WP_User && self::is_api_request() && self::is_user_using_two_factor( $user->ID ) && ! self::is_user_api_login_enabled( $user->ID ) ) {
+			return new WP_Error(
+				'invalid_application_credentials',
+				__( 'Error: API login for user disabled.', 'two-factor' )
+			);
 		}
 
 		return $user;
@@ -715,6 +709,7 @@ class Two_Factor_Core {
 		 * rather than through an unsupported 3rd-party login process which this plugin doesn't support.
 		 */
 		if ( $user instanceof WP_User && self::is_user_using_two_factor( $user->ID ) && did_action( 'login_init' ) ) {
+			add_action( 'wp_login', array( __CLASS__, 'wp_login' ), 10, 2 );
 			add_filter( 'send_auth_cookies', '__return_false', PHP_INT_MAX );
 		}
 
