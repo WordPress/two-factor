@@ -249,8 +249,11 @@ class Two_Factor_Core {
 	}
 
 	/**
-	 * Get all enabled two-factor providers with keys as the original
+	 * Get all registered two-factor providers with keys as the original
 	 * provider class names and the values as the provider class instances.
+	 *
+	 * @see Two_Factor_Core::get_enabled_providers_for_user()
+	 * @see Two_Factor_Core::get_supported_providers_for_user()
 	 *
 	 * @since 0.1-dev
 	 *
@@ -505,7 +508,11 @@ class Two_Factor_Core {
 	}
 
 	/**
-	 * Get all Two-Factor Auth providers that are enabled for the specified|current user.
+	 * Get two-factor providers that are enabled for the specified (or current) user
+	 * but might not be configured, yet.
+	 *
+	 * @see Two_Factor_Core::get_supported_providers_for_user()
+	 * @see Two_Factor_Core::get_available_providers_for_user()
 	 *
 	 * @param int|WP_User $user Optional. User ID, or WP_User object of the the user. Defaults to current user.
 	 * @return array
@@ -533,7 +540,11 @@ class Two_Factor_Core {
 	}
 
 	/**
-	 * Get all Two-Factor Auth providers that are both enabled and configured for the specified|current user.
+	 * Get all two-factor providers that are both enabled and configured
+	 * for the specified (or current) user.
+	 *
+	 * @see Two_Factor_Core::get_supported_providers_for_user()
+	 * @see Two_Factor_Core::get_enabled_providers_for_user()
 	 *
 	 * @param int|WP_User $user Optional. User ID, or WP_User object of the the user. Defaults to current user.
 	 * @return array
