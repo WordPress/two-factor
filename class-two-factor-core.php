@@ -547,7 +547,7 @@ class Two_Factor_Core {
 	 * @see Two_Factor_Core::get_enabled_providers_for_user()
 	 *
 	 * @param int|WP_User $user Optional. User ID, or WP_User object of the the user. Defaults to current user.
-	 * @return array
+	 * @return array List of provider instances.
 	 */
 	public static function get_available_providers_for_user( $user = null ) {
 		$user = self::fetch_user( $user );
@@ -555,11 +555,12 @@ class Two_Factor_Core {
 			return array();
 		}
 
-		$enabled_providers    = self::get_enabled_providers_for_user( $user );
+		$providers = self::get_supported_providers_for_user( $user ); // Returns full objects.
+		$enabled_providers    = self::get_enabled_providers_for_user( $user ); // Returns just the keys.
 		$configured_providers = array();
 
-		foreach ( $enabled_providers as $provider_key => $provider ) {
-			if ( $provider->is_available_for_user( $user ) ) {
+		foreach ( $providers as $provider_key => $provider ) {
+			if ( in_array( $provider_key, $enabled_providers, true ) && $provider->is_available_for_user( $user ) ) {
 				$configured_providers[ $provider_key ] = $provider;
 			}
 		}
