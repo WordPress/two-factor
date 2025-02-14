@@ -298,6 +298,28 @@ class Two_Factor_Core {
 	}
 
 	/**
+	 * Get providers available for user which may not be enabled or configured.
+	 *
+	 * @see Two_Factor_Core::get_enabled_providers_for_user()
+	 * @see Two_Factor_Core::get_available_providers_for_user()
+	 *
+	 * @param  WP_User|int|null $user User ID.
+	 * @return array List of provider instances indexed by provider key.
+	 */
+	public function get_supported_providers_for_user( $user = null ) {
+		$user = self::fetch_user( $user );
+		$providers = self::get_providers();
+
+		/**
+		 * List of providers available to user which may not be enabled or configured.
+		 *
+		 * @param array       $providers List of available provider instances indexed by provider key.
+		 * @param int|WP_User $user User ID.
+		 */
+		return apply_filters( 'two_factor_providers_for_user', $providers, $user );
+	}
+
+	/**
 	 * Enable the dummy method only during debugging.
 	 *
 	 * @param array $methods List of enabled methods.
