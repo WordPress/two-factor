@@ -626,7 +626,7 @@ class Two_Factor_Core {
 			return null;
 		}
 
-		$providers           = self::get_providers();
+		$providers           = self::get_supported_providers_for_user();
 		$available_providers = self::get_available_providers_for_user( $user );
 
 		// If there's only one available provider, force that to be the primary.
@@ -1826,6 +1826,8 @@ class Two_Factor_Core {
 	public static function user_two_factor_options( $user ) {
 		$notices = [];
 
+		$providers = self::get_supported_providers_for_user( $user->ID );
+
 		wp_enqueue_style( 'user-edit-2fa', plugins_url( 'user-edit.css', __FILE__ ), array(), TWO_FACTOR_VERSION );
 
 		$enabled_providers = array_keys( self::get_available_providers_for_user( $user ) );
@@ -1872,7 +1874,7 @@ class Two_Factor_Core {
 
 		<table class="form-table two-factor-methods-table" role="presentation">
 			<tbody>
-			<?php foreach ( self::get_providers() as $provider_key => $object ) : ?>
+			<?php foreach ( $providers as $provider_key => $object ) : ?>
 				<tr>
 					<th><?php echo esc_html( $object->get_label() ); ?></th>
 					<td>
@@ -1906,7 +1908,7 @@ class Two_Factor_Core {
 					<td>
 						<select name="<?php echo esc_attr( self::PROVIDER_USER_META_KEY ); ?>">
 							<option value=""><?php echo esc_html( __( 'Default', 'two-factor' ) ); ?></option>
-							<?php foreach ( self::get_providers() as $provider_key => $object ) : ?>
+							<?php foreach ( $providers as $provider_key => $object ) : ?>
 								<option value="<?php echo esc_attr( $provider_key ); ?>" <?php selected( $provider_key, $primary_provider_key ); ?> <?php disabled( ! in_array( $provider_key, $enabled_providers, true ) ); ?>>
 									<?php echo esc_html( $object->get_label() ); ?>
 								</option>
@@ -1942,7 +1944,7 @@ class Two_Factor_Core {
 	 */
 	public static function enable_provider_for_user( $user_id, $new_provider ) {
 		// Ensure the provider is even available.
-		if ( ! array_key_exists( $new_provider, self::get_providers() ) ) {
+		if ( ! array_key_exists( $new_provider, self::get_supported_providers_for_user( $user_id ) ) ) {
 			return false;
 		}
 
@@ -1973,7 +1975,7 @@ class Two_Factor_Core {
 	 */
 	public static function disable_provider_for_user( $user_id, $provider_to_delete ) {
 		// Check if the provider is even enabled.
-		if ( ! array_key_exists( $provider_to_delete, self::get_providers() ) ) {
+		if ( ! array_key_exists( $provider_to_delete, self::get_supported_providers_for_user( $user_id ) ) ) {
 			return false;
 		}
 
@@ -2017,7 +2019,7 @@ class Two_Factor_Core {
 				return;
 			}
 
-			$providers          = self::get_providers();
+			$providers          = self::get_supported_providers_for_user( $user_id );
 			$enabled_providers  = $_POST[ self::ENABLED_PROVIDERS_USER_META_KEY ];
 			$existing_providers = self::get_enabled_providers_for_user( $user_id );
 
