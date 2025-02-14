@@ -1,0 +1,23 @@
+{
+  "$schema": "https://playground.wordpress.net/blueprint-schema.json",
+	"landingPage": "/wp-admin/profile.php",
+	"preferredVersions": {
+		"php": "7.4",
+		"wp": "latest"
+	},
+	"steps": [
+		{
+			"step": "login"
+		},
+		{
+			"step": "installPlugin",
+			"pluginData": {
+				"resource": "wordpress.org/plugins",
+				"slug": "two-factor"
+			},
+			"options": {
+				"activate": true
+			}
+		}
+	]
+}
