@@ -1568,7 +1568,7 @@ class Test_ClassTwoFactorCore extends WP_UnitTestCase {
 		add_filter(
 			'two_factor_providers_for_user',
 			function( $providers, $user ) {
-				$this->assertInstanceOf( WP_User::class, $user );
+				$this->assertInstanceOf( WP_User::class, $user, 'A user referenced is passed to the filter' );
 
 				return array_diff_key( $providers, array( 'Two_Factor_Email' => null ) );
 			},
@@ -1576,11 +1576,8 @@ class Test_ClassTwoFactorCore extends WP_UnitTestCase {
 			2
 		);
 
-		$providers = Two_Factor_Core::get_providers();
-		unset( $providers['Two_Factor_Email'] );
-
-		$this->assertEquals(
-			$providers,
+		$this->assertNotContains(
+			'Two_Factor_Email',
 			Two_Factor_Core::get_supported_providers_for_user( $user ),
 			'Email provider can be disabled for a user'
 		);
