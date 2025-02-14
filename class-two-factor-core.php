@@ -1899,6 +1899,7 @@ class Two_Factor_Core {
 
 	private static function render_user_providers_form( $user, $providers ) {
 		$primary_provider_key = self::get_primary_provider_key_selected_for_user( $user );
+		$enabled_providers = self::get_enabled_providers_for_user( $user );
 
 		?>
 		<p>
