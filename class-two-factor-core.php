@@ -636,7 +636,7 @@ class Two_Factor_Core {
 			return null;
 		}
 
-		$providers           = self::get_supported_providers_for_user();
+		$providers           = self::get_supported_providers_for_user( $user );
 		$available_providers = self::get_available_providers_for_user( $user );
 
 		// If there's only one available provider, force that to be the primary.
