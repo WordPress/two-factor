@@ -1,5 +1,5 @@
 {
-  "$schema": "https://playground.wordpress.net/blueprint-schema.json",
+	"$schema": "https://playground.wordpress.net/blueprint-schema.json",
 	"landingPage": "/wp-admin/profile.php",
 	"preferredVersions": {
 		"php": "7.4",
