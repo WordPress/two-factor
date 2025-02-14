@@ -133,7 +133,7 @@ abstract class Two_Factor_Provider {
 	public static function is_supported_for_user( $user = null ) {
 		$providers = Two_Factor_Core::get_supported_providers_for_user( $user );
 
-		return isset( $providers[ self::class ] );
+		return isset( $providers[ static::class ] );
 	}
 
 	/**
