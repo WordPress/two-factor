@@ -1879,11 +1879,15 @@ class Two_Factor_Core {
 		</div>
 		<?php endforeach; ?>
 
+		<fieldset id="two-factor-options" <?php echo $show_2fa_options ? '' : 'disabled="disabled"'; ?>>
 		<?php
 		if ( $providers ) {
 			self::render_user_providers_form( $user, $providers );
 		}
+		?>
+		</fieldset>
 
+		<?php
 		/**
 		 * Fires after the Two Factor methods table.
 		 *
@@ -1906,7 +1910,6 @@ class Two_Factor_Core {
 			<?php esc_html_e( 'Configure a primary two-factor method along with a backup method, such as Recovery Codes, to avoid being locked out if you lose access to your primary method.', 'two-factor' ); ?>
 		</p>
 
-		<fieldset id="two-factor-options" <?php echo $show_2fa_options ? '' : 'disabled="disabled"'; ?>>
 		<?php wp_nonce_field( 'user_two_factor_options', '_nonce_user_two_factor_options', false ); ?>
 		<input type="hidden" name="<?php echo esc_attr( self::ENABLED_PROVIDERS_USER_META_KEY ); ?>[]" value="<?php /* Dummy input so $_POST value is passed when no providers are enabled. */ ?>" />
 
@@ -1957,7 +1960,6 @@ class Two_Factor_Core {
 				</tr>
 			</tbody>
 		</table>
-		</fieldset>
 		<?php
 	}
 
