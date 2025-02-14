@@ -1558,12 +1558,15 @@ class Test_ClassTwoFactorCore extends WP_UnitTestCase {
 
 	public function test_can_filter_registered_providers_for_user() {
 		$user = self::factory()->user->create_and_get();
+		$providers = Two_Factor_Core::get_providers();
 
 		$this->assertEquals(
-			Two_Factor_Core::get_providers(),
+			$providers,
 			Two_Factor_Core::get_supported_providers_for_user( $user ),
 			'All providers are available by default'
 		);
+
+		$this->assertTrue( $providers['Two_Factor_Email']::is_supported_for_user( $user ), 'Email provider is supported by default' );
 
 		add_filter(
 			'two_factor_providers_for_user',
@@ -1581,6 +1584,8 @@ class Test_ClassTwoFactorCore extends WP_UnitTestCase {
 			Two_Factor_Core::get_supported_providers_for_user( $user ),
 			'Email provider can be disabled for a user'
 		);
+
+		$this->assertFalse( $providers['Two_Factor_Email']::is_supported_for_user( $user ), 'Email provider is disabled if not supported' );
 
 		remove_all_filters( 'two_factor_providers_for_user' );
 	}
