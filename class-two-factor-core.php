@@ -589,7 +589,7 @@ class Two_Factor_Core {
 		// Default to the currently logged in provider.
 		if ( ! $preferred_provider && get_current_user_id() === $user->ID ) {
 			$session = self::get_current_user_session();
-			if ( ! empty( $session['two-factor-provider'] )	) {
+			if ( ! empty( $session['two-factor-provider'] ) ) {
 				$preferred_provider = $session['two-factor-provider'];
 			}
 		}
@@ -1548,10 +1548,12 @@ class Two_Factor_Core {
 		}
 
 		// Update the session metadata with the revalidation details.
-		self::update_current_user_session( array(
-			'two-factor-provider' => $provider->get_key(),
-			'two-factor-login'    => time(),
-		) );
+		self::update_current_user_session(
+			array(
+				'two-factor-provider' => $provider->get_key(),
+				'two-factor-login'    => time(),
+			) 
+		);
 
 		do_action( 'two_factor_user_revalidated', $user, $provider );
 
@@ -1787,7 +1789,7 @@ class Two_Factor_Core {
 			)
 		);
 
-		login_header( __( 'Password Reset', 'two-factor' ), '',  $error );
+		login_header( __( 'Password Reset', 'two-factor' ), '', $error );
 		login_footer();
 	}
 
@@ -1854,9 +1856,9 @@ class Two_Factor_Core {
 			);
 
 			$notices['warning two-factor-warning-revalidate-session'] = sprintf(
-					esc_html__( 'To update your Two-Factor options, you must first revalidate your session.', 'two-factor' ) .
+				esc_html__( 'To update your Two-Factor options, you must first revalidate your session.', 'two-factor' ) .
 					' <a class="button" href="%s">' . esc_html__( 'Revalidate now', 'two-factor' ) . '</a>',
-					esc_url( $url )
+				esc_url( $url )
 			);
 		}
 
@@ -1896,7 +1898,7 @@ class Two_Factor_Core {
 	}
 
 	private static function render_user_providers_form( $user, $providers ) {
-		$primary_provider_key  = self::get_primary_provider_key_selected_for_user( $user );
+		$primary_provider_key = self::get_primary_provider_key_selected_for_user( $user );
 
 		?>
 		<p>
@@ -1939,7 +1941,7 @@ class Two_Factor_Core {
 		<table class="form-table two-factor-primary-method-table" role="presentation">
 			<tbody>
 				<tr>
-					<th><?php esc_html_e( 'Primary Method', 'two-factor' ) ?></th>
+					<th><?php esc_html_e( 'Primary Method', 'two-factor' ); ?></th>
 					<td>
 						<select name="<?php echo esc_attr( self::PROVIDER_USER_META_KEY ); ?>">
 							<option value=""><?php echo esc_html( __( 'Default', 'two-factor' ) ); ?></option>
@@ -1949,7 +1951,7 @@ class Two_Factor_Core {
 								</option>
 							<?php endforeach; ?>
 						</select>
-						<p class="description"><?php esc_html_e( 'Select the primary method to use for two-factor authentication when signing into this site.', 'two-factor' ) ?></p>
+						<p class="description"><?php esc_html_e( 'Select the primary method to use for two-factor authentication when signing into this site.', 'two-factor' ); ?></p>
 					</td>
 				</tr>
 			</tbody>
