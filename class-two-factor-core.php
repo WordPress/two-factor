@@ -516,7 +516,7 @@ class Two_Factor_Core {
 			return array();
 		}
 
-		$providers         = self::get_providers();
+		$providers         = self::get_supported_providers_for_user();
 		$enabled_providers = get_user_meta( $user->ID, self::ENABLED_PROVIDERS_USER_META_KEY, true );
 		if ( empty( $enabled_providers ) ) {
 			$enabled_providers = array();
@@ -544,12 +544,11 @@ class Two_Factor_Core {
 			return array();
 		}
 
-		$providers            = self::get_providers();
 		$enabled_providers    = self::get_enabled_providers_for_user( $user );
 		$configured_providers = array();
 
-		foreach ( $providers as $provider_key => $provider ) {
-			if ( in_array( $provider_key, $enabled_providers, true ) && $provider->is_available_for_user( $user ) ) {
+		foreach ( $enabled_providers as $provider_key => $provider ) {
+			if ( $provider->is_available_for_user( $user ) ) {
 				$configured_providers[ $provider_key ] = $provider;
 			}
 		}
