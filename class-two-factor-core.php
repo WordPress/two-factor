@@ -310,7 +310,7 @@ class Two_Factor_Core {
 	 * @return array List of provider instances indexed by provider key.
 	 */
 	public static function get_supported_providers_for_user( $user = null ) {
-		$user = self::fetch_user( $user );
+		$user      = self::fetch_user( $user );
 		$providers = self::get_providers();
 
 		/**
@@ -523,7 +523,7 @@ class Two_Factor_Core {
 			return array();
 		}
 
-		$providers         = self::get_supported_providers_for_user();
+		$providers         = self::get_supported_providers_for_user( $user );
 		$enabled_providers = get_user_meta( $user->ID, self::ENABLED_PROVIDERS_USER_META_KEY, true );
 		if ( empty( $enabled_providers ) ) {
 			$enabled_providers = array();
@@ -555,7 +555,7 @@ class Two_Factor_Core {
 			return array();
 		}
 
-		$providers = self::get_supported_providers_for_user( $user ); // Returns full objects.
+		$providers            = self::get_supported_providers_for_user( $user ); // Returns full objects.
 		$enabled_providers    = self::get_enabled_providers_for_user( $user ); // Returns just the keys.
 		$configured_providers = array();
 
@@ -571,7 +571,7 @@ class Two_Factor_Core {
 	/**
 	 * Fetch the provider for the request based on the user preferences.
 	 *
-	 * @param int|WP_User $user Optional. User ID, or WP_User object of the the user. Defaults to current user.
+	 * @param int|WP_User        $user Optional. User ID, or WP_User object of the the user. Defaults to current user.
 	 * @param null|string|object $preferred_provider Optional. The name of the provider, the provider, or empty.
 	 * @return null|object The provider
 	 */
@@ -1837,7 +1837,7 @@ class Two_Factor_Core {
 	public static function user_two_factor_options( $user ) {
 		$notices = [];
 
-		$providers = self::get_supported_providers_for_user( $user->ID );
+		$providers = self::get_supported_providers_for_user( $user );
 
 		wp_enqueue_style( 'user-edit-2fa', plugins_url( 'user-edit.css', __FILE__ ), array(), TWO_FACTOR_VERSION );
 
