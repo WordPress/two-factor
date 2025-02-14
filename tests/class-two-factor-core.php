@@ -1556,6 +1556,38 @@ class Test_ClassTwoFactorCore extends WP_UnitTestCase {
 		$this->assertCount( 1, $admin_session_manager->get_all(), 'No admin sessions are present first' );
 	}
 
+	public function test_can_filter_registered_providers_for_user() {
+		$user = self::factory()->user->create_and_get();
+
+		$this->assertEquals(
+			Two_Factor_Core::get_providers(),
+			Two_Factor_Core::get_supported_providers_for_user( $user ),
+			'All providers are available by default'
+		);
+
+		add_filter(
+			'two_factor_providers_for_user',
+			function( $providers, $user ) {
+				$this->assertInstanceOf( WP_User::class, $user );
+
+				return array_diff_key( $providers, array( 'Two_Factor_Email' => null ) );
+			},
+			10,
+			2
+		);
+
+		$providers = Two_Factor_Core::get_providers();
+		unset( $providers['Two_Factor_Email'] );
+
+		$this->assertEquals(
+			$providers,
+			Two_Factor_Core::get_supported_providers_for_user( $user ),
+			'Email provider can be disabled for a user'
+		);
+
+		remove_all_filters( 'two_factor_providers_for_user' );
+	}
+
 	/**
 	 * Plugin uninstall removes all user meta.
 	 *
