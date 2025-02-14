@@ -1552,7 +1552,7 @@ class Two_Factor_Core {
 			array(
 				'two-factor-provider' => $provider->get_key(),
 				'two-factor-login'    => time(),
-			) 
+			)
 		);
 
 		do_action( 'two_factor_user_revalidated', $user, $provider );
