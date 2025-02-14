@@ -1841,12 +1841,11 @@ class Two_Factor_Core {
 		wp_enqueue_style( 'user-edit-2fa', plugins_url( 'user-edit.css', __FILE__ ), array(), TWO_FACTOR_VERSION );
 
 		$enabled_providers = array_keys( self::get_available_providers_for_user( $user ) );
-		$primary_provider_key  = self::get_primary_provider_key_selected_for_user( $user );
 
 		// This is specific to the current session, not the displayed user.
 		$show_2fa_options = self::current_user_can_update_two_factor_options();
 
-		if ( ! $show_2fa_options ) {
+		if ( $providers && ! $show_2fa_options ) {
 			$url = add_query_arg(
 				'redirect_to',
 				urlencode( self::get_user_settings_page_url( $user->ID ) . '#two-factor-options' ),
@@ -1860,12 +1859,12 @@ class Two_Factor_Core {
 			);
 		}
 
-		printf(
-			'<fieldset id="two-factor-options" %s>',
-			$show_2fa_options ? '' : 'disabled="disabled"'
-		);
+		if ( empty( $providers ) ) {
+			$notices['notice two-factor-notice-no-providers-supported'] = esc_html__( 'No providers are available for your account.', 'two-factor' );
+		}
 
-		if ( 1 === count( $enabled_providers ) ) {
+		// Suggest enabling a backup method if only method is enabled and there are more available.
+		if ( count( $providers ) > 1 && 1 === count( $enabled_providers ) ) {
 			$notices['warning two-factor-warning-suggest-backup'] = esc_html__( 'To prevent being locked out of your account, consider enabling a backup method like Recovery Codes in case you lose access to your primary authentication method.', 'two-factor' );
 		}
 		?>
@@ -1876,9 +1875,34 @@ class Two_Factor_Core {
 			<p><?php echo wp_kses_post( $notice ); ?></p>
 		</div>
 		<?php endforeach; ?>
+
+		<?php
+		if ( $providers ) {
+			self::render_user_providers_form( $user, $providers );
+		}
+
+		/**
+		 * Fires after the Two Factor methods table.
+		 *
+		 * To be used by Two Factor methods to add settings UI.
+		 *
+		 * @param WP_User $user The user.
+		 * @param array   $providers List of providers available to the user.
+		 *
+		 * @since 0.1-dev
+		 */
+		do_action( 'show_user_security_settings', $user, $providers );
+	}
+
+	private static function render_user_providers_form( $user, $providers ) {
+		$primary_provider_key  = self::get_primary_provider_key_selected_for_user( $user );
+
+		?>
 		<p>
-			<?php  esc_html_e( 'Configure a primary two-factor method along with a backup method, such as Recovery Codes, to avoid being locked out if you lose access to your primary method.', 'two-factor' ); ?>
+			<?php esc_html_e( 'Configure a primary two-factor method along with a backup method, such as Recovery Codes, to avoid being locked out if you lose access to your primary method.', 'two-factor' ); ?>
 		</p>
+
+		<fieldset id="two-factor-options" <?php echo $show_2fa_options ? '' : 'disabled="disabled"'; ?>>
 		<?php wp_nonce_field( 'user_two_factor_options', '_nonce_user_two_factor_options', false ); ?>
 		<input type="hidden" name="<?php echo esc_attr( self::ENABLED_PROVIDERS_USER_META_KEY ); ?>[]" value="<?php /* Dummy input so $_POST value is passed when no providers are enabled. */ ?>" />
 
@@ -1931,15 +1955,6 @@ class Two_Factor_Core {
 		</table>
 		</fieldset>
 		<?php
-
-		/**
-		 * Fires after the Two Factor methods table.
-		 *
-		 * To be used by Two Factor methods to add settings UI.
-		 *
-		 * @since 0.1-dev
-		 */
-		do_action( 'show_user_security_settings', $user );
 	}
 
 	/**
