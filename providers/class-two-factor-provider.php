@@ -165,4 +165,24 @@ abstract class Two_Factor_Provider {
 
 		return (string) $code;
 	}
+
+	/**
+	 * Return the user meta keys that need to be deletated on plugin uninstall.
+	 *
+	 * @return array
+	 */
+	public static function uninstall_user_meta_keys() {
+		return array();
+	}
+
+	/**
+	 * Return the option keys that need to be deleted on plugin uninstall.
+	 *
+	 * Note: this method doesn't have access to the instantiated provider object.
+	 *
+	 * @return array
+	 */
+	public static function uninstall_options() {
+		return array();
+	}
 }

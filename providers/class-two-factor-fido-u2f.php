@@ -65,7 +65,7 @@ class Two_Factor_FIDO_U2F extends Two_Factor_Provider {
 
 		add_action( 'two_factor_user_options_' . __CLASS__, array( $this, 'user_options' ) );
 
-		return parent::__construct();
+		parent::__construct();
 	}
 
 	/**
@@ -143,7 +143,7 @@ class Two_Factor_FIDO_U2F extends Two_Factor_Provider {
 	 * @since 0.1-dev
 	 *
 	 * @param WP_User $user WP_User object of the logged-in user.
-	 * @return null
+	 * @return void
 	 */
 	public function authentication_page( $user ) {
 		require_once ABSPATH . '/wp-admin/includes/template.php';
@@ -165,7 +165,7 @@ class Two_Factor_FIDO_U2F extends Two_Factor_Provider {
 			?>
 			<p><?php esc_html_e( 'An error occurred while creating authentication data.', 'two-factor' ); ?></p>
 			<?php
-			return null;
+			return;
 		}
 
 		wp_localize_script(
@@ -387,5 +387,18 @@ class Two_Factor_FIDO_U2F extends Two_Factor_Provider {
 		}
 
 		return true;
+	}
+
+	/**
+	 * Return user meta keys to delete during plugin uninstall.
+	 *
+	 * @return array
+	 */
+	public static function uninstall_user_meta_keys() {
+		return array(
+			self::REGISTERED_KEY_USER_META_KEY,
+			self::AUTH_DATA_USER_META_KEY,
+			'_two_factor_fido_u2f_register_request', // From Two_Factor_FIDO_U2F_Admin which is not loaded during uninstall.
+		);
 	}
 }

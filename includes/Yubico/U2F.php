@@ -501,7 +501,7 @@ class Error extends \Exception
      * @param int $code
      * @param \Exception|null $previous
      */
-    public function __construct($message, $code, \Exception $previous = null) {
+    public function __construct($message, $code, ?\Exception $previous = null) {
         parent::__construct($message, $code, $previous);
     }
 }
