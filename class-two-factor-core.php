@@ -663,30 +663,23 @@ class Two_Factor_Core {
 	public static function wp_login( $user_login, $user ) {
 		// get request 
 
-		wp_mail('me@me.com', 'wp_login', 'wp_login');
-
 		$current_origin = get_http_origin();
-
-		wp_mail('me@me.com', 'current_origin', $current_origin);
 	
 		if ( empty( $current_origin ) ) {
 			$current_origin = ! empty( $_SERVER['HTTP_REFERER'] ) ? sanitize_text_field( $_SERVER['HTTP_REFERER'] ) : null;
 		}
-	
-		// get frontend url
-		$frontend_settings = get_option('frontend_settings');
-	
-		$frontend_url = $frontend_settings['frontend_uri'];
 
-		wp_mail('me@me.com', 'frontend_url', $frontend_url);
+		// get frontend url
+		$faustwp_settings = get_option('faustwp_settings');
+
+		$frontend_uri = ($faustwp_settings['frontend_uri']);
 	
 		// this is returning "https:\/\/localhost:3000"
 		// we need it in the format https://localhost:3000
-		$frontend_url = str_replace('\\', '', $frontend_url);
-		$frontend_url = str_replace('"', '', $frontend_url);
+		$frontend_uri = str_replace('\\', '', $frontend_uri);
+		$frontend_uri = str_replace('"', '', $frontend_uri);
 	
-		if ( ! self::is_user_using_two_factor( $user->ID ) || $current_origin === $frontend_url ) {
-			wp_mail('me@me.com', 'no 2fa', 'no 2fa');
+		if ( ! self::is_user_using_two_factor( $user->ID ) || $current_origin === $frontend_uri ) {
 			return;
 		}
 	
