@@ -31,12 +31,14 @@
     "phpcompatibility/phpcompatibility-wp": "^2.1",
     "phpunit/phpunit": "^8.5|^9.6",
     "spatie/phpunit-watcher": "^1.23",
+    "szepeviktor/phpstan-wordpress": "^1.3",
     "wp-coding-standards/wpcs": "^3.1",
     "yoast/phpunit-polyfills": "^2.0"
   },
   "scripts": {
     "lint": "phpcs",
     "lint-compat": "phpcs -p --standard=PHPCompatibilityWP --runtime-set testVersion 7.2- --extensions=php --ignore='tests/,dist/,includes/Yubico/,vendor/,node_modules/' .",
+    "lint-phpstan": "phpstan analyse --verbose --memory-limit=1G",
     "test": "vendor/bin/phpunit",
     "test:watch": [
       "Composer\\Config::disableProcessTimeout",

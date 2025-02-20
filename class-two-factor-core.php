@@ -93,11 +93,11 @@ class Two_Factor_Core {
 	 * @since 0.1-dev
 	 */
 	public static function add_hooks( $compat ) {
-		add_action( 'init', array( __CLASS__, 'get_providers' ) );
-		$is_headless = true; // TODO: Change this programatically
-		if (!$is_headless) {
-			add_action( 'wp_login', array( __CLASS__, 'wp_login' ), 10, 2 );
-		}
+		add_action( 'init', array( __CLASS__, 'get_providers' ) ); // @phpstan-ignore return.void
+		
+		// Check to see if its a headless login
+		add_action( 'wp_login', array( __CLASS__, 'wp_login' ), 10, 2 );
+
 		add_filter( 'wp_login_errors', array( __CLASS__, 'maybe_show_reset_password_notice' ) );
 		add_action( 'after_password_reset', array( __CLASS__, 'clear_password_reset_notice' ) );
 		add_action( 'login_form_validate_2fa', array( __CLASS__, 'login_form_validate_2fa' ) );
@@ -135,20 +135,132 @@ class Two_Factor_Core {
 	}
 
 	/**
-	 * For each provider, include it and then instantiate it.
+	 * Delete all plugin data on uninstall.
 	 *
-	 * @since 0.1-dev
-	 *
-	 * @return array
+	 * @return void
 	 */
-	public static function get_providers() {
-		$providers = array(
+	public static function uninstall() {
+		// Keep this updated as user meta keys are added or removed.
+		$user_meta_keys = array(
+			self::PROVIDER_USER_META_KEY,
+			self::ENABLED_PROVIDERS_USER_META_KEY,
+			self::USER_META_NONCE_KEY,
+			self::USER_RATE_LIMIT_KEY,
+			self::USER_FAILED_LOGIN_ATTEMPTS_KEY,
+			self::USER_PASSWORD_WAS_RESET_KEY,
+		);
+
+		$option_keys = array();
+
+		$providers = self::get_default_providers();
+
+		/** This filter is documented in the get_providers() method */
+		$additional_providers = apply_filters( 'two_factor_providers', $providers );
+
+		// Merge them with the default providers.
+		if ( ! empty( $additional_providers ) ) {
+			$providers = array_merge( $providers, $additional_providers );
+		}
+
+		foreach ( self::get_providers_classes( $providers ) as $provider_class ) {
+			// Merge with provider-specific user meta keys.
+			if ( method_exists( $provider_class, 'uninstall_user_meta_keys' ) ) {
+				try {
+					$user_meta_keys = array_merge(
+						$user_meta_keys,
+						call_user_func( array( $provider_class, 'uninstall_user_meta_keys' ) )
+					);
+				} catch ( Exception $e ) {
+					// Do nothing.
+				}
+			}
+
+			// Merge with provider-specific option keys.
+			if ( method_exists( $provider_class, 'uninstall_options' ) ) {
+				try {
+					$option_keys = array_merge(
+						$option_keys,
+						call_user_func( array( $provider_class, 'uninstall_options' ) )
+					);
+				} catch ( Exception $e ) {
+					// Do nothing.
+				}
+			}
+		}
+
+		// Delete options first since that is faster.
+		if ( ! empty( $option_keys ) ) {
+			foreach ( $option_keys as $option_key ) {
+				delete_option( $option_key );
+			}
+		}
+
+		foreach ( $user_meta_keys as $meta_key ) {
+			delete_metadata( 'user', null, $meta_key, null, true );
+		}
+	}
+
+	/**
+	 * Get the registered providers of which some might not be enabled.
+	 *
+	 * @return array List of provider keys and paths to class files.
+	 */
+	private static function get_default_providers() {
+		return array(
 			'Two_Factor_Email'        => TWO_FACTOR_DIR . 'providers/class-two-factor-email.php',
 			'Two_Factor_Totp'         => TWO_FACTOR_DIR . 'providers/class-two-factor-totp.php',
 			'Two_Factor_FIDO_U2F'     => TWO_FACTOR_DIR . 'providers/class-two-factor-fido-u2f.php',
 			'Two_Factor_Backup_Codes' => TWO_FACTOR_DIR . 'providers/class-two-factor-backup-codes.php',
 			'Two_Factor_Dummy'        => TWO_FACTOR_DIR . 'providers/class-two-factor-dummy.php',
 		);
+	}
+
+	/**
+	 * Get the classnames for specific providers.
+	 *
+	 * @param array $providers List of paths to provider class files indexed by class names.
+	 *
+	 * @return array List of provider keys and classnames.
+	 */
+	private static function get_providers_classes( $providers ) {
+		foreach ( $providers as $provider_key => $path ) {
+			if ( ! empty( $path ) && is_readable( $path ) ) {
+				require_once $path;
+			}
+
+			$class = $provider_key;
+
+			/**
+			 * Filters the classname for a provider. The dynamic portion of the filter is the defined providers key.
+			 *
+			 * @param string $class The PHP Classname of the provider.
+			 * @param string $path  The provided provider path to be included.
+			 */
+			$class = apply_filters( "two_factor_provider_classname_{$provider_key}", $class, $path );
+
+			/**
+			 * Confirm that it's been successfully included.
+			 */
+			if ( class_exists( $class ) ) {
+				$providers[ $provider_key ] = $class;
+			} else {
+				unset( $providers[ $provider_key ] );
+			}
+		}
+
+		return $providers;
+	}
+
+	/**
+	 * Get all enabled two-factor providers with keys as the original
+	 * provider class names and the values as the provider class instances.
+	 *
+	 * @since 0.1-dev
+	 *
+	 * @return array
+	 */
+	public static function get_providers() {
+		$providers = self::get_default_providers();
 
 		/**
 		 * Filter the supplied providers.
@@ -173,31 +285,15 @@ class Two_Factor_Core {
 			);
 		}
 
-		/**
-		 * For each filtered provider,
-		 */
-		foreach ( $providers as $provider_key => $path ) {
-			require_once $path;
+		// Map provider keys to classes so that we can instantiate them.
+		$providers = self::get_providers_classes( $providers );
 
-			$class = $provider_key;
-
-			/**
-			 * Filters the classname for a provider. The dynamic portion of the filter is the defined providers key.
-			 *
-			 * @param string $class The PHP Classname of the provider.
-			 * @param string $path  The provided provider path to be included.
-			 */
-			$class = apply_filters( "two_factor_provider_classname_{$provider_key}", $class, $path );
-
-			/**
-			 * Confirm that it's been successfully included before instantiating.
-			 */
-			if ( class_exists( $class ) ) {
-				try {
-					$providers[ $provider_key ] = call_user_func( array( $class, 'get_instance' ) );
-				} catch ( Exception $e ) {
-					unset( $providers[ $provider_key ] );
-				}
+		// TODO: Refactor this to avoid instantiating the provider instances every time this method is called.
+		foreach ( $providers as $provider_key => $provider_class ) {
+			try {
+				$providers[ $provider_key ] = call_user_func( array( $provider_class, 'get_instance' ) );
+			} catch ( Exception $e ) {
+				unset( $providers[ $provider_key ] );
 			}
 		}
 
@@ -479,6 +575,25 @@ class Two_Factor_Core {
 	}
 
 	/**
+	 * Get the name of the primary provider selected by the user
+	 * and enabled for the user.
+	 *
+	 * @param WP_User|int $user User ID or instance.
+	 *
+	 * @return string|null
+	 */
+	private static function get_primary_provider_key_selected_for_user( $user ) {
+		$primary_provider    = get_user_meta( $user->ID, self::PROVIDER_USER_META_KEY, true );
+		$available_providers = self::get_available_providers_for_user( $user );
+
+		if ( ! empty( $primary_provider ) && ! empty( $available_providers[ $primary_provider ] ) ) {
+			return $primary_provider;
+		}
+
+		return null;
+	}
+
+	/**
 	 * Gets the Two-Factor Auth provider for the specified|current user.
 	 *
 	 * @since 0.1-dev
@@ -501,7 +616,7 @@ class Two_Factor_Core {
 		} elseif ( 1 === count( $available_providers ) ) {
 			$provider = key( $available_providers );
 		} else {
-			$provider = get_user_meta( $user->ID, self::PROVIDER_USER_META_KEY, true );
+			$provider = self::get_primary_provider_key_selected_for_user( $user );
 
 			// If the provider specified isn't enabled, just grab the first one that is.
 			if ( ! isset( $available_providers[ $provider ] ) ) {
@@ -546,16 +661,34 @@ class Two_Factor_Core {
 	 * @param WP_User $user WP_User object of the logged-in user.
 	 */
 	public static function wp_login( $user_login, $user ) {
-		if ( ! self::is_user_using_two_factor( $user->ID ) ) {
-			return;
+		// get request 
+
+		$current_origin = get_http_origin();
+	
+		if ( empty( $current_origin ) ) {
+			$current_origin = ! empty( $_SERVER['HTTP_REFERER'] ) ? sanitize_text_field( $_SERVER['HTTP_REFERER'] ) : null;
 		}
 
+		// get frontend url
+		$faustwp_settings = get_option('faustwp_settings');
+
+		$frontend_uri = ($faustwp_settings['frontend_uri']);
+	
+		// this is returning "https:\/\/localhost:3000"
+		// we need it in the format https://localhost:3000
+		$frontend_uri = str_replace('\\', '', $frontend_uri);
+		$frontend_uri = str_replace('"', '', $frontend_uri);
+	
+		if ( ! self::is_user_using_two_factor( $user->ID ) || $current_origin === $frontend_uri ) {
+			return;
+		}
+	
 		// Invalidate the current login session to prevent from being re-used.
 		self::destroy_current_session_for_user( $user );
-
+	
 		// Also clear the cookies which are no longer valid.
 		wp_clear_auth_cookie();
-
+	
 		self::show_two_factor_login( $user );
 		exit;
 	}
@@ -1164,6 +1297,7 @@ class Two_Factor_Core {
 		 * Return a falsey value (false, 0) if you wish to never require revalidation.
 		 *
 		 * @param int    $two_factor_revalidate_time The grace time between last validation time and when it'll be accepted. Default 10 minutes (in seconds).
+		 * @param int    $user_id                    The user ID.
 		 * @param string $context                    The context in use, 'display' or 'save'. Save has twice the grace time.
 		 */
 		$two_factor_revalidate_time = apply_filters( 'two_factor_revalidate_time', 10 * MINUTE_IN_SECONDS, $user_id, $context );
@@ -1408,7 +1542,7 @@ class Two_Factor_Core {
 		) );
 
 		do_action( 'two_factor_user_revalidated', $user, $provider );
-		
+
 		// Must be global because that's how login_header() uses it.
 		global $interim_login;
 		$interim_login = isset( $_REQUEST['interim-login'] ); // phpcs:ignore WordPress.WP.GlobalVariablesOverride.Prohibited,WordPress.Security.NonceVerification.Recommended
@@ -1689,31 +1823,27 @@ class Two_Factor_Core {
 	 * @param WP_User $user WP_User object of the logged-in user.
 	 */
 	public static function user_two_factor_options( $user ) {
+		$notices = [];
+
 		wp_enqueue_style( 'user-edit-2fa', plugins_url( 'user-edit.css', __FILE__ ), array(), TWO_FACTOR_VERSION );
 
 		$enabled_providers = array_keys( self::get_available_providers_for_user( $user ) );
-		$primary_provider  = self::get_primary_provider_for_user( $user->ID );
-
-		if ( ! empty( $primary_provider ) && is_object( $primary_provider ) ) {
-			$primary_provider_key = $primary_provider->get_key();
-		} else {
-			$primary_provider_key = null;
-		}
+		$primary_provider_key  = self::get_primary_provider_key_selected_for_user( $user );
 
 		// This is specific to the current session, not the displayed user.
 		$show_2fa_options = self::current_user_can_update_two_factor_options();
 
 		if ( ! $show_2fa_options ) {
-			$url = self::get_user_two_factor_revalidate_url();
-			$url = add_query_arg( 'redirect_to', urlencode( self::get_user_settings_page_url( $user->ID ) . '#two-factor-options' ), $url );
+			$url = add_query_arg(
+				'redirect_to',
+				urlencode( self::get_user_settings_page_url( $user->ID ) . '#two-factor-options' ),
+				self::get_user_two_factor_revalidate_url()
+			);
 
-			printf(
-				'<div class="notice notice-warning inline"><p>%s</p></div>',
-				sprintf(
-					__( 'To update your Two-Factor options, you must first revalidate your session.', 'two-factor' ) .
-					'<br><a class="button" href="%s">' . __( 'Revalidate now', 'two-factor' ) . '</a>',
+			$notices['warning two-factor-warning-revalidate-session'] = sprintf(
+					esc_html__( 'To update your Two-Factor options, you must first revalidate your session.', 'two-factor' ) .
+					' <a class="button" href="%s">' . esc_html__( 'Revalidate now', 'two-factor' ) . '</a>',
 					esc_url( $url )
-				)
 			);
 		}
 
@@ -1722,50 +1852,69 @@ class Two_Factor_Core {
 			$show_2fa_options ? '' : 'disabled="disabled"'
 		);
 
-		wp_nonce_field( 'user_two_factor_options', '_nonce_user_two_factor_options', false );
+		if ( 1 === count( $enabled_providers ) ) {
+			$notices['warning two-factor-warning-suggest-backup'] = esc_html__( 'To prevent being locked out of your account, consider enabling a backup method like Recovery Codes in case you lose access to your primary authentication method.', 'two-factor' );
+		}
 		?>
+		<h2><?php esc_html_e( 'Two-Factor Options', 'two-factor' ); ?></h2>
+
+		<?php foreach ( $notices as $notice_type => $notice ) : ?>
+		<div class="<?php echo esc_attr( $notice_type ? 'notice inline notice-' . $notice_type : '' ); ?>">
+			<p><?php echo wp_kses_post( $notice ); ?></p>
+		</div>
+		<?php endforeach; ?>
+		<p>
+			<?php  esc_html_e( 'Configure a primary two-factor method along with a backup method, such as Recovery Codes, to avoid being locked out if you lose access to your primary method.', 'two-factor' ); ?>
+		</p>
+		<?php wp_nonce_field( 'user_two_factor_options', '_nonce_user_two_factor_options', false ); ?>
 		<input type="hidden" name="<?php echo esc_attr( self::ENABLED_PROVIDERS_USER_META_KEY ); ?>[]" value="<?php /* Dummy input so $_POST value is passed when no providers are enabled. */ ?>" />
-		<table class="form-table">
-			<tr>
-				<th>
-					<?php esc_html_e( 'Two-Factor Options', 'two-factor' ); ?>
-				</th>
-				<td>
-					<table class="two-factor-methods-table">
-						<thead>
-							<tr>
-								<th class="col-enabled" scope="col"><?php esc_html_e( 'Enabled', 'two-factor' ); ?></th>
-								<th class="col-primary" scope="col"><?php esc_html_e( 'Primary', 'two-factor' ); ?></th>
-								<th class="col-name" scope="col"><?php esc_html_e( 'Type', 'two-factor' ); ?></th>
-							</tr>
-						</thead>
-						<tbody>
-						<?php foreach ( self::get_providers() as $provider_key => $object ) : ?>
-							<tr>
-								<th scope="row"><input id="enabled-<?php echo esc_attr( $provider_key ); ?>" type="checkbox" name="<?php echo esc_attr( self::ENABLED_PROVIDERS_USER_META_KEY ); ?>[]" value="<?php echo esc_attr( $provider_key ); ?>" <?php checked( in_array( $provider_key, $enabled_providers, true ) ); ?> /></th>
-								<th scope="row"><input type="radio" name="<?php echo esc_attr( self::PROVIDER_USER_META_KEY ); ?>" value="<?php echo esc_attr( $provider_key ); ?>" <?php checked( $provider_key, $primary_provider_key ); ?> /></th>
-								<td>
-									<label class="two-factor-method-label" for="enabled-<?php echo esc_attr( $provider_key ); ?>"><?php echo esc_html( $object->get_label() ); ?></label>
-									<?php
-										/**
-										 * Fires after user options are shown.
-										 *
-										 * Use the {@see 'two_factor_user_options_' . $provider_key } hook instead.
-										 *
-										 * @deprecated 0.7.0
-										 *
-										 * @param WP_User $user The user.
-										 */
-										do_action_deprecated( 'two-factor-user-options-' . $provider_key, array( $user ), '0.7.0', 'two_factor_user_options_' . $provider_key );
-										do_action( 'two_factor_user_options_' . $provider_key, $user );
-									?>
-								</td>
-							</tr>
-						<?php endforeach; ?>
-						</tbody>
-					</table>
-				</td>
-			</tr>
+
+		<table class="form-table two-factor-methods-table" role="presentation">
+			<tbody>
+			<?php foreach ( self::get_providers() as $provider_key => $object ) : ?>
+				<tr>
+					<th><?php echo esc_html( $object->get_label() ); ?></th>
+					<td>
+						<label class="two-factor-method-label">
+							<input id="enabled-<?php echo esc_attr( $provider_key ); ?>" type="checkbox" name="<?php echo esc_attr( self::ENABLED_PROVIDERS_USER_META_KEY ); ?>[]" value="<?php echo esc_attr( $provider_key ); ?>" <?php checked( in_array( $provider_key, $enabled_providers, true ) ); ?> />
+							<?php echo esc_html( sprintf( __( 'Enable %s', 'two-factor' ), $object->get_label() ) ); ?>
+						</label>
+						<?php
+						/**
+						 * Fires after user options are shown.
+						 *
+						 * Use the {@see 'two_factor_user_options_' . $provider_key } hook instead.
+						 *
+						 * @deprecated 0.7.0
+						 *
+						 * @param WP_User $user The user.
+						 */
+						do_action_deprecated( 'two-factor-user-options-' . $provider_key, array( $user ), '0.7.0', 'two_factor_user_options_' . $provider_key );
+						do_action( 'two_factor_user_options_' . $provider_key, $user );
+						?>
+					</td>
+				</tr>
+			<?php endforeach; ?>
+			</tbody>
+		</table>
+		<hr />
+		<table class="form-table two-factor-primary-method-table" role="presentation">
+			<tbody>
+				<tr>
+					<th><?php esc_html_e( 'Primary Method', 'two-factor' ) ?></th>
+					<td>
+						<select name="<?php echo esc_attr( self::PROVIDER_USER_META_KEY ); ?>">
+							<option value=""><?php echo esc_html( __( 'Default', 'two-factor' ) ); ?></option>
+							<?php foreach ( self::get_providers() as $provider_key => $object ) : ?>
+								<option value="<?php echo esc_attr( $provider_key ); ?>" <?php selected( $provider_key, $primary_provider_key ); ?> <?php disabled( ! in_array( $provider_key, $enabled_providers, true ) ); ?>>
+									<?php echo esc_html( $object->get_label() ); ?>
+								</option>
+							<?php endforeach; ?>
+						</select>
+						<p class="description"><?php esc_html_e( 'Select the primary method to use for two-factor authentication when signing into this site.', 'two-factor' ) ?></p>
+					</td>
+				</tr>
+			</tbody>
 		</table>
 		</fieldset>
 		<?php
@@ -1791,30 +1940,21 @@ class Two_Factor_Core {
 	 * @return bool True if the provider was enabled, false otherwise.
 	 */
 	public static function enable_provider_for_user( $user_id, $new_provider ) {
-		$available_providers = self::get_providers();
-
-		if ( ! array_key_exists( $new_provider, $available_providers ) ) {
+		// Ensure the provider is even available.
+		if ( ! array_key_exists( $new_provider, self::get_providers() ) ) {
 			return false;
 		}
 
-		$user              = get_userdata( $user_id );
-		$enabled_providers = self::get_enabled_providers_for_user( $user );
+		$enabled_providers = self::get_enabled_providers_for_user( $user_id );
 
+		// Check if this is enabled already.
 		if ( in_array( $new_provider, $enabled_providers ) ) {
 			return true;
 		}
 
 		$enabled_providers[] = $new_provider;
-		$enabled             = update_user_meta( $user_id, self::ENABLED_PROVIDERS_USER_META_KEY, $enabled_providers );
 
-		// Primary provider must be enabled.
-		$has_primary = is_object( self::get_primary_provider_for_user( $user_id ) );
-
-		if ( ! $has_primary ) {
-			$has_primary = update_user_meta( $user_id, self::PROVIDER_USER_META_KEY, $new_provider );
-		}
-
-		return $enabled && $has_primary;
+		return (bool) update_user_meta( $user_id, self::ENABLED_PROVIDERS_USER_META_KEY, $enabled_providers );
 	}
 
 	/**
@@ -1831,23 +1971,27 @@ class Two_Factor_Core {
 	 * @return bool True if the provider was disabled, false otherwise.
 	 */
 	public static function disable_provider_for_user( $user_id, $provider_to_delete ) {
-		$is_registered = array_key_exists( $provider_to_delete, self::get_providers() );
-
-		if ( ! $is_registered ) {
+		// Check if the provider is even enabled.
+		if ( ! array_key_exists( $provider_to_delete, self::get_providers() ) ) {
 			return false;
 		}
 
-		$old_enabled_providers = self::get_enabled_providers_for_user( $user_id );
-		$is_enabled            = in_array( $provider_to_delete, $old_enabled_providers );
+		$enabled_providers = self::get_enabled_providers_for_user( $user_id );
 
-		if ( ! $is_enabled ) {
+		// Check if this is disabled already.
+		if ( ! in_array( $provider_to_delete, $enabled_providers ) ) {
 			return true;
 		}
 
-		$new_enabled_providers     = array_diff( $old_enabled_providers, array( $provider_to_delete ) );
-		$was_disabled              = update_user_meta( $user_id, self::ENABLED_PROVIDERS_USER_META_KEY, $new_enabled_providers );
+		$enabled_providers = array_diff( $enabled_providers, array( $provider_to_delete ) );
 
-		return (bool) $was_disabled;
+		// Remove this from being a primary provider, if set.
+		$primary_provider = self::get_primary_provider_for_user( $user_id );
+		if ( $primary_provider && $primary_provider->get_key() === $provider_to_delete ) {
+			delete_user_meta( $user_id, self::PROVIDER_USER_META_KEY );
+		}
+
+		return (bool) update_user_meta( $user_id, self::ENABLED_PROVIDERS_USER_META_KEY, $enabled_providers );
 	}
 
 	/**
@@ -1884,6 +2028,8 @@ class Two_Factor_Core {
 			$new_provider = isset( $_POST[ self::PROVIDER_USER_META_KEY ] ) ? $_POST[ self::PROVIDER_USER_META_KEY ] : '';
 			if ( ! empty( $new_provider ) && in_array( $new_provider, $enabled_providers, true ) ) {
 				update_user_meta( $user_id, self::PROVIDER_USER_META_KEY, $new_provider );
+			} else {
+				delete_user_meta( $user_id, self::PROVIDER_USER_META_KEY );
 			}
 
 			// Have we changed the two-factor settings for the current user? Alter their session metadata.

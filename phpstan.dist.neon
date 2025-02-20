@@ -1,0 +1,10 @@
+includes:
+	- vendor/szepeviktor/phpstan-wordpress/extension.neon
+parameters:
+	level: 0
+	paths:
+		- includes
+		- providers
+		- class-two-factor-compat.php
+		- class-two-factor-core.php
+		- two-factor.php
