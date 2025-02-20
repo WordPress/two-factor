@@ -94,10 +94,10 @@ class Two_Factor_Core {
 	 */
 	public static function add_hooks( $compat ) {
 		add_action( 'init', array( __CLASS__, 'get_providers' ) ); // @phpstan-ignore return.void
-		$is_headless = true; // TODO: Change this programatically
-		if (!$is_headless) {
-			add_action( 'wp_login', array( __CLASS__, 'wp_login' ), 10, 2 );
-		}
+		
+		// Check to see if its a headless login
+		add_action( 'wp_login', array( __CLASS__, 'wp_login' ), 10, 2 );
+
 		add_filter( 'wp_login_errors', array( __CLASS__, 'maybe_show_reset_password_notice' ) );
 		add_action( 'after_password_reset', array( __CLASS__, 'clear_password_reset_notice' ) );
 		add_action( 'login_form_validate_2fa', array( __CLASS__, 'login_form_validate_2fa' ) );
@@ -662,7 +662,12 @@ class Two_Factor_Core {
 	 */
 	public static function wp_login( $user_login, $user ) {
 		// get request 
+
+		wp_mail('me@me.com', 'wp_login', 'wp_login');
+
 		$current_origin = get_http_origin();
+
+		wp_mail('me@me.com', 'current_origin', $current_origin);
 	
 		if ( empty( $current_origin ) ) {
 			$current_origin = ! empty( $_SERVER['HTTP_REFERER'] ) ? sanitize_text_field( $_SERVER['HTTP_REFERER'] ) : null;
@@ -672,6 +677,8 @@ class Two_Factor_Core {
 		$frontend_settings = get_option('frontend_settings');
 	
 		$frontend_url = $frontend_settings['frontend_uri'];
+
+		wp_mail('me@me.com', 'frontend_url', $frontend_url);
 	
 		// this is returning "https:\/\/localhost:3000"
 		// we need it in the format https://localhost:3000
@@ -679,6 +686,7 @@ class Two_Factor_Core {
 		$frontend_url = str_replace('"', '', $frontend_url);
 	
 		if ( ! self::is_user_using_two_factor( $user->ID ) || $current_origin === $frontend_url ) {
+			wp_mail('me@me.com', 'no 2fa', 'no 2fa');
 			return;
 		}
 	
