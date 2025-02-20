@@ -661,16 +661,33 @@ class Two_Factor_Core {
 	 * @param WP_User $user WP_User object of the logged-in user.
 	 */
 	public static function wp_login( $user_login, $user ) {
-		if ( ! self::is_user_using_two_factor( $user->ID ) ) {
+		// get request 
+		$current_origin = get_http_origin();
+	
+		if ( empty( $current_origin ) ) {
+			$current_origin = ! empty( $_SERVER['HTTP_REFERER'] ) ? sanitize_text_field( $_SERVER['HTTP_REFERER'] ) : null;
+		}
+	
+		// get frontend url
+		$frontend_settings = get_option('frontend_settings');
+	
+		$frontend_url = $frontend_settings['frontend_uri'];
+	
+		// this is returning "https:\/\/localhost:3000"
+		// we need it in the format https://localhost:3000
+		$frontend_url = str_replace('\\', '', $frontend_url);
+		$frontend_url = str_replace('"', '', $frontend_url);
+	
+		if ( ! self::is_user_using_two_factor( $user->ID ) || $current_origin === $frontend_url ) {
 			return;
 		}
-
+	
 		// Invalidate the current login session to prevent from being re-used.
 		self::destroy_current_session_for_user( $user );
-
+	
 		// Also clear the cookies which are no longer valid.
 		wp_clear_auth_cookie();
-
+	
 		self::show_two_factor_login( $user );
 		exit;
 	}
