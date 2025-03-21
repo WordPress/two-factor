@@ -1866,7 +1866,7 @@ class Two_Factor_Core {
 			$notices['notice two-factor-notice-no-providers-supported'] = esc_html__( 'No providers are available for your account.', 'two-factor' );
 		}
 
-		// Suggest enabling a backup method if only method is enabled and there are more available.
+		// Suggest enabling a backup method if only one method is enabled and there are more available.
 		if ( count( $providers ) > 1 && 1 === count( $enabled_providers ) ) {
 			$notices['warning two-factor-warning-suggest-backup'] = esc_html__( 'To prevent being locked out of your account, consider enabling a backup method like Recovery Codes in case you lose access to your primary authentication method.', 'two-factor' );
 		}
