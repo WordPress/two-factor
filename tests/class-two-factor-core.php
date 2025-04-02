@@ -1556,6 +1556,63 @@ class Test_ClassTwoFactorCore extends WP_UnitTestCase {
 		$this->assertCount( 1, $admin_session_manager->get_all(), 'No admin sessions are present first' );
 	}
 
+	public function test_can_filter_registered_providers_for_user() {
+		$user = self::factory()->user->create_and_get();
+		$providers = Two_Factor_Core::get_providers();
+
+		$this->assertEquals(
+			$providers,
+			Two_Factor_Core::get_supported_providers_for_user( $user ),
+			'All providers are available by default'
+		);
+
+		$this->assertTrue( $providers['Two_Factor_Email']::is_supported_for_user( $user ), 'Email provider is supported by default' );
+
+		add_filter(
+			'two_factor_providers_for_user',
+			function( $providers, $user ) {
+				$this->assertInstanceOf( WP_User::class, $user, 'A user referenced is passed to the filter' );
+
+				return array_diff_key( $providers, array( 'Two_Factor_Email' => null ) );
+			},
+			10,
+			2
+		);
+
+		$this->assertNotContains(
+			'Two_Factor_Email',
+			Two_Factor_Core::get_supported_providers_for_user( $user ),
+			'Email provider can be disabled for a user'
+		);
+
+		$this->assertFalse( $providers['Two_Factor_Email']::is_supported_for_user( $user ), 'Email provider is disabled if not supported' );
+
+		remove_all_filters( 'two_factor_providers_for_user' );
+	}
+
+	public function test_can_disable_default_providers() {
+		$user = self::factory()->user->create_and_get();
+		$providers = Two_Factor_Core::get_providers();
+		$default_provider = current( $providers );
+
+		$this->assertContains( 'Two_Factor_Email', array_keys( $providers ), 'Email provider is enabled by default' );
+
+		$this->assertTrue( $default_provider::is_supported_for_user( $user ), 'Available provider is supported by default' );
+
+		add_filter(
+			'two_factor_providers',
+			function ( $providers ) {
+				return array_diff_key( $providers, array( 'Two_Factor_Email' => null ) );
+			}
+		);
+
+		$this->assertNotContains( 'Two_Factor_Email', array_keys( Two_Factor_Core::get_providers() ), 'Default provider can be disabled via a filter' );
+
+		$this->assertFalse( $default_provider::is_supported_for_user( $user ), 'Disabled provider is not supported for user' );
+
+		remove_all_filters( 'two_factor_providers' );
+	}
+
 	/**
 	 * Plugin uninstall removes all user meta.
 	 *
@@ -1580,21 +1637,6 @@ class Test_ClassTwoFactorCore extends WP_UnitTestCase {
 			Two_Factor_Core::get_enabled_providers_for_user( $user->ID ),
 			'Provider was disabled due to uninstall'
 		);
-	}
-
-	public function test_can_disable_default_providers() {
-		$this->assertContains( 'Two_Factor_Email', array_keys( Two_Factor_Core::get_providers() ), 'Email provider is enabled by default' );
-
-		add_filter(
-			'two_factor_providers',
-			function ( $providers ) {
-				return array_diff_key( $providers, array( 'Two_Factor_Email' => null ) );
-			}
-		);
-
-		$this->assertNotContains( 'Two_Factor_Email', array_keys( Two_Factor_Core::get_providers() ), 'Default provider can be disabled via a filter' );
-
-		remove_all_filters( 'two_factor_providers' );
 	}
 
 	/**
