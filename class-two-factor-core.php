@@ -1837,7 +1837,7 @@ class Two_Factor_Core {
 	 * @param WP_User $user WP_User object of the logged-in user.
 	 */
 	public static function user_two_factor_options( $user ) {
-		$notices = [];
+		$notices = array();
 
 		$providers = self::get_supported_providers_for_user( $user );
 
@@ -1927,16 +1927,16 @@ class Two_Factor_Core {
 	 * Render the user settings.
 	 *
 	 * @param WP_User $user User instance.
-	 * @param array $providers List of available providers.
+	 * @param array   $providers List of available providers.
 	 */
 	private static function render_user_providers_form( $user, $providers ) {
-		$primary_provider_key = self::get_primary_provider_key_selected_for_user( $user );
-		$enabled_providers = self::get_enabled_providers_for_user( $user );
+		$primary_provider_key      = self::get_primary_provider_key_selected_for_user( $user );
+		$enabled_providers         = self::get_enabled_providers_for_user( $user );
 		$recommended_provider_keys = self::get_recommended_providers( $user );
 
 		// Move the recommended providers first.
 		$recommended_providers = array_intersect_key( $providers, array_flip( $recommended_provider_keys ) );
-		$providers = array_merge( $recommended_providers, $providers );
+		$providers             = array_merge( $recommended_providers, $providers );
 
 		?>
 		<p>
@@ -1956,7 +1956,7 @@ class Two_Factor_Core {
 							<input id="enabled-<?php echo esc_attr( $provider_key ); ?>" type="checkbox" name="<?php echo esc_attr( self::ENABLED_PROVIDERS_USER_META_KEY ); ?>[]" value="<?php echo esc_attr( $provider_key ); ?>" <?php checked( in_array( $provider_key, $enabled_providers, true ) ); ?> />
 							<strong><?php echo esc_html( sprintf( __( 'Enable %s', 'two-factor' ), $object->get_label() ) ); ?></strong>
 							<?php if ( in_array( $provider_key, $recommended_provider_keys, true ) ) : ?>
-								<abbr title="<?php esc_attr_e( 'This method is more secure and easy to use', 'two-factor' ) ?>" class="two-factor-method-recommended"><?php esc_html_e( 'Recommended', 'two-factor' ); ?></abbr>
+								<abbr title="<?php esc_attr_e( 'This method is more secure and easy to use', 'two-factor' ); ?>" class="two-factor-method-recommended"><?php esc_html_e( 'Recommended', 'two-factor' ); ?></abbr>
 							<?php endif; ?>
 						</label>
 						<?php

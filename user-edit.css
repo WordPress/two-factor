@@ -11,7 +11,7 @@
 .two-factor-methods-table .two-factor-method-recommended {
 	font-size: 0.8rem;
 	line-height: 1;
-	font-weight: normal;
+	font-weight: 400;
 	border: 1px dotted;
 	border-radius: 0.15rem;
 	padding: 0.1rem 0.25rem;
