@@ -64,7 +64,7 @@ class Two_Factor_Totp extends Two_Factor_Provider {
 				array(
 					'methods'             => WP_REST_Server::DELETABLE,
 					'callback'            => array( $this, 'rest_delete_totp' ),
-					'permission_callback' => function( $request ) {
+					'permission_callback' => function ( $request ) {
 						return Two_Factor_Core::rest_api_can_edit_user_and_update_two_factor_options( $request['user_id'] );
 					},
 					'args'                => array(
@@ -77,20 +77,20 @@ class Two_Factor_Totp extends Two_Factor_Provider {
 				array(
 					'methods'             => WP_REST_Server::CREATABLE,
 					'callback'            => array( $this, 'rest_setup_totp' ),
-					'permission_callback' => function( $request ) {
+					'permission_callback' => function ( $request ) {
 						return Two_Factor_Core::rest_api_can_edit_user_and_update_two_factor_options( $request['user_id'] );
 					},
 					'args'                => array(
-						'user_id' => array(
+						'user_id'         => array(
 							'required' => true,
 							'type'     => 'integer',
 						),
-						'key'     => array(
+						'key'             => array(
 							'type'              => 'string',
 							'default'           => '',
 							'validate_callback' => null, // Note: validation handled in ::rest_setup_totp().
 						),
-						'code'    => array(
+						'code'            => array(
 							'type'              => 'string',
 							'default'           => '',
 							'validate_callback' => null, // Note: validation handled in ::rest_setup_totp().
@@ -159,10 +159,10 @@ class Two_Factor_Totp extends Two_Factor_Provider {
 		$this->user_two_factor_options( $user );
 		$html = ob_get_clean();
 
-		return [
+		return array(
 			'success' => true,
 			'html'    => $html,
-		];
+		);
 	}
 
 	/**
@@ -198,10 +198,10 @@ class Two_Factor_Totp extends Two_Factor_Provider {
 		$this->user_two_factor_options( $user );
 		$html = ob_get_clean();
 
-		return [
+		return array(
 			'success' => true,
 			'html'    => $html,
-		];
+		);
 	}
 
 	/**
