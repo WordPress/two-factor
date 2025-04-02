@@ -283,22 +283,19 @@ class Two_Factor_Totp extends Two_Factor_Provider {
 		<div id="two-factor-totp-options">
 		<?php
 		if ( empty( $key ) ) :
-
 			$key      = $this->generate_key();
 			$totp_url = $this->generate_qr_code_url( $user, $key );
 
 			?>
-
 			<p>
 				<?php esc_html_e( 'Please scan the QR code or manually copy the shared secret key from below to your Authenticator app:', 'two-factor' ); ?>
 			</p>
 			<p id="two-factor-qr-code">
-				<a href="<?php echo $totp_url; ?>">
+				<a href="<?php echo esc_url( $totp_url ); ?>">
 					<?php esc_html_e( 'Loading…', 'two-factor' ); ?>
 					<img src="<?php echo esc_url( admin_url( 'images/spinner.gif' ) ); ?>" alt="" />
 				</a>
 			</p>
-
 			<style>
 				#two-factor-qr-code {
 					/* The size of the image will change based on the length of the URL inside it. */
