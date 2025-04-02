@@ -1901,13 +1901,46 @@ class Two_Factor_Core {
 		do_action( 'show_user_security_settings', $user, $providers );
 	}
 
+	/**
+	 * Get the recommended providers for a user.
+	 *
+	 * @param WP_User $user User instance.
+	 *
+	 * @return array List of provider keys.
+	 */
+	private static function get_recommended_providers( $user ) {
+		$providers = array(
+			'Two_Factor_Totp',
+			'Two_Factor_Backup_Codes',
+		);
+
+		/**
+		 * Set the keys of the recommended (secure) methods.
+		 *
+		 * @param array   $recommended_providers The recommended providers.
+		 * @param WP_User $user The user.
+		 */
+		return (array) apply_filters( 'two_factor_recommended_providers', $providers, $user );
+	}
+
+	/**
+	 * Render the user settings.
+	 *
+	 * @param WP_User $user User instance.
+	 * @param array $providers List of available providers.
+	 */
 	private static function render_user_providers_form( $user, $providers ) {
 		$primary_provider_key = self::get_primary_provider_key_selected_for_user( $user );
 		$enabled_providers = self::get_enabled_providers_for_user( $user );
+		$recommended_provider_keys = self::get_recommended_providers( $user );
+
+		// Move the recommended providers first.
+		$recommended_providers = array_intersect_key( $providers, array_flip( $recommended_provider_keys ) );
+		$providers = array_merge( $recommended_providers, $providers );
 
 		?>
 		<p>
-			<?php esc_html_e( 'Configure a primary two-factor method along with a backup method, such as Recovery Codes, to avoid being locked out if you lose access to your primary method.', 'two-factor' ); ?>
+			<?php esc_html_e( 'Configure a primary two-factor method along with a backup method, such as Recovery Codes, to avoid being locked out if you lose access to your primary method. Methods marked as recommended are more secure and easier to use.', 'two-factor' ); ?>
 		</p>
 
 		<?php wp_nonce_field( 'user_two_factor_options', '_nonce_user_two_factor_options', false ); ?>
@@ -1921,7 +1954,10 @@ class Two_Factor_Core {
 					<td>
 						<label class="two-factor-method-label">
 							<input id="enabled-<?php echo esc_attr( $provider_key ); ?>" type="checkbox" name="<?php echo esc_attr( self::ENABLED_PROVIDERS_USER_META_KEY ); ?>[]" value="<?php echo esc_attr( $provider_key ); ?>" <?php checked( in_array( $provider_key, $enabled_providers, true ) ); ?> />
-							<?php echo esc_html( sprintf( __( 'Enable %s', 'two-factor' ), $object->get_label() ) ); ?>
+							<strong><?php echo esc_html( sprintf( __( 'Enable %s', 'two-factor' ), $object->get_label() ) ); ?></strong>
+							<?php if ( in_array( $provider_key, $recommended_provider_keys, true ) ) : ?>
+								<abbr title="<?php esc_attr_e( 'This method is more secure and easy to use', 'two-factor' ) ?>" class="two-factor-method-recommended"><?php esc_html_e( 'Recommended', 'two-factor' ); ?></abbr>
+							<?php endif; ?>
 						</label>
 						<?php
 						/**
