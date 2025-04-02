@@ -355,7 +355,7 @@ class Two_Factor_Totp extends Two_Factor_Provider {
 					?>
 					<input type="text" inputmode="numeric" name="two-factor-totp-authcode" id="two-factor-totp-authcode" class="input" value="" size="20" pattern="[0-9 ]*" placeholder="<?php echo esc_attr( $placeholder ); ?>" autocomplete="off" />
 				</label>
-				<input type="submit" class="button totp-submit" name="two-factor-totp-submit" value="<?php esc_attr_e( 'Submit', 'two-factor' ); ?>" />
+				<input type="submit" class="button totp-submit" name="two-factor-totp-submit" value="<?php esc_attr_e( 'Verify', 'two-factor' ); ?>" />
 			</p>
 
 			<script>
@@ -702,7 +702,7 @@ class Two_Factor_Totp extends Two_Factor_Provider {
 			}, 200);
 		</script>
 		<?php
-		submit_button( __( 'Authenticate', 'two-factor' ) );
+		submit_button( __( 'Verify', 'two-factor' ) );
 	}
 
 	/**
