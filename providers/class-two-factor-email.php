@@ -368,7 +368,7 @@ class Two_Factor_Email extends Two_Factor_Provider {
 	public function user_options( $user ) {
 		$email = $user->user_email;
 		?>
-		<div>
+		<p>
 			<?php
 			echo esc_html(
 				sprintf(
@@ -378,7 +378,7 @@ class Two_Factor_Email extends Two_Factor_Provider {
 				)
 			);
 			?>
-		</div>
+		</p>
 		<?php
 	}
 
