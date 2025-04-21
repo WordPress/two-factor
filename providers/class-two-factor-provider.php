@@ -124,6 +124,19 @@ abstract class Two_Factor_Provider {
 	abstract public function is_available_for_user( $user );
 
 	/**
+	 * If this provider should be available for the user.
+	 *
+	 * @param WP_User|int $user WP_User object, user ID or null to resolve the current user.
+	 *
+	 * @return bool
+	 */
+	public static function is_supported_for_user( $user = null ) {
+		$providers = Two_Factor_Core::get_supported_providers_for_user( $user );
+
+		return isset( $providers[ static::class ] );
+	}
+
+	/**
 	 * Generate a random eight-digit string to send out as an auth code.
 	 *
 	 * @since 0.1-dev

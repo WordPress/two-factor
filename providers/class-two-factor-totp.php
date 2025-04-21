@@ -135,7 +135,7 @@ class Two_Factor_Totp extends Two_Factor_Provider {
 	 * Returns the name of the provider.
 	 */
 	public function get_label() {
-		return _x( 'Authenticator app', 'Provider Label', 'two-factor' );
+		return _x( 'Authenticator App', 'Provider Label', 'two-factor' );
 	}
 
 	/**
@@ -144,7 +144,7 @@ class Two_Factor_Totp extends Two_Factor_Provider {
 	 * @since 0.9.0
 	 */
 	public function get_alternative_provider_label() {
-		return __( 'Use your authenticator app', 'two-factor' );
+		return __( 'Use your authenticator app for time-based one-time passwords (TOTP)', 'two-factor' );
 	}
 
 	/**
@@ -175,6 +175,10 @@ class Two_Factor_Totp extends Two_Factor_Provider {
 		$user    = get_user_by( 'id', $user_id );
 
 		$this->delete_user_totp_key( $user_id );
+
+		if ( ! Two_Factor_Core::disable_provider_for_user( $user_id, 'Two_Factor_Totp' ) ) {
+			return new WP_Error( 'db_error', __( 'Unable to disable TOTP provider for this user.', 'two-factor' ), array( 'status' => 500 ) );
+		}
 
 		ob_start();
 		$this->user_two_factor_options( $user );
@@ -374,9 +378,9 @@ class Two_Factor_Totp extends Two_Factor_Provider {
 						/* translators: Example auth code. */
 						$placeholder = sprintf( __( 'eg. %s', 'two-factor' ), '123456' );
 					?>
-					<input type="tel" name="two-factor-totp-authcode" id="two-factor-totp-authcode" class="input" value="" size="20" pattern="[0-9 ]*" placeholder="<?php echo esc_attr( $placeholder ); ?>" />
+					<input type="text" inputmode="numeric" name="two-factor-totp-authcode" id="two-factor-totp-authcode" class="input" value="" size="20" pattern="[0-9 ]*" placeholder="<?php echo esc_attr( $placeholder ); ?>" autocomplete="off" />
 				</label>
-				<input type="submit" class="button totp-submit" name="two-factor-totp-submit" value="<?php esc_attr_e( 'Submit', 'two-factor' ); ?>" />
+				<input type="submit" class="button totp-submit" name="two-factor-totp-submit" value="<?php esc_attr_e( 'Verify', 'two-factor' ); ?>" />
 			</p>
 
 			<script>
@@ -400,6 +404,7 @@ class Two_Factor_Totp extends Two_Factor_Provider {
 								user_id: <?php echo wp_json_encode( $user->ID ); ?>,
 								key: key,
 								code: code,
+								enable_provider: true,
 							}
 						} ).fail( function( response, status ) {
 							var errorMessage = response.responseJSON.message || status,
@@ -411,8 +416,10 @@ class Two_Factor_Totp extends Two_Factor_Provider {
 
 							$error.find('p').text( errorMessage );
 
+							$( '#enabled-Two_Factor_Totp' ).prop( 'checked', false );
 							$('#two-factor-totp-authcode').val('');
 						} ).then( function( response ) {
+							$( '#enabled-Two_Factor_Totp' ).prop( 'checked', true );
 							$( '#two-factor-totp-options' ).html( response.html );
 						} );
 					} );
@@ -439,6 +446,7 @@ class Two_Factor_Totp extends Two_Factor_Provider {
 									user_id: <?php echo wp_json_encode( $user->ID ); ?>,
 								}
 							} ).then( function( response ) {
+								$( '#enabled-Two_Factor_Totp' ).prop( 'checked', false );
 								$( '#two-factor-totp-options' ).html( response.html );
 							} );
 						} );
@@ -753,7 +761,7 @@ class Two_Factor_Totp extends Two_Factor_Provider {
 		</p>
 		<p>
 			<label for="authcode"><?php esc_html_e( 'Authentication Code:', 'two-factor' ); ?></label>
-			<input type="text" inputmode="numeric" autocomplete="one-time-code" name="authcode" id="authcode" class="input authcode" value="" size="20" pattern="[0-9 ]*" placeholder="123 456" data-digits="<?php echo esc_attr( self::DEFAULT_DIGIT_COUNT ); ?>" />
+			<input type="text" inputmode="numeric" autocomplete="one-time-code" name="authcode" id="authcode" class="input authcode" value="" size="20" pattern="[0-9 ]*" placeholder="123 456" autocomplete="one-time-code" data-digits="<?php echo esc_attr( self::DEFAULT_DIGIT_COUNT ); ?>" />
 		</p>
 		<script type="text/javascript">
 			setTimeout( function(){
@@ -765,7 +773,7 @@ class Two_Factor_Totp extends Two_Factor_Provider {
 			}, 200);
 		</script>
 		<?php
-		submit_button( __( 'Authenticate', 'two-factor' ) );
+		submit_button( __( 'Verify', 'two-factor' ) );
 	}
 
 	/**

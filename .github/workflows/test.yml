@@ -42,7 +42,7 @@ jobs:
             - name: Setup PHP and Composer
               uses: shivammathur/setup-php@v2
               with:
-                php-version: '8.2'
+                php-version: '8.3'
 
             - name: Setup Node
               uses: actions/setup-node@v4
@@ -68,6 +68,7 @@ jobs:
         strategy:
             matrix:
                 php:
+                  - '8.4'
                   - '8.3'
                   - '8.2'
                   - '8.1'
@@ -90,7 +91,7 @@ jobs:
             - name: Setup PHP
               uses: shivammathur/setup-php@v2
               with:
-                php-version: '8.2'
+                php-version: '8.3'
 
             - name: Setup Node
               uses: actions/setup-node@v4
@@ -131,7 +132,7 @@ jobs:
             - name: Setup PHP
               uses: shivammathur/setup-php@v2
               with:
-                php-version: '8.2'
+                php-version: '8.3'
 
             - name: Setup Node
               uses: actions/setup-node@v4
