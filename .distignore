@@ -16,4 +16,5 @@
 /phpunit*
 /phpstan.*
 /readme.md
+/RELEASING.md
 /SECURITY.md
