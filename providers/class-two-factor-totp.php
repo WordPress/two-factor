@@ -392,10 +392,10 @@ class Two_Factor_Totp extends Two_Factor_Provider {
 
 							$error.find('p').text( errorMessage );
 
-							$( '#enabled-Two_Factor_Totp' ).prop( 'checked', false );
+							$( '#enabled-Two_Factor_Totp' ).prop( 'checked', false ).trigger('change');
 							$('#two-factor-totp-authcode').val('');
 						} ).then( function( response ) {
-							$( '#enabled-Two_Factor_Totp' ).prop( 'checked', true );
+							$( '#enabled-Two_Factor_Totp' ).prop( 'checked', true ).trigger('change');
 							$( '#two-factor-totp-options' ).html( response.html );
 						} );
 					} );
