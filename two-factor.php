@@ -14,7 +14,7 @@
  * Version:           0.13.0
  * Requires at least: 6.3
  * Requires PHP:      7.2
- * Author:            WordPress.org Contributors
+ * Author:            wordpressdotorg
  * Author URI:        https://github.com/wordpress/two-factor/graphs/contributors
  * License:           GPL-2.0-or-later
  * License URI:       https://spdx.org/licenses/GPL-2.0-or-later.html
