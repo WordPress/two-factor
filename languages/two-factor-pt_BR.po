@@ -1,0 +1,365 @@
+# Copyright (C) 2024 WordPress.org Contributors
+# This file is distribuído sob a GPL-2.0-ou-posterior.
+msgid ""
+msgstr ""
+"Project-Id-Version: Two Factor 0.13.0\n"
+"Report-Msgid-Bugs-To: https://wordpress.org/support/plugin/two-factor\n"
+"POT-Creation-Date: 2024-03-19 12:00:00+00:00\n"
+"PO-Revision-Date: 2024-03-19 12:00:00+00:00\n"
+"Last-Translator: \n"
+"Language-Team: \n"
+"Language: pt_BR\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=2; plural=(n > 1);\n"
+"X-Generator: Poedit 3.0\n"
+"X-Poedit-KeywordsList: __;_e;_n:1,2;_x:1,2c;_ex:1,2c;_nx:4c,1,2;esc_attr__;"
+"esc_attr_e;esc_attr_x:1,2c;esc_html__;esc_html_e;esc_html_x:1,2c;_n_noop:1,2;"
+"_nx_noop:3c,1,2;__ngettext_noop:1,2\n"
+"X-Poedit-Basepath: ..\n"
+"X-Poedit-SearchPath-0: .\n"
+
+#: providers/class-two-factor-dummy.php:45
+msgid "Are you really you?"
+msgstr "Você é realmente você?"
+
+#: providers/class-two-factor-dummy.php:47
+msgid "Yup."
+msgstr "Sim."
+
+#: providers/class-two-factor-backup-codes.php:102
+msgid "Two-Factor: You are out of recovery codes and need to <a href=\"%s\">regenerate!</a>"
+msgstr "Autenticação de Dois Fatores: Você está sem códigos de recuperação e precisa <a href=\"%s\">regenerar!</a>"
+
+#: providers/class-two-factor-backup-codes.php:129
+msgid "Use a recovery code"
+msgstr "Usar um código de recuperação"
+
+#: providers/class-two-factor-backup-codes.php:175
+msgid "Generate new recovery codes"
+msgstr "Gerar novos códigos de recuperação"
+
+#: providers/class-two-factor-backup-codes.php:181
+msgid "Write these down! Once you navigate away from this page, you will not be able to view these codes again."
+msgstr "Anote estes códigos! Depois que você sair desta página, não será possível visualizá-los novamente."
+
+#: providers/class-two-factor-backup-codes.php:183
+msgid "Download Codes"
+msgstr "Baixar Códigos"
+
+#: providers/class-two-factor-backup-codes.php:295
+msgid "Two-Factor Recovery Codes for %s"
+msgstr "Códigos de Recuperação de Autenticação de Dois Fatores para %s"
+
+#: providers/class-two-factor-backup-codes.php:315
+msgid "Unable to enable recovery codes for this user."
+msgstr "Não foi possível habilitar os códigos de recuperação para este usuário."
+
+#: providers/class-two-factor-backup-codes.php:354
+msgid "Enter a recovery code."
+msgstr "Digite um código de recuperação."
+
+#: providers/class-two-factor-backup-codes.php:356
+msgid "Recovery Code:"
+msgstr "Código de Recuperação:"
+
+#: providers/class-two-factor-backup-codes.php:360
+msgid "Submit"
+msgstr "Enviar"
+
+#: providers/class-two-factor-fido-u2f-admin.php:99
+msgid "Now insert (and tap) your Security Key."
+msgstr "Agora insira (e toque) sua Chave de Segurança."
+
+#: providers/class-two-factor-fido-u2f-admin.php:100
+msgid "U2F request failed."
+msgstr "Solicitação U2F falhou."
+
+#: providers/class-two-factor-fido-u2f-admin.php:103
+msgid "Request OK."
+msgstr "Solicitação OK."
+
+#: providers/class-two-factor-fido-u2f-admin.php:104
+msgid "Other U2F error."
+msgstr "Outro erro U2F."
+
+#: providers/class-two-factor-fido-u2f-admin.php:105
+msgid "Bad U2F request."
+msgstr "Solicitação U2F inválida."
+
+#: providers/class-two-factor-fido-u2f-admin.php:106
+msgid "Unsupported U2F configuration."
+msgstr "Configuração U2F não suportada."
+
+#: providers/class-two-factor-fido-u2f-admin.php:107
+msgid "U2F device ineligible."
+msgstr "Dispositivo U2F não elegível."
+
+#: providers/class-two-factor-fido-u2f-admin.php:108
+msgid "U2F request timeout reached."
+msgstr "Tempo limite da solicitação U2F atingido."
+
+#: providers/class-two-factor-fido-u2f-admin.php:110
+msgid "FIDO U2F appears to be not supported by your web browser. Try using Google Chrome or Firefox."
+msgstr "FIDO U2F parece não ser suportado pelo seu navegador. Tente usar Google Chrome ou Firefox."
+
+#: providers/class-two-factor-fido-u2f-admin.php:136
+msgid "Error while saving the changes."
+msgstr "Erro ao salvar as alterações."
+
+#: providers/class-two-factor-fido-u2f-admin.php:189
+msgid "Security Keys"
+msgstr "Chaves de Segurança"
+
+#: providers/class-two-factor-fido-u2f-admin.php:193
+msgid "U2F requires an HTTPS connection. You won't be able to add new security keys over HTTP."
+msgstr "U2F requer uma conexão HTTPS. Você não poderá adicionar novas chaves de segurança via HTTP."
+
+#: providers/class-two-factor-fido-u2f-admin.php:207
+msgid "Your new security key registered."
+msgstr "Sua nova chave de segurança registrada."
+
+#: providers/class-two-factor-fido-u2f-admin.php:211
+msgid "You can find FIDO U2F Security Key devices for sale from here."
+msgstr "Você pode encontrar dispositivos de Chave de Segurança FIDO U2F à venda aqui."
+
+#: providers/class-two-factor-fido-u2f-admin.php:303
+msgid "Rename"
+msgstr "Renomear"
+
+#: providers/class-two-factor-fido-u2f-admin.php:320
+msgid "Delete"
+msgstr "Excluir"
+
+#: providers/class-two-factor-fido-u2f-admin.php:357
+msgid "Item not updated."
+msgstr "Item não atualizado."
+
+#: providers/class-two-factor-totp.php:121
+msgid "Use your authenticator app for time-based one-time passwords (TOTP)"
+msgstr "Use seu aplicativo autenticador para senhas únicas baseadas em tempo (TOTP)"
+
+#: providers/class-two-factor-totp.php:154
+msgid "Unable to disable TOTP provider for this user."
+msgstr "Não foi possível desabilitar o provedor TOTP para este usuário."
+
+#: providers/class-two-factor-totp.php:181
+msgid "Invalid Two Factor Authentication secret key."
+msgstr "Chave secreta de Autenticação de Dois Fatores inválida."
+
+#: providers/class-two-factor-totp.php:185
+msgid "Invalid Two Factor Authentication code."
+msgstr "Código de Autenticação de Dois Fatores inválido."
+
+#: providers/class-two-factor-totp.php:189
+msgid "Unable to save Two Factor Authentication code. Please re-scan the QR code and enter the code provided by your application."
+msgstr "Não foi possível salvar o código de Autenticação de Dois Fatores. Por favor, escaneie novamente o código QR e insira o código fornecido pelo seu aplicativo."
+
+#: providers/class-two-factor-totp.php:193
+msgid "Unable to enable TOTP provider for this user."
+msgstr "Não foi possível habilitar o provedor TOTP para este usuário."
+
+#: providers/class-two-factor-totp.php:292
+msgid "Please scan the QR code or manually enter the key, then enter an authentication code from your app in order to complete setup."
+msgstr "Por favor, escaneie o código QR ou insira a chave manualmente, depois insira um código de autenticação do seu aplicativo para completar a configuração."
+
+#: providers/class-two-factor-totp.php:330
+msgid "Authenticator App QR Code"
+msgstr "Código QR do Aplicativo Autenticador"
+
+#: providers/class-two-factor-totp.php:350
+msgid "Authentication Code:"
+msgstr "Código de Autenticação:"
+
+#: providers/class-two-factor-totp.php:353
+msgid "eg. %s"
+msgstr "ex. %s"
+
+#: providers/class-two-factor-totp.php:405
+msgid "An authenticator app is currently configured. You will need to re-scan the QR code on all devices if reset."
+msgstr "Um aplicativo autenticador está atualmente configurado. Você precisará escanear novamente o código QR em todos os dispositivos se redefinir."
+
+#: providers/class-two-factor-totp.php:409
+msgid "Reset authenticator app"
+msgstr "Redefinir aplicativo autenticador"
+
+#: providers/class-two-factor-totp.php:688
+msgid "Enter the code generated by your authenticator app."
+msgstr "Digite o código gerado pelo seu aplicativo autenticador."
+
+#: providers/class-two-factor-provider.php:61
+msgid "Use %s"
+msgstr "Usar %s"
+
+#: providers/class-two-factor-fido-u2f-admin-list-table.php:31
+msgid "Name"
+msgstr "Nome"
+
+#: providers/class-two-factor-fido-u2f-admin-list-table.php:32
+msgid "Added"
+msgstr "Adicionado"
+
+#: providers/class-two-factor-fido-u2f-admin-list-table.php:33
+msgid "Last Used"
+msgstr "Último Uso"
+
+#: providers/class-two-factor-fido-u2f-admin-list-table.php:146
+msgid "Cancel"
+msgstr "Cancelar"
+
+#: providers/class-two-factor-fido-u2f-admin-list-table.php:147
+msgid "Update"
+msgstr "Atualizar"
+
+#: providers/class-two-factor-fido-u2f.php:112
+msgid "Use your security key"
+msgstr "Use sua chave de segurança"
+
+#: providers/class-two-factor-fido-u2f.php:153
+msgid "U2F requires an HTTPS connection. Please use an alternative 2nd factor method."
+msgstr "U2F requer uma conexão HTTPS. Por favor, use um método alternativo de segundo fator."
+
+#: providers/class-two-factor-fido-u2f.php:165
+msgid "An error occurred while creating authentication data."
+msgstr "Ocorreu um erro ao criar os dados de autenticação."
+
+#: providers/class-two-factor-fido-u2f.php:236
+msgid "Requires an HTTPS connection. Configure your security keys in the \"Security Keys\" section below."
+msgstr "Requer uma conexão HTTPS. Configure suas chaves de segurança na seção \"Chaves de Segurança\" abaixo."
+
+#: providers/class-two-factor-fido-u2f.php:272
+msgid "New Security Key"
+msgstr "Nova Chave de Segurança"
+
+#: providers/class-two-factor-email.php:62
+msgid "Send a code to your email"
+msgstr "Enviar um código para seu email"
+
+#: providers/class-two-factor-email.php:248
+msgid "Your login confirmation code for %s"
+msgstr "Seu código de confirmação de login para %s"
+
+#: providers/class-two-factor-email.php:250
+msgid "Enter %s to log in."
+msgstr "Digite %s para fazer login."
+
+#: providers/class-two-factor-email.php:293
+msgid "A verification code has been sent to the email address associated with your account."
+msgstr "Um código de verificação foi enviado para o endereço de email associado à sua conta."
+
+#: providers/class-two-factor-email.php:295
+msgid "Verification Code:"
+msgstr "Código de Verificação:"
+
+#: providers/class-two-factor-email.php:297
+msgid "Log In"
+msgstr "Entrar"
+
+#: providers/class-two-factor-email.php:300
+msgid "Resend Code"
+msgstr "Reenviar Código"
+
+#: providers/class-two-factor-email.php:375
+msgid "Authentication codes will be sent to %s."
+msgstr "Códigos de autenticação serão enviados para %s."
+
+#: class-two-factor-core.php:281
+msgid "FIDO U2F is not available because you are using PHP %s. (Requires 5.3 or greater)"
+msgstr "FIDO U2F não está disponível porque você está usando PHP %s. (Requer 5.3 ou superior)"
+
+#: class-two-factor-core.php:740
+msgid "Error: API login for user disabled."
+msgstr "Erro: Login via API para usuário desabilitado."
+
+#: class-two-factor-core.php:812
+msgid "Failed to create a login nonce."
+msgstr "Falha ao criar um nonce de login."
+
+#: class-two-factor-core.php:882
+msgid "Your password was reset because of too many failed Two Factor attempts. You will need to <a href=\"%s\">create a new password</a> to regain access. Please check your email for more information."
+msgstr "Sua senha foi redefinida devido a muitas tentativas falhas de Autenticação de Dois Fatores. Você precisará <a href=\"%s\">criar uma nova senha</a> para recuperar o acesso. Por favor, verifique seu email para mais informações."
+
+#: class-two-factor-core.php:913
+msgid "Cheatin&#8217; uh?"
+msgstr "Trapaçando, hein?"
+
+#: class-two-factor-core.php:972
+msgid "Having Problems?"
+msgstr "Está com Problemas?"
+
+#: class-two-factor-core.php:1348
+msgid "Two Factor Revalidation required."
+msgstr "Revalidação de Autenticação de Dois Fatores necessária."
+
+#: class-two-factor-core.php:1463
+msgid "You have logged in successfully."
+msgstr "Você fez login com sucesso."
+
+#: class-two-factor-core.php:1564
+msgid "You have revalidated successfully."
+msgstr "Você revalidou com sucesso."
+
+#: class-two-factor-core.php:1617
+msgid "ERROR: Too many invalid verification codes, you can try again in %s. This limit protects your account against automated attacks."
+msgstr "ERRO: Muitos códigos de verificação inválidos, você pode tentar novamente em %s. Este limite protege sua conta contra ataques automatizados."
+
+#: class-two-factor-core.php:1640
+msgid "ERROR: Invalid verification code."
+msgstr "ERRO: Código de verificação inválido."
+
+#: class-two-factor-core.php:1786
+msgid "There have been too many failed two-factor authentication attempts, which often indicates that the password has been compromised. The password has been reset in order to protect the account."
+msgstr "Houve muitas tentativas falhas de autenticação de dois fatores, o que geralmente indica que a senha foi comprometida. A senha foi redefinida para proteger a conta."
+
+#: class-two-factor-core.php:1787
+msgid "If you are the owner of this account, please check your email for instructions on regaining access."
+msgstr "Se você é o proprietário desta conta, por favor, verifique seu email para instruções sobre como recuperar o acesso."
+
+#: class-two-factor-core.php:1791
+msgid "Password Reset"
+msgstr "Redefinição de Senha"
+
+#: class-two-factor-core.php:1802
+msgid "Two-Factor"
+msgstr "Autenticação de Dois Fatores"
+
+#: class-two-factor-core.php:1821
+msgid "Disabled"
+msgstr "Desabilitado"
+
+#: class-two-factor-core.php:1858
+msgid "To update your Two-Factor options, you must first revalidate your session."
+msgstr "Para atualizar suas opções de Autenticação de Dois Fatores, você deve primeiro revalidar sua sessão."
+
+#: class-two-factor-core.php:1859
+msgid "Revalidate now"
+msgstr "Revalidar agora"
+
+#: class-two-factor-core.php:1865
+msgid "No providers are available for your account."
+msgstr "Nenhum provedor está disponível para sua conta."
+
+#: class-two-factor-core.php:1870
+msgid "To prevent being locked out of your account, consider enabling a backup method like Recovery Codes in case you lose access to your primary authentication method."
+msgstr "Para evitar ficar bloqueado em sua conta, considere habilitar um método de backup como Códigos de Recuperação caso você perca o acesso ao seu método principal de autenticação."
+
+#: class-two-factor-core.php:1873
+msgid "Two-Factor Options"
+msgstr "Opções de Autenticação de Dois Fatores"
+
+#: class-two-factor-core.php:1909
+msgid "Configure a primary two-factor method along with a backup method, such as Recovery Codes, to avoid being locked out if you lose access to your primary method."
+msgstr "Configure um método principal de autenticação de dois fatores junto com um método de backup, como Códigos de Recuperação, para evitar ficar bloqueado se você perder o acesso ao seu método principal."
+
+#: class-two-factor-core.php:1923
+msgid "Enable %s"
+msgstr "Habilitar %s"
+
+#: class-two-factor-core.php:1947
+msgid "Primary Method"
+msgstr "Método Principal"
+
+#: class-two-factor-core.php:1950
+msgid "Default"
+msgstr "Padrão" 
