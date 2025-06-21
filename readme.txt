@@ -34,6 +34,10 @@ Here is a list of action and filter hooks provided by the plugin:
 
 == Frequently Asked Questions ==
 
+= What PHP and WordPress versions does the Two-Factor plugin support? =
+
+This plugin supports the last two major versions of WordPress and <a href="https://make.wordpress.org/core/handbook/references/php-compatibility-and-wordpress-versions/">the minimum PHP version</a> supported by those WordPress versions.
+
 = How can I send feedback or get help with a bug? =
 
 The best place to report bugs, feature suggestions, or any other (non-security) feedback is at <a href="https://github.com/WordPress/two-factor/issues">the Two Factor GitHub issues page</a>. Before submitting a new issue, please search the existing issues to check if someone else has reported the same feedback.
