@@ -1,7 +1,4 @@
 # Directories
-/.git
-/.github
-/.wordpress-org
 /dist/
 /node_modules/
 /tests/logs/
