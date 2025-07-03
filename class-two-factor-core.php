@@ -1956,6 +1956,12 @@ class Two_Factor_Core {
 			<?php esc_html_e( 'Configure a primary two-factor method along with a backup method, such as Recovery Codes, to avoid being locked out if you lose access to your primary method. Methods marked as recommended are more secure and easier to use.', 'two-factor' ); ?>
 		</p>
 
+		<?php if ( function_exists( 'wp_is_application_passwords_available_for_user' ) && wp_is_application_passwords_available_for_user( $user ) ) : ?>
+		<p>
+			<?php esc_html_e( 'Authentication over REST API and XML-RPC must use application passwords (defined above) instead of your password.', 'two-factor' ); ?>
+		</p>
+		<?php endif; // Application passwords are supported. ?>
+
 		<?php wp_nonce_field( 'user_two_factor_options', '_nonce_user_two_factor_options', false ); ?>
 		<input type="hidden" name="<?php echo esc_attr( self::ENABLED_PROVIDERS_USER_META_KEY ); ?>[]" value="<?php /* Dummy input so $_POST value is passed when no providers are enabled. */ ?>" />
 
