@@ -1958,7 +1958,7 @@ class Two_Factor_Core {
 
 		<?php if ( function_exists( 'wp_is_application_passwords_available_for_user' ) && wp_is_application_passwords_available_for_user( $user ) ) : ?>
 		<p>
-			<?php esc_html_e( 'Authentication over REST API and XML-RPC must use application passwords (defined above) instead of your password.', 'two-factor' ); ?>
+			<?php esc_html_e( 'Authentication for REST API and XML-RPC must use application passwords (defined above) instead of your regular password.', 'two-factor' ); ?>
 		</p>
 		<?php endif; // Application passwords are supported. ?>
 
