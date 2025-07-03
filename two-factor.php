@@ -30,7 +30,7 @@ define( 'TWO_FACTOR_DIR', plugin_dir_path( __FILE__ ) );
 /**
  * Version of the plugin.
  */
-define( 'TWO_FACTOR_VERSION', '0.13.0' );
+define( 'TWO_FACTOR_VERSION', '0.14.0' );
 
 /**
  * Include the base class here, so that other plugins can also extend it.
