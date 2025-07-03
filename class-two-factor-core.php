@@ -776,7 +776,7 @@ class Two_Factor_Core {
 	 * @return boolean
 	 */
 	public static function is_user_api_login_enabled( $user_id ) {
-		return (bool) apply_filters( 'two_factor_user_api_login_enable', false, $user_id );
+		return (bool) apply_filters( 'two_factor_user_api_login_enable', (bool) did_action( 'application_password_did_authenticate' ), $user_id );
 	}
 
 	/**
