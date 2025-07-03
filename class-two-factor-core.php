@@ -769,7 +769,9 @@ class Two_Factor_Core {
 	}
 
 	/**
-	 * If the current user can login via API requests such as XML-RPC and REST.
+	 * If the user can login via API requests such as XML-RPC and REST.
+	 *
+	 * Only logins with application passwords are permitted by default.
 	 *
 	 * @param integer $user_id User ID.
 	 *
