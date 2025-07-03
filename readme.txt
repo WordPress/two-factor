@@ -56,4 +56,28 @@ To report a security issue, please visit the [WordPress HackerOne](https://hacke
 
 == Changelog ==
 
-See the [release history](https://github.com/wordpress/two-factor/releases).
+= 0.13.0 - 2025-04-02 =
+- Add two_factor_providers_for_user filter to limit two-factor providers available to each user by @kasparsd in #669
+- Update automated testing to cover PHP 8.4 and default to PHP 8.3 by @BrookeDot in #665
+
+= 0.12.0 - 2025-02-14 =
+- Simplify the Two Factor settings in user profile by @kasparsd in #654
+- Fix PHP 8.4 Implicitly marking parameter $previous as nullable is deprecated by @BrookeDot in #664
+
+= 0.11.0 - 2025-01-09 =
+- Remove duplicate two_factor_providers filter calls to allow disabling core providers by @kasparsd in #651
+- Encourage setting up a second recovery method by @kasparsd in #642
+- Focus in code input when totp is checked by @thrijith in #645
+- Add autocomplete "one-time-code" attribute by @stefanmomm in #657
+- Add filters for email token and backup code length by @kasparsd in #653
+- Enable TOTP method when method is configured by @kasparsd in #643
+
+[View the complete changelog details here](https://github.com/wordpress/two-factor/blob/master/CHANGELOG.md).
+
+== Upgrade Notice ==
+
+= 0.10.0 =
+Bumps WordPress minimum supported version to 6.3 and PHP minimum to 7.2.
+
+= 0.9.0 =
+Users are now asked to re-authenticate with their two-factor before making changes to their two-factor settings. This associates each login session with the two-factor login meta data for improved handling of that session.
