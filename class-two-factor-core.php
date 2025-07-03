@@ -776,7 +776,18 @@ class Two_Factor_Core {
 	 * @return boolean
 	 */
 	public static function is_user_api_login_enabled( $user_id ) {
-		return (bool) apply_filters( 'two_factor_user_api_login_enable', (bool) did_action( 'application_password_did_authenticate' ), $user_id );
+		/**
+		 * Allow or prevent logins without two-factor during
+		 * API requests such as XML-RPC and REST.
+		 *
+		 * @param boolean $enabled Whether the user can login via API requests.
+		 * @param integer $user_id User ID.
+		 */
+		return (bool) apply_filters(
+			'two_factor_user_api_login_enable',
+			(bool) did_action( 'application_password_did_authenticate' ),
+			$user_id
+		);
 	}
 
 	/**
