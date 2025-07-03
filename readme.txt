@@ -1,8 +1,8 @@
 === Two-Factor ===
 Contributors: georgestephanis, valendesigns, stevenkword, extendwings, sgrant, aaroncampbell, johnbillion, stevegrunwell, netweb, kasparsd, alihusnainarshad, passoniate
 Tags:         2fa, mfa, totp, authentication, security
-Tested up to: 6.7
-Stable tag:   0.13.0
+Tested up to: 6.8
+Stable tag:   0.14.0
 License:      GPL-2.0-or-later
 License URI:  https://spdx.org/licenses/GPL-2.0-or-later.html
 
@@ -53,7 +53,9 @@ To report a security issue, please visit the [WordPress HackerOne](https://hacke
 
 1. Two-factor options under User Profile.
 2. U2F Security Keys section under User Profile.
-3. Email Code Authentication during WordPress Login.
+3. Login with authentication app code.
+4. Login with recovery code.
+5. Login with email code.
 
 == Changelog ==
 
