@@ -52,7 +52,9 @@ To report a security issue, please visit the [WordPress HackerOne](https://hacke
 
 1. Two-factor options under User Profile.
 2. U2F Security Keys section under User Profile.
-3. Email Code Authentication during WordPress Login.
+3. Login with authentication app code.
+4. Login with recovery code.
+5. Login with email code.
 
 == Changelog ==
 
