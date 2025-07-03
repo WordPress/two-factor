@@ -49,7 +49,7 @@ A complete listing of all notable changes are documented in [CHANGELOG.md](https
 
 ## Credits
 
-Created [by contributors](https://github.com/WordPress/two-factor/graphs/contributors) and released under [GPLv2 or later](LICENSE.md).
+Created [by contributors](https://github.com/WordPress/two-factor/blob/master/CREDITS.md) and released under [GPLv2 or later](LICENSE.md).
 
 ## Security
 
