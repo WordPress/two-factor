@@ -157,7 +157,7 @@ class Tests_Two_Factor_Backup_Codes extends WP_UnitTestCase {
 	 * @covers Two_Factor_Backup_Codes::user_options
 	 */
 	public function test_user_options() {
-		$user  = new WP_User( self::factory()->user->create() );
+		$user = new WP_User( self::factory()->user->create() );
 
 		ob_start();
 		$this->provider->user_options( $user );
@@ -195,6 +195,9 @@ class Tests_Two_Factor_Backup_Codes extends WP_UnitTestCase {
 		$this->assertEquals( 1, $this->provider->codes_remaining_for_user( $user ) );
 	}
 
+	/**
+	 * Test backup code length filter.
+	 */
 	public function test_backup_code_length_filter() {
 		$user = new WP_User( self::factory()->user->create() );
 
@@ -202,7 +205,7 @@ class Tests_Two_Factor_Backup_Codes extends WP_UnitTestCase {
 
 		add_filter(
 			'two_factor_backup_code_length',
-			function() {
+			function () {
 				return 7;
 			}
 		);

@@ -1,5 +1,11 @@
 <?php
 /**
+ * Test Two Factor Dummy Secure.
+ *
+ * @package Two_Factor
+ */
+
+/**
  * Class for creating a dummy provider that never passes.
  *
  * This is a mock for unit testing the provider class name filter, and where authentication should never pass.
@@ -26,5 +32,4 @@ class Two_Factor_Dummy_Secure extends Two_Factor_Dummy {
 	public function validate_authentication( $user ) {
 		return false;
 	}
-
 }

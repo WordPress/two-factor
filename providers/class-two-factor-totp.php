@@ -126,6 +126,7 @@ class Two_Factor_Totp extends Two_Factor_Provider {
 	 * Enqueue scripts
 	 *
 	 * @codeCoverageIgnore
+	 * @param string $hook_suffix Hook suffix.
 	 */
 	public function enqueue_assets( $hook_suffix ) {
 		$environment_prefix = file_exists( TWO_FACTOR_DIR . '/dist' ) ? '/dist' : '';

@@ -40,7 +40,6 @@ class Tests_Two_Factor_Dummy extends WP_UnitTestCase {
 	public function test_get_instance() {
 
 		$this->assertNotNull( $this->provider->get_instance() );
-
 	}
 
 	/**
@@ -51,7 +50,6 @@ class Tests_Two_Factor_Dummy extends WP_UnitTestCase {
 	public function test_get_label() {
 
 		$this->assertStringContainsString( 'Dummy Method', $this->provider->get_label() );
-
 	}
 
 	/**
@@ -68,7 +66,6 @@ class Tests_Two_Factor_Dummy extends WP_UnitTestCase {
 		$this->assertStringContainsString( 'Are you really you?', $contents );
 		$this->assertStringContainsString( '<p class="submit">', $contents );
 		$this->assertStringContainsString( 'Yup', $contents );
-
 	}
 
 	/**
@@ -79,7 +76,6 @@ class Tests_Two_Factor_Dummy extends WP_UnitTestCase {
 	public function test_validate_authentication() {
 
 		$this->assertTrue( $this->provider->validate_authentication( false ) );
-
 	}
 
 	/**
@@ -90,7 +86,5 @@ class Tests_Two_Factor_Dummy extends WP_UnitTestCase {
 	public function test_is_available_for_user() {
 
 		$this->assertTrue( $this->provider->is_available_for_user( false ) );
-
 	}
-
 }

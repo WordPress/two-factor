@@ -122,7 +122,7 @@ class Two_Factor_FIDO_U2F extends Two_Factor_Provider {
 	public static function enqueue_scripts() {
 		wp_register_script(
 			'fido-u2f-api',
-			plugins_url( 'includes/Google/u2f-api.js', dirname( __FILE__ ) ),
+			plugins_url( 'includes/Google/u2f-api.js', __DIR__ ),
 			null,
 			self::asset_version(),
 			true

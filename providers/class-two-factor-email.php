@@ -286,7 +286,7 @@ class Two_Factor_Email extends Two_Factor_Provider {
 			$this->generate_and_email_token( $user );
 		}
 
-		$token_length = $this->get_token_length();
+		$token_length      = $this->get_token_length();
 		$token_placeholder = str_repeat( 'X', $token_length );
 
 		require_once ABSPATH . '/wp-admin/includes/template.php';

@@ -63,8 +63,8 @@ class Two_Factor_FIDO_U2F_Admin {
 
 		// @todo Ensure that scripts don't fail because of missing u2fL10n.
 		try {
-			$data              = Two_Factor_FIDO_U2F::$u2f->getRegisterData( $security_keys );
-			list( $req,$sigs ) = $data;
+			$data               = Two_Factor_FIDO_U2F::$u2f->getRegisterData( $security_keys );
+			list( $req, $sigs ) = $data;
 
 			update_user_meta( $user_id, self::REGISTER_DATA_USER_META_KEY, $req );
 		} catch ( Exception $e ) {
