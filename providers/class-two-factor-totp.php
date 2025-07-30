@@ -255,7 +255,7 @@ class Two_Factor_Totp extends Two_Factor_Provider {
 		 * @param WP_User $user     The user object.
 		 */
 		$totp_url = apply_filters( 'two_factor_totp_url', $totp_url, $user );
-		$totp_url = esc_url( $totp_url, array( 'otpauth' ) );
+		$totp_url = esc_url_raw( $totp_url, array( 'otpauth' ) );
 
 		return $totp_url;
 	}
