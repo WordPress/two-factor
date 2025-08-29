@@ -8,6 +8,7 @@ declare module '@playwright/test' {
     adminTOTPSecret: string;
   }
 }
+
 export default defineConfig({
   testDir: './tests',
   /* Run tests in files in parallel */
@@ -22,14 +23,14 @@ export default defineConfig({
   reporter: 'html',
   /* Shared settings for all the projects below. See https://playwright.dev/docs/api/class-testoptions. */
   use: {
-		baseURL: 'http://localhost:8888/',
+    baseURL: 'http://localhost:8888/',
     trace: 'on-first-retry',
-		// Admin credentials for admin tests (override via env in CI if needed)
-		adminURL: 'http://localhost:8888/wp-admin/',
-		adminUser: 'admin',
-		adminPassword: 'password',
-		// Admin TOTP secret (base32) used by injectTOTP helper
-		adminTOTPSecret: 'MRMHA4LTLFMEMPBOMEQES7RQJQ2CCMZX',
+    // Admin credentials for admin tests (override via env in CI if needed)
+    adminURL: 'http://localhost:8888/wp-admin/',
+    adminUser: 'admin',
+    adminPassword: 'password',
+    // Admin TOTP secret (base32) used by injectTOTP helper
+    adminTOTPSecret: 'MRMHA4LTLFMEMPBOMEQES7RQJQ2CCMZX',
   },
 
   /* Configure projects for major browsers */
@@ -38,12 +39,10 @@ export default defineConfig({
       name: 'chromium',
       use: { ...devices['Desktop Chrome'] },
     },
-
     {
       name: 'firefox',
       use: { ...devices['Desktop Firefox'] },
     },
-
     {
       name: 'webkit',
       use: { ...devices['Desktop Safari'] },

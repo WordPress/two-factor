@@ -1,6 +1,6 @@
 import { test } from '@playwright/test';
 
-test('Admin login)', async ({ page, context }) => {
+test('Admin login', async ({ page, context }) => {
   const info = test.info();
   const use = (info.project && (info.project as any).use) || {};
   const ADMIN_URL = (use.adminURL as string) || (use.baseURL as string) || '';
@@ -25,7 +25,7 @@ test('Admin login)', async ({ page, context }) => {
 
   let result = null;
   try {
-  result = await Promise.race([newPagePromise, authPromise, navPromise]) as any;
+    result = await Promise.race([newPagePromise, authPromise, navPromise]) as any;
   } catch (e) {
     // ignore
   }
@@ -46,7 +46,7 @@ test('Admin login)', async ({ page, context }) => {
 
     // Generate TOTP inside the page using SubtleCrypto
     const otp = await targetPage.evaluate(async (s) => {
-      function base32Decode(input) {
+      function base32Decode(input: string): Uint8Array {
         const alphabet = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ234567';
         const cleaned = input.replace(/=+$/, '').toUpperCase().replace(/[^A-Z2-7]/g, '');
         let bits = '';
@@ -54,7 +54,7 @@ test('Admin login)', async ({ page, context }) => {
           const val = alphabet.indexOf(ch);
           bits += val.toString(2).padStart(5, '0');
         }
-  const bytes: number[] = [];
+        const bytes: number[] = [];
         for (let i = 0; i + 8 <= bits.length; i += 8) {
           bytes.push(parseInt(bits.substr(i, 8), 2));
         }
@@ -66,7 +66,7 @@ test('Admin login)', async ({ page, context }) => {
        * @param {number} counter - the counter to convert
        * @returns {Uint8Array} a big-endian Uint8Array
        */
-      function toBigEndianUint8(counter) {
+      function toBigEndianUint8(counter: number): Uint8Array {
         const buf = new ArrayBuffer(8);
         const dv = new DataView(buf);
         // split into hi/lo
@@ -76,22 +76,35 @@ test('Admin login)', async ({ page, context }) => {
         dv.setUint32(4, lo);
         return new Uint8Array(buf);
       }
+
       const key = base32Decode(s);
       const epoch = Math.floor(Date.now() / 1000);
       const timestep = 30;
       const counter = Math.floor(epoch / timestep);
       const counterBytes = toBigEndianUint8(counter);
 
-      const cryptoKey = await crypto.subtle.importKey('raw', key.buffer, { name: 'HMAC', hash: 'SHA-1' }, false, ['sign']);
+      const cryptoKey = await crypto.subtle.importKey(
+        'raw',
+        key.buffer,
+        { name: 'HMAC', hash: 'SHA-1' },
+        false,
+        ['sign']
+      );
       const sig = await crypto.subtle.sign('HMAC', cryptoKey, counterBytes);
       const hmac = new Uint8Array(sig);
       const offset = hmac[hmac.length - 1] & 0xf;
-      const code = ((hmac[offset] & 0x7f) << 24) | ((hmac[offset + 1] & 0xff) << 16) | ((hmac[offset + 2] & 0xff) << 8) | (hmac[offset + 3] & 0xff);
+      const code = ((hmac[offset] & 0x7f) << 24) |
+        ((hmac[offset + 1] & 0xff) << 16) |
+        ((hmac[offset + 2] & 0xff) << 8) |
+        (hmac[offset + 3] & 0xff);
       const otp = (code % 10 ** 6).toString().padStart(6, '0');
       return otp;
     }, secret);
 
     await targetPage.fill('#authcode', otp);
   }
-  if (!targetPage.isClosed()) await targetPage.waitForTimeout(2000);
+
+  if (!targetPage.isClosed()) {
+    await targetPage.waitForTimeout(2000);
+  }
 });
