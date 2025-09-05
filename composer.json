@@ -27,7 +27,7 @@
     "automattic/vipwpcs": "^3.0",
     "dealerdirect/phpcodesniffer-composer-installer": "^1.0",
     "php-coveralls/php-coveralls": "^2.8",
-    "phpcompatibility/php-compatibility": "^9.3",
+    "phpcompatibility/php-compatibility": "10.x-dev as 9.99.99",
     "phpcompatibility/phpcompatibility-wp": "^2.1",
     "phpunit/phpunit": "^8.5|^9.6",
     "spatie/phpunit-watcher": "^1.23",
