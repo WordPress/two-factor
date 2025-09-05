@@ -1,3 +1,4 @@
+<?xml version="1.0"?>
 <phpunit
 	bootstrap="tests/bootstrap.php"
 	backupGlobals="false"
@@ -12,21 +13,23 @@
 			<directory suffix=".php">tests</directory>
 		</testsuite>
 	</testsuites>
-	<coverage processUncoveredFiles="false">
-		<include>
+
+	<filter>
+		<whitelist addUncoveredFilesFromWhitelist="false" processUncoveredFilesFromWhitelist="false">
 			<directory suffix=".php">includes</directory>
 			<directory suffix=".php">providers</directory>
 			<file>class-two-factor-compat.php</file>
 			<file>class-two-factor-core.php</file>
 			<file>two-factor.php</file>
-		</include>
-		<exclude>
-			<file>includes/function.login-footer.php</file>
-			<file>includes/function.login-header.php</file>
-		</exclude>
-		<report>
-			<clover outputFile="tests/logs/clover.xml" />
-			<html outputDirectory="tests/logs/html" />
-		</report>
-	</coverage>
+			<exclude>
+				<file>includes/function.login-footer.php</file>
+				<file>includes/function.login-header.php</file>
+			</exclude>
+		</whitelist>
+	</filter>
+
+	<logging>
+		<log type="coverage-clover" target="tests/logs/clover.xml" />
+		<log type="coverage-html" target="tests/logs/html" />
+	</logging>
 </phpunit>
