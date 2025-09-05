@@ -84,7 +84,7 @@ class Tests_Two_Factor_Totp extends WP_UnitTestCase {
 	 */
 	public function test_generate_qr_code_url() {
 		$user     = new WP_User( self::factory()->user->create() );
-		$expected = 'otpauth://totp/Test%20Blog%3A'. rawurlencode( $user->user_login ) .'?secret=my%20secret%20key&#038;issuer=Test%20Blog';
+		$expected = 'otpauth://totp/Test%20Blog%3A' . rawurlencode( $user->user_login ) . '?secret=my%20secret%20key&#038;issuer=Test%20Blog';
 		$actual   = $this->provider->generate_qr_code_url( $user, 'my secret key' );
 
 		$this->assertSame( $expected, $actual );
@@ -113,7 +113,6 @@ class Tests_Two_Factor_Totp extends WP_UnitTestCase {
 		$string_base32 = 'IVLDKWCXG5KE6TBUKFEESS2CJFDVMRKVGIZUWQKGKJHEINRWJRMQ';
 
 		$this->assertEquals( $string, $this->provider->base32_decode( $string_base32 ) );
-
 	}
 
 	/**
@@ -210,7 +209,7 @@ class Tests_Two_Factor_Totp extends WP_UnitTestCase {
 	 * @covers Two_Factor_Totp::validate_code_for_user
 	 * @covers Two_Factor_Totp::get_authcode_valid_ticktime
 	 */
-	function test_validate_authentication() {
+	public function test_validate_authentication() {
 		$user = new WP_User( self::factory()->user->create() );
 		$key  = $this->provider->generate_key();
 
@@ -240,7 +239,7 @@ class Tests_Two_Factor_Totp extends WP_UnitTestCase {
 	 *
 	 * @covers Two_Factor_Totp::validate_authentication
 	 */
-	function test_validate_authentication_invalid_chars_spaces() {
+	public function test_validate_authentication_invalid_chars_spaces() {
 		$user = new WP_User( self::factory()->user->create() );
 		$key  = $this->provider->generate_key();
 
@@ -258,7 +257,7 @@ class Tests_Two_Factor_Totp extends WP_UnitTestCase {
 		$this->assertFalse( $this->provider->validate_authentication( $user ), $_REQUEST['authcode'] );
 
 		// Validate that an authcode with leading, trailing, and middle whitespace is accepted.
-		$_REQUEST['authcode'] = ' ' . substr( $authcode, 0, 3 ) . ' ' . substr( $authcode, 3 ) . " \n"; // eg ' 123 456 \n'
+		$_REQUEST['authcode'] = ' ' . substr( $authcode, 0, 3 ) . ' ' . substr( $authcode, 3 ) . " \n"; // eg ' 123 456 \n'.
 		$this->assertTrue( $this->provider->validate_authentication( $user ), $_REQUEST['authcode'] );
 	}
 
@@ -268,7 +267,7 @@ class Tests_Two_Factor_Totp extends WP_UnitTestCase {
 	 * @covers Two_Factor_Totp::validate_code_for_user
 	 * @covers Two_Factor_Totp::get_authcode_valid_ticktime
 	 */
-	function test_validate_code_for_user() {
+	public function test_validate_code_for_user() {
 		$user = new WP_User( self::factory()->user->create() );
 		$key  = $this->provider->generate_key();
 
@@ -289,13 +288,12 @@ class Tests_Two_Factor_Totp extends WP_UnitTestCase {
 		// Validate that a second attempt with the same authcode will fail.
 		$this->assertFalse( $this->provider->validate_code_for_user( $user, $authcode ) );
 
-		// Validate that the future authcode will succeed (but not more than once)
+		// Validate that the future authcode will succeed (but not more than once).
 		$this->assertTrue( $this->provider->validate_code_for_user( $user, $nextcode ) );
 		$this->assertFalse( $this->provider->validate_code_for_user( $user, $nextcode ) );
 
 		// Validate that the older unused authcode will not succeed.
 		$this->assertFalse( $this->provider->validate_code_for_user( $user, $oldcode ) );
-
 	}
 
 	/**
@@ -303,7 +301,7 @@ class Tests_Two_Factor_Totp extends WP_UnitTestCase {
 	 *
 	 * @covers Two_Factor_Totp::get_authcode_valid_ticktime
 	 */
-	function test_get_authcode_valid_ticktime() {
+	public function test_get_authcode_valid_ticktime() {
 		$key              = $this->provider->generate_key();
 		$max_grace_period = Two_Factor_Totp::DEFAULT_TIME_STEP_ALLOWANCE;
 
