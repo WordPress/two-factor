@@ -16,11 +16,11 @@ Join the `#core-passwords` channel [on WordPress Slack](http://wordpress.slack.c
 
 To use the provided development environment, you'll first need to install and launch Docker. Once it's running, the next steps are:
 
-    $ git clone https://github.com/wordpress/two-factor.git
-    $ cd two-factor
-    $ npm install
-    $ npm run build
-    $ npm run env start
+    git clone https://github.com/wordpress/two-factor.git
+    cd two-factor
+    npm install
+    npm run build
+    npm run env start
 
 See `package.json` for other available scripts you might want to use during development, like linting and testing.
 
