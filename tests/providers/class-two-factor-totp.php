@@ -84,7 +84,7 @@ class Tests_Two_Factor_Totp extends WP_UnitTestCase {
 	 */
 	public function test_generate_qr_code_url() {
 		$user     = new WP_User( self::factory()->user->create() );
-		$expected = 'otpauth://totp/Test%20Blog%3A' . rawurlencode( $user->user_login ) . '?secret=my%20secret%20key&#038;issuer=Test%20Blog';
+		$expected = 'otpauth://totp/Test%20Blog%3A' . rawurlencode( $user->user_login ) . '?secret=my%20secret%20key&issuer=Test%20Blog';
 		$actual   = $this->provider->generate_qr_code_url( $user, 'my secret key' );
 
 		$this->assertSame( $expected, $actual );
