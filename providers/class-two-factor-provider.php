@@ -25,7 +25,7 @@ abstract class Two_Factor_Provider {
 		$class_name = static::class;
 
 		if ( ! isset( $instances[ $class_name ] ) ) {
-			$instances[ $class_name ] = new $class_name;
+			$instances[ $class_name ] = new $class_name();
 		}
 
 		return $instances[ $class_name ];
@@ -124,6 +124,19 @@ abstract class Two_Factor_Provider {
 	abstract public function is_available_for_user( $user );
 
 	/**
+	 * If this provider should be available for the user.
+	 *
+	 * @param WP_User|int $user WP_User object, user ID or null to resolve the current user.
+	 *
+	 * @return bool
+	 */
+	public static function is_supported_for_user( $user = null ) {
+		$providers = Two_Factor_Core::get_supported_providers_for_user( $user );
+
+		return isset( $providers[ static::class ] );
+	}
+
+	/**
 	 * Generate a random eight-digit string to send out as an auth code.
 	 *
 	 * @since 0.1-dev
@@ -164,5 +177,25 @@ abstract class Two_Factor_Provider {
 		}
 
 		return (string) $code;
+	}
+
+	/**
+	 * Return the user meta keys that need to be deletated on plugin uninstall.
+	 *
+	 * @return array
+	 */
+	public static function uninstall_user_meta_keys() {
+		return array();
+	}
+
+	/**
+	 * Return the option keys that need to be deleted on plugin uninstall.
+	 *
+	 * Note: this method doesn't have access to the instantiated provider object.
+	 *
+	 * @return array
+	 */
+	public static function uninstall_options() {
+		return array();
 	}
 }

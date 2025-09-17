@@ -352,4 +352,69 @@ class Tests_Two_Factor_Email extends WP_UnitTestCase {
 		);
 	}
 
+	/**
+	 * Test custom token length filter.
+	 */
+	public function test_custom_token_length() {
+		$user_id = self::factory()->user->create();
+
+		$default_token = $this->provider->generate_token( $user_id );
+
+		add_filter(
+			'two_factor_email_token_length',
+			function () {
+				return 15;
+			}
+		);
+
+		$custom_token = $this->provider->generate_token( $user_id );
+
+		$this->assertNotEquals( strlen( $default_token ), strlen( $custom_token ), 'Token length is different due to filter' );
+		$this->assertEquals( 15, strlen( $custom_token ), 'Token length matches the filter value' );
+
+		remove_all_filters( 'two_factor_email_token_length' );
+	}
+
+	/**
+	 * Test the email token TTL.
+	 *
+	 * @expectedDeprecated two_factor_token_ttl
+	 */
+	public function test_email_token_ttl() {
+		$this->assertEquals(
+			15 * MINUTE_IN_SECONDS,
+			$this->provider->user_token_ttl( 123 ),
+			'The email token matches the default TTL'
+		);
+
+		add_filter(
+			'two_factor_email_token_ttl',
+			function () {
+				return 42;
+			}
+		);
+
+		$this->assertEquals(
+			42,
+			$this->provider->user_token_ttl( 123 ),
+			'The email token ttl can be filtered'
+		);
+
+		remove_all_filters( 'two_factor_email_token_ttl' );
+
+		add_filter(
+			'two_factor_token_ttl',
+			function () {
+				return 66;
+			}
+		);
+
+		$this->assertEquals(
+			66,
+			$this->provider->user_token_ttl( 123 ),
+			'The email token matches can be filtered with the deprecated filter'
+		);
+
+		remove_all_filters( 'two_factor_token_ttl' );
+	}
 }

@@ -122,7 +122,7 @@ class Two_Factor_FIDO_U2F extends Two_Factor_Provider {
 	public static function enqueue_scripts() {
 		wp_register_script(
 			'fido-u2f-api',
-			plugins_url( 'includes/Google/u2f-api.js', dirname( __FILE__ ) ),
+			plugins_url( 'includes/Google/u2f-api.js', __DIR__ ),
 			null,
 			self::asset_version(),
 			true
@@ -387,5 +387,18 @@ class Two_Factor_FIDO_U2F extends Two_Factor_Provider {
 		}
 
 		return true;
+	}
+
+	/**
+	 * Return user meta keys to delete during plugin uninstall.
+	 *
+	 * @return array
+	 */
+	public static function uninstall_user_meta_keys() {
+		return array(
+			self::REGISTERED_KEY_USER_META_KEY,
+			self::AUTH_DATA_USER_META_KEY,
+			'_two_factor_fido_u2f_register_request', // From Two_Factor_FIDO_U2F_Admin which is not loaded during uninstall.
+		);
 	}
 }
