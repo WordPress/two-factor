@@ -1,6 +1,6 @@
 {
 	"$schema": "https://playground.wordpress.net/blueprint-schema.json",
-	"landingPage": "/wp-admin/profile.php",
+	"landingPage": "/wp-admin/profile.php#application-passwords-section",
 	"preferredVersions": {
 		"php": "7.4",
 		"wp": "latest"
