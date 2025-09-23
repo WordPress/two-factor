@@ -1364,7 +1364,7 @@ class Two_Factor_Core {
 			return new WP_Error( 'revalidation_required', __( 'Two Factor Revalidation required.', 'two-factor' ) );
 		}
 
-		return true;
+		return apply_filters( 'two_factor_rest_api_can_edit_user', true, $user_id );
 	}
 
 	/**
