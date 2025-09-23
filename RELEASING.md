@@ -1,6 +1,6 @@
 # Release Process
 
-The following content can be copied and pasted into a release issue or PR to help provide a checklist of tasks when releasing this project.  When pasting this content, ensure to update any `X.Y.Z` nomenclature to the release version being prepared.
+The following content can be copied and pasted into a release issue or PR to help provide a checklist of tasks when releasing this project.  When utilizing this template, ensure you do the following.  When pasting this content, ensure to update any `X.Y.Z` nomenclature to the release version being prepared. The person doing the release needs to be [added to the plugin committer list on wp.org](https://wordpress.org/plugins/two-factor/advanced/) (note that this is different from the contributor list), so that they get the release confirmation email, or someone who's already a committer needs to be available to confirm.
 
 ```
 ## Release instructions
