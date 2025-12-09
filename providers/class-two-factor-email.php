@@ -243,12 +243,18 @@ class Two_Factor_Email extends Two_Factor_Provider {
 	 * @return bool Whether the email contents were sent successfully.
 	 */
 	public function generate_and_email_token( $user ) {
-		$token = $this->generate_token( $user->ID );
+		$token     = $this->generate_token( $user->ID );
+		$remote_ip = preg_replace( '/[^0-9a-fA-F:., ]/', '', $_SERVER['REMOTE_ADDR'] );
 
 		/* translators: %s: site name */
 		$subject = wp_strip_all_tags( sprintf( __( 'Your login confirmation code for %s', 'two-factor' ), wp_specialchars_decode( get_option( 'blogname' ), ENT_QUOTES ) ) );
+
 		/* translators: %s: token */
-		$message = wp_strip_all_tags( sprintf( __( 'Enter %s to log in.', 'two-factor' ), $token ) );
+		$message  = wp_strip_all_tags( sprintf( __( 'Enter %s to log in.', 'two-factor' ), $token ) ) . PHP_EOL . PHP_EOL;
+		$message .= wp_strip_all_tags( __( 'Didn\'t expect this?', 'two-factor' ) ) . PHP_EOL;
+		/* translators: %1$s: IP-address of user, %2$s `user_login` of authenticated user */
+		$message .= wp_strip_all_tags( sprintf( __( 'A user from %1$s has successfully authenticated as %2$s.', 'two-factor' ), $remote_ip, $user->user_login ) ) . PHP_EOL;
+		$message .= wp_strip_all_tags( __( 'If this wasn\'t you, please change your password', 'two-factor' ) ) . PHP_EOL;
 
 		/**
 		 * Filter the token email subject.
