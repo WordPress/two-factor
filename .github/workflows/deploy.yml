@@ -40,6 +40,7 @@ jobs:
         if: github.ref_name == 'master'
         env:
           # Note: this action doesn't support BUILD_DIR so it pushes the raw readme.txt
+          IGNORE_OTHER_FILES: true
           SVN_PASSWORD: ${{ secrets.SVN_PASSWORD }}
           SVN_USERNAME: ${{ secrets.SVN_USERNAME }}
 
