@@ -35,7 +35,7 @@ jobs:
       - name: Build plugin
         run: npm run build
 
-      - name: WordPress.org Asset Update
+      - name: WordPress.org asset and readme update
         uses: 10up/action-wordpress-plugin-asset-update@stable
         if: github.ref_name == 'master'
         env:
@@ -43,7 +43,7 @@ jobs:
           SVN_PASSWORD: ${{ secrets.SVN_PASSWORD }}
           SVN_USERNAME: ${{ secrets.SVN_USERNAME }}
 
-      - name: WordPress.org Deploy
+      - name: WordPress.org deploy
         id: deploy
         uses: 10up/action-wordpress-plugin-deploy@stable
         if: startsWith( github.ref, 'refs/tags/' )
