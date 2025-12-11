@@ -27,8 +27,8 @@ class Test_ClassTwoFactorCore extends WP_UnitTestCase {
 	 */
 	public static function wpSetUpBeforeClass() {
 		set_error_handler( array( 'Test_ClassTwoFactorCore', 'error_handler' ) ); // phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_set_error_handler
-		add_action( 'set_auth_cookie', [ __CLASS__, 'set_auth_cookie' ] );
-		add_action( 'set_logged_in_cookie', [ __CLASS__, 'set_logged_in_cookie' ] );
+		add_action( 'set_auth_cookie', array( __CLASS__, 'set_auth_cookie' ) );
+		add_action( 'set_logged_in_cookie', array( __CLASS__, 'set_logged_in_cookie' ) );
 	}
 
 	/**
@@ -38,8 +38,8 @@ class Test_ClassTwoFactorCore extends WP_UnitTestCase {
 	 */
 	public static function wpTearDownAfterClass() {
 		restore_error_handler();
-		remove_action( 'set_auth_cookie', [ __CLASS__, 'set_auth_cookie' ] );
-		remove_action( 'set_logged_in_cookie', [ __CLASS__, 'set_logged_in_cookie' ] );
+		remove_action( 'set_auth_cookie', array( __CLASS__, 'set_auth_cookie' ) );
+		remove_action( 'set_logged_in_cookie', array( __CLASS__, 'set_logged_in_cookie' ) );
 	}
 
 	/**
@@ -71,6 +71,8 @@ class Test_ClassTwoFactorCore extends WP_UnitTestCase {
 
 	/**
 	 * Simulate the auth cookie having being sent.
+	 *
+	 * @param string $auth_cookie Auth cookie value.
 	 */
 	public static function set_auth_cookie( $auth_cookie ) {
 		$_COOKIE[ AUTH_COOKIE ] = $auth_cookie;
@@ -78,6 +80,8 @@ class Test_ClassTwoFactorCore extends WP_UnitTestCase {
 
 	/**
 	 * Simulate the logged_in cookie having being sent.
+	 *
+	 * @param string $logged_in_cookie Logged in cookie value.
 	 */
 	public static function set_logged_in_cookie( $logged_in_cookie ) {
 		$_COOKIE[ LOGGED_IN_COOKIE ] = $logged_in_cookie;
@@ -165,6 +169,8 @@ class Test_ClassTwoFactorCore extends WP_UnitTestCase {
 	}
 
 	/**
+	 * Test fetching user functionality.
+	 *
 	 * @covers Two_Factor_Core::fetch_user
 	 */
 	public function test_fetch_user() {
@@ -223,7 +229,7 @@ class Test_ClassTwoFactorCore extends WP_UnitTestCase {
 		$this->assertCount( 1, Two_Factor_Core::get_available_providers_for_user( $user->ID ) );
 		$this->assertCount( 1, Two_Factor_Core::get_enabled_providers_for_user( $user->ID ) );
 
-		// Revert back to the previous user
+		// Revert back to the previous user.
 		wp_set_current_user( $this->old_user_id );
 
 		// Verify the counts are still correct for that user ID.
@@ -353,7 +359,7 @@ class Test_ClassTwoFactorCore extends WP_UnitTestCase {
 
 		add_filter(
 			'two_factor_user_api_login_enable',
-			function( $enabled, $user_id ) use ( $user_id_enabled ) {
+			function ( $enabled, $user_id ) use ( $user_id_enabled ) {
 				return ( $user_id === $user_id_enabled );
 			},
 			10,
@@ -506,6 +512,8 @@ class Test_ClassTwoFactorCore extends WP_UnitTestCase {
 	}
 
 	/**
+	 * Test invalid hash input fails.
+	 *
 	 * @covers Two_Factor_Core::create_login_nonce()
 	 * @covers Two_Factor_Core::hash_login_nonce()
 	 */
@@ -517,6 +525,8 @@ class Test_ClassTwoFactorCore extends WP_UnitTestCase {
 	}
 
 	/**
+	 * Test create login nonce.
+	 *
 	 * @covers Two_Factor_Core::create_login_nonce()
 	 * @covers Two_Factor_Core::hash_login_nonce()
 	 */
@@ -617,7 +627,7 @@ class Test_ClassTwoFactorCore extends WP_UnitTestCase {
 		update_user_meta( $user->ID, Two_Factor_Core::USER_FAILED_LOGIN_ATTEMPTS_KEY, 5 );
 		$this->assertEquals( pow( 2, 5 ) * $rate_limit, Two_Factor_Core::get_user_time_delay( $user ) );
 
-		// Simulate 100 failed login attempts, validate that the lockout is not greater than $max_rate_limit
+		// Simulate 100 failed login attempts, validate that the lockout is not greater than $max_rate_limit.
 		update_user_meta( $user->ID, Two_Factor_Core::USER_FAILED_LOGIN_ATTEMPTS_KEY, 100 );
 		$this->assertEquals( $max_rate_limit, Two_Factor_Core::get_user_time_delay( $user ) );
 	}
@@ -690,6 +700,8 @@ class Test_ClassTwoFactorCore extends WP_UnitTestCase {
 	}
 
 	/**
+	 * Test no reset notice when no errors.
+	 *
 	 * @covers Two_Factor_Core::maybe_show_reset_password_notice()
 	 */
 	public function test_no_reset_notice_when_no_errors() {
@@ -699,6 +711,8 @@ class Test_ClassTwoFactorCore extends WP_UnitTestCase {
 	}
 
 	/**
+	 * Test no reset notice when different error.
+	 *
 	 * @covers Two_Factor_Core::maybe_show_reset_password_notice()
 	 */
 	public function test_no_reset_notice_when_different_error() {
@@ -709,6 +723,8 @@ class Test_ClassTwoFactorCore extends WP_UnitTestCase {
 	}
 
 	/**
+	 * Test no reset notice when password not reset.
+	 *
 	 * @covers Two_Factor_Core::maybe_show_reset_password_notice()
 	 */
 	public function test_no_reset_notice_when_password_not_reset() {
@@ -722,6 +738,8 @@ class Test_ClassTwoFactorCore extends WP_UnitTestCase {
 	}
 
 	/**
+	 * Test reset notice when password was reset.
+	 *
 	 * @covers Two_Factor_Core::maybe_show_reset_password_notice()
 	 */
 	public function test_reset_notice_when_password_was_reset() {
@@ -729,13 +747,15 @@ class Test_ClassTwoFactorCore extends WP_UnitTestCase {
 		$errors       = new WP_Error( 'incorrect_password', 'Incorrect password' );
 		$_POST['log'] = $user->user_login;
 
-	    update_user_meta( $user->ID, Two_Factor_Core::USER_PASSWORD_WAS_RESET_KEY, true );
+		update_user_meta( $user->ID, Two_Factor_Core::USER_PASSWORD_WAS_RESET_KEY, true );
 		Two_Factor_Core::maybe_show_reset_password_notice( $errors );
 		$this->assertCount( 1, $errors->get_error_codes() );
 		$this->assertSame( 'two_factor_password_reset', $errors->get_error_code() );
 	}
 
 	/**
+	 * Test clear password reset notice.
+	 *
 	 * @covers Two_Factor_Core::clear_password_reset_notice()
 	 */
 	public function test_clear_password_reset_notice() {
@@ -747,6 +767,8 @@ class Test_ClassTwoFactorCore extends WP_UnitTestCase {
 	}
 
 	/**
+	 * Test should reset password.
+	 *
 	 * @covers Two_Factor_Core::should_reset_password()
 	 */
 	public function test_should_reset_password() {
@@ -761,7 +783,7 @@ class Test_ClassTwoFactorCore extends WP_UnitTestCase {
 		$this->assertTrue( Two_Factor_Core::should_reset_password( $user->ID ) );
 
 		// Test filtered limit.
-		$strict_limit = function() {
+		$strict_limit = function () {
 			return 7;
 		};
 
@@ -799,6 +821,8 @@ class Test_ClassTwoFactorCore extends WP_UnitTestCase {
 	}
 
 	/**
+	 * Test both password reset notifications sent.
+	 *
 	 * @covers Two_Factor_Core::send_password_reset_emails()
 	 * @covers Two_Factor_Core::notify_user_password_reset()
 	 * @covers Two_Factor_Core::notify_admin_user_password_reset()
@@ -818,6 +842,8 @@ class Test_ClassTwoFactorCore extends WP_UnitTestCase {
 	}
 
 	/**
+	 * Test single email sent when admin password reset.
+	 *
 	 * @covers Two_Factor_Core::send_password_reset_emails()
 	 * @covers Two_Factor_Core::notify_user_password_reset()
 	 */
@@ -837,6 +863,8 @@ class Test_ClassTwoFactorCore extends WP_UnitTestCase {
 	}
 
 	/**
+	 * Test dont notify admin when filter disabled.
+	 *
 	 * @covers Two_Factor_Core::send_password_reset_emails()
 	 * @covers Two_Factor_Core::notify_user_password_reset()
 	 */
@@ -858,6 +886,8 @@ class Test_ClassTwoFactorCore extends WP_UnitTestCase {
 	}
 
 	/**
+	 * Test show password reset error.
+	 *
 	 * @covers Two_Factor_Core::show_password_reset_error
 	 */
 	public function test_show_password_reset_error() {
@@ -869,6 +899,8 @@ class Test_ClassTwoFactorCore extends WP_UnitTestCase {
 	}
 
 	/**
+	 * Test enable disable provider for user.
+	 *
 	 * @covers Two_Factor_Core::enable_provider_for_user()
 	 * @covers Two_Factor_Core::disable_provider_for_user()
 	 */
@@ -883,7 +915,7 @@ class Test_ClassTwoFactorCore extends WP_UnitTestCase {
 
 		// Disabling one that doesn't exist should fail.
 		$nonexistent_enabled = Two_Factor_Core::enable_provider_for_user( $user->ID, 'Nonexistent_Provider' );
-		$enabled_providers = Two_Factor_Core::get_enabled_providers_for_user( $user->ID );
+		$enabled_providers   = Two_Factor_Core::get_enabled_providers_for_user( $user->ID );
 		$this->assertFalse( $nonexistent_enabled, 'Nonexistent shouldn\'t be allowed to be enabled' );
 		$this->assertEmpty( $enabled_providers, 'Nonexistent wasn\'t enabled' );
 		$this->assertNull( Two_Factor_Core::get_primary_provider_for_user( $user->ID ), 'Nonexistent wasn\'t set as primary' );
@@ -891,7 +923,7 @@ class Test_ClassTwoFactorCore extends WP_UnitTestCase {
 		// Enabling a valid one should succeed. The first one that's enabled and configured should be the default primary.
 		$totp = Two_Factor_Totp::get_instance();
 		$totp->set_user_totp_key( $user->ID, 'foo' );
-		$totp_enabled = Two_Factor_Core::enable_provider_for_user( $user->ID, 'Two_Factor_Totp' );
+		$totp_enabled      = Two_Factor_Core::enable_provider_for_user( $user->ID, 'Two_Factor_Totp' );
 		$enabled_providers = Two_Factor_Core::get_enabled_providers_for_user( $user->ID );
 		$this->assertTrue( $totp_enabled, 'Can enable a valid provider' );
 		$this->assertSame( array( 'Two_Factor_Totp' ), $enabled_providers, 'Enabled provider is now listed as enabled' );
@@ -902,7 +934,7 @@ class Test_ClassTwoFactorCore extends WP_UnitTestCase {
 		$this->assertTrue( $totp_enabled, 'Can enable a provider that is already enabled' );
 
 		// Enabling another should succeed, and not change the primary.
-		$dummy_enabled = Two_Factor_Core::enable_provider_for_user( $user->ID, 'Two_Factor_Dummy' );
+		$dummy_enabled     = Two_Factor_Core::enable_provider_for_user( $user->ID, 'Two_Factor_Dummy' );
 		$enabled_providers = Two_Factor_Core::get_enabled_providers_for_user( $user->ID );
 		$this->assertTrue( $dummy_enabled, 'Can enable valid provider' );
 		$this->assertSame( array( 'Two_Factor_Totp', 'Two_Factor_Dummy' ), $enabled_providers, 'Multiple can be enabled at the same time' );
@@ -910,13 +942,13 @@ class Test_ClassTwoFactorCore extends WP_UnitTestCase {
 
 		// Disabling one that doesn't exist should fail.
 		$nonexistent_disabled = Two_Factor_Core::disable_provider_for_user( $user->ID, 'Nonexistent_Provider' );
-		$enabled_providers = Two_Factor_Core::get_enabled_providers_for_user( $user->ID );
+		$enabled_providers    = Two_Factor_Core::get_enabled_providers_for_user( $user->ID );
 		$this->assertFalse( $nonexistent_disabled, 'Unavailable provider can\'t be disabled' );
 		$this->assertSame( array( 'Two_Factor_Totp', 'Two_Factor_Dummy' ), $enabled_providers, 'Unavailable wasn\'t added to the list of enabled proviers' );
 		$this->assertSame( 'Two_Factor_Totp', Two_Factor_Core::get_primary_provider_for_user( $user->ID )->get_key(), 'The primary is still the same after unavailable disable attempt' );
 
 		// Disabling one that's enabled should succeed, and change the primary to the next available one.
-		$totp_disabled = Two_Factor_Core::disable_provider_for_user( $user->ID, 'Two_Factor_Totp' );
+		$totp_disabled     = Two_Factor_Core::disable_provider_for_user( $user->ID, 'Two_Factor_Totp' );
 		$enabled_providers = Two_Factor_Core::get_enabled_providers_for_user( $user->ID );
 		$this->assertTrue( $totp_disabled, 'Can disable a provider that is enabled' );
 		$this->assertSame( array( 1 => 'Two_Factor_Dummy' ), $enabled_providers, 'The other providers are kept enabled' );
@@ -930,7 +962,7 @@ class Test_ClassTwoFactorCore extends WP_UnitTestCase {
 	 * @covers Two_Factor_Core::user_two_factor_options_update()
 	 */
 	public function test_enabling_two_factor_is_factored_session() {
-		$user              = self::factory()->user->create_and_get();
+		$user = self::factory()->user->create_and_get();
 
 		$this->assertFalse( Two_Factor_Core::is_current_user_session_two_factor() );
 
@@ -951,7 +983,7 @@ class Test_ClassTwoFactorCore extends WP_UnitTestCase {
 		$_POST[ $key ]    = $nonce;
 		$_REQUEST[ $key ] = $nonce;
 
-		$_POST[ Two_Factor_Core::ENABLED_PROVIDERS_USER_META_KEY ] = [ 'Two_Factor_Dummy' => 'Two_Factor_Dummy' ];
+		$_POST[ Two_Factor_Core::ENABLED_PROVIDERS_USER_META_KEY ] = array( 'Two_Factor_Dummy' => 'Two_Factor_Dummy' );
 
 		Two_Factor_Core::user_two_factor_options_update( $user->ID );
 
@@ -971,7 +1003,6 @@ class Test_ClassTwoFactorCore extends WP_UnitTestCase {
 		$this->assertTrue( Two_Factor_Core::current_user_can_update_two_factor_options() );
 		// Can save 2FA settings.
 		$this->assertTrue( Two_Factor_Core::current_user_can_update_two_factor_options( 'save' ) );
-
 	}
 
 	/**
@@ -992,14 +1023,14 @@ class Test_ClassTwoFactorCore extends WP_UnitTestCase {
 		$_POST[ $key ]    = $nonce;
 		$_REQUEST[ $key ] = $nonce;
 
-		$_POST[ Two_Factor_Core::ENABLED_PROVIDERS_USER_META_KEY ] = [ 'Two_Factor_Dummy' => 'Two_Factor_Dummy' ];
+		$_POST[ Two_Factor_Core::ENABLED_PROVIDERS_USER_META_KEY ] = array( 'Two_Factor_Dummy' => 'Two_Factor_Dummy' );
 
 		Two_Factor_Core::user_two_factor_options_update( $user->ID );
 
 		$this->assertNotFalse( Two_Factor_Core::is_current_user_session_two_factor() );
 
 		// Disable all providers, and test that the session is invalidated.
-		$_POST[ Two_Factor_Core::ENABLED_PROVIDERS_USER_META_KEY ] = [];
+		$_POST[ Two_Factor_Core::ENABLED_PROVIDERS_USER_META_KEY ] = array();
 		Two_Factor_Core::user_two_factor_options_update( $user->ID );
 
 		$this->assertFalse( Two_Factor_Core::is_current_user_session_two_factor() );
@@ -1031,7 +1062,7 @@ class Test_ClassTwoFactorCore extends WP_UnitTestCase {
 		$this->assertNotEmpty( $_COOKIE[ AUTH_COOKIE ] );
 		$this->assertNotEmpty( $_COOKIE[ LOGGED_IN_COOKIE ] );
 
-		// Validate that the session is not flagged as 2FA
+		// Validate that the session is not flagged as 2FA.
 		$this->assertFalse( Two_Factor_Core::is_current_user_session_two_factor() );
 
 		$manager = WP_Session_Tokens::get_instance( $user->ID );
@@ -1091,7 +1122,6 @@ class Test_ClassTwoFactorCore extends WP_UnitTestCase {
 		// Validate that the session provider is as expected.
 		$this->assertArrayHasKey( 'two-factor-provider', $session );
 		$this->assertEquals( 'Two_Factor_Dummy', $session['two-factor-provider'] );
-
 	}
 
 	/**
@@ -1192,6 +1222,8 @@ class Test_ClassTwoFactorCore extends WP_UnitTestCase {
 	}
 
 	/**
+	 * Test current user can update two factor options functionality.
+	 *
 	 * @covers Two_Factor_Core::current_user_can_update_two_factor_options()
 	 */
 	public function test_current_user_can_update_two_factor_options() {
@@ -1210,7 +1242,7 @@ class Test_ClassTwoFactorCore extends WP_UnitTestCase {
 		// Manually setup 2FA, but not through the User Options API, such that the above session is not-2fa.
 		Two_Factor_Core::enable_provider_for_user( $user->ID, 'Two_Factor_Dummy' );
 
-		// Logged in, user has 2FA, session has no 2FA
+		// Logged in, user has 2FA, session has no 2FA.
 		$this->assertFalse( Two_Factor_Core::current_user_can_update_two_factor_options() );
 
 		// Set the session as 2FA.
@@ -1226,7 +1258,7 @@ class Test_ClassTwoFactorCore extends WP_UnitTestCase {
 		$this->assertTrue( Two_Factor_Core::current_user_can_update_two_factor_options() );
 
 		// Set the two factor login time to a minute less than the grace time.
-		$session['two-factor-login']    = time() - ( 11 * MINUTE_IN_SECONDS );
+		$session['two-factor-login'] = time() - ( 11 * MINUTE_IN_SECONDS );
 		$manager->update( $token, $session );
 
 		// Logged in, user has 2FA, session has 2FA that's longer than the grace period. Can Save, can't Display.
@@ -1234,7 +1266,7 @@ class Test_ClassTwoFactorCore extends WP_UnitTestCase {
 		$this->assertFalse( Two_Factor_Core::current_user_can_update_two_factor_options() );
 
 		// Set the two factor login time to a older than the saving grace time.
-		$session['two-factor-login']    = time() - ( 30 * MINUTE_IN_SECONDS );
+		$session['two-factor-login'] = time() - ( 30 * MINUTE_IN_SECONDS );
 		$manager->update( $token, $session );
 
 		// Logged in, user has 2FA, session has 2FA way past grace period. Can't Save, can't Display.
@@ -1265,11 +1297,13 @@ class Test_ClassTwoFactorCore extends WP_UnitTestCase {
 		// Check setting keys works.
 		$this->assertArrayNotHasKey( 'test-key', $session );
 
-		// Set the key
-		Two_Factor_Core::update_current_user_session( array(
-			'test-key'     => true,
-			'test-key-two' => true,
-		) );
+		// Set the key.
+		Two_Factor_Core::update_current_user_session(
+			array(
+				'test-key'     => true,
+				'test-key-two' => true,
+			) 
+		);
 
 		// Retrieve the session again, and verify it's updated.
 		$session = Two_Factor_Core::get_current_user_session();
@@ -1277,10 +1311,12 @@ class Test_ClassTwoFactorCore extends WP_UnitTestCase {
 		$this->assertArrayHasKey( 'test-key', $session );
 		$this->assertArrayHasKey( 'test-key-two', $session );
 
-		// Remove the key by setting it to null
-		Two_Factor_Core::update_current_user_session( array(
-			'test-key' => null
-		) );
+		// Remove the key by setting it to null.
+		Two_Factor_Core::update_current_user_session(
+			array(
+				'test-key' => null,
+			) 
+		);
 
 		// Check the key is no longer there.
 		$session = Two_Factor_Core::get_current_user_session();
@@ -1301,11 +1337,13 @@ class Test_ClassTwoFactorCore extends WP_UnitTestCase {
 		// Set the cookie without going through two-factor, and fill in $_COOKIE.
 		wp_set_auth_cookie( $user->ID );
 
-		// Setup the current session as 2fa'd
-		Two_Factor_Core::update_current_user_session( array(
-			'two-factor-provider' => 'Two_Factor_Dummy',
-			'two-factor-login'    => time()
-		) );
+		// Setup the current session as 2fa'd.
+		Two_Factor_Core::update_current_user_session(
+			array(
+				'two-factor-provider' => 'Two_Factor_Dummy',
+				'two-factor-login'    => time(),
+			) 
+		);
 
 		$dummy = Two_Factor_Dummy::get_instance();
 		$email = Two_Factor_Email::get_instance();
@@ -1326,7 +1364,7 @@ class Test_ClassTwoFactorCore extends WP_UnitTestCase {
 		// Validate that upon requesting an invalid provider, valid data comes back.
 		$this->assertEquals(
 			'Two_Factor_Dummy',
-			Two_Factor_Core::get_provider_for_user( $user, new stdClass )->get_key()
+			Two_Factor_Core::get_provider_for_user( $user, new stdClass() )->get_key()
 		);
 		$this->assertEquals(
 			'Two_Factor_Dummy',
@@ -1355,9 +1393,11 @@ class Test_ClassTwoFactorCore extends WP_UnitTestCase {
 		);
 
 		// Update the session to say that Email was last-used.
-		Two_Factor_Core::update_current_user_session( array(
-			'two-factor-provider' => $email->get_key(),
-		) );
+		Two_Factor_Core::update_current_user_session(
+			array(
+				'two-factor-provider' => $email->get_key(),
+			) 
+		);
 
 		// Validate it's now the default for the current session.
 		$this->assertEquals(
@@ -1411,12 +1451,14 @@ class Test_ClassTwoFactorCore extends WP_UnitTestCase {
 
 		// Boilerplate ends here.
 
-		// Add a custom meta item to the session
-		Two_Factor_Core::update_current_user_session( [
-			'two-factor-test-key1' => 'test-value',
-			'two-factor-test-key2' => 'test-value',
-			'tests-key'            => 'test-value',
-		] );
+		// Add a custom meta item to the session.
+		Two_Factor_Core::update_current_user_session(
+			array(
+				'two-factor-test-key1' => 'test-value',
+				'two-factor-test-key2' => 'test-value',
+				'tests-key'            => 'test-value',
+			) 
+		);
 
 		$session = Two_Factor_Core::get_current_user_session();
 		$this->assertArrayHasKey( 'two-factor-test-key1', $session );
@@ -1476,13 +1518,16 @@ class Test_ClassTwoFactorCore extends WP_UnitTestCase {
 
 		// Generate multiple existing sessions.
 		$session_manager->create( time() + HOUR_IN_SECONDS );
-		$session_manager->create( time() + DAY_IN_SECONDS  );
+		$session_manager->create( time() + DAY_IN_SECONDS );
 		$this->assertCount( 2, $session_manager->get_all(), 'Can fetch active sessions' );
 
 		// Shim the cookie... this allows for functions that use sessions to know the current session.
-		add_action( 'set_logged_in_cookie', function( $logged_in_cookie ) {
-			$_COOKIE[ LOGGED_IN_COOKIE ] = $logged_in_cookie;
-		} );
+		add_action(
+			'set_logged_in_cookie',
+			function ( $logged_in_cookie ) {
+				$_COOKIE[ LOGGED_IN_COOKIE ] = $logged_in_cookie;
+			} 
+		);
 
 		$user_authenticated = wp_signon(
 			array(
@@ -1501,7 +1546,7 @@ class Test_ClassTwoFactorCore extends WP_UnitTestCase {
 		$_REQUEST[ $key ] = $nonce;
 
 		$_POST[ Two_Factor_Core::ENABLED_PROVIDERS_USER_META_KEY ] = array(
-			'Two_Factor_Dummy' => 'Two_Factor_Dummy'
+			'Two_Factor_Dummy' => 'Two_Factor_Dummy',
 		);
 
 		Two_Factor_Core::user_two_factor_options_update( $user->ID );
@@ -1514,7 +1559,7 @@ class Test_ClassTwoFactorCore extends WP_UnitTestCase {
 		$this->assertCount( 1, $session_manager->get_all(), 'All known authentication sessions have been destroyed' );
 
 		// Create another session, activate another provider, verify sessions are still valid.
-		$session_manager->create( time() + DAY_IN_SECONDS  );
+		$session_manager->create( time() + DAY_IN_SECONDS );
 		$this->assertCount( 2, $session_manager->get_all(), 'Failed to create another session' );
 
 		$_POST[ Two_Factor_Core::ENABLED_PROVIDERS_USER_META_KEY ] = array(
@@ -1544,7 +1589,7 @@ class Test_ClassTwoFactorCore extends WP_UnitTestCase {
 		$this->assertCount( 1, $session_manager->get_all(), 'All known authentication sessions have been destroyed' );
 
 		// Create another session, deactivate two-factor, verify sessions are still valid.
-		$session_manager->create( time() + DAY_IN_SECONDS  );
+		$session_manager->create( time() + DAY_IN_SECONDS );
 		$this->assertCount( 2, $session_manager->get_all(), 'Failed to create another session' );
 
 		$_POST[ Two_Factor_Core::ENABLED_PROVIDERS_USER_META_KEY ] = array();
@@ -1566,7 +1611,7 @@ class Test_ClassTwoFactorCore extends WP_UnitTestCase {
 	public function test_all_sessions_destroyed_when_enabling_2fa_by_admin() {
 		$admin_id = self::factory()->user->create(
 			array(
-				'role' => 'administrator'
+				'role' => 'administrator',
 			)
 		);
 		wp_set_current_user( $admin_id );
@@ -1574,7 +1619,7 @@ class Test_ClassTwoFactorCore extends WP_UnitTestCase {
 		// Create an admin session,.
 		$admin_session_manager = WP_Session_Tokens::get_instance( $admin_id );
 
-		$admin_session_manager->create( time() + DAY_IN_SECONDS  );
+		$admin_session_manager->create( time() + DAY_IN_SECONDS );
 		$this->assertCount( 1, $admin_session_manager->get_all(), 'No admin sessions are present first' );
 
 		// Create the target user.
@@ -1590,7 +1635,7 @@ class Test_ClassTwoFactorCore extends WP_UnitTestCase {
 		$this->assertCount( 0, $session_manager->get_all(), 'No user sessions are present first' );
 
 		// Generate multiple existing sessions.
-		$session_manager->create( time() + DAY_IN_SECONDS  );
+		$session_manager->create( time() + DAY_IN_SECONDS );
 		$this->assertCount( 1, $session_manager->get_all(), 'Can fetch active sessions' );
 
 		$key              = '_nonce_user_two_factor_options';
@@ -1611,6 +1656,69 @@ class Test_ClassTwoFactorCore extends WP_UnitTestCase {
 
 		// Validate that the Admin still has a session.
 		$this->assertCount( 1, $admin_session_manager->get_all(), 'No admin sessions are present first' );
+	}
+
+	/**
+	 * Test filtering registered providers for user.
+	 */
+	public function test_can_filter_registered_providers_for_user() {
+		$user      = self::factory()->user->create_and_get();
+		$providers = Two_Factor_Core::get_providers();
+
+		$this->assertEquals(
+			$providers,
+			Two_Factor_Core::get_supported_providers_for_user( $user ),
+			'All providers are available by default'
+		);
+
+		$this->assertTrue( $providers['Two_Factor_Email']::is_supported_for_user( $user ), 'Email provider is supported by default' );
+
+		add_filter(
+			'two_factor_providers_for_user',
+			function ( $providers, $user ) {
+				$this->assertInstanceOf( WP_User::class, $user, 'A user referenced is passed to the filter' );
+
+				return array_diff_key( $providers, array( 'Two_Factor_Email' => null ) );
+			},
+			10,
+			2
+		);
+
+		$this->assertNotContains(
+			'Two_Factor_Email',
+			Two_Factor_Core::get_supported_providers_for_user( $user ),
+			'Email provider can be disabled for a user'
+		);
+
+		$this->assertFalse( $providers['Two_Factor_Email']::is_supported_for_user( $user ), 'Email provider is disabled if not supported' );
+
+		remove_all_filters( 'two_factor_providers_for_user' );
+	}
+
+	/**
+	 * Test disabling default providers.
+	 */
+	public function test_can_disable_default_providers() {
+		$user             = self::factory()->user->create_and_get();
+		$providers        = Two_Factor_Core::get_providers();
+		$default_provider = current( $providers );
+
+		$this->assertContains( 'Two_Factor_Email', array_keys( $providers ), 'Email provider is enabled by default' );
+
+		$this->assertTrue( $default_provider::is_supported_for_user( $user ), 'Available provider is supported by default' );
+
+		add_filter(
+			'two_factor_providers',
+			function ( $providers ) {
+				return array_diff_key( $providers, array( 'Two_Factor_Email' => null ) );
+			}
+		);
+
+		$this->assertNotContains( 'Two_Factor_Email', array_keys( Two_Factor_Core::get_providers() ), 'Default provider can be disabled via a filter' );
+
+		$this->assertFalse( $default_provider::is_supported_for_user( $user ), 'Disabled provider is not supported for user' );
+
+		remove_all_filters( 'two_factor_providers' );
 	}
 
 	/**
@@ -1637,21 +1745,6 @@ class Test_ClassTwoFactorCore extends WP_UnitTestCase {
 			Two_Factor_Core::get_enabled_providers_for_user( $user->ID ),
 			'Provider was disabled due to uninstall'
 		);
-	}
-
-	public function test_can_disable_default_providers() {
-		$this->assertContains( 'Two_Factor_Email', array_keys( Two_Factor_Core::get_providers() ), 'Email provider is enabled by default' );
-
-		add_filter(
-			'two_factor_providers',
-			function ( $providers ) {
-				return array_diff_key( $providers, array( 'Two_Factor_Email' => null ) );
-			}
-		);
-
-		$this->assertNotContains( 'Two_Factor_Email', array_keys( Two_Factor_Core::get_providers() ), 'Default provider can be disabled via a filter' );
-
-		remove_all_filters( 'two_factor_providers' );
 	}
 
 	/**

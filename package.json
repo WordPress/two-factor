@@ -19,10 +19,11 @@
     "format:php": "composer format",
     "format:js": "npm run lint:js -- --fix",
     "format:css": "npm run lint:css -- --fix",
-    "test": "wp-env run tests-cli --env-cwd=wp-content/plugins/two-factor vendor/bin/phpunit --",
+    "test": "npm run composer test",
     "test:watch": "npm run composer test:watch",
     "composer": "wp-env run tests-cli --env-cwd=wp-content/plugins/two-factor composer --",
-    "preinstall": "composer install"
+    "preinstall": "composer install",
+    "blueprint": "grunt blueprint-url"
   },
   "repository": {
     "type": "git",
@@ -34,9 +35,9 @@
     "qrcode-generator": "^1.4.4"
   },
   "devDependencies": {
-    "@wordpress/env": "^10.5.0",
-    "@wordpress/eslint-plugin": "^20.2.0",
-    "@wordpress/scripts": "^28.5.0",
+    "@wordpress/env": "^10.30.0",
+    "@wordpress/eslint-plugin": "^22.16.0",
+    "@wordpress/scripts": "^30.23.0",
     "grunt": "^1.6.1",
     "grunt-cli": "^1.5.0",
     "grunt-contrib-clean": "^2.0.1",

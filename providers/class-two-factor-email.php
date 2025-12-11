@@ -243,12 +243,28 @@ class Two_Factor_Email extends Two_Factor_Provider {
 	 * @return bool Whether the email contents were sent successfully.
 	 */
 	public function generate_and_email_token( $user ) {
-		$token = $this->generate_token( $user->ID );
+		$token     = $this->generate_token( $user->ID );
+		$remote_ip = preg_replace( '/[^0-9a-fA-F:., ]/', '', $_SERVER['REMOTE_ADDR'] );
 
 		/* translators: %s: site name */
 		$subject = wp_strip_all_tags( sprintf( __( 'Your login confirmation code for %s', 'two-factor' ), wp_specialchars_decode( get_option( 'blogname' ), ENT_QUOTES ) ) );
-		/* translators: %s: token */
-		$message = wp_strip_all_tags( sprintf( __( 'Enter %s to log in.', 'two-factor' ), $token ) );
+
+		$message = wp_strip_all_tags(
+			sprintf(
+				/* translators: %1$s: token, $2$s: IP address of user, %3$s: `user_login` of authenticated user */
+				__(
+					'Enter %1$s to log in.
+
+Didn\'t expect this?
+A user from %2$s has successfully authenticated as %3$s.
+If this wasn\'t you, please change your password.',
+					'two-factor'
+				),
+				$token,
+				$remote_ip,
+				$user->user_login
+			)
+		);
 
 		/**
 		 * Filter the token email subject.
@@ -286,7 +302,7 @@ class Two_Factor_Email extends Two_Factor_Provider {
 			$this->generate_and_email_token( $user );
 		}
 
-		$token_length = $this->get_token_length();
+		$token_length      = $this->get_token_length();
 		$token_placeholder = str_repeat( 'X', $token_length );
 
 		require_once ABSPATH . '/wp-admin/includes/template.php';
@@ -295,7 +311,7 @@ class Two_Factor_Email extends Two_Factor_Provider {
 		<p>
 			<label for="authcode"><?php esc_html_e( 'Verification Code:', 'two-factor' ); ?></label>
 			<input type="text" inputmode="numeric" name="two-factor-email-code" id="authcode" class="input authcode" value="" size="20" pattern="[0-9 ]*" autocomplete="one-time-code" placeholder="<?php echo esc_attr( $token_placeholder ); ?>" data-digits="<?php echo esc_attr( $token_length ); ?>" />
-			<?php submit_button( __( 'Log In', 'two-factor' ) ); ?>
+			<?php submit_button( __( 'Verify', 'two-factor' ) ); ?>
 		</p>
 		<p class="two-factor-email-resend">
 			<input type="submit" class="button" name="<?php echo esc_attr( self::INPUT_NAME_RESEND_CODE ); ?>" value="<?php esc_attr_e( 'Resend Code', 'two-factor' ); ?>" />
@@ -368,7 +384,7 @@ class Two_Factor_Email extends Two_Factor_Provider {
 	public function user_options( $user ) {
 		$email = $user->user_email;
 		?>
-		<div>
+		<p>
 			<?php
 			echo esc_html(
 				sprintf(
@@ -378,7 +394,7 @@ class Two_Factor_Email extends Two_Factor_Provider {
 				)
 			);
 			?>
-		</div>
+		</p>
 		<?php
 	}
 

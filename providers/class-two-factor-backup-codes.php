@@ -55,11 +55,11 @@ class Two_Factor_Backup_Codes extends Two_Factor_Provider {
 			array(
 				'methods'             => WP_REST_Server::CREATABLE,
 				'callback'            => array( $this, 'rest_generate_codes' ),
-				'permission_callback' => function( $request ) {
+				'permission_callback' => function ( $request ) {
 					return Two_Factor_Core::rest_api_can_edit_user_and_update_two_factor_options( $request['user_id'] );
 				},
 				'args'                => array(
-					'user_id' => array(
+					'user_id'         => array(
 						'required' => true,
 						'type'     => 'integer',
 					),
@@ -175,6 +175,8 @@ class Two_Factor_Backup_Codes extends Two_Factor_Provider {
 				<button type="button" class="button button-two-factor-backup-codes-generate button-secondary hide-if-no-js">
 					<?php esc_html_e( 'Generate new recovery codes', 'two-factor' ); ?>
 				</button>
+
+				<em><?php esc_html_e( 'This invalidates all currently stored codes.' ); ?></em>
 			</p>
 		</p>
 		<div class="two-factor-backup-codes-wrapper" style="display:none;">
@@ -277,13 +279,15 @@ class Two_Factor_Backup_Codes extends Two_Factor_Provider {
 	 * Generates Backup Codes for returning through the WordPress Rest API.
 	 *
 	 * @since 0.8.0
+	 * @param WP_REST_Request $request Request object.
+	 * @return array|WP_Error
 	 */
 	public function rest_generate_codes( $request ) {
 		$user_id = $request['user_id'];
 		$user    = get_user_by( 'id', $user_id );
 
 		// Hardcode these, the user shouldn't be able to choose them.
-		$args =  array(
+		$args = array(
 			'number' => self::NUMBER_OF_CODES,
 			'method' => 'replace',
 		);
@@ -304,7 +308,7 @@ class Two_Factor_Backup_Codes extends Two_Factor_Provider {
 		$i = 1;
 		foreach ( $codes as $code ) {
 			$download_link .= rawurlencode( "{$i}. {$code}\r\n" );
-			$i++;
+			++$i;
 		}
 
 		$i18n = array(
@@ -348,7 +352,7 @@ class Two_Factor_Backup_Codes extends Two_Factor_Provider {
 	public function authentication_page( $user ) {
 		require_once ABSPATH . '/wp-admin/includes/template.php';
 
-		$code_length = $this->get_backup_code_length( $user );
+		$code_length      = $this->get_backup_code_length( $user );
 		$code_placeholder = str_repeat( 'X', $code_length );
 
 		?>
@@ -358,7 +362,7 @@ class Two_Factor_Backup_Codes extends Two_Factor_Provider {
 			<input type="text" inputmode="numeric" name="two-factor-backup-code" id="authcode" class="input authcode" value="" size="20" pattern="[0-9 ]*" placeholder="<?php echo esc_attr( $code_placeholder ); ?>" data-digits="<?php echo esc_attr( $code_length ); ?>" />
 		</p>
 		<?php
-		submit_button( __( 'Submit', 'two-factor' ) );
+		submit_button( __( 'Verify', 'two-factor' ) );
 	}
 
 	/**
