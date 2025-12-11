@@ -1,7 +1,5 @@
 # Release Process
 
-Note that all merges to the `master` branch have the asset directory `.wordpress-org` and `readme.txt` deployed to WordPress.org to avoid creating a new version release when updating only `Tested up to` header or screenshots.
-
 The following content can be copied and pasted into a release issue or PR to help provide a checklist of tasks when releasing this project.  When pasting this content, ensure to update any `X.Y.Z` nomenclature to the release version being prepared.
 
 ```

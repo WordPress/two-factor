@@ -37,7 +37,7 @@ jobs:
 
       - name: WordPress.org asset and readme update
         uses: 10up/action-wordpress-plugin-asset-update@stable
-        if: github.ref_name == 'master'
+        if: github.ref_name == 'trunk'
         env:
           # Note: this action doesn't support BUILD_DIR so it pushes the raw readme.txt
           IGNORE_OTHER_FILES: true
