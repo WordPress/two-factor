@@ -1,9 +1,12 @@
 name: Deploy
 
-# Run deploy only on published releases.
 on:
   release:
     types: [published]
+  push:
+    branches:
+      # For readme and asset updates.
+      - master
 
 jobs:
 
@@ -32,9 +35,18 @@ jobs:
       - name: Build plugin
         run: npm run build
 
-      - name: WordPress Plugin Deploy
+      - name: WordPress.org Asset Update
+        uses: 10up/action-wordpress-plugin-asset-update@stable
+        if: github.ref_name == 'master'
+        env:
+          # Note: this action doesn't support BUILD_DIR so it pushes the raw readme.txt
+          SVN_PASSWORD: ${{ secrets.SVN_PASSWORD }}
+          SVN_USERNAME: ${{ secrets.SVN_USERNAME }}
+
+      - name: WordPress.org Deploy
         id: deploy
         uses: 10up/action-wordpress-plugin-deploy@stable
+        if: startsWith( github.ref, 'refs/tags/' )
         with:
           generate-zip: true
         env:
