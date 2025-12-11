@@ -249,12 +249,22 @@ class Two_Factor_Email extends Two_Factor_Provider {
 		/* translators: %s: site name */
 		$subject = wp_strip_all_tags( sprintf( __( 'Your login confirmation code for %s', 'two-factor' ), wp_specialchars_decode( get_option( 'blogname' ), ENT_QUOTES ) ) );
 
-		/* translators: %s: token */
-		$message  = wp_strip_all_tags( sprintf( __( 'Enter %s to log in.', 'two-factor' ), $token ) ) . PHP_EOL . PHP_EOL;
-		$message .= wp_strip_all_tags( __( 'Didn\'t expect this?', 'two-factor' ) ) . PHP_EOL;
-		/* translators: %1$s: IP-address of user, %2$s `user_login` of authenticated user */
-		$message .= wp_strip_all_tags( sprintf( __( 'A user from %1$s has successfully authenticated as %2$s.', 'two-factor' ), $remote_ip, $user->user_login ) ) . PHP_EOL;
-		$message .= wp_strip_all_tags( __( 'If this wasn\'t you, please change your password', 'two-factor' ) ) . PHP_EOL;
+		$message = wp_strip_all_tags(
+			sprintf(
+				/* translators: %1$s: token, $2$s: IP address of user, %3$s: `user_login` of authenticated user */
+				__(
+					'Enter %1$s to log in.
+
+Didn\'t expect this?
+A user from %2$s has successfully authenticated as %3$s.
+If this wasn\'t you, please change your password.',
+					'two-factor'
+				),
+				$token,
+				$remote_ip,
+				$user->user_login
+			)
+		);
 
 		/**
 		 * Filter the token email subject.
