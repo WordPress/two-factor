@@ -1,5 +1,7 @@
 # Release Process
 
+Note that all merges to the `master` branch have the asset directory `.wordpress-org` and `readme.txt` deployed to WordPress.org to avoid creating a new version release when updating only `Tested up to` header or screenshots.
+
 The following content can be copied and pasted into a release issue or PR to help provide a checklist of tasks when releasing this project.  When pasting this content, ensure to update any `X.Y.Z` nomenclature to the release version being prepared.
 
 ```
@@ -14,7 +16,7 @@ The following content can be copied and pasted into a release issue or PR to hel
 - [ ] Test: Test a ZIP built from the Release PR branch to ensure key plugin functionality continues to work and that the [Tests action](https://github.com/WordPress/two-factor/actions/workflows/test.yml) passes on the PR.
 - [ ] Merge: After review approval, merge the release pull request (or make a non-fast-forward merge from your release branch to `master`).  `master` contains the latest stable release.
 - [ ] Release: Create a [new release](https://github.com/WordPress/two-factor/releases/new), naming the tag and the release with the new version number, and targeting the `master` branch.  Paste the changelog from `CHANGELOG.md` into the body of the release and include a link to the [closed items on the milestone](https://github.com/WordPress/two-factor/milestone/##?closed=1).  Creating a release will automatically generate & attach zip/tarball files, so you can ignore the GitHub release form asking to uploaded those assets.
-- [ ] SVN: Wait for the [GitHub Action: Deploy](https://github.com/WordPress/two-factor/actions/workflows/deploy.yml) to finish deploying to the WordPress.org repository.  
+- [ ] SVN: Wait for the [GitHub Action: Deploy](https://github.com/WordPress/two-factor/actions/workflows/deploy.yml) to finish deploying to the WordPress.org repository.
 - [ ] Release confirmation: Someone with committer access on WP.org needs to confirm the release at https://wordpress.org/plugins/two-factor/advanced/.  If all goes well, users with SVN commit access for that plugin will receive an emailed diff of changes.
 - [ ] Check WordPress.org: Ensure that the changes are live on https://wordpress.org/plugins/two-factor/. This may take a few minutes.
 - [ ] Close the milestone: Edit the [milestone](https://github.com/10up/simple-local-avatars/milestone/##) with the release date (in the `Due date (optional)` field) and link to the GitHub release (in the `Description` field), then close the milestone.
