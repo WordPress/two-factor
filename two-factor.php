@@ -53,30 +53,3 @@ Two_Factor_Core::add_hooks( $two_factor_compat );
 
 // Delete our options and user meta during uninstall.
 register_uninstall_hook( __FILE__, array( Two_Factor_Core::class, 'uninstall' ) );
-
-
-/**
- * Add "Settings" link to the plugin action links on the Plugins screen.
- *
- * @since 0.14.3
- *
- * @param string[] $links An array of plugin action links.
- * @return string[] Modified array with the Settings link added.
- */
-function two_factor_add_settings_action_link( $links ) {
-	$settings_url  = admin_url( 'profile.php#application-passwords-section' );
-	$settings_link = sprintf(
-		'<a href="%s">%s</a>',
-		esc_url( $settings_url ),
-		esc_html__( 'Settings', 'two-factor' )
-	);
-
-	array_unshift( $links, $settings_link );
-
-	return $links;
-}
-
-add_filter(
-	'plugin_action_links_' . plugin_basename( __FILE__ ),
-	'two_factor_add_settings_action_link'
-);
