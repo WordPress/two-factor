@@ -307,11 +307,14 @@ If this wasn\'t you, please change your password.',
 
 		require_once ABSPATH . '/wp-admin/includes/template.php';
 		?>
+		<?php do_action( 'two_factor_before_authentication_prompt', $this ); ?>
 		<p class="two-factor-prompt"><?php esc_html_e( 'A verification code has been sent to the email address associated with your account.', 'two-factor' ); ?></p>
+		<?php do_action( 'two_factor_after_authentication_prompt', $this ); ?>
 		<p>
 			<label for="authcode"><?php esc_html_e( 'Verification Code:', 'two-factor' ); ?></label>
 			<input type="text" inputmode="numeric" name="two-factor-email-code" id="authcode" class="input authcode" value="" size="20" pattern="[0-9 ]*" autocomplete="one-time-code" placeholder="<?php echo esc_attr( $token_placeholder ); ?>" data-digits="<?php echo esc_attr( $token_length ); ?>" />
 		</p>
+		<?php do_action( 'two_factor_after_authentication_input', $this ); ?>
 		<?php submit_button( __( 'Verify', 'two-factor' ) ); ?>
 		<p class="two-factor-email-resend">
 			<input type="submit" class="button" name="<?php echo esc_attr( self::INPUT_NAME_RESEND_CODE ); ?>" value="<?php esc_attr_e( 'Resend Code', 'two-factor' ); ?>" />
