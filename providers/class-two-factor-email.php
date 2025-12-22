@@ -235,6 +235,22 @@ class Two_Factor_Email extends Two_Factor_Provider {
 	}
 
 	/**
+	 * Get the client IP address for the current request.
+	 *
+	 * Note that the IP address is used only for information purposes
+	 * and is expected to be configured correctly, if behind proxy.
+	 *
+	 * @return string|null
+	 */
+	private function get_client_ip() {
+		if ( ! empty( $_SERVER['REMOTE_ADDR'] ) ) { // phpcs:ignore WordPressVIPMinimum.Variables.ServerVariables.UserControlledHeaders -- don't have more reliable option for now.
+			return preg_replace( '/[^0-9a-fA-F:., ]/', '', $_SERVER['REMOTE_ADDR'] ); // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized, WordPressVIPMinimum.Variables.ServerVariables.UserControlledHeaders, WordPressVIPMinimum.Variables.RestrictedVariables.cache_constraints___SERVER__REMOTE_ADDR__ -- we're limit the allowed characters.
+		}
+
+		return null;
+	}
+
+	/**
 	 * Generate and email the user token.
 	 *
 	 * @since 0.1-dev
@@ -244,27 +260,31 @@ class Two_Factor_Email extends Two_Factor_Provider {
 	 */
 	public function generate_and_email_token( $user ) {
 		$token     = $this->generate_token( $user->ID );
-		$remote_ip = preg_replace( '/[^0-9a-fA-F:., ]/', '', $_SERVER['REMOTE_ADDR'] );
+		$remote_ip = $this->get_client_ip();
 
-		/* translators: %s: site name */
-		$subject = wp_strip_all_tags( sprintf( __( 'Your login confirmation code for %s', 'two-factor' ), wp_specialchars_decode( get_option( 'blogname' ), ENT_QUOTES ) ) );
-
-		$message = wp_strip_all_tags(
+		$subject = wp_strip_all_tags(
 			sprintf(
-				/* translators: %1$s: token, $2$s: IP address of user, %3$s: `user_login` of authenticated user */
-				__(
-					'Enter %1$s to log in.
-
-Didn\'t expect this?
-A user from %2$s has successfully authenticated as %3$s.
-If this wasn\'t you, please change your password.',
-					'two-factor'
-				),
-				$token,
-				$remote_ip,
-				$user->user_login
+				/* translators: %s: site name */
+				__( 'Your login confirmation code for %s', 'two-factor' ),
+				wp_specialchars_decode( get_option( 'blogname' ), ENT_QUOTES )
 			)
 		);
+
+		$message_parts = array(
+			sprintf(
+				/* translators: %s: token */
+				__( 'Enter %s to log in.', 'two-factor' ),
+				$token
+			),
+			sprintf(
+				/* translators: $1$s: IP address of user, %2$s: `user_login` of authenticated user */
+				__( 'Didn\'t expect this? A user from %1$s has successfully authenticated as %2$s. If this wasn\'t you, please change your password.', 'two-factor' ),
+				$remote_ip,
+				$user->user_login
+			),
+		);
+
+		$message = wp_strip_all_tags( implode( "\n\n", $message_parts ) );
 
 		/**
 		 * Filter the token email subject.
@@ -337,7 +357,7 @@ If this wasn\'t you, please change your password.',
 	 * @return boolean
 	 */
 	public function pre_process_authentication( $user ) {
-		if ( isset( $user->ID ) && isset( $_REQUEST[ self::INPUT_NAME_RESEND_CODE ] ) ) {
+		if ( isset( $user->ID ) && isset( $_REQUEST[ self::INPUT_NAME_RESEND_CODE ] ) ) { // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- non-distructive option that relies on user state.
 			$this->generate_and_email_token( $user );
 			return true;
 		}
