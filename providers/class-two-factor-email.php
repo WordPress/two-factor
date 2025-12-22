@@ -254,7 +254,7 @@ class Two_Factor_Email extends Two_Factor_Provider {
 			)
 		);
 
-		$message_parts = [
+		$message_parts = array(
 			sprintf(
 				/* translators: %1$s: token */
 				__( 'Enter %1$s to log in.', 'two-factor' ),
@@ -266,7 +266,7 @@ class Two_Factor_Email extends Two_Factor_Provider {
 				$remote_ip,
 				$user->user_login
 			),
-		];
+		);
 
 		$message = wp_strip_all_tags( implode( "\n\n", $message_parts ) );
 
