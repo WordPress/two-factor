@@ -235,6 +235,22 @@ class Two_Factor_Email extends Two_Factor_Provider {
 	}
 
 	/**
+	 * Get the client IP address for the current request.
+	 *
+	 * Note that the IP address is used only for information purposes
+	 * and is expected to be configured correctly, if behind proxy.
+	 *
+	 * @return string|null
+	 */
+	private function get_client_ip() {
+		if ( ! empty( $_SERVER['REMOTE_ADDR'] ) ) { // phpcs:ignore WordPressVIPMinimum.Variables.ServerVariables.UserControlledHeaders -- don't have more reliable option for now.
+			return preg_replace( '/[^0-9a-fA-F:., ]/', '', $_SERVER['REMOTE_ADDR'] ); // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized, WordPressVIPMinimum.Variables.ServerVariables.UserControlledHeaders, WordPressVIPMinimum.Variables.RestrictedVariables.cache_constraints___SERVER__REMOTE_ADDR__ -- we're limit the allowed characters.
+		}
+
+		return null;
+	}
+
+	/**
 	 * Generate and email the user token.
 	 *
 	 * @since 0.1-dev
@@ -244,7 +260,7 @@ class Two_Factor_Email extends Two_Factor_Provider {
 	 */
 	public function generate_and_email_token( $user ) {
 		$token     = $this->generate_token( $user->ID );
-		$remote_ip = preg_replace( '/[^0-9a-fA-F:., ]/', '', $_SERVER['REMOTE_ADDR'] );
+		$remote_ip = $this->get_client_ip();
 
 		$subject = wp_strip_all_tags(
 			sprintf(
