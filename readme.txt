@@ -33,6 +33,7 @@ Here is a list of action and filter hooks provided by the plugin:
 - `two_factor_email_token_length` filter overrides the default 8 character count for email tokens.
 - `two_factor_backup_code_length` filter overrides the default 8 character count for backup codes. Provides the `WP_User` of the associated user as the second argument.
 - `two_factor_rest_api_can_edit_user` filter overrides whether a user’s Two-Factor settings can be edited via the REST API. First argument is the current `$can_edit` boolean, the second argument is the user ID.
+- `two_factor_auto_submit_authcode` filter overrides whether the authentication form auto-submits when a code is entered.
 
 == Frequently Asked Questions ==
 

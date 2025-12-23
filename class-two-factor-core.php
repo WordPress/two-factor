@@ -958,6 +958,7 @@ class Two_Factor_Core {
 		$interim_login       = isset( $_REQUEST['interim-login'] ); // phpcs:ignore WordPress.Security.NonceVerification.Recommended
 
 		$rememberme = intval( self::rememberme() );
+		$auto_submit_authcode = apply_filters( 'two_factor_auto_submit_authcode', true );
 
 		if ( ! function_exists( 'login_header' ) ) {
 			// We really should migrate login_header() out of `wp-login.php` so it can be called from an includes file.
@@ -1076,13 +1077,15 @@ class Two_Factor_Core {
 
 							this.value = value;
 
-							// Auto-submit if it's the expected length.
-							if ( expectedLength && value.replace( / /g, '' ).length == expectedLength ) {
-								if ( undefined !== form.requestSubmit ) {
-									form.requestSubmit();
-									form.submit.disabled = "disabled";
+							<?php if ( $auto_submit_authcode ) { ?>
+								// Auto-submit if it's the expected length.
+								if ( expectedLength && value.replace( / /g, '' ).length == expectedLength ) {
+									if ( undefined !== form.requestSubmit ) {
+										form.requestSubmit();
+										form.submit.disabled = "disabled";
+									}
 								}
-							}
+							<?php } ?>
 						}
 					);
 				}
