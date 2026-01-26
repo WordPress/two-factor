@@ -26,7 +26,7 @@ function login_footer( $input_id = '' ) {
 				esc_url( home_url( '/' ) ),
 				sprintf(
 					/* translators: %s: Site title. */
-					_x( '&larr; Go to %s', 'site' ),
+					_x( '&larr; Go to %s', 'site', 'two-factor' ),
 					get_bloginfo( 'title', 'display' )
 				)
 			);
