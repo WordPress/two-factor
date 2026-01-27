@@ -50,11 +50,11 @@ function login_header( $title = 'Log In', $message = '', $wp_error = null ) {
 	$login_title = get_bloginfo( 'name', 'display' );
 
 	/* translators: Login screen title. 1: Login screen name, 2: Network or site name. */
-	$login_title = sprintf( __( '%1$s &lsaquo; %2$s &#8212; WordPress' ), $title, $login_title );
+	$login_title = sprintf( __( '%1$s &lsaquo; %2$s &#8212; WordPress', 'two-factor' ), $title, $login_title );
 
 	if ( wp_is_recovery_mode() ) {
 		/* translators: %s: Login screen title. */
-		$login_title = sprintf( __( 'Recovery Mode &#8212; %s' ), $login_title );
+		$login_title = sprintf( __( 'Recovery Mode &#8212; %s', 'two-factor' ), $login_title );
 	}
 
 	/**
@@ -101,7 +101,7 @@ function login_header( $title = 'Log In', $message = '', $wp_error = null ) {
 	 */
 	do_action( 'login_head' );
 
-	$login_header_url = __( 'https://wordpress.org/' );
+	$login_header_url = __( 'https://wordpress.org/', 'two-factor' );
 
 	/**
 	 * Filters link URL of the header logo above login form.
@@ -127,10 +127,10 @@ function login_header( $title = 'Log In', $message = '', $wp_error = null ) {
 		array( $login_header_title ),
 		'5.2.0',
 		'login_headertext',
-		__( 'Usage of the title attribute on the login logo is not recommended for accessibility reasons. Use the link text instead.' )
+		__( 'Usage of the title attribute on the login logo is not recommended for accessibility reasons. Use the link text instead.', 'two-factor' )
 	);
 
-	$login_header_text = empty( $login_header_title ) ? __( 'Powered by WordPress' ) : $login_header_title;
+	$login_header_text = empty( $login_header_title ) ? __( 'Powered by WordPress', 'two-factor' ) : $login_header_title;
 
 	/**
 	 * Filters the link text of the header logo above the login form.
