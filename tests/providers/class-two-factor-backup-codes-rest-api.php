@@ -35,22 +35,30 @@ class Tests_Two_Factor_Backup_Codes_REST_API extends WP_Test_REST_TestCase {
 	 */
 	protected static $editor_id;
 
+	/**
+	 * Set up test fixtures.
+	 *
+	 * @param WP_UnitTest_Factory $factory Factory instance.
+	 */
 	public static function wpSetUpBeforeClass( WP_UnitTest_Factory $factory ) {
 		self::$admin_id = $factory->user->create(
-				array(
-						'role' => 'administrator',
-				)
+			array(
+				'role' => 'administrator',
+			)
 		);
 
 		self::$editor_id = $factory->user->create(
-				array(
-						'role' => 'editor',
-				)
+			array(
+				'role' => 'editor',
+			)
 		);
 
 		self::$provider = Two_Factor_Backup_Codes::get_instance();
 	}
 
+	/**
+	 * Clean up test fixtures.
+	 */
 	public static function wpTearDownAfterClass() {
 			self::delete_user( self::$admin_id );
 			self::delete_user( self::$editor_id );

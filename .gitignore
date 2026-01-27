@@ -1,8 +1,11 @@
-.DS_Store
-/node_modules/
-/npm-debug.log
-/vendor/
+# Directories
 /dist/
+/node_modules/
 /tests/logs/
+/vendor/
+
+# Files
+.DS_Store
+/npm-debug.log
 .phpunit.result.cache
 phpstan.neon
