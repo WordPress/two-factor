@@ -129,6 +129,9 @@ class Two_Factor_Core {
 		add_action( 'admin_init', array( __CLASS__, 'trigger_user_settings_action' ) );
 		add_filter( 'two_factor_providers', array( __CLASS__, 'enable_dummy_method_for_debug' ) );
 
+		// Add Settings link to plugin action links.
+		add_filter( 'plugin_action_links_' . plugin_basename( TWO_FACTOR_DIR . 'two-factor.php' ), array( __CLASS__, 'add_settings_action_link' ) );
+
 		$compat->init();
 	}
 
@@ -336,6 +339,27 @@ class Two_Factor_Core {
 		}
 
 		return $methods;
+	}
+
+	/**
+	 * Add "Settings" link to the plugin action links on the Plugins screen.
+	 *
+	 * @since 0.14.3
+	 *
+	 * @param string[] $links An array of plugin action links.
+	 * @return string[] Modified array with the Settings link added.
+	 */
+	public static function add_settings_action_link( $links ) {
+		$settings_url  = admin_url( 'profile.php#application-passwords-section' );
+		$settings_link = sprintf(
+			'<a href="%s">%s</a>',
+			esc_url( $settings_url ),
+			esc_html__( 'Settings', 'two-factor' )
+		);
+
+		array_unshift( $links, $settings_link );
+
+		return $links;
 	}
 
 	/**
@@ -2121,7 +2145,7 @@ class Two_Factor_Core {
 						array(
 							'two-factor-provider' => '',
 							'two-factor-login'    => time(),
-						) 
+						)
 					);
 				} elseif ( $existing_providers && ! $enabled_providers ) {
 					// We've disabled two-factor, remove session metadata.
@@ -2129,7 +2153,7 @@ class Two_Factor_Core {
 						array(
 							'two-factor-provider' => null,
 							'two-factor-login'    => null,
-						) 
+						)
 					);
 				}
 			}

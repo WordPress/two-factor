@@ -1,4 +1,4 @@
-=== Two-Factor ===
+=== Two Factor ===
 Contributors: georgestephanis, valendesigns, stevenkword, extendwings, sgrant, aaroncampbell, johnbillion, stevegrunwell, netweb, kasparsd, alihusnainarshad, passoniate
 Tags:         2fa, mfa, totp, authentication, security
 Tested up to: 6.9
@@ -33,6 +33,9 @@ Here is a list of action and filter hooks provided by the plugin:
 - `two_factor_email_token_length` filter overrides the default 8 character count for email tokens.
 - `two_factor_backup_code_length` filter overrides the default 8 character count for backup codes. Provides the `WP_User` of the associated user as the second argument.
 - `two_factor_rest_api_can_edit_user` filter overrides whether a user’s Two-Factor settings can be edited via the REST API. First argument is the current `$can_edit` boolean, the second argument is the user ID.
+- `two_factor_before_authentication_prompt` action which receives the provider object and fires prior to the prompt shown on the authentication input form.
+- `two_factor_after_authentication_prompt` action which receives the provider object and fires after the prompt shown on the authentication input form.
+- `two_factor_after_authentication_input`action which receives the provider object and fires after the input shown on the authentication input form (if form contains no input, action fires immediately after `two_factor_after_authentication_prompt`).
 
 == Frequently Asked Questions ==
 
@@ -61,3 +64,4 @@ To report a security issue, please visit the [WordPress HackerOne](https://hacke
 == Changelog ==
 
 See the [release history](https://github.com/wordpress/two-factor/releases).
+
