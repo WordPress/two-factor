@@ -867,8 +867,9 @@ class Two_Factor_Core {
 		if ( $last_failed_two_factor_login ) {
 			echo '<div id="login_notice" class="message"><strong>';
 			printf(
+				/* translators: 1: number of failed login attempts, 2: time since last failed attempt */
 				_n(
-					'WARNING: Your account has attempted to login without providing a valid two factor token. The last failed login occurred %2$s ago. If this wasn\'t you, you should reset your password.',
+					'WARNING: Your account has attempted to login %1$s time without providing a valid two factor token. The last failed login occurred %2$s ago. If this wasn\'t you, you should reset your password.',
 					'WARNING: Your account has attempted to login %1$s times without providing a valid two factor token. The last failed login occurred %2$s ago. If this wasn\'t you, you should reset your password.',
 					$failed_login_count,
 					'two-factor'
@@ -917,6 +918,7 @@ class Two_Factor_Core {
 		$errors->add(
 			'two_factor_password_reset',
 			sprintf(
+				/* translators: %s: URL to create a new password. */
 				__( 'Your password was reset because of too many failed Two Factor attempts. You will need to <a href="%s">create a new password</a> to regain access. Please check your email for more information.', 'two-factor' ),
 				esc_url( add_query_arg( 'action', 'lostpassword', wp_login_url() ) )
 			)
@@ -1654,6 +1656,7 @@ class Two_Factor_Core {
 			return new WP_Error(
 				'two_factor_too_fast',
 				sprintf(
+					/* translators: %s: human-readable time delay until another attempt can be made. */
 					__( 'ERROR: Too many invalid verification codes, you can try again in %s. This limit protects your account against automated attacks.', 'two-factor' ),
 					human_time_diff( $last_login + $time_delay )
 				)
@@ -1998,6 +2001,7 @@ class Two_Factor_Core {
 					<td>
 						<label class="two-factor-method-label">
 							<input id="enabled-<?php echo esc_attr( $provider_key ); ?>" type="checkbox" name="<?php echo esc_attr( self::ENABLED_PROVIDERS_USER_META_KEY ); ?>[]" value="<?php echo esc_attr( $provider_key ); ?>" <?php checked( in_array( $provider_key, $enabled_providers, true ) ); ?> />
+							<?php /* translators: %s: authentication method name. */ ?>
 							<strong><?php echo esc_html( sprintf( __( 'Enable %s', 'two-factor' ), $object->get_label() ) ); ?></strong>
 							<?php if ( in_array( $provider_key, $recommended_provider_keys, true ) ) : ?>
 								<abbr title="<?php esc_attr_e( 'This method is more secure and easy to use', 'two-factor' ); ?>" class="two-factor-method-recommended"><?php esc_html_e( 'Recommended', 'two-factor' ); ?></abbr>
