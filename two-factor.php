@@ -22,6 +22,10 @@
  * Network:           True
  */
 
+if ( ! defined( 'ABSPATH' ) ) {
+	exit; // Exit if accessed directly.
+}
+
 /**
  * Shortcut constant to the path of this file.
  */
