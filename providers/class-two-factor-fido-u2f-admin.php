@@ -5,6 +5,10 @@
  * @package Two_Factor
  */
 
+if ( ! defined( 'ABSPATH' ) ) {
+	exit; // Exit if accessed directly.
+}
+
 /**
  * Class for registering & modifying FIDO U2F security keys.
  *
