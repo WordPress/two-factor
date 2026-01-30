@@ -1,4 +1,4 @@
-=== Two-Factor ===
+=== Two Factor ===
 Contributors: georgestephanis, valendesigns, stevenkword, extendwings, sgrant, aaroncampbell, johnbillion, stevegrunwell, netweb, kasparsd, alihusnainarshad, passoniate
 Tags:         2fa, mfa, totp, authentication, security
 Tested up to: 6.9
@@ -64,3 +64,4 @@ To report a security issue, please visit the [WordPress HackerOne](https://hacke
 == Changelog ==
 
 See the [release history](https://github.com/wordpress/two-factor/releases).
+
