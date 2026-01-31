@@ -5,6 +5,10 @@
  * @package Two_Factor
  */
 
+if ( ! defined( 'ABSPATH' ) ) {
+	exit; // Exit if accessed directly.
+}
+
 /**
  * Class Two_Factor_Totp
  */

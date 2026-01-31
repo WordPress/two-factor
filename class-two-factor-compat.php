@@ -5,6 +5,10 @@
  * @package Two_Factor
  */
 
+if ( ! defined( 'ABSPATH' ) ) {
+	exit; // Exit if accessed directly.
+}
+
 /**
  * A compatibility layer for some of the most popular plugins.
  *
