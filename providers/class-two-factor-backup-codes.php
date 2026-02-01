@@ -176,7 +176,7 @@ class Two_Factor_Backup_Codes extends Two_Factor_Provider {
 					<?php esc_html_e( 'Generate new recovery codes', 'two-factor' ); ?>
 				</button>
 
-				<em><?php esc_html_e( 'This invalidates all currently stored codes.' ); ?></em>
+				<em><?php esc_html_e( 'This invalidates all currently stored codes.', 'two-factor' ); ?></em>
 			</p>
 		</p>
 		<div class="two-factor-backup-codes-wrapper" style="display:none;">
