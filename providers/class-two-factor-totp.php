@@ -287,7 +287,19 @@ class Two_Factor_Totp extends Two_Factor_Provider {
 			$key      = $this->generate_key();
 			$totp_url = $this->generate_qr_code_url( $user, $key );
 
+			$datetime = wp_date( get_option( 'date_format' ) . ' ' . get_option( 'time_format' ) );
+			$tz_display = wp_timezone_string();
 			?>
+			<p class="two-factor-server-datetime">
+				<?php
+				/* translators: 1: server date and time, 2: timezone. */
+				printf(
+					esc_html__( 'Your server date and time is %1$s (%2$s). Please verify this is correct to ensure TOTP will work.', 'two-factor' ),
+					esc_html( $datetime ),
+					esc_html( $tz_display )
+				);
+				?>
+			</p>
 			<p>
 				<?php esc_html_e( 'Please scan the QR code or manually copy the shared secret key from below to your Authenticator app:', 'two-factor' ); ?>
 			</p>
