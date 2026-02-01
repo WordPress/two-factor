@@ -68,6 +68,7 @@ jobs:
         strategy:
             matrix:
                 php:
+                  - '8.5'
                   - '8.4'
                   - '8.3'
                   - '8.2'
@@ -85,6 +86,8 @@ jobs:
                     wp: trunk
                   - php: '7.2'
                     wp: trunk
+                  - php: '8.5'
+                    wp: '6.8'
         env:
             WP_ENV_PHP_VERSION: ${{ matrix.php }}
             WP_ENV_CORE: ${{ matrix.wp == 'trunk' && 'WordPress/WordPress' || format( 'https://wordpress.org/wordpress-{0}.zip', matrix.wp ) }}
