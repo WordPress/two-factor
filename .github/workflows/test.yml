@@ -79,7 +79,7 @@ jobs:
                 wp:
                   - latest
                   - trunk
-                  - '6.7'
+                  - '6.8'
                 exclude:
                   - php: '7.3'
                     wp: trunk
