@@ -673,7 +673,7 @@ class Two_Factor_Core {
 			$provider = self::get_primary_provider_key_selected_for_user( $user );
 
 			// If the provider specified isn't enabled, just grab the first one that is.
-			if ( ! isset( $available_providers[ $provider ] ) ) {
+			if ( empty( $provider ) || ! isset( $available_providers[ $provider ] ) ) {
 				$provider = key( $available_providers );
 			}
 		}
