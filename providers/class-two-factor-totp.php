@@ -601,7 +601,7 @@ class Two_Factor_Totp extends Two_Factor_Provider {
 		$ticks = range( - $max_ticks, $max_ticks );
 		usort( $ticks, array( __CLASS__, 'abssort' ) );
 
-		$time = floor( self::time() / self::DEFAULT_TIME_STEP_SEC );
+		$time = floor( self::time() / $time_step );
 
 		$digits = strlen( $authcode );
 
