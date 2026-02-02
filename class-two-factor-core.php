@@ -1446,7 +1446,7 @@ class Two_Factor_Core {
 		if ( true !== $result ) {
 			$error = '';
 			if ( is_wp_error( $result ) ) {
-				do_action( 'wp_login_failed', $user->user_login, $result );
+				do_action( 'wp_login_failed', $user->user_login, $result ); // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedHooknameFound -- Core WordPress action.
 
 				$error = $result->get_error_message();
 			}
@@ -1509,7 +1509,7 @@ class Two_Factor_Core {
 			</div>
 			<?php
 			/** This action is documented in wp-login.php */
-			do_action( 'login_footer' );
+			do_action( 'login_footer' ); // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedHooknameFound -- Core WordPress action.
 			?>
 			<?php if ( $customize_login ) : ?>
 				<script type="text/javascript">setTimeout( function(){ new wp.customize.Messenger({ url: '<?php echo esc_url( wp_customize_url() ); ?>', channel: 'login' }).send('login') }, 1000 );</script>
@@ -1519,7 +1519,7 @@ class Two_Factor_Core {
 			return;
 		}
 
-		$redirect_to = apply_filters( 'login_redirect', $redirect_to, $redirect_to, $user );
+		$redirect_to = apply_filters( 'login_redirect', $redirect_to, $redirect_to, $user ); // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedHooknameFound -- Core WordPress filter.
 		wp_safe_redirect( $redirect_to );
 	}
 
@@ -1577,7 +1577,7 @@ class Two_Factor_Core {
 		if ( true !== $result ) {
 			$error = '';
 			if ( is_wp_error( $result ) ) {
-				do_action( 'wp_login_failed', $user->user_login, $result );
+				do_action( 'wp_login_failed', $user->user_login, $result ); // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedHooknameFound -- Core WordPress action.
 
 				$error = $result->get_error_message();
 			}
@@ -1610,14 +1610,14 @@ class Two_Factor_Core {
 			</div>
 			<?php
 			/** This action is documented in wp-login.php */
-			do_action( 'login_footer' );
+			do_action( 'login_footer' ); // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedHooknameFound -- Core WordPress action.
 			?>
 			</body></html>
 			<?php
 			return;
 		}
 
-		$redirect_to = apply_filters( 'login_redirect', $redirect_to, $redirect_to, $user );
+		$redirect_to = apply_filters( 'login_redirect', $redirect_to, $redirect_to, $user ); // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedHooknameFound -- Core WordPress filter.
 		wp_safe_redirect( $redirect_to );
 		return;
 	}
@@ -1939,7 +1939,7 @@ class Two_Factor_Core {
 		 *
 		 * @since 0.1-dev
 		 */
-		do_action( 'show_user_security_settings', $user, $providers );
+		do_action( 'show_user_security_settings', $user, $providers ); // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedHooknameFound -- Legacy unprefixed hook.
 	}
 
 	/**
