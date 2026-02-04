@@ -684,7 +684,8 @@ class Test_ClassTwoFactorCore extends WP_UnitTestCase {
 
 		$this->assertNotEmpty( $contents );
 		$this->assertStringNotContainsString( '1 times', $contents );
-		$this->assertStringContainsString( 'login without providing a valid two factor token', $contents );
+		$this->assertStringContainsString( 'attempted to login', $contents );
+		$this->assertStringContainsString( 'without providing a valid two factor token', $contents );
 
 		// 5 failed login attempts 5 hours ago - User should be informed.
 		$five_hours_ago = time() - 5 * HOUR_IN_SECONDS;

@@ -140,7 +140,7 @@ class Two_Factor_FIDO_U2F_Admin_List_Table extends WP_List_Table {
 							}
 
 							/** This action is documented in wp-admin/includes/class-wp-posts-list-table.php */
-							do_action( 'quick_edit_custom_box', $column_name, 'edit-security-keys' );
+							do_action( 'quick_edit_custom_box', $column_name, 'edit-security-keys' ); // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedHooknameFound
 						}
 						?>
 						<p class="inline-edit-save submit">

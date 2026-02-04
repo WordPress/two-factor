@@ -674,7 +674,7 @@ class Two_Factor_Core {
 			$provider = self::get_primary_provider_key_selected_for_user( $user );
 
 			// If the provider specified isn't enabled, just grab the first one that is.
-			if ( ! isset( $available_providers[ $provider ] ) ) {
+			if ( empty( $provider ) || ! isset( $available_providers[ $provider ] ) ) {
 				$provider = key( $available_providers );
 			}
 		}
@@ -857,8 +857,9 @@ class Two_Factor_Core {
 		if ( $last_failed_two_factor_login ) {
 			echo '<div id="login_notice" class="message"><strong>';
 			printf(
+				/* translators: 1: number of failed login attempts, 2: time since last failed attempt */
 				_n(
-					'WARNING: Your account has attempted to login without providing a valid two factor token. The last failed login occurred %2$s ago. If this wasn\'t you, you should reset your password.',
+					'WARNING: Your account has attempted to login %1$s time without providing a valid two factor token. The last failed login occurred %2$s ago. If this wasn\'t you, you should reset your password.',
 					'WARNING: Your account has attempted to login %1$s times without providing a valid two factor token. The last failed login occurred %2$s ago. If this wasn\'t you, you should reset your password.',
 					$failed_login_count,
 					'two-factor'
@@ -907,6 +908,7 @@ class Two_Factor_Core {
 		$errors->add(
 			'two_factor_password_reset',
 			sprintf(
+				/* translators: %s: URL to create a new password. */
 				__( 'Your password was reset because of too many failed Two Factor attempts. You will need to <a href="%s">create a new password</a> to regain access. Please check your email for more information.', 'two-factor' ),
 				esc_url( add_query_arg( 'action', 'lostpassword', wp_login_url() ) )
 			)
@@ -1434,7 +1436,7 @@ class Two_Factor_Core {
 		if ( true !== $result ) {
 			$error = '';
 			if ( is_wp_error( $result ) ) {
-				do_action( 'wp_login_failed', $user->user_login, $result );
+				do_action( 'wp_login_failed', $user->user_login, $result ); // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedHooknameFound -- Core WordPress action.
 
 				$error = $result->get_error_message();
 			}
@@ -1497,7 +1499,7 @@ class Two_Factor_Core {
 			</div>
 			<?php
 			/** This action is documented in wp-login.php */
-			do_action( 'login_footer' );
+			do_action( 'login_footer' ); // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedHooknameFound -- Core WordPress action.
 			?>
 			<?php if ( $customize_login ) : ?>
 				<script type="text/javascript">setTimeout( function(){ new wp.customize.Messenger({ url: '<?php echo esc_url( wp_customize_url() ); ?>', channel: 'login' }).send('login') }, 1000 );</script>
@@ -1507,7 +1509,7 @@ class Two_Factor_Core {
 			return;
 		}
 
-		$redirect_to = apply_filters( 'login_redirect', $redirect_to, $redirect_to, $user );
+		$redirect_to = apply_filters( 'login_redirect', $redirect_to, $redirect_to, $user ); // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedHooknameFound -- Core WordPress filter.
 		wp_safe_redirect( $redirect_to );
 	}
 
@@ -1565,7 +1567,7 @@ class Two_Factor_Core {
 		if ( true !== $result ) {
 			$error = '';
 			if ( is_wp_error( $result ) ) {
-				do_action( 'wp_login_failed', $user->user_login, $result );
+				do_action( 'wp_login_failed', $user->user_login, $result ); // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedHooknameFound -- Core WordPress action.
 
 				$error = $result->get_error_message();
 			}
@@ -1598,14 +1600,14 @@ class Two_Factor_Core {
 			</div>
 			<?php
 			/** This action is documented in wp-login.php */
-			do_action( 'login_footer' );
+			do_action( 'login_footer' ); // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedHooknameFound -- Core WordPress action.
 			?>
 			</body></html>
 			<?php
 			return;
 		}
 
-		$redirect_to = apply_filters( 'login_redirect', $redirect_to, $redirect_to, $user );
+		$redirect_to = apply_filters( 'login_redirect', $redirect_to, $redirect_to, $user ); // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedHooknameFound -- Core WordPress filter.
 		wp_safe_redirect( $redirect_to );
 		return;
 	}
@@ -1644,6 +1646,7 @@ class Two_Factor_Core {
 			return new WP_Error(
 				'two_factor_too_fast',
 				sprintf(
+					/* translators: %s: human-readable time delay until another attempt can be made. */
 					__( 'ERROR: Too many invalid verification codes, you can try again in %s. This limit protects your account against automated attacks.', 'two-factor' ),
 					human_time_diff( $last_login + $time_delay )
 				)
@@ -1926,7 +1929,7 @@ class Two_Factor_Core {
 		 *
 		 * @since 0.1-dev
 		 */
-		do_action( 'show_user_security_settings', $user, $providers );
+		do_action( 'show_user_security_settings', $user, $providers ); // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedHooknameFound -- Legacy unprefixed hook.
 	}
 
 	/**
@@ -1988,6 +1991,7 @@ class Two_Factor_Core {
 					<td>
 						<label class="two-factor-method-label">
 							<input id="enabled-<?php echo esc_attr( $provider_key ); ?>" type="checkbox" name="<?php echo esc_attr( self::ENABLED_PROVIDERS_USER_META_KEY ); ?>[]" value="<?php echo esc_attr( $provider_key ); ?>" <?php checked( in_array( $provider_key, $enabled_providers, true ) ); ?> />
+							<?php /* translators: %s: authentication method name. */ ?>
 							<strong><?php echo esc_html( sprintf( __( 'Enable %s', 'two-factor' ), $object->get_label() ) ); ?></strong>
 							<?php if ( in_array( $provider_key, $recommended_provider_keys, true ) ) : ?>
 								<abbr title="<?php esc_attr_e( 'This method is more secure and easy to use', 'two-factor' ); ?>" class="two-factor-method-recommended"><?php esc_html_e( 'Recommended', 'two-factor' ); ?></abbr>
