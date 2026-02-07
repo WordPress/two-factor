@@ -7,7 +7,7 @@ The following content can be copied and pasted into a release issue or PR to hel
 
 - [ ] Branch: Starting from `master`, create a branch named `release/X.Y.Z` for the release-related changes.
 - [ ] Version bump: Bump the version number in `readme.txt` and `two-factor.php` if it does not already reflect the version being released.  Update both the plugin "Version:" header value and the plugin `TWO_FACTOR_VERSION` constant in `two-factor.php`.
-- [ ] Changelog: Add/update the changelog in `CHANGELOG.md`.  The changelog can be generated from a `compare` URL like [0.8.0...HEAD](https://github.com/WordPress/two-factor/compare/0.8.0...HEAD).
+- [ ] Changelog: Add/update the changelog in `CHANGELOG.md`.  The changelog can be generated from a `compare` URL like [0.8.0...HEAD](https://github.com/WordPress/two-factor/compare/0.8.0...HEAD). Ensure the version number is added to the footer links at the bottom showing the compare from the prior version (e.g., https://github.com/WordPress/two-factor/compare/0.12.0...0.13.0).
 - [ ] New files: Check to be sure any new files/paths that are unnecessary in the production version are included in [.distignore](https://github.com/WordPress/two-factor/blob/master/.distignore).
 - [ ] Readme updates: Make any other readme changes as necessary. `readme.md` is geared toward GitHub and `readme.txt` contains WordPress.org-specific content. The two are slightly different.
 - [ ] Create Release PR: Push any local changes in `release/X.Y.Z` to origin, create a release PR, and request review to ensure all CI checks pass and ensure master branch changes are limited to merges only.
