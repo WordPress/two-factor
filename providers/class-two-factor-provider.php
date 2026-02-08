@@ -25,7 +25,7 @@ abstract class Two_Factor_Provider {
 		$class_name = static::class;
 
 		if ( ! isset( $instances[ $class_name ] ) ) {
-			$instances[ $class_name ] = new $class_name;
+			$instances[ $class_name ] = new $class_name();
 		}
 
 		return $instances[ $class_name ];

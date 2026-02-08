@@ -32,6 +32,9 @@ class Tests_Two_Factor_Dummy_Secure extends WP_UnitTestCase {
 		$this->provider = Two_Factor_Dummy_Secure::get_instance();
 	}
 
+	/**
+	 * Test get_key method.
+	 */
 	public function test_get_key() {
 		$this->assertEquals( 'Two_Factor_Dummy', $this->provider->get_key() );
 	}
@@ -50,7 +53,6 @@ class Tests_Two_Factor_Dummy_Secure extends WP_UnitTestCase {
 		$this->assertStringContainsString( 'Are you really you?', $contents );
 		$this->assertStringContainsString( '<p class="submit">', $contents );
 		$this->assertStringContainsString( 'Yup', $contents );
-
 	}
 
 	/**
@@ -61,7 +63,6 @@ class Tests_Two_Factor_Dummy_Secure extends WP_UnitTestCase {
 	public function test_validate_authentication() {
 
 		$this->assertFalse( $this->provider->validate_authentication( false ) );
-
 	}
 
 	/**
@@ -75,16 +76,21 @@ class Tests_Two_Factor_Dummy_Secure extends WP_UnitTestCase {
 		$filtered = Two_Factor_Core::get_providers();
 		remove_filter( 'two_factor_provider_classname_Two_Factor_Dummy', array( $this, 'filter_change_provider' ) );
 
-		$this->assertEquals( 'Two_Factor_Dummy',        get_class( $providers['Two_Factor_Dummy'] ) );
-		$this->assertNotEquals( 'Two_Factor_Dummy',     get_class( $filtered['Two_Factor_Dummy'] ) );
+		$this->assertEquals( 'Two_Factor_Dummy', get_class( $providers['Two_Factor_Dummy'] ) );
+		$this->assertNotEquals( 'Two_Factor_Dummy', get_class( $filtered['Two_Factor_Dummy'] ) );
 		$this->assertEquals( 'Two_Factor_Dummy_Secure', get_class( $filtered['Two_Factor_Dummy'] ) );
 
 		$this->assertEquals( 'Two_Factor_Dummy', $providers['Two_Factor_Dummy']->get_key() );
 		$this->assertEquals( 'Two_Factor_Dummy', $filtered['Two_Factor_Dummy']->get_key() );
 	}
 
+	/**
+	 * Filter to change provider class.
+	 *
+	 * @param string $provider_key Provider key.
+	 * @return string
+	 */
 	public function filter_change_provider( $provider_key ) {
 		return 'Two_Factor_Dummy_Secure';
 	}
-
 }

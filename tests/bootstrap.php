@@ -33,7 +33,7 @@ require_once dirname( __DIR__ ) . '/includes/function.login-footer.php';
 // Activate the plugin.
 tests_add_filter(
 	'muplugins_loaded',
-	function() {
+	function () {
 		require_once dirname( __DIR__ ) . '/two-factor.php';
 	}
 );
