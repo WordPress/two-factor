@@ -94,7 +94,6 @@ class Two_Factor_Core {
 	 */
 	public static function add_hooks( $compat ) {
 		add_action( 'init', array( __CLASS__, 'get_providers' ) ); // @phpstan-ignore return.void
-		add_action( 'wp_login', array( __CLASS__, 'wp_login' ), 10, 2 );
 		add_filter( 'wp_login_errors', array( __CLASS__, 'maybe_show_reset_password_notice' ) );
 		add_action( 'after_password_reset', array( __CLASS__, 'clear_password_reset_notice' ) );
 		add_action( 'login_form_validate_2fa', array( __CLASS__, 'login_form_validate_2fa' ) );
@@ -117,16 +116,21 @@ class Two_Factor_Core {
 		add_action( 'set_auth_cookie', array( __CLASS__, 'collect_auth_cookie_tokens' ) );
 		add_action( 'set_logged_in_cookie', array( __CLASS__, 'collect_auth_cookie_tokens' ) );
 
-		// Run only after the core wp_authenticate_username_password() check.
-		add_filter( 'authenticate', array( __CLASS__, 'filter_authenticate' ), 50 );
-
-		// Run as late as possible to prevent other plugins from unintentionally bypassing.
-		add_filter( 'authenticate', array( __CLASS__, 'filter_authenticate_block_cookies' ), PHP_INT_MAX );
+		/**
+		 * Enable the two-factor workflow only for login requests with username
+		 * and without an existing user cookie.
+		 *
+		 * Run after core username/password and cookie checks.
+		 */
+		add_filter( 'authenticate', array( __CLASS__, 'filter_authenticate' ), 31, 3 );
 
 		add_filter( 'attach_session_information', array( __CLASS__, 'filter_session_information' ), 10, 2 );
 
 		add_action( 'admin_init', array( __CLASS__, 'trigger_user_settings_action' ) );
 		add_filter( 'two_factor_providers', array( __CLASS__, 'enable_dummy_method_for_debug' ) );
+
+		// Add Settings link to plugin action links.
+		add_filter( 'plugin_action_links_' . plugin_basename( TWO_FACTOR_DIR . 'two-factor.php' ), array( __CLASS__, 'add_settings_action_link' ) );
 
 		$compat->init();
 	}
@@ -335,6 +339,27 @@ class Two_Factor_Core {
 		}
 
 		return $methods;
+	}
+
+	/**
+	 * Add "Settings" link to the plugin action links on the Plugins screen.
+	 *
+	 * @since 0.14.3
+	 *
+	 * @param string[] $links An array of plugin action links.
+	 * @return string[] Modified array with the Settings link added.
+	 */
+	public static function add_settings_action_link( $links ) {
+		$settings_url  = admin_url( 'profile.php#application-passwords-section' );
+		$settings_link = sprintf(
+			'<a href="%s">%s</a>',
+			esc_url( $settings_url ),
+			esc_html__( 'Settings', 'two-factor' )
+		);
+
+		array_unshift( $links, $settings_link );
+
+		return $links;
 	}
 
 	/**
@@ -649,7 +674,7 @@ class Two_Factor_Core {
 			$provider = self::get_primary_provider_key_selected_for_user( $user );
 
 			// If the provider specified isn't enabled, just grab the first one that is.
-			if ( ! isset( $available_providers[ $provider ] ) ) {
+			if ( empty( $provider ) || ! isset( $available_providers[ $provider ] ) ) {
 				$provider = key( $available_providers );
 			}
 		}
@@ -725,58 +750,60 @@ class Two_Factor_Core {
 	}
 
 	/**
-	 * Prevent login through XML-RPC and REST API for users with at least one
-	 * two-factor method enabled.
+	 * Trigget the two-factor workflow only for valid login attempts
+	 * with username present. Prevent authentication during API requests
+	 * unless explicitly enabled for the user (disabled by default).
 	 *
-	 * @param  WP_User|WP_Error $user Valid WP_User only if the previous filters
+	 * @param WP_User|WP_Error $user Valid WP_User only if the previous filters
 	 *                                have verified and confirmed the
 	 *                                authentication credentials.
+	 * @param string           $username The username.
+	 * @param string           $password The password.
 	 *
 	 * @return WP_User|WP_Error
 	 */
-	public static function filter_authenticate( $user ) {
-		if ( $user instanceof WP_User && self::is_api_request() && self::is_user_using_two_factor( $user->ID ) && ! self::is_user_api_login_enabled( $user->ID ) ) {
-			return new WP_Error(
-				'invalid_application_credentials',
-				__( 'Error: API login for user disabled.', 'two-factor' )
-			);
-		}
+	public static function filter_authenticate( $user, $username, $password ) {
+		if ( strlen( $username ) && $user instanceof WP_User && self::is_user_using_two_factor( $user->ID ) ) {
+			// Disable authentication requests for API requests for users with two-factor enabled.
+			if ( self::is_api_request() && ! self::is_user_api_login_enabled( $user->ID ) ) {
+				return new WP_Error(
+					'invalid_application_credentials',
+					__( 'Error: API login for user disabled.', 'two-factor' )
+				);
+			}
 
-		return $user;
-	}
-
-	/**
-	 * Prevent login cookies being set on login for Two Factor users.
-	 *
-	 * This makes it so that Core never sends the auth cookies. `login_form_validate_2fa()` will send them manually once the 2nd factor has been verified.
-	 *
-	 * @param  WP_User|WP_Error $user Valid WP_User only if the previous filters
-	 *                                have verified and confirmed the
-	 *                                authentication credentials.
-	 *
-	 * @return WP_User|WP_Error
-	 */
-	public static function filter_authenticate_block_cookies( $user ) {
-		/*
-		 * NOTE: The `login_init` action is checked for here to ensure we're within the regular login flow,
-		 * rather than through an unsupported 3rd-party login process which this plugin doesn't support.
-		 */
-		if ( $user instanceof WP_User && self::is_user_using_two_factor( $user->ID ) && did_action( 'login_init' ) ) {
+			// Disable core auth cookies because we must send them manually once the 2nd factor has been verified.
 			add_filter( 'send_auth_cookies', '__return_false', PHP_INT_MAX );
+
+			// Trigger the two-factor flow only for login attempts.
+			add_action( 'wp_login', array( __CLASS__, 'wp_login' ), PHP_INT_MAX, 2 );
 		}
 
 		return $user;
 	}
 
 	/**
-	 * If the current user can login via API requests such as XML-RPC and REST.
+	 * If the user can login via API requests such as XML-RPC and REST.
+	 *
+	 * Only logins with application passwords are permitted by default.
 	 *
 	 * @param integer $user_id User ID.
 	 *
 	 * @return boolean
 	 */
 	public static function is_user_api_login_enabled( $user_id ) {
-		return (bool) apply_filters( 'two_factor_user_api_login_enable', false, $user_id );
+		/**
+		 * Allow or prevent logins without two-factor during
+		 * API requests such as XML-RPC and REST.
+		 *
+		 * @param boolean $enabled Whether the user can login via API requests.
+		 * @param integer $user_id User ID.
+		 */
+		return (bool) apply_filters(
+			'two_factor_user_api_login_enable',
+			(bool) did_action( 'application_password_did_authenticate' ),
+			$user_id
+		);
 	}
 
 	/**
@@ -830,8 +857,9 @@ class Two_Factor_Core {
 		if ( $last_failed_two_factor_login ) {
 			echo '<div id="login_notice" class="message"><strong>';
 			printf(
+				/* translators: 1: number of failed login attempts, 2: time since last failed attempt */
 				_n(
-					'WARNING: Your account has attempted to login without providing a valid two factor token. The last failed login occurred %2$s ago. If this wasn\'t you, you should reset your password.',
+					'WARNING: Your account has attempted to login %1$s time without providing a valid two factor token. The last failed login occurred %2$s ago. If this wasn\'t you, you should reset your password.',
 					'WARNING: Your account has attempted to login %1$s times without providing a valid two factor token. The last failed login occurred %2$s ago. If this wasn\'t you, you should reset your password.',
 					$failed_login_count,
 					'two-factor'
@@ -849,7 +877,7 @@ class Two_Factor_Core {
 	 * They were also sent an email notification in `send_password_reset_email()`, but email sent from a typical
 	 * web server is not reliable enough to trust completely.
 	 *
-	 * @param WP_Error $errors
+	 * @param WP_Error $errors Error object.
 	 */
 	public static function maybe_show_reset_password_notice( $errors ) {
 		if ( 'incorrect_password' !== $errors->get_error_code() ) {
@@ -880,6 +908,7 @@ class Two_Factor_Core {
 		$errors->add(
 			'two_factor_password_reset',
 			sprintf(
+				/* translators: %s: URL to create a new password. */
 				__( 'Your password was reset because of too many failed Two Factor attempts. You will need to <a href="%s">create a new password</a> to regain access. Please check your email for more information.', 'two-factor' ),
 				esc_url( add_query_arg( 'action', 'lostpassword', wp_login_url() ) )
 			)
@@ -891,7 +920,7 @@ class Two_Factor_Core {
 	/**
 	 * Clear the password reset notice after the user resets their password.
 	 *
-	 * @param WP_User $user
+	 * @param WP_User $user User object.
 	 */
 	public static function clear_password_reset_notice( $user ) {
 		delete_user_meta( $user->ID, self::USER_PASSWORD_WAS_RESET_KEY );
@@ -907,6 +936,7 @@ class Two_Factor_Core {
 	 * @param string        $redirect_to The URL to which the user would like to be redirected.
 	 * @param string        $error_msg Optional. Login error message.
 	 * @param string|object $provider An override to the provider.
+	 * @param string        $action Action to perform.
 	 */
 	public static function login_html( $user, $login_nonce, $redirect_to, $error_msg = '', $provider = null, $action = 'validate_2fa' ) {
 		$provider = self::get_provider_for_user( $user, $provider );
@@ -952,7 +982,8 @@ class Two_Factor_Core {
 				<?php $provider->authentication_page( $user ); ?>
 		</form>
 
-		<?php if ( $backup_providers ) :
+		<?php
+		if ( $backup_providers ) :
 			$backup_link_args = array(
 				'action'        => $action,
 				'wp-auth-id'    => $user->ID,
@@ -1349,7 +1380,7 @@ class Two_Factor_Core {
 			return new WP_Error( 'revalidation_required', __( 'Two Factor Revalidation required.', 'two-factor' ) );
 		}
 
-		return true;
+		return apply_filters( 'two_factor_rest_api_can_edit_user', true, $user_id );
 	}
 
 	/**
@@ -1358,10 +1389,10 @@ class Two_Factor_Core {
 	 * @since 0.1-dev
 	 */
 	public static function login_form_validate_2fa() {
-		$wp_auth_id      = ! empty( $_REQUEST['wp-auth-id'] )    ? absint( $_REQUEST['wp-auth-id'] )        : 0;
+		$wp_auth_id      = ! empty( $_REQUEST['wp-auth-id'] ) ? absint( $_REQUEST['wp-auth-id'] ) : 0;
 		$nonce           = ! empty( $_REQUEST['wp-auth-nonce'] ) ? wp_unslash( $_REQUEST['wp-auth-nonce'] ) : '';
-		$provider        = ! empty( $_REQUEST['provider'] )      ? wp_unslash( $_REQUEST['provider'] )      : '';
-		$redirect_to     = ! empty( $_REQUEST['redirect_to'] )   ? wp_unslash( $_REQUEST['redirect_to'] )   : '';
+		$provider        = ! empty( $_REQUEST['provider'] ) ? wp_unslash( $_REQUEST['provider'] ) : '';
+		$redirect_to     = ! empty( $_REQUEST['redirect_to'] ) ? wp_unslash( $_REQUEST['redirect_to'] ) : '';
 		$is_post_request = ( 'POST' === strtoupper( $_SERVER['REQUEST_METHOD'] ) );
 		$user            = get_user_by( 'id', $wp_auth_id );
 
@@ -1405,7 +1436,7 @@ class Two_Factor_Core {
 		if ( true !== $result ) {
 			$error = '';
 			if ( is_wp_error( $result ) ) {
-				do_action( 'wp_login_failed', $user->user_login, $result );
+				do_action( 'wp_login_failed', $user->user_login, $result ); // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedHooknameFound -- Core WordPress action.
 
 				$error = $result->get_error_message();
 			}
@@ -1428,7 +1459,7 @@ class Two_Factor_Core {
 			$rememberme = true;
 		}
 
-		$session_information_callback = static function( $session, $user_id ) use( $provider, $user ) {
+		$session_information_callback = static function ( $session, $user_id ) use ( $provider, $user ) {
 			if ( $user->ID === $user_id ) {
 				$session['two-factor-login']    = time();
 				$session['two-factor-provider'] = $provider->get_key();
@@ -1442,7 +1473,7 @@ class Two_Factor_Core {
 		/*
 		 * NOTE: This filter removal is not normally required, this is included for protection against
 		 * a plugin/two factor provider which runs the `authenticate` filter during it's validation.
-		 * Such a plugin would cause self::filter_authenticate_block_cookies() to run and add this filter.
+		 * Such a plugin would cause self::filter_authenticate() to run and add this filter.
 		 */
 		remove_filter( 'send_auth_cookies', '__return_false', PHP_INT_MAX );
 
@@ -1468,7 +1499,7 @@ class Two_Factor_Core {
 			</div>
 			<?php
 			/** This action is documented in wp-login.php */
-			do_action( 'login_footer' );
+			do_action( 'login_footer' ); // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedHooknameFound -- Core WordPress action.
 			?>
 			<?php if ( $customize_login ) : ?>
 				<script type="text/javascript">setTimeout( function(){ new wp.customize.Messenger({ url: '<?php echo esc_url( wp_customize_url() ); ?>', channel: 'login' }).send('login') }, 1000 );</script>
@@ -1478,7 +1509,7 @@ class Two_Factor_Core {
 			return;
 		}
 
-		$redirect_to = apply_filters( 'login_redirect', $redirect_to, $redirect_to, $user );
+		$redirect_to = apply_filters( 'login_redirect', $redirect_to, $redirect_to, $user ); // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedHooknameFound -- Core WordPress filter.
 		wp_safe_redirect( $redirect_to );
 	}
 
@@ -1489,9 +1520,9 @@ class Two_Factor_Core {
 	 * @since 0.9.0
 	 */
 	public static function login_form_revalidate_2fa() {
-		$nonce           = ! empty( $_REQUEST['wp-auth-nonce'] ) ? wp_unslash( $_REQUEST['wp-auth-nonce'] )                   : '';
-		$provider        = ! empty( $_REQUEST['provider'] )      ? sanitize_text_field( wp_unslash( $_REQUEST['provider'] ) ) : false;
-		$redirect_to     = ! empty( $_REQUEST['redirect_to'] )   ? wp_unslash( $_REQUEST['redirect_to'] )                     : admin_url();
+		$nonce           = ! empty( $_REQUEST['wp-auth-nonce'] ) ? wp_unslash( $_REQUEST['wp-auth-nonce'] ) : '';
+		$provider        = ! empty( $_REQUEST['provider'] ) ? sanitize_text_field( wp_unslash( $_REQUEST['provider'] ) ) : false;
+		$redirect_to     = ! empty( $_REQUEST['redirect_to'] ) ? wp_unslash( $_REQUEST['redirect_to'] ) : admin_url();
 		$is_post_request = ( 'POST' === strtoupper( $_SERVER['REQUEST_METHOD'] ) );
 
 		self::_login_form_revalidate_2fa( $nonce, $provider, $redirect_to, $is_post_request );
@@ -1506,10 +1537,10 @@ class Two_Factor_Core {
 	 *
 	 * @since 0.9.0
 	 *
-	 * @param string  $nonce           The nonce passed with the request.
-	 * @param string  $provider        The provider to use, if known.
-	 * @param string  $redirect_to     The redirection location.
-	 * @param bool    $is_post_request Whether the incoming request was a POST request or not.
+	 * @param string $nonce           The nonce passed with the request.
+	 * @param string $provider        The provider to use, if known.
+	 * @param string $redirect_to     The redirection location.
+	 * @param bool   $is_post_request Whether the incoming request was a POST request or not.
 	 * @return void
 	 */
 	public static function _login_form_revalidate_2fa( $nonce = '', $provider = '', $redirect_to = '', $is_post_request = false ) {
@@ -1536,7 +1567,7 @@ class Two_Factor_Core {
 		if ( true !== $result ) {
 			$error = '';
 			if ( is_wp_error( $result ) ) {
-				do_action( 'wp_login_failed', $user->user_login, $result );
+				do_action( 'wp_login_failed', $user->user_login, $result ); // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedHooknameFound -- Core WordPress action.
 
 				$error = $result->get_error_message();
 			}
@@ -1569,14 +1600,14 @@ class Two_Factor_Core {
 			</div>
 			<?php
 			/** This action is documented in wp-login.php */
-			do_action( 'login_footer' );
+			do_action( 'login_footer' ); // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedHooknameFound -- Core WordPress action.
 			?>
 			</body></html>
 			<?php
 			return;
 		}
 
-		$redirect_to = apply_filters( 'login_redirect', $redirect_to, $redirect_to, $user );
+		$redirect_to = apply_filters( 'login_redirect', $redirect_to, $redirect_to, $user ); // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedHooknameFound -- Core WordPress filter.
 		wp_safe_redirect( $redirect_to );
 		return;
 	}
@@ -1615,6 +1646,7 @@ class Two_Factor_Core {
 			return new WP_Error(
 				'two_factor_too_fast',
 				sprintf(
+					/* translators: %s: human-readable time delay until another attempt can be made. */
 					__( 'ERROR: Too many invalid verification codes, you can try again in %s. This limit protects your account against automated attacks.', 'two-factor' ),
 					human_time_diff( $last_login + $time_delay )
 				)
@@ -1648,7 +1680,7 @@ class Two_Factor_Core {
 	/**
 	 * Determine if the user's password should be reset.
 	 *
-	 * @param int $user_id
+	 * @param int $user_id User ID.
 	 *
 	 * @return bool
 	 */
@@ -1680,7 +1712,7 @@ class Two_Factor_Core {
 	 * user. `get_user_time_delay()` mitigates brute force attempts, but this acts as an extra layer of defense
 	 * which guarantees that attackers can't brute force it (unless they compromise the new password).
 	 *
-	 * @param WP_User $user The user who failed to login
+	 * @param WP_User $user The user who failed to login.
 	 */
 	public static function reset_compromised_password( $user ) {
 		// Unhook because `wp_password_change_notification()` wouldn't notify the site admin when
@@ -1698,7 +1730,7 @@ class Two_Factor_Core {
 	/**
 	 * Notify the user and admin that a password was reset for being compromised.
 	 *
-	 * @param WP_User $user The user whose password should be reset
+	 * @param WP_User $user The user whose password should be reset.
 	 */
 	public static function send_password_reset_emails( $user ) {
 		self::notify_user_password_reset( $user );
@@ -1720,7 +1752,7 @@ class Two_Factor_Core {
 	/**
 	 * Notify the user that their password has been compromised and reset.
 	 *
-	 * @param WP_User $user The user to notify
+	 * @param WP_User $user The user to notify.
 	 *
 	 * @return bool `true` if the email was sent, `false` if it failed.
 	 */
@@ -1824,7 +1856,6 @@ class Two_Factor_Core {
 			$provider = self::get_primary_provider_for_user( $user_id );
 			return esc_html( $provider->get_label() );
 		}
-
 	}
 
 	/**
@@ -1898,7 +1929,7 @@ class Two_Factor_Core {
 		 *
 		 * @since 0.1-dev
 		 */
-		do_action( 'show_user_security_settings', $user, $providers );
+		do_action( 'show_user_security_settings', $user, $providers ); // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedHooknameFound -- Legacy unprefixed hook.
 	}
 
 	/**
@@ -1943,6 +1974,12 @@ class Two_Factor_Core {
 			<?php esc_html_e( 'Configure a primary two-factor method along with a backup method, such as Recovery Codes, to avoid being locked out if you lose access to your primary method. Methods marked as recommended are more secure and easier to use.', 'two-factor' ); ?>
 		</p>
 
+		<?php if ( function_exists( 'wp_is_application_passwords_available_for_user' ) && wp_is_application_passwords_available_for_user( $user ) ) : ?>
+		<p>
+			<?php esc_html_e( 'Authentication for REST API and XML-RPC must use application passwords (defined above) instead of your regular password.', 'two-factor' ); ?>
+		</p>
+		<?php endif; // Application passwords are supported. ?>
+
 		<?php wp_nonce_field( 'user_two_factor_options', '_nonce_user_two_factor_options', false ); ?>
 		<input type="hidden" name="<?php echo esc_attr( self::ENABLED_PROVIDERS_USER_META_KEY ); ?>[]" value="<?php /* Dummy input so $_POST value is passed when no providers are enabled. */ ?>" />
 
@@ -1954,6 +1991,7 @@ class Two_Factor_Core {
 					<td>
 						<label class="two-factor-method-label">
 							<input id="enabled-<?php echo esc_attr( $provider_key ); ?>" type="checkbox" name="<?php echo esc_attr( self::ENABLED_PROVIDERS_USER_META_KEY ); ?>[]" value="<?php echo esc_attr( $provider_key ); ?>" <?php checked( in_array( $provider_key, $enabled_providers, true ) ); ?> />
+							<?php /* translators: %s: authentication method name. */ ?>
 							<strong><?php echo esc_html( sprintf( __( 'Enable %s', 'two-factor' ), $object->get_label() ) ); ?></strong>
 							<?php if ( in_array( $provider_key, $recommended_provider_keys, true ) ) : ?>
 								<abbr title="<?php esc_attr_e( 'This method is more secure and easy to use', 'two-factor' ); ?>" class="two-factor-method-recommended"><?php esc_html_e( 'Recommended', 'two-factor' ); ?></abbr>
@@ -2035,8 +2073,8 @@ class Two_Factor_Core {
 	 *
 	 * The caller is responsible for checking the user has permission to do this.
 	 *
-	 * @param int    $user_id  The ID of the user.
-	 * @param string $provider The name of the provider class.
+	 * @param int    $user_id            The ID of the user.
+	 * @param string $provider_to_delete The name of the provider class.
 	 *
 	 * @return bool True if the provider was disabled, false otherwise.
 	 */
@@ -2107,16 +2145,20 @@ class Two_Factor_Core {
 
 				if ( $enabled_providers && ! $existing_providers && ! self::is_current_user_session_two_factor() ) {
 					// We've enabled two-factor from a non-two-factor session, set the key but not the provider, as no provider has been used yet.
-					self::update_current_user_session( array(
-						'two-factor-provider' => '',
-						'two-factor-login'    => time(),
-					) );
+					self::update_current_user_session(
+						array(
+							'two-factor-provider' => '',
+							'two-factor-login'    => time(),
+						)
+					);
 				} elseif ( $existing_providers && ! $enabled_providers ) {
 					// We've disabled two-factor, remove session metadata.
-					self::update_current_user_session( array(
-						'two-factor-provider' => null,
-						'two-factor-login'    => null,
-					) );
+					self::update_current_user_session(
+						array(
+							'two-factor-provider' => null,
+							'two-factor-login'    => null,
+						)
+					);
 				}
 			}
 

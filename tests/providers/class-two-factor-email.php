@@ -352,6 +352,9 @@ class Tests_Two_Factor_Email extends WP_UnitTestCase {
 		);
 	}
 
+	/**
+	 * Test custom token length filter.
+	 */
 	public function test_custom_token_length() {
 		$user_id = self::factory()->user->create();
 
@@ -359,7 +362,7 @@ class Tests_Two_Factor_Email extends WP_UnitTestCase {
 
 		add_filter(
 			'two_factor_email_token_length',
-			function() {
+			function () {
 				return 15;
 			}
 		);
@@ -386,7 +389,7 @@ class Tests_Two_Factor_Email extends WP_UnitTestCase {
 
 		add_filter(
 			'two_factor_email_token_ttl',
-			function() {
+			function () {
 				return 42;
 			}
 		);
@@ -401,7 +404,7 @@ class Tests_Two_Factor_Email extends WP_UnitTestCase {
 
 		add_filter(
 			'two_factor_token_ttl',
-			function() {
+			function () {
 				return 66;
 			}
 		);
@@ -414,5 +417,4 @@ class Tests_Two_Factor_Email extends WP_UnitTestCase {
 
 		remove_all_filters( 'two_factor_token_ttl' );
 	}
-
 }

@@ -14,6 +14,18 @@
  */
 class Tests_Two_Factor_Totp extends WP_UnitTestCase {
 
+	private static $token = '12345678901234567890';
+	private static $step = 30;
+
+	private static $vectors = [
+		59          => ['94287082', '46119246', '90693936'],
+		1111111109  => ['07081804', '68084774', '25091201'],
+		1111111111  => ['14050471', '67062674', '99943326'],
+		1234567890  => ['89005924', '91819424', '93441116'],
+		2000000000  => ['69279037', '90698825', '38618901'],
+		20000000000 => ['65353130', '77737706', '47863826']
+	];
+
 	/**
 	 * Instance of our provider class.
 	 *
@@ -84,7 +96,7 @@ class Tests_Two_Factor_Totp extends WP_UnitTestCase {
 	 */
 	public function test_generate_qr_code_url() {
 		$user     = new WP_User( self::factory()->user->create() );
-		$expected = 'otpauth://totp/Test%20Blog%3A'. rawurlencode( $user->user_login ) .'?secret=my%20secret%20key&#038;issuer=Test%20Blog';
+		$expected = 'otpauth://totp/Test%20Blog%3A' . rawurlencode( $user->user_login ) . '?secret=my%20secret%20key&issuer=Test%20Blog';
 		$actual   = $this->provider->generate_qr_code_url( $user, 'my secret key' );
 
 		$this->assertSame( $expected, $actual );
@@ -113,7 +125,6 @@ class Tests_Two_Factor_Totp extends WP_UnitTestCase {
 		$string_base32 = 'IVLDKWCXG5KE6TBUKFEESS2CJFDVMRKVGIZUWQKGKJHEINRWJRMQ';
 
 		$this->assertEquals( $string, $this->provider->base32_decode( $string_base32 ) );
-
 	}
 
 	/**
@@ -210,7 +221,7 @@ class Tests_Two_Factor_Totp extends WP_UnitTestCase {
 	 * @covers Two_Factor_Totp::validate_code_for_user
 	 * @covers Two_Factor_Totp::get_authcode_valid_ticktime
 	 */
-	function test_validate_authentication() {
+	public function test_validate_authentication() {
 		$user = new WP_User( self::factory()->user->create() );
 		$key  = $this->provider->generate_key();
 
@@ -240,7 +251,7 @@ class Tests_Two_Factor_Totp extends WP_UnitTestCase {
 	 *
 	 * @covers Two_Factor_Totp::validate_authentication
 	 */
-	function test_validate_authentication_invalid_chars_spaces() {
+	public function test_validate_authentication_invalid_chars_spaces() {
 		$user = new WP_User( self::factory()->user->create() );
 		$key  = $this->provider->generate_key();
 
@@ -258,7 +269,7 @@ class Tests_Two_Factor_Totp extends WP_UnitTestCase {
 		$this->assertFalse( $this->provider->validate_authentication( $user ), $_REQUEST['authcode'] );
 
 		// Validate that an authcode with leading, trailing, and middle whitespace is accepted.
-		$_REQUEST['authcode'] = ' ' . substr( $authcode, 0, 3 ) . ' ' . substr( $authcode, 3 ) . " \n"; // eg ' 123 456 \n'
+		$_REQUEST['authcode'] = ' ' . substr( $authcode, 0, 3 ) . ' ' . substr( $authcode, 3 ) . " \n"; // eg ' 123 456 \n'.
 		$this->assertTrue( $this->provider->validate_authentication( $user ), $_REQUEST['authcode'] );
 	}
 
@@ -268,7 +279,7 @@ class Tests_Two_Factor_Totp extends WP_UnitTestCase {
 	 * @covers Two_Factor_Totp::validate_code_for_user
 	 * @covers Two_Factor_Totp::get_authcode_valid_ticktime
 	 */
-	function test_validate_code_for_user() {
+	public function test_validate_code_for_user() {
 		$user = new WP_User( self::factory()->user->create() );
 		$key  = $this->provider->generate_key();
 
@@ -289,13 +300,12 @@ class Tests_Two_Factor_Totp extends WP_UnitTestCase {
 		// Validate that a second attempt with the same authcode will fail.
 		$this->assertFalse( $this->provider->validate_code_for_user( $user, $authcode ) );
 
-		// Validate that the future authcode will succeed (but not more than once)
+		// Validate that the future authcode will succeed (but not more than once).
 		$this->assertTrue( $this->provider->validate_code_for_user( $user, $nextcode ) );
 		$this->assertFalse( $this->provider->validate_code_for_user( $user, $nextcode ) );
 
 		// Validate that the older unused authcode will not succeed.
 		$this->assertFalse( $this->provider->validate_code_for_user( $user, $oldcode ) );
-
 	}
 
 	/**
@@ -303,7 +313,7 @@ class Tests_Two_Factor_Totp extends WP_UnitTestCase {
 	 *
 	 * @covers Two_Factor_Totp::get_authcode_valid_ticktime
 	 */
-	function test_get_authcode_valid_ticktime() {
+	public function test_get_authcode_valid_ticktime() {
 		$key              = $this->provider->generate_key();
 		$max_grace_period = Two_Factor_Totp::DEFAULT_TIME_STEP_ALLOWANCE;
 
@@ -316,5 +326,123 @@ class Tests_Two_Factor_Totp extends WP_UnitTestCase {
 		}
 
 		$this->assertFalse( Two_Factor_Totp::get_authcode_valid_ticktime( $key, '000000' ) );
+	}
+
+	/**
+	 * @covers Two_Factor_Totp::calc_totp
+	 */
+	public function test_sha1_generate() {
+		if ( PHP_INT_SIZE === 4 ) {
+			$this->markTestSkipped( 'calc_totp requires 64-bit PHP' );
+		}
+
+		$provider = $this->provider;
+		$hash = 'sha1';
+		$token = $provider->base32_encode( self::$token );
+
+		foreach (self::$vectors as $time => $vector) {
+			$provider::set_time( (int) $time );
+			$this->assertEquals( $vector[0], $provider::calc_totp( $token, false, 8, $hash, self::$step ) );
+			$this->assertEquals( substr( $vector[0], 2 ), $provider::calc_totp( $token, false, 6, $hash, self::$step ) );
+		}
+	}
+
+	/**
+	 * @covers Two_Factor_Totp::is_valid_authcode
+	 * @covers Two_Factor_Totp::calc_totp
+	 */
+	public function test_sha1_authenticate() {
+		if ( PHP_INT_SIZE === 4 ) {
+			$this->markTestSkipped( 'calc_totp requires 64-bit PHP' );
+		}
+
+		$provider = $this->provider;
+		$hash = 'sha1';
+		$token = $provider->base32_encode( self::$token );
+
+		foreach ( self::$vectors as $time => $vector ) {
+			$provider::set_time( (int) $time );
+			$this->assertTrue( $provider::is_valid_authcode( $token, $vector[0], $hash ) );
+			$this->assertTrue( $provider::is_valid_authcode( $token, substr( $vector[0], 2 ), $hash ) );
+		}
+	}
+
+	/**
+	 * @covers Two_Factor_Totp::calc_totp
+	 */
+	public function test_sha256_generate() {
+		if (PHP_INT_SIZE === 4) {
+			$this->markTestSkipped( 'calc_totp requires 64-bit PHP' );
+		}
+
+		$provider = $this->provider;
+		$hash = 'sha256';
+		$token = $provider->base32_encode( self::$token );
+
+		foreach ( self::$vectors as $time => $vector ) {
+			$provider::set_time( (int) $time );
+			$this->assertEquals( $vector[1], $provider::calc_totp( $token, false, 8, $hash, self::$step ) );
+			$this->assertEquals( substr( $vector[1], 2 ), $provider::calc_totp( $token, false, 6, $hash, self::$step ) );
+		}
+	}
+
+	/**
+	 * @covers Two_Factor_Totp::is_valid_authcode
+	 * @covers Two_Factor_Totp::calc_totp
+	 */
+	public function test_sha256_authenticate() {
+		if ( PHP_INT_SIZE === 4 ) {
+			$this->markTestSkipped( 'calc_totp requires 64-bit PHP' );
+		}
+
+		$provider = $this->provider;
+		$hash = 'sha256';
+		$token = $provider->base32_encode( self::$token );
+
+		foreach ( self::$vectors as $time => $vector ) {
+			$provider::set_time( (int) $time );
+			$this->assertTrue( $provider::is_valid_authcode( $token, $vector[1], $hash ) );
+			$this->assertTrue( $provider::is_valid_authcode( $token, substr( $vector[1], 2 ), $hash ) );
+		}
+	}
+
+	/**
+	 * @covers Two_Factor_Totp::calc_totp
+	 */
+	public function test_sha512_generate() {
+		if ( PHP_INT_SIZE === 4 ) {
+			$this->markTestSkipped('calc_totp requires 64-bit PHP');
+		}
+
+		$provider = $this->provider;
+		$hash = 'sha512';
+		$token = $provider->base32_encode( self::$token );
+
+		foreach ( self::$vectors as $time => $vector ) {
+			$provider::set_time( (int) $time );
+			$this->assertEquals( $vector[2], $provider::calc_totp( $token, false, 8, $hash, self::$step ) );
+			$this->assertEquals( substr($vector[2], 2 ), $provider::calc_totp( $token, false, 6, $hash, self::$step ) );
+		}
+	}
+
+	/**
+	 * @covers Two_Factor_Totp::is_valid_authcode
+	 * @covers Two_Factor_Totp::calc_totp
+	 */
+	public function test_sha512_authenticate() {
+		if ( PHP_INT_SIZE === 4 ) {
+			$this->markTestSkipped( 'calc_totp requires 64-bit PHP' );
+		}
+
+		$provider = $this->provider;
+		$hash = 'sha512';
+		$token = $provider->base32_encode( self::$token );
+
+		foreach ( self::$vectors as $time => $vector ) {
+			$provider::set_time( (int) $time );
+			$this->assertTrue( $provider::is_valid_authcode( $token, $vector[2], $hash ) );
+			$this->assertTrue( $provider::is_valid_authcode( $token, substr( $vector[2], 2 ), $hash ) );
+		}
+
 	}
 }

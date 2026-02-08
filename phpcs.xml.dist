@@ -22,6 +22,24 @@
 		<exclude-pattern>tests/providers/*.php</exclude-pattern>
 	</rule>
 
+	<!-- disable input validation on tests -->
+	<rule ref="WordPress.Security.ValidatedSanitizedInput.InputNotValidated">
+		<exclude-pattern>tests/*.php</exclude-pattern>
+		<exclude-pattern>tests/providers/*.php</exclude-pattern>
+	</rule>
+
+	<!-- disable cache constraints on tests -->
+	<rule ref="WordPressVIPMinimum.Variables.RestrictedVariables.cache_constraints___COOKIE">
+		<exclude-pattern>tests/*.php</exclude-pattern>
+		<exclude-pattern>tests/providers/*.php</exclude-pattern>
+	</rule>
+
+	<!-- disable input sanitization on tests -->
+	<rule ref="WordPress.Security.ValidatedSanitizedInput.InputNotSanitized">
+		<exclude-pattern>tests/*.php</exclude-pattern>
+		<exclude-pattern>tests/providers/*.php</exclude-pattern>
+	</rule>
+
 	<exclude-pattern>*/wordpress/*</exclude-pattern>
 	<exclude-pattern>*/dist/*</exclude-pattern>
 	<exclude-pattern>*/includes/*</exclude-pattern>
