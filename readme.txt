@@ -56,21 +56,40 @@ To report a security issue, please visit the [WordPress HackerOne](https://hacke
 
 == Changelog ==
 
+= 0.14.2 - 2025-12-11 =
+
+* **New Features:** Add filter for rest_api_can_edit_user_and_update_two_factor_options by @gutobenn in #689
+* **Development Updates:** Remove Coveralls tooling and add inline coverage report by @kasparsd in #717
+* **Development Updates:** Update blueprint path to pull from main branch instead of a deleted f… by @georgestephanis in #719
+* **Development Updates:** Fix blueprint and wporg asset deploys by @kasparsd in #734
+* **Development Updates:** Upload release only on tag releases by @kasparsd in #735
+* **Development Updates:** Bump playwright and @playwright/test by @dependabot[bot] in #721
+* **Development Updates:** Bump tar-fs from 3.1.0 to 3.1.1 by @dependabot[bot] in #720
+* **Development Updates:** Bump node-forge from 1.3.1 to 1.3.2 by @dependabot[bot] in #724
+* **Development Updates:** Bump js-yaml by @dependabot[bot] in #725
+* **Development Updates:** Mark as tested with the latest WP core version by @kasparsd in #730
+
+= 0.14.1 - 2025-09-05 =
+
+- Don't URI encode the TOTP url for display. by @dd32 in #711
+- Removed the duplicate Security.md by @slvignesh05 in #712
+- Fixed linting issues by @sudar in #707
+- Update development dependencies and fix failing QR unit test by @kasparsd in #714
+- Trigger checkbox js change event by @gedeminas in #688
+
+= 0.14.0 - 2025-07-03 =
+
+* **Features:** Enable Application Passwords for REST API and XML-RPC authentication (by default) by @joostdekeijzer in #697 and #698. Previously this required two_factor_user_api_login_enable filter to be set to true which is now the default during application password auth. XML-RPC login is still disabled for regular user passwords.
+* **Features:** Label recommended methods to simplify the configuration by @kasparsd in #676 and #675
+* **Documentation:** Add WP.org plugin demo by @kasparsd in #667
+* **Documentation:** Document supported versions of WP core and PHP by @jeffpaul in #695
+* **Documentation:** Document the release process by @jeffpaul in #684
+* **Tooling:** Remove duplicate WP.org screenshots and graphics from SVN trunk by @jeffpaul in #683
+
 = 0.13.0 - 2025-04-02 =
+
 - Add two_factor_providers_for_user filter to limit two-factor providers available to each user by @kasparsd in #669
 - Update automated testing to cover PHP 8.4 and default to PHP 8.3 by @BrookeDot in #665
-
-= 0.12.0 - 2025-02-14 =
-- Simplify the Two Factor settings in user profile by @kasparsd in #654
-- Fix PHP 8.4 Implicitly marking parameter $previous as nullable is deprecated by @BrookeDot in #664
-
-= 0.11.0 - 2025-01-09 =
-- Remove duplicate two_factor_providers filter calls to allow disabling core providers by @kasparsd in #651
-- Encourage setting up a second recovery method by @kasparsd in #642
-- Focus in code input when totp is checked by @thrijith in #645
-- Add autocomplete "one-time-code" attribute by @stefanmomm in #657
-- Add filters for email token and backup code length by @kasparsd in #653
-- Enable TOTP method when method is configured by @kasparsd in #643
 
 [View the complete changelog details here](https://github.com/wordpress/two-factor/blob/master/CHANGELOG.md).
 

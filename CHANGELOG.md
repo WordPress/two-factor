@@ -4,6 +4,41 @@ All notable changes to this project will be documented in this file, per [the Ke
 
 ## [Unreleased] - TBD
 
+## [0.14.2] - 2025-12-11
+### New Features
+- Add filter for rest_api_can_edit_user_and_update_two_factor_options by @gutobenn in #689
+
+### Development Updates
+- Remove Coveralls tooling and add inline coverage report by @kasparsd in #717
+- Update blueprint path to pull from main branch instead of a deleted f… by @georgestephanis in #719
+- Fix blueprint and wporg asset deploys by @kasparsd in #734
+- Upload release only on tag releases by @kasparsd in #735
+- Bump playwright and @playwright/test by @dependabot[bot] in #721
+- Bump tar-fs from 3.1.0 to 3.1.1 by @dependabot[bot] in #720
+- Bump node-forge from 1.3.1 to 1.3.2 by @dependabot[bot] in #724
+- Bump js-yaml by @dependabot[bot] in #725
+- Mark as tested with the latest WP core version by @kasparsd in #730
+
+## [0.14.1] - 2025-09-05
+- Don't URI encode the TOTP url for display. by @dd32 in #711
+- Removed the duplicate Security.md by @slvignesh05 in #712
+- Fixed linting issues by @sudar in #707
+- Update development dependencies and fix failing QR unit test by @kasparsd in #714
+- Trigger checkbox js change event by @gedeminas in #688
+
+## [0.14.0] - 2025-07-03
+### Features
+- Enable Application Passwords for REST API and XML-RPC authentication (by default) by @joostdekeijzer in #697 and #698. Previously this required two_factor_user_api_login_enable filter to be set to true which is now the default during application password auth. XML-RPC login is still disabled for regular user passwords.
+- Label recommended methods to simplify the configuration by @kasparsd in #676 and #675
+
+### Documentation
+- Add WP.org plugin demo by @kasparsd in #667
+- Document supported versions of WP core and PHP by @jeffpaul in #695
+- Document the release process by @jeffpaul in #684
+
+### Tooling
+- Remove duplicate WP.org screenshots and graphics from SVN trunk by @jeffpaul in #683
+
 ## [0.13.0] - 2025-04-02
 - Add two_factor_providers_for_user filter to limit two-factor providers available to each user by @kasparsd in #669
 - Update automated testing to cover PHP 8.4 and default to PHP 8.3 by @BrookeDot in #665
@@ -186,6 +221,9 @@ All notable changes to this project will be documented in this file, per [the Ke
 - Add developer tools for deploying to WP.org manually.
 
 [Unreleased]: https://github.com/WordPress/two-factor/compare/master...develop
+[0.14.0]: https://github.com/WordPress/two-factor/compare/0.14.1...0.14.2
+[0.14.0]: https://github.com/WordPress/two-factor/compare/0.14.0...0.14.1
+[0.14.0]: https://github.com/WordPress/two-factor/compare/0.13.0...0.14.0
 [0.13.0]: https://github.com/WordPress/two-factor/compare/0.12.0...0.13.0
 [0.12.0]: https://github.com/WordPress/two-factor/compare/0.11.0...0.12.0
 [0.11.0]: https://github.com/WordPress/two-factor/compare/0.10.0...0.11.0
