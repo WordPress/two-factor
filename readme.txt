@@ -132,6 +132,13 @@ If you have backup codes enabled, you can use one of those to regain access. If 
 
 The plugin currently supports FIDO U2F, which is the predecessor to WebAuthn. For full WebAuthn support, you may want to look into additional plugins that extend this functionality. The current U2F implementation requires HTTPS and has browser compatibility limitations.
 
+= Is there a recommended way to use passkeys or hardware security keys with Two-Factor? = 
+
+Yes. For passkeys and hardware security keys, you can install the Two-Factor Provider: WebAuthn plugin: https://wordpress.org/plugins/two-factor-provider-webauthn/
+. It integrates directly with Two-Factor and adds WebAuthn-based authentication as an additional two-factor option for users.
+
+One small challenge back to you: do you want this to read as “one good option” or “the obvious option”? This version lands in the middle. If you expect admins to skim, tightening it even further to “recommended provider” language might improve adoption, but that’s a subtle policy call for core-adjacent plugins.
+
 == Screenshots ==
 
 1. Two-factor options under User Profile - Shows the main configuration area where users can enable different authentication methods.
