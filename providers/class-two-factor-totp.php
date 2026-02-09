@@ -52,6 +52,31 @@ class Two_Factor_Totp extends Two_Factor_Provider {
 	}
 
 	/**
+	 * Timestamp returned by time()
+	 *
+	 * @var int $now
+	 */
+	private static $now;
+
+	/**
+	 * Override time() in the current object for testing.
+	 *
+	 * @return int
+	 */
+	private static function time() {
+		return self::$now ?: time();
+	}
+
+	/**
+	 * Set up the internal state of time() invocations for deterministic generation.
+	 *
+	 * @param int $now Timestamp to use when overriding time().
+	 */
+	public static function set_time( $now ) {
+		self::$now = $now;
+	}
+
+	/**
 	 * Register the rest-api endpoints required for this provider.
 	 *
 	 * @codeCoverageIgnore
@@ -303,7 +328,7 @@ class Two_Factor_Totp extends Two_Factor_Provider {
             </ol>
 
 			<p id="two-factor-qr-code">
-				<a href="<?php echo esc_url( $totp_url ); ?>">
+				<a href="<?php echo esc_url( $totp_url, array( 'otpauth' ) ); ?>">
 					<?php esc_html_e( 'Loading…', 'two-factor' ); ?>
 					<img src="<?php echo esc_url( admin_url( 'images/spinner.gif' ) ); ?>" alt="" />
 				</a>
@@ -559,11 +584,13 @@ class Two_Factor_Totp extends Two_Factor_Provider {
 	 *
 	 * @param string $key      The share secret key to use.
 	 * @param string $authcode The code to test.
+	 * @param string $hash      The hash used to calculate the code.
+	 * @param int    $time_step The size of the time step.
 	 *
 	 * @return bool Whether the code is valid within the time frame.
 	 */
-	public static function is_valid_authcode( $key, $authcode ) {
-		return (bool) self::get_authcode_valid_ticktime( $key, $authcode );
+	public static function is_valid_authcode( $key, $authcode, $hash = self::DEFAULT_CRYPTO, $time_step = self::DEFAULT_TIME_STEP_SEC ) {
+		return (bool) self::get_authcode_valid_ticktime( $key, $authcode, $hash, $time_step );
 	}
 
 	/**
@@ -571,10 +598,12 @@ class Two_Factor_Totp extends Two_Factor_Provider {
 	 *
 	 * @param string $key      The share secret key to use.
 	 * @param string $authcode The code to test.
+	 * @param string $hash      The hash used to calculate the code.
+	 * @param int    $time_step The size of the time step.
 	 *
 	 * @return false|int Returns the timestamp of the authcode on success, False otherwise.
 	 */
-	public static function get_authcode_valid_ticktime( $key, $authcode ) {
+	public static function get_authcode_valid_ticktime( $key, $authcode, $hash = self::DEFAULT_CRYPTO, $time_step = self::DEFAULT_TIME_STEP_SEC ) {
 		/**
 		 * Filter the maximum ticks to allow when checking valid codes.
 		 *
@@ -592,11 +621,13 @@ class Two_Factor_Totp extends Two_Factor_Provider {
 		$ticks = range( - $max_ticks, $max_ticks );
 		usort( $ticks, array( __CLASS__, 'abssort' ) );
 
-		$time = floor( time() / self::DEFAULT_TIME_STEP_SEC );
+		$time = floor( self::time() / $time_step );
+
+		$digits = strlen( $authcode );
 
 		foreach ( $ticks as $offset ) {
 			$log_time = $time + $offset;
-			if ( hash_equals( self::calc_totp( $key, $log_time ), $authcode ) ) {
+			if ( hash_equals( self::calc_totp( $key, $log_time, $digits, $hash, $time_step ), $authcode ) ) {
 				// Return the tick timestamp.
 				return $log_time * self::DEFAULT_TIME_STEP_SEC;
 			}
@@ -650,6 +681,30 @@ class Two_Factor_Totp extends Two_Factor_Provider {
 	}
 
 	/**
+	 * Pad a short secret with bytes from the same until it's the correct length
+	 * for hashing.
+	 *
+	 * @param string $secret Secret key to pad.
+	 * @param int    $length Byte length of the desired padded secret.
+	 *
+	 * @throws InvalidArgumentException If the secret or length are invalid.
+	 *
+	 * @return string
+	 */
+	protected static function pad_secret( $secret, $length ) {
+		if ( empty( $secret ) ) {
+			throw new InvalidArgumentException( 'Secret must be non-empty!' );
+		}
+
+		$length = intval( $length );
+		if ( $length <= 0 ) {
+			throw new InvalidArgumentException( 'Padding length must be non-zero' );
+		}
+
+		return str_pad( $secret, $length, $secret, STR_PAD_RIGHT );
+	}
+
+	/**
 	 * Calculate a valid code given the shared secret key
 	 *
 	 * @param string $key        The shared secret key to use for calculating code.
@@ -657,21 +712,37 @@ class Two_Factor_Totp extends Two_Factor_Provider {
 	 * @param int    $digits     The number of digits in the returned code.
 	 * @param string $hash       The hash used to calculate the code.
 	 * @param int    $time_step  The size of the time step.
+	 * 
+	 * @throws InvalidArgumentException If the hash type is invalid.
 	 *
 	 * @return string The totp code
 	 */
 	public static function calc_totp( $key, $step_count = false, $digits = self::DEFAULT_DIGIT_COUNT, $hash = self::DEFAULT_CRYPTO, $time_step = self::DEFAULT_TIME_STEP_SEC ) {
 		$secret = self::base32_decode( $key );
 
+		switch ( $hash ) {
+			case 'sha1':
+				$secret = self::pad_secret( $secret, 20 );
+				break;
+			case 'sha256':
+				$secret = self::pad_secret( $secret, 32 );
+				break;
+			case 'sha512':
+				$secret = self::pad_secret( $secret, 64 );
+				break;
+			default:
+				throw new InvalidArgumentException( 'Invalid hash type specified!' );
+		}		
+
 		if ( false === $step_count ) {
-			$step_count = floor( time() / $time_step );
+			$step_count = floor( self::time() / $time_step );
 		}
 
 		$timestamp = self::pack64( $step_count );
 
 		$hash = hash_hmac( $hash, $timestamp, $secret, true );
 
-		$offset = ord( $hash[19] ) & 0xf;
+		$offset = ord( $hash[ strlen( $hash ) - 1 ] ) & 0xf;
 
 		$code = (
 				( ( ord( $hash[ $offset + 0 ] ) & 0x7f ) << 24 ) |
