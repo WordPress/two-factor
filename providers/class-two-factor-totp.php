@@ -323,16 +323,26 @@ class Two_Factor_Totp extends Two_Factor_Provider {
                 </li>
                 <li>
                     <?php esc_html_e( 'Scan this QR code using the app you installed:', 'two-factor' ); ?>
-                    <?php /* QR image intentionally omitted. */ ?>
+
+                    <p id="two-factor-qr-code">
+                        <a href="<?php echo esc_url( $totp_url, array( 'otpauth' ) ); ?>">
+                            <?php esc_html_e( 'Loading…', 'two-factor' ); ?>
+                            <img src="<?php echo esc_url( admin_url( 'images/spinner.gif' ) ); ?>" alt="" />
+                        </a>
+                    </p>
+
+                    <p>
+                        <?php
+                            esc_html_e(
+                                'If scanning isn’t possible or doesn’t work, use the secret key shown below to manually add the account to your chosen app:',
+                                'two-factor'
+                            );
+                        ?>
+                        <br />
+                        <code><?php echo esc_html( $key ); ?></code>
+                    </p>
                 </li>
             </ol>
-
-			<p id="two-factor-qr-code">
-				<a href="<?php echo esc_url( $totp_url, array( 'otpauth' ) ); ?>">
-					<?php esc_html_e( 'Loading…', 'two-factor' ); ?>
-					<img src="<?php echo esc_url( admin_url( 'images/spinner.gif' ) ); ?>" alt="" />
-				</a>
-			</p>
 			<style>
 				#two-factor-qr-code {
 					/* The size of the image will change based on the length of the URL inside it. */
@@ -375,17 +385,6 @@ class Two_Factor_Totp extends Two_Factor_Provider {
 					}
 				})();
 			</script>
-
-			<p>
-                <?php
-                    esc_html_e(
-                        'If scanning isn’t possible or doesn’t work, use the secret key shown below to manually add the account to your chosen app:',
-                        'two-factor'
-                    );
-                ?>
-                <br />
-                <code><?php echo esc_html( $key ); ?></code>
-            </p>
 			<hr />
             <ol class="totp-steps" start="3">
                 <li>
