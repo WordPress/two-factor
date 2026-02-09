@@ -317,7 +317,7 @@ class Two_Factor_Totp extends Two_Factor_Provider {
 				<?php esc_html_e( 'Please scan the QR code or manually copy the shared secret key from below to your Authenticator app:', 'two-factor' ); ?>
 			</p>
 			<p id="two-factor-qr-code">
-				<a href="<?php echo esc_url( $totp_url ); ?>">
+				<a href="<?php echo esc_url( $totp_url, array( 'otpauth' ) ); ?>">
 					<?php esc_html_e( 'Loading…', 'two-factor' ); ?>
 					<img src="<?php echo esc_url( admin_url( 'images/spinner.gif' ) ); ?>" alt="" />
 				</a>
