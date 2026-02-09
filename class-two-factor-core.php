@@ -94,7 +94,6 @@ class Two_Factor_Core {
 	 */
 	public static function add_hooks( $compat ) {
 		add_action( 'init', array( __CLASS__, 'get_providers' ) ); // @phpstan-ignore return.void
-		add_action( 'wp_login', array( __CLASS__, 'wp_login' ), 10, 2 );
 		add_filter( 'wp_login_errors', array( __CLASS__, 'maybe_show_reset_password_notice' ) );
 		add_action( 'after_password_reset', array( __CLASS__, 'clear_password_reset_notice' ) );
 		add_action( 'login_form_validate_2fa', array( __CLASS__, 'login_form_validate_2fa' ) );
@@ -117,11 +116,13 @@ class Two_Factor_Core {
 		add_action( 'set_auth_cookie', array( __CLASS__, 'collect_auth_cookie_tokens' ) );
 		add_action( 'set_logged_in_cookie', array( __CLASS__, 'collect_auth_cookie_tokens' ) );
 
-		// Run only after the core wp_authenticate_username_password() check.
-		add_filter( 'authenticate', array( __CLASS__, 'filter_authenticate' ), 50 );
-
-		// Run as late as possible to prevent other plugins from unintentionally bypassing.
-		add_filter( 'authenticate', array( __CLASS__, 'filter_authenticate_block_cookies' ), PHP_INT_MAX );
+		/**
+		 * Enable the two-factor workflow only for login requests with username
+		 * and without an existing user cookie.
+		 *
+		 * Run after core username/password and cookie checks.
+		 */
+		add_filter( 'authenticate', array( __CLASS__, 'filter_authenticate' ), 31, 3 );
 
 		add_filter( 'attach_session_information', array( __CLASS__, 'filter_session_information' ), 10, 2 );
 
@@ -749,44 +750,33 @@ class Two_Factor_Core {
 	}
 
 	/**
-	 * Prevent login through XML-RPC and REST API for users with at least one
-	 * two-factor method enabled.
+	 * Trigget the two-factor workflow only for valid login attempts
+	 * with username present. Prevent authentication during API requests
+	 * unless explicitly enabled for the user (disabled by default).
 	 *
-	 * @param  WP_User|WP_Error $user Valid WP_User only if the previous filters
+	 * @param WP_User|WP_Error $user Valid WP_User only if the previous filters
 	 *                                have verified and confirmed the
 	 *                                authentication credentials.
+	 * @param string           $username The username.
+	 * @param string           $password The password.
 	 *
 	 * @return WP_User|WP_Error
 	 */
-	public static function filter_authenticate( $user ) {
-		if ( $user instanceof WP_User && self::is_api_request() && self::is_user_using_two_factor( $user->ID ) && ! self::is_user_api_login_enabled( $user->ID ) ) {
-			return new WP_Error(
-				'invalid_application_credentials',
-				__( 'Error: API login for user disabled.', 'two-factor' )
-			);
-		}
+	public static function filter_authenticate( $user, $username, $password ) {
+		if ( strlen( $username ) && $user instanceof WP_User && self::is_user_using_two_factor( $user->ID ) ) {
+			// Disable authentication requests for API requests for users with two-factor enabled.
+			if ( self::is_api_request() && ! self::is_user_api_login_enabled( $user->ID ) ) {
+				return new WP_Error(
+					'invalid_application_credentials',
+					__( 'Error: API login for user disabled.', 'two-factor' )
+				);
+			}
 
-		return $user;
-	}
-
-	/**
-	 * Prevent login cookies being set on login for Two Factor users.
-	 *
-	 * This makes it so that Core never sends the auth cookies. `login_form_validate_2fa()` will send them manually once the 2nd factor has been verified.
-	 *
-	 * @param  WP_User|WP_Error $user Valid WP_User only if the previous filters
-	 *                                have verified and confirmed the
-	 *                                authentication credentials.
-	 *
-	 * @return WP_User|WP_Error
-	 */
-	public static function filter_authenticate_block_cookies( $user ) {
-		/*
-		 * NOTE: The `login_init` action is checked for here to ensure we're within the regular login flow,
-		 * rather than through an unsupported 3rd-party login process which this plugin doesn't support.
-		 */
-		if ( $user instanceof WP_User && self::is_user_using_two_factor( $user->ID ) && did_action( 'login_init' ) ) {
+			// Disable core auth cookies because we must send them manually once the 2nd factor has been verified.
 			add_filter( 'send_auth_cookies', '__return_false', PHP_INT_MAX );
+
+			// Trigger the two-factor flow only for login attempts.
+			add_action( 'wp_login', array( __CLASS__, 'wp_login' ), PHP_INT_MAX, 2 );
 		}
 
 		return $user;
@@ -1448,7 +1438,7 @@ class Two_Factor_Core {
 		if ( true !== $result ) {
 			$error = '';
 			if ( is_wp_error( $result ) ) {
-				do_action( 'wp_login_failed', $user->user_login, $result );
+				do_action( 'wp_login_failed', $user->user_login, $result ); // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedHooknameFound -- Core WordPress action.
 
 				$error = $result->get_error_message();
 			}
@@ -1485,7 +1475,7 @@ class Two_Factor_Core {
 		/*
 		 * NOTE: This filter removal is not normally required, this is included for protection against
 		 * a plugin/two factor provider which runs the `authenticate` filter during it's validation.
-		 * Such a plugin would cause self::filter_authenticate_block_cookies() to run and add this filter.
+		 * Such a plugin would cause self::filter_authenticate() to run and add this filter.
 		 */
 		remove_filter( 'send_auth_cookies', '__return_false', PHP_INT_MAX );
 
@@ -1511,7 +1501,7 @@ class Two_Factor_Core {
 			</div>
 			<?php
 			/** This action is documented in wp-login.php */
-			do_action( 'login_footer' );
+			do_action( 'login_footer' ); // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedHooknameFound -- Core WordPress action.
 			?>
 			<?php if ( $customize_login ) : ?>
 				<script type="text/javascript">setTimeout( function(){ new wp.customize.Messenger({ url: '<?php echo esc_url( wp_customize_url() ); ?>', channel: 'login' }).send('login') }, 1000 );</script>
@@ -1521,7 +1511,7 @@ class Two_Factor_Core {
 			return;
 		}
 
-		$redirect_to = apply_filters( 'login_redirect', $redirect_to, $redirect_to, $user );
+		$redirect_to = apply_filters( 'login_redirect', $redirect_to, $redirect_to, $user ); // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedHooknameFound -- Core WordPress filter.
 		wp_safe_redirect( $redirect_to );
 	}
 
@@ -1579,7 +1569,7 @@ class Two_Factor_Core {
 		if ( true !== $result ) {
 			$error = '';
 			if ( is_wp_error( $result ) ) {
-				do_action( 'wp_login_failed', $user->user_login, $result );
+				do_action( 'wp_login_failed', $user->user_login, $result ); // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedHooknameFound -- Core WordPress action.
 
 				$error = $result->get_error_message();
 			}
@@ -1612,14 +1602,14 @@ class Two_Factor_Core {
 			</div>
 			<?php
 			/** This action is documented in wp-login.php */
-			do_action( 'login_footer' );
+			do_action( 'login_footer' ); // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedHooknameFound -- Core WordPress action.
 			?>
 			</body></html>
 			<?php
 			return;
 		}
 
-		$redirect_to = apply_filters( 'login_redirect', $redirect_to, $redirect_to, $user );
+		$redirect_to = apply_filters( 'login_redirect', $redirect_to, $redirect_to, $user ); // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedHooknameFound -- Core WordPress filter.
 		wp_safe_redirect( $redirect_to );
 		return;
 	}
@@ -1941,7 +1931,7 @@ class Two_Factor_Core {
 		 *
 		 * @since 0.1-dev
 		 */
-		do_action( 'show_user_security_settings', $user, $providers );
+		do_action( 'show_user_security_settings', $user, $providers ); // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedHooknameFound -- Legacy unprefixed hook.
 	}
 
 	/**
