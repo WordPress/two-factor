@@ -290,7 +290,8 @@ class Two_Factor_Totp extends Two_Factor_Provider {
 			$datetime = wp_date( get_option( 'date_format' ) . ' ' . get_option( 'time_format' ) );
 			$tz_display = wp_timezone_string();
 			?>
-			<p class="two-factor-server-datetime">
+			<p class="two-factor-server-datetime"
+				data-server-epoch="<?php echo esc_attr( time() ); ?>">
 				<?php
 				/* translators: 1: server date and time, 2: timezone. */
 				printf(
