@@ -152,6 +152,10 @@ Yes. For passkeys and hardware security keys, you can install the Two-Factor Pro
 
 == Changelog ==
 
+= 0.15.0 - 2026-02-13 =
+
+* ...
+
 = 0.14.2 - 2025-12-11 =
 
 * **New Features:** Add filter for rest_api_can_edit_user_and_update_two_factor_options by @gutobenn in [#689](https://github.com/WordPress/two-factor/pull/689)
