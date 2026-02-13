@@ -276,7 +276,7 @@ class Two_Factor_Email extends Two_Factor_Provider {
 			$token,
 			sprintf(
 				/* translators: %d: number of minutes */
-				__( "This code will expire in %d minutes.", 'two-factor' ),
+				__( 'This code will expire in %d minutes.', 'two-factor' ),
 				$ttl_minutes
 			),
 			sprintf(
