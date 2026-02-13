@@ -788,8 +788,8 @@ class Two_Factor_Core {
 	}
 
 	/**
-	 * Disable login cookies for users with two-factor enabled and disable authentication
-	 * during API requests unless explicitly enabled for the user (disabled by default).
+	 * Disable WP core login cookies for users that require second factor. Disable
+	 * authenticated API requests unless explicitly enabled for the user (disabled by default).
 	 *
 	 * @since 0.4.0
 	 *
@@ -801,6 +801,12 @@ class Two_Factor_Core {
 	 */
 	public static function filter_authenticate( $user ) {
 		if ( $user instanceof WP_User && self::is_user_using_two_factor( $user->ID ) ) {
+			/**
+			 * Prevent WP core from sending login cookies during `wp_set_auth_cookie()` and
+			 * let two-factor do it after validating the second factor.
+			 */
+			add_filter( 'send_auth_cookies', '__return_false', PHP_INT_MAX );
+
 			// Disable authentication requests for API requests for users with two-factor enabled.
 			if ( self::is_api_request() && ! self::is_user_api_login_enabled( $user->ID ) ) {
 				return new WP_Error(
@@ -808,9 +814,6 @@ class Two_Factor_Core {
 					__( 'Error: API login for user disabled.', 'two-factor' )
 				);
 			}
-
-			// Prevent WP core from sending login cookies during `wp_set_auth_cookie()` to enable two-factor auth.
-			add_filter( 'send_auth_cookies', '__return_false', PHP_INT_MAX );
 		}
 
 		return $user;
