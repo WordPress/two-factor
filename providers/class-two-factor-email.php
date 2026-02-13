@@ -261,24 +261,27 @@ class Two_Factor_Email extends Two_Factor_Provider {
 	public function generate_and_email_token( $user ) {
 		$token     = $this->generate_token( $user->ID );
 		$remote_ip = $this->get_client_ip();
+		$ttl_minutes = (int) ceil( $this->user_token_ttl( $user->ID ) / MINUTE_IN_SECONDS );
 
 		$subject = wp_strip_all_tags(
 			sprintf(
 				/* translators: %s: site name */
-				__( 'Your login confirmation code for %s', 'two-factor' ),
+				__( '[%s] Login confirmation code', 'two-factor' ),
 				wp_specialchars_decode( get_option( 'blogname' ), ENT_QUOTES )
 			)
 		);
 
 		$message_parts = array(
+			__( 'Please complete the login by entering the verification code below:', 'two-factor' ),
+			$token,
 			sprintf(
-				/* translators: %s: token */
-				__( 'Enter %s to log in.', 'two-factor' ),
-				$token
+				/* translators: %d: number of minutes */
+				__( 'This code will expire in %d minutes.', 'two-factor' ),
+				$ttl_minutes
 			),
 			sprintf(
-				/* translators: $1$s: IP address of user, %2$s: `user_login` of authenticated user */
-				__( 'Didn\'t expect this? A user from %1$s has successfully authenticated as %2$s. If this wasn\'t you, please change your password.', 'two-factor' ),
+				/* translators: $1$s: IP address of user, $2$s: user login */
+				__( 'A user from IP address %1$s has successfully authenticated as %2$s. If this wasn\'t you, please change your password.', 'two-factor' ),
 				$remote_ip,
 				$user->user_login
 			),
