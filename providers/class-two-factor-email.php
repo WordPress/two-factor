@@ -274,13 +274,8 @@ class Two_Factor_Email extends Two_Factor_Provider {
 
 		$message_parts = array(
 			sprintf(
-				/* translators: $1$s: `user_login` of authenticated user */
-				__( "A login attempt was made for account '%1\$s'.", 'two-factor' ),
-				$user->user_login
-			),
-			sprintf(
 				/* translators: %s: verification code */
-				__( "Please enter this verification code:\n\n%s", 'two-factor' ),
+				__( "Please complete the login by entering the verification code below:\n\n%s", 'two-factor' ),
 				$token
 			),
 			sprintf(
