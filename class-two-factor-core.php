@@ -901,15 +901,17 @@ class Two_Factor_Core {
 		if ( $last_failed_two_factor_login ) {
 			echo '<div id="login_notice" class="message"><strong>';
 			printf(
-				/* translators: 1: number of failed login attempts, 2: time since last failed attempt */
-				_n(
-					'WARNING: Your account has attempted to login %1$s time without providing a valid two factor token. The last failed login occurred %2$s ago. If this wasn\'t you, you should reset your password.',
-					'WARNING: Your account has attempted to login %1$s times without providing a valid two factor token. The last failed login occurred %2$s ago. If this wasn\'t you, you should reset your password.',
-					$failed_login_count,
-					'two-factor'
+				esc_html(
+					/* translators: 1: number of failed login attempts, 2: time since last failed attempt */
+					_n(
+						'WARNING: Your account has attempted to login %1$s time without providing a valid two factor token. The last failed login occurred %2$s ago. If this wasn\'t you, you should reset your password.',
+						'WARNING: Your account has attempted to login %1$s times without providing a valid two factor token. The last failed login occurred %2$s ago. If this wasn\'t you, you should reset your password.',
+						$failed_login_count,
+						'two-factor'
+					)
 				),
-				number_format_i18n( $failed_login_count ),
-				human_time_diff( $last_failed_two_factor_login, time() )
+				esc_html( number_format_i18n( $failed_login_count ) ),
+				esc_html( human_time_diff( $last_failed_two_factor_login, time() ) )
 			);
 			echo '</strong></div>';
 		}
@@ -989,7 +991,7 @@ class Two_Factor_Core {
 	public static function login_html( $user, $login_nonce, $redirect_to, $error_msg = '', $provider = null, $action = 'validate_2fa' ) {
 		$provider = self::get_provider_for_user( $user, $provider );
 		if ( ! $provider ) {
-			wp_die( __( 'Cheatin&#8217; uh?', 'two-factor' ) );
+			wp_die( esc_html__( 'Two-factor provider not available for this user.', 'two-factor' ) );
 		}
 
 		$provider_key        = $provider->get_key();
@@ -1484,7 +1486,7 @@ class Two_Factor_Core {
 
 		$provider = self::get_provider_for_user( $user, $provider );
 		if ( ! $provider ) {
-			wp_die( __( 'Cheatin&#8217; uh?', 'two-factor' ) );
+			wp_die( esc_html__( 'Two-factor provider not available for this user.', 'two-factor' ) );
 		}
 
 		// Run the provider processing.
@@ -1616,7 +1618,7 @@ class Two_Factor_Core {
 
 		$provider = self::get_provider_for_user( $user, $provider );
 		if ( ! $provider ) {
-			wp_die( __( 'Cheatin&#8217; uh?', 'two-factor' ) );
+			wp_die( esc_html__( 'Two-factor provider not available for this user.', 'two-factor' ) );
 		}
 
 		// Run the provider processing.
@@ -1683,7 +1685,7 @@ class Two_Factor_Core {
 		if ( ! $provider ) {
 			return new WP_Error(
 				'two_factor_provider_missing',
-				__( 'Cheatin&#8217; uh?', 'two-factor' )
+				esc_html__( 'Two-factor provider not available for this user.', 'two-factor' )
 			);
 		}
 
