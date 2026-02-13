@@ -1,6 +1,6 @@
 <?php
 /**
- * Two Factore Core Class.
+ * Two Factor Core Class.
  *
  * @package Two_Factor
  */
@@ -1481,7 +1481,7 @@ class Two_Factor_Core {
 		// Validate the request.
 		if ( true !== self::verify_login_nonce( $user->ID, $nonce ) ) {
 			wp_safe_redirect( home_url() );
-			return;
+			exit;
 		}
 
 		$provider = self::get_provider_for_user( $user, $provider );
@@ -1569,6 +1569,7 @@ class Two_Factor_Core {
 
 		$redirect_to = apply_filters( 'login_redirect', $redirect_to, $redirect_to, $user ); // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedHooknameFound -- Core WordPress filter.
 		wp_safe_redirect( $redirect_to );
+		exit;
 	}
 
 
@@ -1604,7 +1605,7 @@ class Two_Factor_Core {
 	public static function _login_form_revalidate_2fa( $nonce = '', $provider = '', $redirect_to = '', $is_post_request = false ) {
 		if ( ! is_user_logged_in() ) {
 			wp_safe_redirect( home_url() );
-			return;
+			exit;
 		}
 
 		$user = wp_get_current_user();
@@ -1612,7 +1613,7 @@ class Two_Factor_Core {
 		// Validate the nonce for POST requests. GET requests do not perform actions, and such do not require the nonce (such as the initial request).
 		if ( $is_post_request && ! wp_verify_nonce( $nonce, 'two_factor_revalidate_' . $user->ID ) ) {
 			wp_safe_redirect( home_url() );
-			return;
+			exit;
 		}
 
 		$provider = self::get_provider_for_user( $user, $provider );
@@ -1667,7 +1668,7 @@ class Two_Factor_Core {
 
 		$redirect_to = apply_filters( 'login_redirect', $redirect_to, $redirect_to, $user ); // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedHooknameFound -- Core WordPress filter.
 		wp_safe_redirect( $redirect_to );
-		return;
+		exit;
 	}
 
 	/**
