@@ -107,6 +107,12 @@ class Two_Factor_Core {
 		add_filter( 'wpmu_users_columns', array( __CLASS__, 'filter_manage_users_columns' ) );
 		add_filter( 'manage_users_custom_column', array( __CLASS__, 'manage_users_custom_column' ), 10, 3 );
 
+		// 1. Prevent WP core from sending login cookies after username/password authentication (priority 30).
+		add_filter( 'authenticate', array( __CLASS__, 'filter_authenticate' ), 31 );
+
+		// 2. Render two-factor UI after WP core has validated username/password during `wp_signon()`.
+		add_action( 'wp_login', array( __CLASS__, 'wp_login' ), PHP_INT_MAX, 2 );
+
 		/**
 		 * Keep track of all the user sessions for which we need to invalidate the
 		 * authentication cookies set during the initial password check.
@@ -115,14 +121,6 @@ class Two_Factor_Core {
 		 */
 		add_action( 'set_auth_cookie', array( __CLASS__, 'collect_auth_cookie_tokens' ) );
 		add_action( 'set_logged_in_cookie', array( __CLASS__, 'collect_auth_cookie_tokens' ) );
-
-		/**
-		 * Enable the two-factor workflow only for login requests with username
-		 * and without an existing user cookie.
-		 *
-		 * Run after core username/password and cookie checks.
-		 */
-		add_filter( 'authenticate', array( __CLASS__, 'filter_authenticate' ), 31, 3 );
 
 		add_filter( 'attach_session_information', array( __CLASS__, 'filter_session_information' ), 10, 2 );
 
@@ -787,21 +785,19 @@ class Two_Factor_Core {
 
 	/**
 	 * Trigget the two-factor workflow only for valid login attempts
-	 * with username present. Prevent authentication during API requests
+	 * without existing user sessions. Prevent authentication during API requests
 	 * unless explicitly enabled for the user (disabled by default).
-	 * 
+	 *
 	 * @since 0.4.0
 	 *
 	 * @param WP_User|WP_Error $user Valid WP_User only if the previous filters
 	 *                                have verified and confirmed the
 	 *                                authentication credentials.
-	 * @param string           $username The username.
-	 * @param string           $password The password.
 	 *
 	 * @return WP_User|WP_Error
 	 */
-	public static function filter_authenticate( $user, $username, $password ) {
-		if ( strlen( $username ) && $user instanceof WP_User && self::is_user_using_two_factor( $user->ID ) ) {
+	public static function filter_authenticate( $user ) {
+		if ( $user instanceof WP_User && self::is_user_using_two_factor( $user->ID ) ) {
 			// Disable authentication requests for API requests for users with two-factor enabled.
 			if ( self::is_api_request() && ! self::is_user_api_login_enabled( $user->ID ) ) {
 				return new WP_Error(
@@ -812,9 +808,6 @@ class Two_Factor_Core {
 
 			// Disable core auth cookies because we must send them manually once the 2nd factor has been verified.
 			add_filter( 'send_auth_cookies', '__return_false', PHP_INT_MAX );
-
-			// Trigger the two-factor flow only for login attempts.
-			add_action( 'wp_login', array( __CLASS__, 'wp_login' ), PHP_INT_MAX, 2 );
 		}
 
 		return $user;
