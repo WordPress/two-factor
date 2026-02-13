@@ -261,26 +261,37 @@ class Two_Factor_Email extends Two_Factor_Provider {
 	public function generate_and_email_token( $user ) {
 		$token     = $this->generate_token( $user->ID );
 		$remote_ip = $this->get_client_ip();
+		$ttl_seconds = (int) $this->user_token_ttl( $user->ID );
+		$ttl_minutes = (int) ceil( $ttl_seconds / 60 );
 
 		$subject = wp_strip_all_tags(
 			sprintf(
 				/* translators: %s: site name */
-				__( 'Your login confirmation code for %s', 'two-factor' ),
+				__( '[%s] Login confirmation code', 'two-factor' ),
 				wp_specialchars_decode( get_option( 'blogname' ), ENT_QUOTES )
 			)
 		);
 
 		$message_parts = array(
 			sprintf(
-				/* translators: %s: token */
-				__( 'Enter %s to log in.', 'two-factor' ),
+				/* translators: $1$s: `user_login` of authenticated user */
+				__( "A login attempt was made for account '%1\$s'.", 'two-factor' ),
+				$user->user_login
+			),
+			sprintf(
+				/* translators: %s: verification code */
+				__( "Please enter this verification code:\n\n%s", 'two-factor' ),
 				$token
 			),
 			sprintf(
-				/* translators: $1$s: IP address of user, %2$s: `user_login` of authenticated user */
-				__( 'Didn\'t expect this? A user from %1$s has successfully authenticated as %2$s. If this wasn\'t you, please change your password.', 'two-factor' ),
-				$remote_ip,
-				$user->user_login
+				/* translators: %d: number of minutes */
+				__( "This code will expire in %d minutes.", 'two-factor' ),
+				$ttl_minutes
+			),
+			sprintf(
+				/* translators: $1$s: IP address of user */
+				__( "This login attempt originated from the IP address %1\$s.\nIf this wasn't you, please change your password.", 'two-factor' ),
+				$remote_ip
 			),
 		);
 
