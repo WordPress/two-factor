@@ -164,6 +164,46 @@ class Tests_Two_Factor_Email extends WP_UnitTestCase {
 	}
 
 	/**
+	 * Verify that verification setup emails have correct content.
+	 *
+	 * @covers Two_Factor_Email::generate_and_email_token
+	 */
+	public function test_generate_and_email_token_verification_context() {
+		$user = new WP_User( self::factory()->user->create() );
+
+		$this->provider->generate_and_email_token( $user, 'verification_setup' );
+
+		$subject = $GLOBALS['phpmailer']->Subject;
+		$content = $GLOBALS['phpmailer']->Body;
+
+		$this->assertStringContainsString( 'Verify your email for Two-Factor Authentication', $subject );
+		$this->assertStringContainsString( 'verify your email address', $content );
+		$this->assertStringNotContainsString( 'successfully authenticated', $content );
+	}
+
+	/**
+	 * Verify that login emails have correct content arguments.
+	 *
+	 * @covers Two_Factor_Email::generate_and_email_token
+	 */
+	public function test_generate_and_email_token_login_context_correct_args() {
+		$user = new WP_User( self::factory()->user->create() );
+		// Mock REMOTE_ADDR for IP check
+		$_SERVER['REMOTE_ADDR'] = '127.0.0.1';
+
+		$this->provider->generate_and_email_token( $user, 'login' );
+
+		$content = $GLOBALS['phpmailer']->Body;
+
+		$this->assertStringContainsString( 'Enter', $content );
+		$this->assertStringContainsString( 'log in', $content );
+		// Check that IP is effectively in the message (and not the token key or something else)
+		$this->assertStringContainsString( '127.0.0.1', $content );
+		// Check that username is in the message
+		$this->assertStringContainsString( $user->user_login, $content );
+	}
+
+	/**
 	 * Verify the contents of the authentication page when no user is provided.
 	 *
 	 * @covers Two_Factor_Email::authentication_page
@@ -226,12 +266,45 @@ class Tests_Two_Factor_Email extends WP_UnitTestCase {
 	}
 
 	/**
-	 * Verify that availability returns true.
+	 * Verify that availability returns false for unverified users.
 	 *
 	 * @covers Two_Factor_Email::is_available_for_user
 	 */
 	public function test_is_available_for_user() {
-		$this->assertTrue( $this->provider->is_available_for_user( false ) );
+		$user = new WP_User( self::factory()->user->create() );
+		$this->assertFalse( $this->provider->is_available_for_user( $user ) );
+	}
+
+	/**
+	 * Verify that availability returns true for verified users.
+	 *
+	 * @covers Two_Factor_Email::is_available_for_user
+	 */
+	public function test_is_available_for_user_verified() {
+		$user = new WP_User( self::factory()->user->create() );
+		update_user_meta( $user->ID, Two_Factor_Email::VERIFIED_META_KEY, true );
+		$this->assertTrue( $this->provider->is_available_for_user( $user ) );
+	}
+
+	/**
+	 * Verify that availability returns true for users who already have it enabled (backwards compatibility).
+	 *
+	 * @covers Two_Factor_Email::is_available_for_user
+	 */
+	public function test_is_available_for_user_backwards_compat() {
+		$user = new WP_User( self::factory()->user->create() );
+		update_user_meta( $user->ID, Two_Factor_Core::ENABLED_PROVIDERS_USER_META_KEY, array( 'Two_Factor_Email' ) );
+		$this->assertTrue( $this->provider->is_available_for_user( $user ) );
+	}
+
+	/**
+	 * Verify that the verified meta key is cleaned up on uninstall.
+	 *
+	 * @covers Two_Factor_Email::uninstall_user_meta_keys
+	 */
+	public function test_verified_meta_cleanup() {
+		$keys = Two_Factor_Email::uninstall_user_meta_keys();
+		$this->assertContains( Two_Factor_Email::VERIFIED_META_KEY, $keys );
 	}
 
 	/**
@@ -247,6 +320,67 @@ class Tests_Two_Factor_Email extends WP_UnitTestCase {
 
 		$this->assertEquals( $token, $this->provider->get_user_token( $user_with_token->ID ), 'Failed to retrieve a valid user token.' );
 		$this->assertFalse( $this->provider->get_user_token( $user_without_token->ID ), 'Failed to recognize a missing token.' );
+	}
+
+	/**
+	 * Verify that pre_user_options_update blocks enabling if not verified.
+	 *
+	 * @covers Two_Factor_Email::pre_user_options_update
+	 */
+	public function test_pre_user_options_update_blocks_unverified() {
+		$user_id = self::factory()->user->create();
+		
+		// Simulate POST request trying to enable Email provider.
+		$_POST[ Two_Factor_Core::ENABLED_PROVIDERS_USER_META_KEY ] = array( 'Two_Factor_Email', 'Two_Factor_Dummy' );
+		
+		$this->provider->pre_user_options_update( $user_id );
+		
+		$this->assertNotContains( 'Two_Factor_Email', $_POST[ Two_Factor_Core::ENABLED_PROVIDERS_USER_META_KEY ] );
+		$this->assertContains( 'Two_Factor_Dummy', $_POST[ Two_Factor_Core::ENABLED_PROVIDERS_USER_META_KEY ] );
+		
+		unset( $_POST[ Two_Factor_Core::ENABLED_PROVIDERS_USER_META_KEY ] );
+	}
+
+	/**
+	 * Verify that pre_user_options_update allows keeping legacy enabled provider.
+	 *
+	 * @covers Two_Factor_Email::pre_user_options_update
+	 */
+	public function test_pre_user_options_update_allows_legacy() {
+		$user_id = self::factory()->user->create();
+		
+		// Set up legacy state: enabled but not verified.
+		update_user_meta( $user_id, Two_Factor_Core::ENABLED_PROVIDERS_USER_META_KEY, array( 'Two_Factor_Email' ) );
+		
+		// Simulate POST request keeping it enabled.
+		$_POST[ Two_Factor_Core::ENABLED_PROVIDERS_USER_META_KEY ] = array( 'Two_Factor_Email' );
+		
+		$this->provider->pre_user_options_update( $user_id );
+		
+		$this->assertContains( 'Two_Factor_Email', $_POST[ Two_Factor_Core::ENABLED_PROVIDERS_USER_META_KEY ] );
+		
+		unset( $_POST[ Two_Factor_Core::ENABLED_PROVIDERS_USER_META_KEY ] );
+	}
+
+	/**
+	 * Verify that verified users can enable the provider.
+	 *
+	 * @covers Two_Factor_Email::pre_user_options_update
+	 */
+	public function test_pre_user_options_update_allows_verified() {
+		$user_id = self::factory()->user->create();
+		
+		// Set up verified state.
+		update_user_meta( $user_id, Two_Factor_Email::VERIFIED_META_KEY, true );
+		
+		// Simulate POST request enabling it.
+		$_POST[ Two_Factor_Core::ENABLED_PROVIDERS_USER_META_KEY ] = array( 'Two_Factor_Email' );
+		
+		$this->provider->pre_user_options_update( $user_id );
+		
+		$this->assertContains( 'Two_Factor_Email', $_POST[ Two_Factor_Core::ENABLED_PROVIDERS_USER_META_KEY ] );
+		
+		unset( $_POST[ Two_Factor_Core::ENABLED_PROVIDERS_USER_META_KEY ] );
 	}
 
 	/**
