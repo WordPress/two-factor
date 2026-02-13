@@ -11,6 +11,8 @@ All notable changes to this project will be documented in this file, per [the Ke
 ### New Features
 
 - Include user IP address and contextual warning in two-factor code emails by @todeveni in [#728](https://github.com/WordPress/two-factor/pull/728)
+- Consistent user experience for TOTP setup by @kasparsd in [#792](https://github.com/WordPress/two-factor/pull/792)
+- Optimize email text for TOTP by @masteradhoc in [#789](https://github.com/WordPress/two-factor/pull/789)
 - Add "Settings" action link to plugin list for quick access to profile by @hardikRathi in [#740](https://github.com/WordPress/two-factor/pull/740)
 - Additional form hooks by @eric-michel in [#742](https://github.com/WordPress/two-factor/pull/742)
 - Full RFC6238 Compatibility by @ericmann in [#656](https://github.com/WordPress/two-factor/pull/656)
@@ -31,6 +33,7 @@ All notable changes to this project will be documented in this file, per [the Ke
 - Fix CI checks for PHP compatability by @kasparsd in [#739](https://github.com/WordPress/two-factor/pull/739)
 - Fix Playground refs by @kasparsd in [#744](https://github.com/WordPress/two-factor/pull/744)
 - Persist existing translations when introducing new helper text in emails by @kasparsd in [#745](https://github.com/WordPress/two-factor/pull/745)
+- Fix `missing_direct_file_access_protection` by @masteradhoc in [#760](https://github.com/WordPress/two-factor/pull/760)
 - Fix `mismatched_plugin_name` by @masteradhoc in [#754](https://github.com/WordPress/two-factor/pull/754)
 - Introduce Props Bot workflow by @jeffpaul in [#749](https://github.com/WordPress/two-factor/pull/749)
 - Plugin Check: Fix Missing $domain parameter by @masteradhoc in [#753](https://github.com/WordPress/two-factor/pull/753)
