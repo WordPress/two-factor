@@ -879,7 +879,7 @@ class Two_Factor_Core {
 
 		$login_nonce = self::create_login_nonce( $user->ID );
 		if ( ! $login_nonce ) {
-			wp_die( __( 'Failed to create a login nonce.', 'two-factor' ) );
+			wp_die( esc_html__( 'Failed to create a login nonce.', 'two-factor' ) );
 		}
 
 		$redirect_to = isset( $_REQUEST['redirect_to'] ) ? $_REQUEST['redirect_to'] : admin_url();
@@ -991,7 +991,7 @@ class Two_Factor_Core {
 	public static function login_html( $user, $login_nonce, $redirect_to, $error_msg = '', $provider = null, $action = 'validate_2fa' ) {
 		$provider = self::get_provider_for_user( $user, $provider );
 		if ( ! $provider ) {
-			wp_die( __( 'Two-factor provider not available for this user.', 'two-factor' ) );
+			wp_die( esc_html__( 'Two-factor provider not available for this user.', 'two-factor' ) );
 		}
 
 		$provider_key        = $provider->get_key();
@@ -1486,7 +1486,7 @@ class Two_Factor_Core {
 
 		$provider = self::get_provider_for_user( $user, $provider );
 		if ( ! $provider ) {
-			wp_die( __( 'Two-factor provider not available for this user.', 'two-factor' ) );
+			wp_die( esc_html__( 'Two-factor provider not available for this user.', 'two-factor' ) );
 		}
 
 		// Run the provider processing.
@@ -1501,7 +1501,7 @@ class Two_Factor_Core {
 
 			$login_nonce = self::create_login_nonce( $user->ID );
 			if ( ! $login_nonce ) {
-				wp_die( __( 'Failed to create a login nonce.', 'two-factor' ) );
+				wp_die( esc_html__( 'Failed to create a login nonce.', 'two-factor' ) );
 			}
 
 			self::login_html( $user, $login_nonce['key'], $redirect_to, $error, $provider );
@@ -1617,7 +1617,7 @@ class Two_Factor_Core {
 
 		$provider = self::get_provider_for_user( $user, $provider );
 		if ( ! $provider ) {
-			wp_die( __( 'Two-factor provider not available for this user.', 'two-factor' ) );
+			wp_die( esc_html__( 'Two-factor provider not available for this user.', 'two-factor' ) );
 		}
 
 		// Run the provider processing.
@@ -1684,7 +1684,7 @@ class Two_Factor_Core {
 		if ( ! $provider ) {
 			return new WP_Error(
 				'two_factor_provider_missing',
-				__( 'Two-factor provider not available for this user.', 'two-factor' )
+				esc_html__( 'Two-factor provider not available for this user.', 'two-factor' )
 			);
 		}
 
