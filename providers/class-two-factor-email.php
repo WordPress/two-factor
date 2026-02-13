@@ -280,9 +280,10 @@ class Two_Factor_Email extends Two_Factor_Provider {
 				$ttl_minutes
 			),
 			sprintf(
-				/* translators: $1$s: IP address of user */
-				__( "This login attempt originated from the IP address %1\$s.\nIf this wasn't you, please change your password.", 'two-factor' ),
-				$remote_ip
+				/* translators: $1$s: IP address of user, $2$s: user login */
+				__( 'A user from IP address %1$s has successfully authenticated as %2$s. If this wasn\'t you, please change your password.', 'two-factor' ),
+				$remote_ip,
+				$user->user_login
 			),
 		);
 
