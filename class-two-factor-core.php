@@ -788,9 +788,8 @@ class Two_Factor_Core {
 	}
 
 	/**
-	 * Trigget the two-factor workflow only for valid login attempts
-	 * without existing user sessions. Prevent authentication during API requests
-	 * unless explicitly enabled for the user (disabled by default).
+	 * Disable login cookies for users with two-factor enabled and disable authentication
+	 * during API requests unless explicitly enabled for the user (disabled by default).
 	 *
 	 * @since 0.4.0
 	 *
@@ -810,10 +809,7 @@ class Two_Factor_Core {
 				);
 			}
 
-			/**
-			 * Prevent WP core from sending login cookies during `wp_set_auth_cookie()` (called from `wp_signon()`)
-			 * so that we can check the two-factor and send the cookies then.
-			 */
+			// Prevent WP core from sending login cookies during `wp_set_auth_cookie()` to enable two-factor auth.
 			add_filter( 'send_auth_cookies', '__return_false', PHP_INT_MAX );
 		}
 
