@@ -353,10 +353,6 @@ class Two_Factor_Totp extends Two_Factor_Provider {
 						</label>
 						<input type="submit" class="button totp-submit" name="two-factor-totp-submit" value="<?php esc_attr_e( 'Verify', 'two-factor' ); ?>" />
 					</p>
-					<?php
-					$datetime = wp_date( get_option( 'date_format' ) . ' ' . get_option( 'time_format' ) );
-					$tz_display = wp_timezone_string();
-					?>
 					<p class="description">
 						<?php
 						printf(
@@ -364,9 +360,9 @@ class Two_Factor_Totp extends Two_Factor_Provider {
 							esc_html__( 'If the authentication code is rejected, please ensure that your server date and time %1$s is correct. Is is required for the authentication code to be accepted.', 'two-factor' ),
 							sprintf(
 								'<time class="two-factor-server-datetime-epoch" datetime="%1$s">%2$s (%3$s)</time>',
-								esc_attr( gmdate( 'c' ) ),
-								esc_html( $datetime ),
-								esc_html( $tz_display )
+								esc_attr( wp_date( 'c' ) ),
+								esc_html( wp_date( get_option( 'date_format' ) . ' ' . get_option( 'time_format' ) ) ),
+								esc_html( wp_timezone_string() )
 							)
 						);
 						?>
