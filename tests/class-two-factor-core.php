@@ -302,6 +302,52 @@ class Test_ClassTwoFactorCore extends WP_UnitTestCase {
 	}
 
 	/**
+	 * Verify that if a user has a non-existent provider set, that it
+	 * swaps to email instead, rather than treating the user as having
+	 * no methods enabled.
+	 */
+	public function test_deprecated_provider_for_user() {
+		$user = $this->get_dummy_user();
+
+		// Set the dummy user with a non-existent provider.
+		update_user_meta(
+			$user->ID,
+			Two_Factor_Core::ENABLED_PROVIDERS_USER_META_KEY,
+			array(
+				'Two_Factor_Deprecated',
+			)
+		);
+
+		// This should fail back to `Two_Factor_Email` then.
+		$this->assertEquals(
+			array(
+				'Two_Factor_Email',
+			),
+			array_keys( Two_Factor_Core::get_available_providers_for_user( $user ) )
+		);
+
+		// Set the dummy user with a non-existent provider and a valid one.
+		update_user_meta(
+			$user->ID,
+			Two_Factor_Core::ENABLED_PROVIDERS_USER_META_KEY,
+			array(
+				'Two_Factor_Deprecated',
+				'Two_Factor_Dummy',
+			)
+		);
+
+		// This time it should just strip out the invalid one, and not inject a new one.
+		$this->assertEquals(
+			array(
+				'Two_Factor_Dummy',
+			),
+			array_keys( Two_Factor_Core::get_available_providers_for_user( $user ) )
+		);
+
+		$this->clean_dummy_user();
+	}
+
+	/**
 	 * Verify primary provider for not-logged-in user.
 	 *
 	 * @covers Two_Factor_Core::get_primary_provider_for_user
