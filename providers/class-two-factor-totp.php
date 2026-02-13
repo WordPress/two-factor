@@ -357,7 +357,7 @@ class Two_Factor_Totp extends Two_Factor_Provider {
 						<?php
 						printf(
 							/* translators: 1: server date and time */
-							esc_html__( 'If the authentication code is rejected, please ensure that your server date and time %1$s is correct. Is is required for the authentication code to be accepted.', 'two-factor' ),
+							esc_html__( 'If the authentication code is rejected, please verify that the time reported by your server is accurate: %1$s. It is used for generating the authentication code and must match between the server and your device.', 'two-factor' ),
 							sprintf(
 								'<time class="two-factor-server-datetime-epoch" datetime="%1$s">%2$s (%3$s)</time>',
 								esc_attr( wp_date( 'c' ) ),
