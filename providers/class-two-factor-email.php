@@ -272,11 +272,8 @@ class Two_Factor_Email extends Two_Factor_Provider {
 		);
 
 		$message_parts = array(
-			sprintf(
-				/* translators: %s: verification code */
-				__( "Please complete the login by entering the verification code below:\n\n%s", 'two-factor' ),
-				$token
-			),
+			__( 'Please complete the login by entering the verification code below:', 'two-factor' ),
+			$token,
 			sprintf(
 				/* translators: %d: number of minutes */
 				__( "This code will expire in %d minutes.", 'two-factor' ),
