@@ -2103,13 +2103,15 @@ class Two_Factor_Core {
 	 */
 	private static function render_errors( array $errors ) {
 		foreach ( $errors as $error ) {
-			wp_admin_notice(
-				implode( '</p><p>', $error->get_error_messages() ),
-				array(
-					'type' => $error->get_error_data()['type'] ?? 'error',
-					'additional_classes' => [ 'inline' ],
-				)
-			);
+			if ( is_wp_error( $error ) && $error->has_errors() ) {
+				wp_admin_notice(
+					implode( '</p><p>', $error->get_error_messages() ),
+					array(
+						'type' => $error->get_error_data()['type'] ?? 'error',
+						'additional_classes' => [ 'inline' ],
+					)
+				);
+			}
 		}
 	}
 
