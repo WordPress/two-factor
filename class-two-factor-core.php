@@ -1984,8 +1984,6 @@ class Two_Factor_Core {
 	 * @param WP_User $user WP_User object of the logged-in user.
 	 */
 	public static function user_two_factor_options( $user ) {
-		$notices = array();
-
 		$providers = self::get_supported_providers_for_user( $user );
 
 		wp_enqueue_style( 'user-edit-2fa', plugins_url( 'user-edit.css', __FILE__ ), array(), TWO_FACTOR_VERSION );
@@ -2002,29 +2000,55 @@ class Two_Factor_Core {
 				self::get_user_two_factor_revalidate_url()
 			);
 
-			$notices['warning two-factor-warning-revalidate-session'] = sprintf(
-				esc_html__( 'To update your Two-Factor options, you must first revalidate your session.', 'two-factor' ) .
-					' <a class="button" href="%s">' . esc_html__( 'Revalidate now', 'two-factor' ) . '</a>',
-				esc_url( $url )
+			self::add_error(
+				new WP_Error(
+					'two_factor_revalidate_session',
+					sprintf(
+						__( 'To update your Two-Factor options, you must first revalidate your session.', 'two-factor' ) .
+						' <a class="button" href="%s">' . esc_html__( 'Revalidate now', 'two-factor' ) . '</a>',
+						esc_url( $url )
+					),
+					[
+						'type' => 'warning'
+					]
+				)
 			);
 		}
 
 		if ( empty( $providers ) ) {
-			$notices['notice two-factor-notice-no-providers-supported'] = esc_html__( 'No providers are available for your account.', 'two-factor' );
+			self::add_error(
+				new WP_Error(
+					'two_factor_no_providers_supported',
+					__( 'No providers are available for your account.', 'two-factor' ),
+					[
+						'type' => 'notice'
+					]
+				)
+			);
 		}
 
 		// Suggest enabling a backup method if only one method is enabled and there are more available.
 		if ( count( $providers ) > 1 && 1 === count( $enabled_providers ) ) {
-			$notices['warning two-factor-warning-suggest-backup'] = esc_html__( 'To prevent being locked out of your account, consider enabling a backup method like Recovery Codes in case you lose access to your primary authentication method.', 'two-factor' );
+			self::add_error(
+				new WP_Error(
+					'two_factor_suggest_backup',
+					__( 'To prevent being locked out of your account, consider enabling a backup method like Recovery Codes in case you lose access to your primary authentication method.', 'two-factor' ),
+					[
+						'type' => 'warning'
+					]
+				)
+			);
 		}
+
+		$generic_errors = array_filter(
+			self::$profile_errors,
+			static fn ( $error ) => ! array_key_exists( 'provider', $error->get_error_data() )
+		);
+
 		?>
 		<h2><?php esc_html_e( 'Two-Factor Options', 'two-factor' ); ?></h2>
 
-		<?php foreach ( $notices as $notice_type => $notice ) : ?>
-		<div class="<?php echo esc_attr( $notice_type ? 'notice inline notice-' . $notice_type : '' ); ?>">
-			<p><?php echo wp_kses_post( $notice ); ?></p>
-		</div>
-		<?php endforeach; ?>
+		<?php self::render_errors( $generic_errors ); ?>
 
 		<fieldset id="two-factor-options" <?php echo $show_2fa_options ? '' : 'disabled="disabled"'; ?>>
 		<?php
@@ -2073,6 +2097,23 @@ class Two_Factor_Core {
 	}
 
 	/**
+	 * Render WP errors.
+	 *
+	 * @param WP_Error[] $errors List of errors to render.
+	 */
+	private static function render_errors( array $errors ) {
+		foreach ( $errors as $error ) {
+			wp_admin_notice(
+				implode( '</p><p>', $error->get_error_messages() ),
+				array(
+					'type' => $error->get_error_data()['type'] ?? 'error',
+					'additional_classes' => [ 'inline' ],
+				)
+			);
+		}
+	}
+
+	/**
 	 * Render the user settings.
 	 * 
 	 * @since 0.13.0
@@ -2109,6 +2150,7 @@ class Two_Factor_Core {
 				<tr>
 					<th><?php echo esc_html( $object->get_label() ); ?></th>
 					<td>
+						<?php self::render_errors( self::get_provider_errors( $provider_key ) ); ?>
 						<label class="two-factor-method-label">
 							<input id="enabled-<?php echo esc_attr( $provider_key ); ?>" type="checkbox" name="<?php echo esc_attr( self::ENABLED_PROVIDERS_USER_META_KEY ); ?>[]" value="<?php echo esc_attr( $provider_key ); ?>" <?php checked( isset( $available_providers[ $provider_key ] ) ); ?> />
 							<?php /* translators: %s: authentication method name. */ ?>
@@ -2155,6 +2197,24 @@ class Two_Factor_Core {
 			</tbody>
 		</table>
 		<?php
+	}
+
+	/**
+	 * Get the errors marked for a specific provider.
+	 *
+	 * @param string $provider_key The provider key to get errors for.
+	 *
+	 * @return WP_Error[] List of errors for the provider.
+	 */
+	private static function get_provider_errors( string $provider_key ) {
+		return array_filter(
+			self::$profile_errors,
+			static function ( $error ) use ( $provider_key ) {
+				$error_data = $error->get_error_data();
+
+				return isset( $error_data['provider'] ) && $provider_key === $error_data['provider'];
+			}
+		);
 	}
 
 	/**
