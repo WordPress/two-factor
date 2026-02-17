@@ -2042,7 +2042,7 @@ class Two_Factor_Core {
 
 		$generic_errors = array_filter(
 			self::$profile_errors,
-			static fn ( $error ) => ! array_key_exists( 'provider', $error->get_error_data() )
+			static fn ( WP_Error $error ) => ! array_key_exists( 'provider', $error->get_error_data() )
 		);
 
 		?>
@@ -2211,11 +2211,11 @@ class Two_Factor_Core {
 	private static function get_provider_errors( string $provider_key ) {
 		return array_filter(
 			self::$profile_errors,
-			static function ( $error ) use ( $provider_key ) {
-				$error_data = $error->get_error_data();
+			static function ( WP_Error $error ) use ( $provider_key ) {
+				$error_data = $error->get_error_data(); // This currently supports only one error per instance.
 
-				return isset( $error_data['provider'] ) && $provider_key === $error_data['provider'];
-			}
+				return isset( $error_data['provider'] ) && $error_data['provider'] === $provider_key;
+			 },
 		);
 	}
 
