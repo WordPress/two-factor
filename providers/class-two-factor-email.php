@@ -259,8 +259,8 @@ class Two_Factor_Email extends Two_Factor_Provider {
 	 * @return bool Whether the email contents were sent successfully.
 	 */
 	public function generate_and_email_token( $user ) {
-		$token     = $this->generate_token( $user->ID );
-		$remote_ip = $this->get_client_ip();
+		$token       = $this->generate_token( $user->ID );
+		$remote_ip   = $this->get_client_ip();
 		$ttl_minutes = (int) ceil( $this->user_token_ttl( $user->ID ) / MINUTE_IN_SECONDS );
 
 		$subject = wp_strip_all_tags(
