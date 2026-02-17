@@ -2252,6 +2252,7 @@ class Two_Factor_Core {
 			$providers          = self::get_supported_providers_for_user( $user_id );
 			$enabled_providers  = $_POST[ self::ENABLED_PROVIDERS_USER_META_KEY ];
 			$existing_providers = self::get_enabled_providers_for_user( $user_id );
+			$provider_errors    = new WP_Error();
 
 			// Enable only the available providers.
 			$enabled_providers = array_intersect_key( $providers, array_flip( $enabled_providers ) );
@@ -2259,9 +2260,24 @@ class Two_Factor_Core {
 			// Ensure the enabled providers are configured and can be enabled.
 			foreach ( $enabled_providers as $provider_key => $provider ) {
 				if ( ! $provider->is_available_for_user( $user ) ) {
-					// TODO: Use the `user_profile_update_errors` filter to show these errors too.
 					unset( $enabled_providers[ $provider_key ] );
+
+					$provider_errors->add(
+						'two_factor_provider_not_configured_' . $provider_key,
+						sprintf(
+							/* translators: %s: provider label. */
+							__( 'The %s method must be configured before it can be enabled.', 'two-factor' ),
+							esc_html( $provider->get_label() )
+						),
+						[
+							'provider' => $provider_key,
+						]
+					);
 				}
+			}
+
+			if ( $provider_errors->has_errors() ) {
+				self::add_error( $provider_errors );
 			}
 
 			update_user_meta( $user_id, self::ENABLED_PROVIDERS_USER_META_KEY, array_keys( $enabled_providers ) );
