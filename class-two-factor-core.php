@@ -2209,13 +2209,23 @@ class Two_Factor_Core {
 				return;
 			}
 
+			$user               = self::fetch_user( $user_id );
 			$providers          = self::get_supported_providers_for_user( $user_id );
 			$enabled_providers  = $_POST[ self::ENABLED_PROVIDERS_USER_META_KEY ];
 			$existing_providers = self::get_enabled_providers_for_user( $user_id );
 
 			// Enable only the available providers.
-			$enabled_providers = array_intersect( $enabled_providers, array_keys( $providers ) );
-			update_user_meta( $user_id, self::ENABLED_PROVIDERS_USER_META_KEY, $enabled_providers );
+			$enabled_providers = array_intersect_key( $providers, array_flip( $enabled_providers ) );
+
+			// Ensure the enabled providers are configured and can be enabled.
+			foreach ( $enabled_providers as $provider_key => $provider ) {
+				if ( ! $provider->is_available_for_user( $user ) ) {
+					// TODO: Use the `user_profile_update_errors` filter to show these errors too.
+					unset( $enabled_providers[ $provider_key ] );
+				}
+			}
+
+			update_user_meta( $user_id, self::ENABLED_PROVIDERS_USER_META_KEY, array_keys( $enabled_providers ) );
 
 			// Primary provider must be enabled.
 			$new_provider = isset( $_POST[ self::PROVIDER_USER_META_KEY ] ) ? $_POST[ self::PROVIDER_USER_META_KEY ] : '';
