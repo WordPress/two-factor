@@ -568,7 +568,8 @@ class Two_Factor_Core {
 	 * @see Two_Factor_Core::get_available_providers_for_user()
 	 *
 	 * @param int|WP_User $user Optional. User ID, or WP_User object of the the user. Defaults to current user.
-	 * @return array
+	 *
+	 * @return Two_Factor_Provider[] List of provider instances indexed by provider key.
 	 */
 	public static function get_enabled_providers_for_user( $user = null ) {
 		$user = self::fetch_user( $user );
@@ -602,7 +603,7 @@ class Two_Factor_Core {
 	 * @see Two_Factor_Core::get_enabled_providers_for_user()
 	 *
 	 * @param int|WP_User $user Optional. User ID, or WP_User object of the the user. Defaults to current user.
-	 * @return array List of provider instances.
+	 * @return Two_Factor_Provider[] List of provider instances indexed by provider key.
 	 */
 	public static function get_available_providers_for_user( $user = null ) {
 		$user = self::fetch_user( $user );
