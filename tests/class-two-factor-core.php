@@ -400,38 +400,23 @@ class Test_ClassTwoFactorCore extends WP_UnitTestCase {
 
 		$this->assertFalse( Two_Factor_Core::is_api_request(), 'Is not an API request by default' );
 
-		$this->assertInstanceOf(
-			'WP_User',
-			Two_Factor_Core::filter_authenticate( $user_default, '', '' ),
-			'Existing non-2FA user session should not trigger 2FA'
+		$this->assertFalse(
+			has_filter( 'send_auth_cookies', '__return_false' ),
+			'Auth cookie block not registerd before the `authenticate` filter has run.'
 		);
 
-		$this->assertInstanceOf(
-			'WP_User',
-			Two_Factor_Core::filter_authenticate( $user_default, 'username', '' ),
-			'Existing non-2FA user login attempts should not trigger 2FA'
-		);
-
-		$this->assertInstanceOf(
-			'WP_User',
-			Two_Factor_Core::filter_authenticate( $user_2fa_enabled, '', '' ),
-			'Existing 2FA user sessions should not trigger 2FA'
-		);
+		Two_Factor_Core::filter_authenticate( $user_default );
 
 		$this->assertFalse(
-			has_action( 'wp_login', array( 'Two_Factor_Core', 'wp_login' ) ),
-			'Requests with existing user sessions should not trigger the two-factor flow'
+			has_filter( 'send_auth_cookies', '__return_false' ),
+			'User login without 2fa should not block auth cookies.'
 		);
 
-		$this->assertInstanceOf(
-			'WP_User',
-			Two_Factor_Core::filter_authenticate( $user_2fa_enabled, 'user-name', 'password' ),
-			'Existing 2FA user session with username present should forward the user'
-		);
+		Two_Factor_Core::filter_authenticate( $user_2fa_enabled );
 
-		$this->assertNotFalse(
-			has_action( 'wp_login', array( 'Two_Factor_Core', 'wp_login' ) ),
-			'Existing 2FA user session with username present should trigger two-factor flow'
+		$this->assertTrue(
+			has_filter( 'send_auth_cookies', '__return_false' ),
+			'User login with 2fa should block auth cookies.'
 		);
 	}
 
@@ -451,20 +436,20 @@ class Test_ClassTwoFactorCore extends WP_UnitTestCase {
 		$this->assertTrue( Two_Factor_Core::is_api_request(), 'Can detect an API request' );
 
 		$this->assertInstanceOf(
-			'WP_User',
-			Two_Factor_Core::filter_authenticate( $user_default, 'username', 'password' ),
+			WP_User::class,
+			Two_Factor_Core::filter_authenticate( $user_default ),
 			'Non-2FA user should be able to authenticate during API requests'
 		);
 
 		$this->assertInstanceOf(
-			'WP_Error',
-			Two_Factor_Core::filter_authenticate( $user_2fa_enabled, 'username', 'password' ),
+			WP_Error::class,
+			Two_Factor_Core::filter_authenticate( $user_2fa_enabled ),
 			'2FA user should not be able to authenticate during API requests'
 		);
 
 		$this->assertInstanceOf(
-			'WP_User',
-			Two_Factor_Core::filter_authenticate( $user_2fa_enabled, '', null ),
+			WP_User::class,
+			Two_Factor_Core::filter_authenticate( $user_2fa_enabled ),
 			'Existing user session without a username should not trigger 2FA'
 		);
 	}
