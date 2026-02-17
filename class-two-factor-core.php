@@ -2219,7 +2219,7 @@ class Two_Factor_Core {
 				$error_data = $error->get_error_data(); // This currently supports only one error per instance.
 
 				return isset( $error_data['provider'] ) && $error_data['provider'] === $provider_key;
-			},
+			}
 		);
 	}
 
