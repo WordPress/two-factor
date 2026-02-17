@@ -93,7 +93,9 @@ class Two_Factor_Core {
 	 * @since 0.2.0
 	 */
 	public static function add_hooks( $compat ) {
+		// Allow providers to register their hooks.
 		add_action( 'init', array( __CLASS__, 'get_providers' ) ); // @phpstan-ignore return.void
+
 		add_filter( 'wp_login_errors', array( __CLASS__, 'maybe_show_reset_password_notice' ) );
 		add_action( 'after_password_reset', array( __CLASS__, 'clear_password_reset_notice' ) );
 		add_action( 'login_form_validate_2fa', array( __CLASS__, 'login_form_validate_2fa' ) );
@@ -107,6 +109,12 @@ class Two_Factor_Core {
 		add_filter( 'wpmu_users_columns', array( __CLASS__, 'filter_manage_users_columns' ) );
 		add_filter( 'manage_users_custom_column', array( __CLASS__, 'manage_users_custom_column' ), 10, 3 );
 
+		// 1. Prevent WP core from sending login cookies after username/password authentication (priority 30).
+		add_filter( 'authenticate', array( __CLASS__, 'filter_authenticate' ), 31 );
+
+		// 2. Render two-factor UI after WP core has validated username/password during `wp_signon()`.
+		add_action( 'wp_login', array( __CLASS__, 'wp_login' ), PHP_INT_MAX, 2 );
+
 		/**
 		 * Keep track of all the user sessions for which we need to invalidate the
 		 * authentication cookies set during the initial password check.
@@ -115,14 +123,6 @@ class Two_Factor_Core {
 		 */
 		add_action( 'set_auth_cookie', array( __CLASS__, 'collect_auth_cookie_tokens' ) );
 		add_action( 'set_logged_in_cookie', array( __CLASS__, 'collect_auth_cookie_tokens' ) );
-
-		/**
-		 * Enable the two-factor workflow only for login requests with username
-		 * and without an existing user cookie.
-		 *
-		 * Run after core username/password and cookie checks.
-		 */
-		add_filter( 'authenticate', array( __CLASS__, 'filter_authenticate' ), 31, 3 );
 
 		add_filter( 'attach_session_information', array( __CLASS__, 'filter_session_information' ), 10, 2 );
 
@@ -746,6 +746,8 @@ class Two_Factor_Core {
 	 *
 	 * @since 0.2.0
 	 *
+	 * @see https://developer.wordpress.org/reference/hooks/wp_login/
+	 *
 	 * @param string  $user_login Username.
 	 * @param WP_User $user WP_User object of the logged-in user.
 	 */
@@ -786,22 +788,25 @@ class Two_Factor_Core {
 	}
 
 	/**
-	 * Trigget the two-factor workflow only for valid login attempts
-	 * with username present. Prevent authentication during API requests
-	 * unless explicitly enabled for the user (disabled by default).
+	 * Disable WP core login cookies for users that require second factor. Disable
+	 * authenticated API requests unless explicitly enabled for the user (disabled by default).
 	 *
 	 * @since 0.4.0
 	 *
 	 * @param WP_User|WP_Error $user Valid WP_User only if the previous filters
 	 *                                have verified and confirmed the
 	 *                                authentication credentials.
-	 * @param string           $username The username.
-	 * @param string           $password The password.
 	 *
 	 * @return WP_User|WP_Error
 	 */
-	public static function filter_authenticate( $user, $username, $password ) {
-		if ( strlen( $username ) && $user instanceof WP_User && self::is_user_using_two_factor( $user->ID ) ) {
+	public static function filter_authenticate( $user ) {
+		if ( $user instanceof WP_User && self::is_user_using_two_factor( $user->ID ) ) {
+			/**
+			 * Prevent WP core from sending login cookies during `wp_set_auth_cookie()` and
+			 * let two-factor do it after validating the second factor.
+			 */
+			add_filter( 'send_auth_cookies', '__return_false', PHP_INT_MAX );
+
 			// Disable authentication requests for API requests for users with two-factor enabled.
 			if ( self::is_api_request() && ! self::is_user_api_login_enabled( $user->ID ) ) {
 				return new WP_Error(
@@ -809,12 +814,6 @@ class Two_Factor_Core {
 					__( 'Error: API login for user disabled.', 'two-factor' )
 				);
 			}
-
-			// Disable core auth cookies because we must send them manually once the 2nd factor has been verified.
-			add_filter( 'send_auth_cookies', '__return_false', PHP_INT_MAX );
-
-			// Trigger the two-factor flow only for login attempts.
-			add_action( 'wp_login', array( __CLASS__, 'wp_login' ), PHP_INT_MAX, 2 );
 		}
 
 		return $user;
