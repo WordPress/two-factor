@@ -1288,7 +1288,7 @@ class Test_ClassTwoFactorCore extends WP_UnitTestCase {
 			array(
 				'test-key'     => true,
 				'test-key-two' => true,
-			) 
+			)
 		);
 
 		// Retrieve the session again, and verify it's updated.
@@ -1301,7 +1301,7 @@ class Test_ClassTwoFactorCore extends WP_UnitTestCase {
 		Two_Factor_Core::update_current_user_session(
 			array(
 				'test-key' => null,
-			) 
+			)
 		);
 
 		// Check the key is no longer there.
@@ -1328,7 +1328,7 @@ class Test_ClassTwoFactorCore extends WP_UnitTestCase {
 			array(
 				'two-factor-provider' => 'Two_Factor_Dummy',
 				'two-factor-login'    => time(),
-			) 
+			)
 		);
 
 		$dummy = Two_Factor_Dummy::get_instance();
@@ -1382,7 +1382,7 @@ class Test_ClassTwoFactorCore extends WP_UnitTestCase {
 		Two_Factor_Core::update_current_user_session(
 			array(
 				'two-factor-provider' => $email->get_key(),
-			) 
+			)
 		);
 
 		// Validate it's now the default for the current session.
@@ -1443,7 +1443,7 @@ class Test_ClassTwoFactorCore extends WP_UnitTestCase {
 				'two-factor-test-key1' => 'test-value',
 				'two-factor-test-key2' => 'test-value',
 				'tests-key'            => 'test-value',
-			) 
+			)
 		);
 
 		$session = Two_Factor_Core::get_current_user_session();
@@ -1512,7 +1512,7 @@ class Test_ClassTwoFactorCore extends WP_UnitTestCase {
 			'set_logged_in_cookie',
 			function ( $logged_in_cookie ) {
 				$_COOKIE[ LOGGED_IN_COOKIE ] = $logged_in_cookie;
-			} 
+			}
 		);
 
 		$user_authenticated = wp_signon(
