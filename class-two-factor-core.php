@@ -113,6 +113,7 @@ class Two_Factor_Core {
 		add_filter( 'manage_users_columns', array( __CLASS__, 'filter_manage_users_columns' ) );
 		add_filter( 'wpmu_users_columns', array( __CLASS__, 'filter_manage_users_columns' ) );
 		add_filter( 'manage_users_custom_column', array( __CLASS__, 'manage_users_custom_column' ), 10, 3 );
+		add_action( 'user_profile_update_errors', array( __CLASS__, 'action_user_profile_update_errors' ) );
 
 		/**
 		 * Keep track of all the user sessions for which we need to invalidate the
@@ -389,6 +390,25 @@ class Two_Factor_Core {
 	 */
 	private static function add_error( WP_Error $error ) {
 		self::$profile_errors[ $error->get_error_code() ] = $error;
+	}
+
+	/**
+	 * Attach Two-Factor profile errors to WordPress core profile update errors.
+	 *
+	 * @since NEXT
+	 *
+	 * @param WP_Error $errors WP_Error object passed by core.
+	 *
+	 * @return void
+	 */
+	public static function action_user_profile_update_errors( WP_Error $errors ) {
+		foreach ( self::$profile_errors as $profile_error ) {
+			foreach ( $profile_error->get_error_codes() as $code ) {
+				foreach ( $profile_error->get_error_messages( $code ) as $message ) {
+					$errors->add( $code, $message );
+				}
+			}
+		}
 	}
 
 	/**
