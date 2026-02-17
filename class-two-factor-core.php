@@ -86,6 +86,13 @@ class Two_Factor_Core {
 	private static $password_auth_tokens = array();
 
 	/**
+	 * Keep track of any errors related to setting updates.
+	 *
+	 * @var array
+	 */
+	private static $profile_errors = array();
+
+	/**
 	 * Set up filters and actions.
 	 *
 	 * @param object $compat A compatibility layer for plugins.
@@ -371,6 +378,17 @@ class Two_Factor_Core {
 		array_unshift( $links, $settings_link );
 
 		return $links;
+	}
+
+	/**
+	 * Register an error associated with the current request.
+	 *
+	 * @param WP_Error $error Error instance.
+
+	 * @return void
+	 */
+	private static function add_error( WP_Error $error ) {
+		self::$profile_errors[ $error->get_error_code() ] = $error;
 	}
 
 	/**
