@@ -6,7 +6,7 @@ All notable changes to this project will be documented in this file, per [the Ke
 
 ### Breaking Changes
 
-- Trigger two-factor flow only when expected by @kasparsd in [#660](https://github.com/WordPress/two-factor/pull/660)
+- Trigger two-factor flow only when expected by @kasparsd in [#660](https://github.com/WordPress/two-factor/pull/660) and [#793](https://github.com/WordPress/two-factor/pull/793).
 
 ### New Features
 

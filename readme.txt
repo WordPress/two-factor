@@ -154,7 +154,7 @@ Yes. For passkeys and hardware security keys, you can install the Two-Factor Pro
 
 = 0.15.0 - 2026-02-13 =
 
-* **Breaking Changes:** Trigger two-factor flow only when expected by @kasparsd in [#660](https://github.com/WordPress/two-factor/pull/660)
+* **Breaking Changes:** Trigger two-factor flow only when expected by @kasparsd in [#660](https://github.com/WordPress/two-factor/pull/660) and [#793](https://github.com/WordPress/two-factor/pull/793).
 * **New Features:** Include user IP address and contextual warning in two-factor code emails by @todeveni in [#728](https://github.com/WordPress/two-factor/pull/728)
 * **New Features:** Optimize email text for TOTP by @masteradhoc in [#789](https://github.com/WordPress/two-factor/pull/789)
 * **New Features:** Add "Settings" action link to plugin list for quick access to profile by @hardikRathi in [#740](https://github.com/WordPress/two-factor/pull/740)
