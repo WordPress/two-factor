@@ -2230,7 +2230,7 @@ class Two_Factor_Core {
 
 			// Primary provider must be enabled.
 			$new_provider = isset( $_POST[ self::PROVIDER_USER_META_KEY ] ) ? $_POST[ self::PROVIDER_USER_META_KEY ] : '';
-			if ( ! empty( $new_provider ) && in_array( $new_provider, $enabled_providers, true ) ) {
+			if ( ! empty( $new_provider ) && isset( $enabled_providers[ $new_provider ] ) ) {
 				update_user_meta( $user_id, self::PROVIDER_USER_META_KEY, $new_provider );
 			} else {
 				delete_user_meta( $user_id, self::PROVIDER_USER_META_KEY );
@@ -2263,7 +2263,7 @@ class Two_Factor_Core {
 				// No providers, enabling one (or more)
 				( ! $existing_providers && $enabled_providers ) ||
 				// Has providers, and is disabling one (or more), but remaining with 2FA.
-				( $existing_providers && $enabled_providers && array_diff( $existing_providers, $enabled_providers ) )
+				( $existing_providers && $enabled_providers && array_diff_key( $existing_providers, $enabled_providers ) )
 			) {
 				if ( $user_id === get_current_user_id() ) {
 					// Keep the current session, destroy others sessions for this user.
