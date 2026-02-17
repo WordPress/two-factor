@@ -2,7 +2,7 @@
 Contributors: georgestephanis, valendesigns, stevenkword, extendwings, sgrant, aaroncampbell, johnbillion, stevegrunwell, netweb, kasparsd, alihusnainarshad, passoniate
 Tags:         2fa, mfa, totp, authentication, security
 Tested up to: 6.9
-Stable tag:   0.14.2
+Stable tag:   0.15.0
 License:      GPL-2.0-or-later
 License URI:  https://spdx.org/licenses/GPL-2.0-or-later.html
 
@@ -137,7 +137,7 @@ If you have backup codes enabled, you can use one of those to regain access. If 
 
 The plugin currently supports FIDO U2F, which is the predecessor to WebAuthn. For full WebAuthn support, you may want to look into additional plugins that extend this functionality. The current U2F implementation requires HTTPS and has browser compatibility limitations.
 
-= Is there a recommended way to use passkeys or hardware security keys with Two-Factor? = 
+= Is there a recommended way to use passkeys or hardware security keys with Two-Factor? =
 
 Yes. For passkeys and hardware security keys, you can install the Two-Factor Provider: WebAuthn plugin: https://wordpress.org/plugins/two-factor-provider-webauthn/
 . It integrates directly with Two-Factor and adds WebAuthn-based authentication as an additional two-factor option for users.
@@ -151,6 +151,49 @@ Yes. For passkeys and hardware security keys, you can install the Two-Factor Pro
 5. Backup codes generation and management - Shows the backup codes interface for generating and managing emergency access codes.
 
 == Changelog ==
+
+= 0.15.0 - 2026-02-13 =
+
+* **Breaking Changes:** Trigger two-factor flow only when expected by @kasparsd in [#660](https://github.com/WordPress/two-factor/pull/660) and [#793](https://github.com/WordPress/two-factor/pull/793).
+* **New Features:** Include user IP address and contextual warning in two-factor code emails by @todeveni in [#728](https://github.com/WordPress/two-factor/pull/728)
+* **New Features:** Optimize email text for TOTP by @masteradhoc in [#789](https://github.com/WordPress/two-factor/pull/789)
+* **New Features:** Add "Settings" action link to plugin list for quick access to profile by @hardikRathi in [#740](https://github.com/WordPress/two-factor/pull/740)
+* **New Features:** Additional form hooks by @eric-michel in [#742](https://github.com/WordPress/two-factor/pull/742)
+* **New Features:** Full RFC6238 Compatibility by @ericmann in [#656](https://github.com/WordPress/two-factor/pull/656)
+* **New Features:** Consistent user experience for TOTP setup by @kasparsd in [#792](https://github.com/WordPress/two-factor/pull/792)
+* **Documentation:** `@since` docs by @masteradhoc in [#781](https://github.com/WordPress/two-factor/pull/781)
+* **Documentation:** Update user and admin docs, prepare for more screenshots by @jeffpaul in [#701](https://github.com/WordPress/two-factor/pull/701)
+* **Documentation:** Add changelog & credits, update release notes by @jeffpaul in [#696](https://github.com/WordPress/two-factor/pull/696)
+* **Documentation:** Clear readme.txt by @masteradhoc in [#785](https://github.com/WordPress/two-factor/pull/785)
+* **Documentation:** Add date and time information above TOTP setup instructions by @masteradhoc in [#772](https://github.com/WordPress/two-factor/pull/772)
+* **Documentation:** Clarify TOTP setup instructions by @masteradhoc in [#763](https://github.com/WordPress/two-factor/pull/763)
+* **Documentation:** Update RELEASING.md by @jeffpaul in [#787](https://github.com/WordPress/two-factor/pull/787)
+* **Development Updates:** Pause deploys to SVN trunk for merges to `master` by @kasparsd in [#738](https://github.com/WordPress/two-factor/pull/738)
+* **Development Updates:** Fix CI checks for PHP compatability by @kasparsd in [#739](https://github.com/WordPress/two-factor/pull/739)
+* **Development Updates:** Fix Playground refs by @kasparsd in [#744](https://github.com/WordPress/two-factor/pull/744)
+* **Development Updates:** Persist existing translations when introducing new helper text in emails by @kasparsd in [#745](https://github.com/WordPress/two-factor/pull/745)
+* **Development Updates:** Fix `missing_direct_file_access_protection` by @masteradhoc in [#760](https://github.com/WordPress/two-factor/pull/760)
+* **Development Updates:** Fix `mismatched_plugin_name` by @masteradhoc in [#754](https://github.com/WordPress/two-factor/pull/754)
+* **Development Updates:** Introduce Props Bot workflow by @jeffpaul in [#749](https://github.com/WordPress/two-factor/pull/749)
+* **Development Updates:** Plugin Check: Fix Missing $domain parameter by @masteradhoc in [#753](https://github.com/WordPress/two-factor/pull/753)
+* **Development Updates:** Tests: Update to supported WP version 6.8 by @masteradhoc in [#770](https://github.com/WordPress/two-factor/pull/770)
+* **Development Updates:** Fix PHP 8.5 deprecated message by @masteradhoc in [#762](https://github.com/WordPress/two-factor/pull/762)
+* **Development Updates:** Exclude 7.2 and 7.3 checks against trunk by @masteradhoc in [#769](https://github.com/WordPress/two-factor/pull/769)
+* **Development Updates:** Fix Plugin Check errors: `MissingTranslatorsComment` & `MissingSingularPlaceholder` by @masteradhoc in [#758](https://github.com/WordPress/two-factor/pull/758)
+* **Development Updates:** Add PHP 8.5 tests for latest and trunk version of WP by @masteradhoc in [#771](https://github.com/WordPress/two-factor/pull/771)
+* **Development Updates:** Add `phpcs:ignore` for falsepositives by @masteradhoc in [#777](https://github.com/WordPress/two-factor/pull/777)
+* **Development Updates:** Fix(totp): `otpauth` link in QR code URL by @sjinks in [#784](https://github.com/WordPress/two-factor/pull/784)
+* **Development Updates:** Update deploy.yml by @masteradhoc in [#773](https://github.com/WordPress/two-factor/pull/773)
+* **Development Updates:** Update required WordPress Version by @masteradhoc in [#765](https://github.com/WordPress/two-factor/pull/765)
+* **Development Updates:** Fix: ensure execution stops after redirects by @sjinks in [#786](https://github.com/WordPress/two-factor/pull/786)
+* **Development Updates:** Fix `WordPress.Security.EscapeOutput.OutputNotEscaped` errors by @masteradhoc in [#776](https://github.com/WordPress/two-factor/pull/776)
+* **Dependency Updates:** Bump qs and express by @dependabot[bot] in [#746](https://github.com/WordPress/two-factor/pull/746)
+* **Dependency Updates:** Bump lodash from 4.17.21 to 4.17.23 by @dependabot[bot] in [#750](https://github.com/WordPress/two-factor/pull/750)
+* **Dependency Updates:** Bump lodash-es from 4.17.21 to 4.17.23 by @dependabot[bot] in [#748](https://github.com/WordPress/two-factor/pull/748)
+* **Dependency Updates:** Bump phpunit/phpunit from 8.5.44 to 8.5.52 by @dependabot[bot] in [#755](https://github.com/WordPress/two-factor/pull/755)
+* **Dependency Updates:** Bump symfony/process from 5.4.47 to 5.4.51 by @dependabot[bot] in [#756](https://github.com/WordPress/two-factor/pull/756)
+* **Dependency Updates:** Bump qs and body-parser by @dependabot[bot] in [#782](https://github.com/WordPress/two-factor/pull/782)
+* **Dependency Updates:** Bump webpack from 5.101.3 to 5.105.0 by @dependabot[bot] in [#780](https://github.com/WordPress/two-factor/pull/780)
 
 = 0.14.2 - 2025-12-11 =
 
