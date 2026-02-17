@@ -2043,7 +2043,10 @@ class Two_Factor_Core {
 
 		$generic_errors = array_filter(
 			self::$profile_errors,
-			static fn ( WP_Error $error ) => ! array_key_exists( 'provider', $error->get_error_data() )
+			static function ( WP_Error $error ) {
+				$error_data = $error->get_error_data();
+				return ! empty( $error_data['provider'] ); // Where the associated provider is not set.
+			}
 		);
 
 		?>
