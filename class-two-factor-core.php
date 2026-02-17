@@ -275,7 +275,7 @@ class Two_Factor_Core {
 	 *
 	 * @since 0.2.0
 	 *
-	 * @return array
+	 * @return Two_Factor_Provider[]
 	 */
 	public static function get_providers() {
 		$providers = self::get_default_providers();
