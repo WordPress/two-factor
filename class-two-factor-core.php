@@ -93,7 +93,9 @@ class Two_Factor_Core {
 	 * @since 0.2.0
 	 */
 	public static function add_hooks( $compat ) {
+		// Allow providers to register their hooks.
 		add_action( 'init', array( __CLASS__, 'get_providers' ) ); // @phpstan-ignore return.void
+
 		add_filter( 'wp_login_errors', array( __CLASS__, 'maybe_show_reset_password_notice' ) );
 		add_action( 'after_password_reset', array( __CLASS__, 'clear_password_reset_notice' ) );
 		add_action( 'login_form_validate_2fa', array( __CLASS__, 'login_form_validate_2fa' ) );
@@ -107,6 +109,12 @@ class Two_Factor_Core {
 		add_filter( 'wpmu_users_columns', array( __CLASS__, 'filter_manage_users_columns' ) );
 		add_filter( 'manage_users_custom_column', array( __CLASS__, 'manage_users_custom_column' ), 10, 3 );
 
+		// 1. Prevent WP core from sending login cookies after username/password authentication (priority 30).
+		add_filter( 'authenticate', array( __CLASS__, 'filter_authenticate' ), 31 );
+
+		// 2. Render two-factor UI after WP core has validated username/password during `wp_signon()`.
+		add_action( 'wp_login', array( __CLASS__, 'wp_login' ), PHP_INT_MAX, 2 );
+
 		/**
 		 * Keep track of all the user sessions for which we need to invalidate the
 		 * authentication cookies set during the initial password check.
@@ -115,14 +123,6 @@ class Two_Factor_Core {
 		 */
 		add_action( 'set_auth_cookie', array( __CLASS__, 'collect_auth_cookie_tokens' ) );
 		add_action( 'set_logged_in_cookie', array( __CLASS__, 'collect_auth_cookie_tokens' ) );
-
-		/**
-		 * Enable the two-factor workflow only for login requests with username
-		 * and without an existing user cookie.
-		 *
-		 * Run after core username/password and cookie checks.
-		 */
-		add_filter( 'authenticate', array( __CLASS__, 'filter_authenticate' ), 31, 3 );
 
 		add_filter( 'attach_session_information', array( __CLASS__, 'filter_session_information' ), 10, 2 );
 
@@ -137,7 +137,7 @@ class Two_Factor_Core {
 
 	/**
 	 * Delete all plugin data on uninstall.
-	 * 
+	 *
 	 * @since 0.10.0
 	 *
 	 * @return void
@@ -205,7 +205,7 @@ class Two_Factor_Core {
 
 	/**
 	 * Get the registered providers of which some might not be enabled.
-	 * 
+	 *
 	 * @since 0.11.0
 	 *
 	 * @return array List of provider keys and paths to class files.
@@ -222,7 +222,7 @@ class Two_Factor_Core {
 
 	/**
 	 * Get the classnames for specific providers.
-	 * 
+	 *
 	 * @since 0.10.0
 	 *
 	 * @param array $providers List of paths to provider class files indexed by class names.
@@ -312,7 +312,7 @@ class Two_Factor_Core {
 
 	/**
 	 * Get providers available for user which may not be enabled or configured.
-	 * 
+	 *
 	 * @since 0.13.0
 	 *
 	 * @see Two_Factor_Core::get_enabled_providers_for_user()
@@ -336,7 +336,7 @@ class Two_Factor_Core {
 
 	/**
 	 * Enable the dummy method only during debugging.
-	 * 
+	 *
 	 * @since 0.5.2
 	 *
 	 * @param array $methods List of enabled methods.
@@ -374,7 +374,7 @@ class Two_Factor_Core {
 
 	/**
 	 * Check if the debug mode is enabled.
-	 * 
+	 *
 	 * @since 0.5.2
 	 *
 	 * @return boolean
@@ -388,7 +388,7 @@ class Two_Factor_Core {
 	 *
 	 * Fetch this from the plugin core after we introduce proper dependency injection
 	 * and get away from the singletons at the provider level (should be handled by core).
-	 * 
+	 *
 	 * @since 0.5.2
 	 *
 	 * @param integer $user_id User ID.
@@ -410,7 +410,7 @@ class Two_Factor_Core {
 
 	/**
 	 * Get the URL for resetting the secret token.
-	 * 
+	 *
 	 * @since 0.5.2
 	 *
 	 * @param integer $user_id User ID.
@@ -433,7 +433,7 @@ class Two_Factor_Core {
 
 	/**
 	 * Get the two-factor revalidate URL.
-	 * 
+	 *
 	 * @since 0.9.0
 	 *
 	 * @param bool $interim If the URL should load the interim login iframe modal.
@@ -452,7 +452,7 @@ class Two_Factor_Core {
 
 	/**
 	 * Check if a user action is valid.
-	 * 
+	 *
 	 * @since 0.5.2
 	 *
 	 * @param integer $user_id User ID.
@@ -475,7 +475,7 @@ class Two_Factor_Core {
 
 	/**
 	 * Get the ID of the user being edited.
-	 * 
+	 *
 	 * @since 0.5.2
 	 *
 	 * @return integer
@@ -496,7 +496,7 @@ class Two_Factor_Core {
 	/**
 	 * Trigger our custom update action if a valid
 	 * action request is detected and passes the nonce check.
-	 * 
+	 *
 	 * @since 0.5.2
 	 *
 	 * @return void
@@ -520,7 +520,7 @@ class Two_Factor_Core {
 	/**
 	 * Keep track of all the authentication cookies that need to be
 	 * invalidated before the second factor authentication.
-	 * 
+	 *
 	 * @since 0.5.1
 	 *
 	 * @param string $cookie Cookie string.
@@ -561,7 +561,7 @@ class Two_Factor_Core {
 	/**
 	 * Get two-factor providers that are enabled for the specified (or current) user
 	 * but might not be configured, yet.
-	 * 
+	 *
 	 * @since 0.2.0
 	 *
 	 * @see Two_Factor_Core::get_supported_providers_for_user()
@@ -595,7 +595,7 @@ class Two_Factor_Core {
 	/**
 	 * Get all two-factor providers that are both enabled and configured
 	 * for the specified (or current) user.
-	 * 
+	 *
 	 * @since 0.2.0
 	 *
 	 * @see Two_Factor_Core::get_supported_providers_for_user()
@@ -625,7 +625,7 @@ class Two_Factor_Core {
 
 	/**
 	 * Fetch the provider for the request based on the user preferences.
-	 * 
+	 *
 	 * @since 0.9.0
 	 *
 	 * @param int|WP_User        $user Optional. User ID, or WP_User object of the the user. Defaults to current user.
@@ -664,7 +664,7 @@ class Two_Factor_Core {
 	/**
 	 * Get the name of the primary provider selected by the user
 	 * and enabled for the user.
-	 * 
+	 *
 	 * @since 0.12.0
 	 *
 	 * @param WP_User|int $user User ID or instance.
@@ -746,6 +746,8 @@ class Two_Factor_Core {
 	 *
 	 * @since 0.2.0
 	 *
+	 * @see https://developer.wordpress.org/reference/hooks/wp_login/
+	 *
 	 * @param string  $user_login Username.
 	 * @param WP_User $user WP_User object of the logged-in user.
 	 */
@@ -770,7 +772,7 @@ class Two_Factor_Core {
 	 * Is there a better way of finding the current session token without
 	 * having access to the authentication cookies which are just being set
 	 * on the first password-based authentication request.
-	 * 
+	 *
 	 * @since 0.5.1
 	 *
 	 * @param \WP_User $user User object.
@@ -786,22 +788,25 @@ class Two_Factor_Core {
 	}
 
 	/**
-	 * Trigget the two-factor workflow only for valid login attempts
-	 * with username present. Prevent authentication during API requests
-	 * unless explicitly enabled for the user (disabled by default).
-	 * 
+	 * Disable WP core login cookies for users that require second factor. Disable
+	 * authenticated API requests unless explicitly enabled for the user (disabled by default).
+	 *
 	 * @since 0.4.0
 	 *
 	 * @param WP_User|WP_Error $user Valid WP_User only if the previous filters
 	 *                                have verified and confirmed the
 	 *                                authentication credentials.
-	 * @param string           $username The username.
-	 * @param string           $password The password.
 	 *
 	 * @return WP_User|WP_Error
 	 */
-	public static function filter_authenticate( $user, $username, $password ) {
-		if ( strlen( $username ) && $user instanceof WP_User && self::is_user_using_two_factor( $user->ID ) ) {
+	public static function filter_authenticate( $user ) {
+		if ( $user instanceof WP_User && self::is_user_using_two_factor( $user->ID ) ) {
+			/**
+			 * Prevent WP core from sending login cookies during `wp_set_auth_cookie()` and
+			 * let two-factor do it after validating the second factor.
+			 */
+			add_filter( 'send_auth_cookies', '__return_false', PHP_INT_MAX );
+
 			// Disable authentication requests for API requests for users with two-factor enabled.
 			if ( self::is_api_request() && ! self::is_user_api_login_enabled( $user->ID ) ) {
 				return new WP_Error(
@@ -809,12 +814,6 @@ class Two_Factor_Core {
 					__( 'Error: API login for user disabled.', 'two-factor' )
 				);
 			}
-
-			// Disable core auth cookies because we must send them manually once the 2nd factor has been verified.
-			add_filter( 'send_auth_cookies', '__return_false', PHP_INT_MAX );
-
-			// Trigger the two-factor flow only for login attempts.
-			add_action( 'wp_login', array( __CLASS__, 'wp_login' ), PHP_INT_MAX, 2 );
 		}
 
 		return $user;
@@ -824,7 +823,7 @@ class Two_Factor_Core {
 	 * If the user can login via API requests such as XML-RPC and REST.
 	 *
 	 * Only logins with application passwords are permitted by default.
-	 * 
+	 *
 	 * @since 0.4.0
 	 *
 	 * @param integer $user_id User ID.
@@ -848,7 +847,7 @@ class Two_Factor_Core {
 
 	/**
 	 * Is the current request an XML-RPC or REST request.
-	 * 
+	 *
 	 * @since 0.4.0
 	 *
 	 * @return boolean
@@ -889,7 +888,7 @@ class Two_Factor_Core {
 
 	/**
 	 * Displays a message informing the user that their account has had failed login attempts.
-	 * 
+	 *
 	 * @since 0.8.0
 	 *
 	 * @param WP_User $user WP_User object of the logged-in user.
@@ -922,7 +921,7 @@ class Two_Factor_Core {
 	 *
 	 * They were also sent an email notification in `send_password_reset_email()`, but email sent from a typical
 	 * web server is not reliable enough to trust completely.
-	 * 
+	 *
 	 * @since 0.8.0
 	 *
 	 * @param WP_Error $errors Error object.
@@ -967,7 +966,7 @@ class Two_Factor_Core {
 
 	/**
 	 * Clear the password reset notice after the user resets their password.
-	 * 
+	 *
 	 * @since 0.8.0
 	 *
 	 * @param WP_User $user User object.
@@ -1142,7 +1141,7 @@ class Two_Factor_Core {
 
 	/**
 	 * Generate the two-factor login form URL.
-	 * 
+	 *
 	 * @since 0.3.0
 	 *
 	 * @param  array  $params List of query argument pairs to add to the URL.
@@ -1173,7 +1172,7 @@ class Two_Factor_Core {
 
 	/**
 	 * Get the hash of a nonce for storage and comparison.
-	 * 
+	 *
 	 * @since 0.7.2
 	 *
 	 * @param array $nonce Nonce array to be hashed. ⚠️ This must contain user ID and expiration,
@@ -1281,7 +1280,7 @@ class Two_Factor_Core {
 	 *
 	 * This implements an increasing backoff, requiring an attacker to wait longer
 	 * each time to attempt to brute-force the login.
-	 * 
+	 *
 	 * @since 0.8.0
 	 *
 	 * @param WP_User $user The user being operated upon.
@@ -1673,7 +1672,7 @@ class Two_Factor_Core {
 
 	/**
 	 * Process the 2FA provider authentication.
-	 * 
+	 *
 	 * @since 0.9.0
 	 *
 	 * @param object  $provider        The Two Factor Provider.
@@ -1793,7 +1792,7 @@ class Two_Factor_Core {
 
 	/**
 	 * Notify the user and admin that a password was reset for being compromised.
-	 * 
+	 *
 	 * @since 0.8.0
 	 *
 	 * @param WP_User $user The user whose password should be reset.
@@ -1817,7 +1816,7 @@ class Two_Factor_Core {
 
 	/**
 	 * Notify the user that their password has been compromised and reset.
-	 * 
+	 *
 	 * @since 0.8.0
 	 *
 	 * @param WP_User $user The user to notify.
@@ -1847,7 +1846,7 @@ class Two_Factor_Core {
 
 	/**
 	 * Notify the admin that a user's password was compromised and reset.
-	 * 
+	 *
 	 * @since 0.8.0
 	 *
 	 * @param WP_User $user The user whose password was reset.
@@ -1879,7 +1878,7 @@ class Two_Factor_Core {
 
 	/**
 	 * Show the password reset error when on the login screen.
-	 * 
+	 *
 	 * @since 0.8.0
 	 */
 	public static function show_password_reset_error() {
@@ -1899,7 +1898,7 @@ class Two_Factor_Core {
 
 	/**
 	 * Filter the columns on the Users admin screen.
-	 * 
+	 *
 	 * @since 0.2.0
 	 *
 	 * @param  array $columns Available columns.
@@ -1912,7 +1911,7 @@ class Two_Factor_Core {
 
 	/**
 	 * Output the 2FA column data on the Users screen.
-	 * 
+	 *
 	 * @since 0.2.0
 	 *
 	 * @param  string $output      The column output.
@@ -2010,7 +2009,7 @@ class Two_Factor_Core {
 
 	/**
 	 * Get the recommended providers for a user.
-	 * 
+	 *
 	 * @since 0.14.0
 	 *
 	 * @param WP_User $user User instance.
@@ -2034,7 +2033,7 @@ class Two_Factor_Core {
 
 	/**
 	 * Render the user settings.
-	 * 
+	 *
 	 * @since 0.13.0
 	 *
 	 * @param WP_User $user User instance.
@@ -2121,7 +2120,7 @@ class Two_Factor_Core {
 	 * Enable a provider for a user.
 	 *
 	 * The caller is responsible for checking the user has permission to do this.
-	 * 
+	 *
 	 * @since 0.8.0
 	 *
 	 * @param int    $user_id      The ID of the user.
@@ -2154,7 +2153,7 @@ class Two_Factor_Core {
 	 * `get_primary_provider_for_user()` will pick a new one automatically.
 	 *
 	 * The caller is responsible for checking the user has permission to do this.
-	 * 
+	 *
 	 * @since 0.9.0
 	 *
 	 * @param int    $user_id            The ID of the user.
@@ -2268,7 +2267,7 @@ class Two_Factor_Core {
 	 * Update the current user session metadata.
 	 *
 	 * Any values set in $data that are null will be removed from the user session metadata.
-	 * 
+	 *
 	 * @since 0.9.0
 	 *
 	 * @param array $data The data to append/remove from the current session.
@@ -2297,7 +2296,7 @@ class Two_Factor_Core {
 
 	/**
 	 * Fetch the current user session metadata.
-	 * 
+	 *
 	 * @since 0.9.0
 	 *
 	 * @return false|array The session array, false on error.
@@ -2316,7 +2315,7 @@ class Two_Factor_Core {
 
 	/**
 	 * Should the login session persist between sessions.
-	 * 
+	 *
 	 * @since 0.5.0
 	 *
 	 * @return boolean
@@ -2337,7 +2336,7 @@ class Two_Factor_Core {
 	 * This is required as WordPress creates a new session when the user password is changed.
 	 *
 	 * @see https://core.trac.wordpress.org/ticket/58427
-	 * 
+	 *
 	 * @since 0.9.0
 	 *
 	 * @param array $session The Session information.
