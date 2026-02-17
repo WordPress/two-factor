@@ -86,6 +86,13 @@ class Two_Factor_Core {
 	private static $password_auth_tokens = array();
 
 	/**
+	 * Keep track of any errors related to setting updates.
+	 *
+	 * @var array
+	 */
+	private static $profile_errors = array();
+
+	/**
 	 * Set up filters and actions.
 	 *
 	 * @param object $compat A compatibility layer for plugins.
@@ -106,6 +113,7 @@ class Two_Factor_Core {
 		add_filter( 'manage_users_columns', array( __CLASS__, 'filter_manage_users_columns' ) );
 		add_filter( 'wpmu_users_columns', array( __CLASS__, 'filter_manage_users_columns' ) );
 		add_filter( 'manage_users_custom_column', array( __CLASS__, 'manage_users_custom_column' ), 10, 3 );
+		add_action( 'user_profile_update_errors', array( __CLASS__, 'action_user_profile_update_errors' ) );
 
 		/**
 		 * Keep track of all the user sessions for which we need to invalidate the
@@ -137,7 +145,7 @@ class Two_Factor_Core {
 
 	/**
 	 * Delete all plugin data on uninstall.
-	 * 
+	 *
 	 * @since 0.10.0
 	 *
 	 * @return void
@@ -205,7 +213,7 @@ class Two_Factor_Core {
 
 	/**
 	 * Get the registered providers of which some might not be enabled.
-	 * 
+	 *
 	 * @since 0.11.0
 	 *
 	 * @return array List of provider keys and paths to class files.
@@ -222,7 +230,7 @@ class Two_Factor_Core {
 
 	/**
 	 * Get the classnames for specific providers.
-	 * 
+	 *
 	 * @since 0.10.0
 	 *
 	 * @param array $providers List of paths to provider class files indexed by class names.
@@ -267,7 +275,7 @@ class Two_Factor_Core {
 	 *
 	 * @since 0.2.0
 	 *
-	 * @return array
+	 * @return Two_Factor_Provider[]
 	 */
 	public static function get_providers() {
 		$providers = self::get_default_providers();
@@ -312,14 +320,15 @@ class Two_Factor_Core {
 
 	/**
 	 * Get providers available for user which may not be enabled or configured.
-	 * 
+	 *
 	 * @since 0.13.0
 	 *
 	 * @see Two_Factor_Core::get_enabled_providers_for_user()
 	 * @see Two_Factor_Core::get_available_providers_for_user()
 	 *
 	 * @param  WP_User|int|null $user User ID.
-	 * @return array List of provider instances indexed by provider key.
+	 *
+	 * @return Two_Factor_Provider[] List of provider instances indexed by provider key.
 	 */
 	public static function get_supported_providers_for_user( $user = null ) {
 		$user      = self::fetch_user( $user );
@@ -336,7 +345,7 @@ class Two_Factor_Core {
 
 	/**
 	 * Enable the dummy method only during debugging.
-	 * 
+	 *
 	 * @since 0.5.2
 	 *
 	 * @param array $methods List of enabled methods.
@@ -373,8 +382,38 @@ class Two_Factor_Core {
 	}
 
 	/**
+	 * Register an error associated with the current request.
+	 *
+	 * @param WP_Error $error Error instance.
+
+	 * @return void
+	 */
+	private static function add_error( WP_Error $error ) {
+		self::$profile_errors[ $error->get_error_code() ] = $error;
+	}
+
+	/**
+	 * Attach Two-Factor profile errors to WordPress core profile update errors.
+	 *
+	 * @since NEXT
+	 *
+	 * @param WP_Error $errors WP_Error object passed by core.
+	 *
+	 * @return void
+	 */
+	public static function action_user_profile_update_errors( WP_Error $errors ) {
+		foreach ( self::$profile_errors as $profile_error ) {
+			foreach ( $profile_error->get_error_codes() as $code ) {
+				foreach ( $profile_error->get_error_messages( $code ) as $message ) {
+					$errors->add( $code, $message );
+				}
+			}
+		}
+	}
+
+	/**
 	 * Check if the debug mode is enabled.
-	 * 
+	 *
 	 * @since 0.5.2
 	 *
 	 * @return boolean
@@ -388,7 +427,7 @@ class Two_Factor_Core {
 	 *
 	 * Fetch this from the plugin core after we introduce proper dependency injection
 	 * and get away from the singletons at the provider level (should be handled by core).
-	 * 
+	 *
 	 * @since 0.5.2
 	 *
 	 * @param integer $user_id User ID.
@@ -410,7 +449,7 @@ class Two_Factor_Core {
 
 	/**
 	 * Get the URL for resetting the secret token.
-	 * 
+	 *
 	 * @since 0.5.2
 	 *
 	 * @param integer $user_id User ID.
@@ -433,7 +472,7 @@ class Two_Factor_Core {
 
 	/**
 	 * Get the two-factor revalidate URL.
-	 * 
+	 *
 	 * @since 0.9.0
 	 *
 	 * @param bool $interim If the URL should load the interim login iframe modal.
@@ -452,7 +491,7 @@ class Two_Factor_Core {
 
 	/**
 	 * Check if a user action is valid.
-	 * 
+	 *
 	 * @since 0.5.2
 	 *
 	 * @param integer $user_id User ID.
@@ -475,7 +514,7 @@ class Two_Factor_Core {
 
 	/**
 	 * Get the ID of the user being edited.
-	 * 
+	 *
 	 * @since 0.5.2
 	 *
 	 * @return integer
@@ -496,7 +535,7 @@ class Two_Factor_Core {
 	/**
 	 * Trigger our custom update action if a valid
 	 * action request is detected and passes the nonce check.
-	 * 
+	 *
 	 * @since 0.5.2
 	 *
 	 * @return void
@@ -520,7 +559,7 @@ class Two_Factor_Core {
 	/**
 	 * Keep track of all the authentication cookies that need to be
 	 * invalidated before the second factor authentication.
-	 * 
+	 *
 	 * @since 0.5.1
 	 *
 	 * @param string $cookie Cookie string.
@@ -561,14 +600,15 @@ class Two_Factor_Core {
 	/**
 	 * Get two-factor providers that are enabled for the specified (or current) user
 	 * but might not be configured, yet.
-	 * 
+	 *
 	 * @since 0.2.0
 	 *
 	 * @see Two_Factor_Core::get_supported_providers_for_user()
 	 * @see Two_Factor_Core::get_available_providers_for_user()
 	 *
 	 * @param int|WP_User $user Optional. User ID, or WP_User object of the the user. Defaults to current user.
-	 * @return array
+	 *
+	 * @return string[] List of keys of enabled providers for the user.
 	 */
 	public static function get_enabled_providers_for_user( $user = null ) {
 		$user = self::fetch_user( $user );
@@ -595,14 +635,15 @@ class Two_Factor_Core {
 	/**
 	 * Get all two-factor providers that are both enabled and configured
 	 * for the specified (or current) user.
-	 * 
+	 *
 	 * @since 0.2.0
 	 *
 	 * @see Two_Factor_Core::get_supported_providers_for_user()
 	 * @see Two_Factor_Core::get_enabled_providers_for_user()
 	 *
 	 * @param int|WP_User $user Optional. User ID, or WP_User object of the the user. Defaults to current user.
-	 * @return array List of provider instances.
+	 *
+	 * @return Two_Factor_Provider[] List of provider instances indexed by provider key.
 	 */
 	public static function get_available_providers_for_user( $user = null ) {
 		$user = self::fetch_user( $user );
@@ -625,7 +666,7 @@ class Two_Factor_Core {
 
 	/**
 	 * Fetch the provider for the request based on the user preferences.
-	 * 
+	 *
 	 * @since 0.9.0
 	 *
 	 * @param int|WP_User        $user Optional. User ID, or WP_User object of the the user. Defaults to current user.
@@ -664,7 +705,7 @@ class Two_Factor_Core {
 	/**
 	 * Get the name of the primary provider selected by the user
 	 * and enabled for the user.
-	 * 
+	 *
 	 * @since 0.12.0
 	 *
 	 * @param WP_User|int $user User ID or instance.
@@ -770,7 +811,7 @@ class Two_Factor_Core {
 	 * Is there a better way of finding the current session token without
 	 * having access to the authentication cookies which are just being set
 	 * on the first password-based authentication request.
-	 * 
+	 *
 	 * @since 0.5.1
 	 *
 	 * @param \WP_User $user User object.
@@ -789,7 +830,7 @@ class Two_Factor_Core {
 	 * Trigget the two-factor workflow only for valid login attempts
 	 * with username present. Prevent authentication during API requests
 	 * unless explicitly enabled for the user (disabled by default).
-	 * 
+	 *
 	 * @since 0.4.0
 	 *
 	 * @param WP_User|WP_Error $user Valid WP_User only if the previous filters
@@ -824,7 +865,7 @@ class Two_Factor_Core {
 	 * If the user can login via API requests such as XML-RPC and REST.
 	 *
 	 * Only logins with application passwords are permitted by default.
-	 * 
+	 *
 	 * @since 0.4.0
 	 *
 	 * @param integer $user_id User ID.
@@ -848,7 +889,7 @@ class Two_Factor_Core {
 
 	/**
 	 * Is the current request an XML-RPC or REST request.
-	 * 
+	 *
 	 * @since 0.4.0
 	 *
 	 * @return boolean
@@ -889,7 +930,7 @@ class Two_Factor_Core {
 
 	/**
 	 * Displays a message informing the user that their account has had failed login attempts.
-	 * 
+	 *
 	 * @since 0.8.0
 	 *
 	 * @param WP_User $user WP_User object of the logged-in user.
@@ -922,7 +963,7 @@ class Two_Factor_Core {
 	 *
 	 * They were also sent an email notification in `send_password_reset_email()`, but email sent from a typical
 	 * web server is not reliable enough to trust completely.
-	 * 
+	 *
 	 * @since 0.8.0
 	 *
 	 * @param WP_Error $errors Error object.
@@ -967,7 +1008,7 @@ class Two_Factor_Core {
 
 	/**
 	 * Clear the password reset notice after the user resets their password.
-	 * 
+	 *
 	 * @since 0.8.0
 	 *
 	 * @param WP_User $user User object.
@@ -1142,7 +1183,7 @@ class Two_Factor_Core {
 
 	/**
 	 * Generate the two-factor login form URL.
-	 * 
+	 *
 	 * @since 0.3.0
 	 *
 	 * @param  array  $params List of query argument pairs to add to the URL.
@@ -1173,7 +1214,7 @@ class Two_Factor_Core {
 
 	/**
 	 * Get the hash of a nonce for storage and comparison.
-	 * 
+	 *
 	 * @since 0.7.2
 	 *
 	 * @param array $nonce Nonce array to be hashed. ⚠️ This must contain user ID and expiration,
@@ -1281,7 +1322,7 @@ class Two_Factor_Core {
 	 *
 	 * This implements an increasing backoff, requiring an attacker to wait longer
 	 * each time to attempt to brute-force the login.
-	 * 
+	 *
 	 * @since 0.8.0
 	 *
 	 * @param WP_User $user The user being operated upon.
@@ -1673,7 +1714,7 @@ class Two_Factor_Core {
 
 	/**
 	 * Process the 2FA provider authentication.
-	 * 
+	 *
 	 * @since 0.9.0
 	 *
 	 * @param object  $provider        The Two Factor Provider.
@@ -1793,7 +1834,7 @@ class Two_Factor_Core {
 
 	/**
 	 * Notify the user and admin that a password was reset for being compromised.
-	 * 
+	 *
 	 * @since 0.8.0
 	 *
 	 * @param WP_User $user The user whose password should be reset.
@@ -1817,7 +1858,7 @@ class Two_Factor_Core {
 
 	/**
 	 * Notify the user that their password has been compromised and reset.
-	 * 
+	 *
 	 * @since 0.8.0
 	 *
 	 * @param WP_User $user The user to notify.
@@ -1847,7 +1888,7 @@ class Two_Factor_Core {
 
 	/**
 	 * Notify the admin that a user's password was compromised and reset.
-	 * 
+	 *
 	 * @since 0.8.0
 	 *
 	 * @param WP_User $user The user whose password was reset.
@@ -1879,7 +1920,7 @@ class Two_Factor_Core {
 
 	/**
 	 * Show the password reset error when on the login screen.
-	 * 
+	 *
 	 * @since 0.8.0
 	 */
 	public static function show_password_reset_error() {
@@ -1899,7 +1940,7 @@ class Two_Factor_Core {
 
 	/**
 	 * Filter the columns on the Users admin screen.
-	 * 
+	 *
 	 * @since 0.2.0
 	 *
 	 * @param  array $columns Available columns.
@@ -1912,7 +1953,7 @@ class Two_Factor_Core {
 
 	/**
 	 * Output the 2FA column data on the Users screen.
-	 * 
+	 *
 	 * @since 0.2.0
 	 *
 	 * @param  string $output      The column output.
@@ -1944,8 +1985,6 @@ class Two_Factor_Core {
 	 * @param WP_User $user WP_User object of the logged-in user.
 	 */
 	public static function user_two_factor_options( $user ) {
-		$notices = array();
-
 		$providers = self::get_supported_providers_for_user( $user );
 
 		wp_enqueue_style( 'user-edit-2fa', plugins_url( 'user-edit.css', __FILE__ ), array(), TWO_FACTOR_VERSION );
@@ -1962,29 +2001,58 @@ class Two_Factor_Core {
 				self::get_user_two_factor_revalidate_url()
 			);
 
-			$notices['warning two-factor-warning-revalidate-session'] = sprintf(
-				esc_html__( 'To update your Two-Factor options, you must first revalidate your session.', 'two-factor' ) .
-					' <a class="button" href="%s">' . esc_html__( 'Revalidate now', 'two-factor' ) . '</a>',
-				esc_url( $url )
+			self::add_error(
+				new WP_Error(
+					'two_factor_revalidate_session',
+					sprintf(
+						__( 'To update your Two-Factor options, you must first revalidate your session.', 'two-factor' ) .
+						' <a class="button" href="%s">' . esc_html__( 'Revalidate now', 'two-factor' ) . '</a>',
+						esc_url( $url )
+					),
+					array(
+						'type' => 'warning',
+					)
+				)
 			);
 		}
 
 		if ( empty( $providers ) ) {
-			$notices['notice two-factor-notice-no-providers-supported'] = esc_html__( 'No providers are available for your account.', 'two-factor' );
+			self::add_error(
+				new WP_Error(
+					'two_factor_no_providers_supported',
+					__( 'No providers are available for your account.', 'two-factor' ),
+					array(
+						'type' => 'notice',
+					)
+				)
+			);
 		}
 
 		// Suggest enabling a backup method if only one method is enabled and there are more available.
 		if ( count( $providers ) > 1 && 1 === count( $enabled_providers ) ) {
-			$notices['warning two-factor-warning-suggest-backup'] = esc_html__( 'To prevent being locked out of your account, consider enabling a backup method like Recovery Codes in case you lose access to your primary authentication method.', 'two-factor' );
+			self::add_error(
+				new WP_Error(
+					'two_factor_suggest_backup',
+					__( 'To prevent being locked out of your account, consider enabling a backup method like Recovery Codes in case you lose access to your primary authentication method.', 'two-factor' ),
+					array(
+						'type' => 'warning',
+					)
+				)
+			);
 		}
+
+		$generic_errors = array_filter(
+			self::$profile_errors,
+			static function ( WP_Error $error ) {
+				$error_data = $error->get_error_data();
+				return ! empty( $error_data['provider'] ); // Where the associated provider is not set.
+			}
+		);
+
 		?>
 		<h2><?php esc_html_e( 'Two-Factor Options', 'two-factor' ); ?></h2>
 
-		<?php foreach ( $notices as $notice_type => $notice ) : ?>
-		<div class="<?php echo esc_attr( $notice_type ? 'notice inline notice-' . $notice_type : '' ); ?>">
-			<p><?php echo wp_kses_post( $notice ); ?></p>
-		</div>
-		<?php endforeach; ?>
+		<?php self::render_errors( $generic_errors ); ?>
 
 		<fieldset id="two-factor-options" <?php echo $show_2fa_options ? '' : 'disabled="disabled"'; ?>>
 		<?php
@@ -2010,7 +2078,7 @@ class Two_Factor_Core {
 
 	/**
 	 * Get the recommended providers for a user.
-	 * 
+	 *
 	 * @since 0.14.0
 	 *
 	 * @param WP_User $user User instance.
@@ -2033,8 +2101,27 @@ class Two_Factor_Core {
 	}
 
 	/**
+	 * Render WP errors.
+	 *
+	 * @param WP_Error[] $errors List of errors to render.
+	 */
+	private static function render_errors( array $errors ) {
+		foreach ( $errors as $error ) {
+			if ( $error->has_errors() ) {
+				wp_admin_notice(
+					implode( '</p><p>', $error->get_error_messages() ),
+					array(
+						'type'               => $error->get_error_data()['type'] ?? 'error',
+						'additional_classes' => array( 'inline' ),
+					)
+				);
+			}
+		}
+	}
+
+	/**
 	 * Render the user settings.
-	 * 
+	 *
 	 * @since 0.13.0
 	 *
 	 * @param WP_User $user User instance.
@@ -2042,7 +2129,7 @@ class Two_Factor_Core {
 	 */
 	private static function render_user_providers_form( $user, $providers ) {
 		$primary_provider_key      = self::get_primary_provider_key_selected_for_user( $user );
-		$enabled_providers         = self::get_enabled_providers_for_user( $user );
+		$available_providers       = self::get_available_providers_for_user( $user );
 		$recommended_provider_keys = self::get_recommended_providers( $user );
 
 		// Move the recommended providers first.
@@ -2069,8 +2156,9 @@ class Two_Factor_Core {
 				<tr>
 					<th><?php echo esc_html( $object->get_label() ); ?></th>
 					<td>
+						<?php self::render_errors( self::get_provider_errors( $provider_key ) ); ?>
 						<label class="two-factor-method-label">
-							<input id="enabled-<?php echo esc_attr( $provider_key ); ?>" type="checkbox" name="<?php echo esc_attr( self::ENABLED_PROVIDERS_USER_META_KEY ); ?>[]" value="<?php echo esc_attr( $provider_key ); ?>" <?php checked( in_array( $provider_key, $enabled_providers, true ) ); ?> />
+							<input id="enabled-<?php echo esc_attr( $provider_key ); ?>" type="checkbox" name="<?php echo esc_attr( self::ENABLED_PROVIDERS_USER_META_KEY ); ?>[]" value="<?php echo esc_attr( $provider_key ); ?>" <?php checked( isset( $available_providers[ $provider_key ] ) ); ?> />
 							<?php /* translators: %s: authentication method name. */ ?>
 							<strong><?php echo esc_html( sprintf( __( 'Enable %s', 'two-factor' ), $object->get_label() ) ); ?></strong>
 							<?php if ( in_array( $provider_key, $recommended_provider_keys, true ) ) : ?>
@@ -2104,7 +2192,7 @@ class Two_Factor_Core {
 						<select name="<?php echo esc_attr( self::PROVIDER_USER_META_KEY ); ?>">
 							<option value=""><?php echo esc_html( __( 'Default', 'two-factor' ) ); ?></option>
 							<?php foreach ( $providers as $provider_key => $object ) : ?>
-								<option value="<?php echo esc_attr( $provider_key ); ?>" <?php selected( $provider_key, $primary_provider_key ); ?> <?php disabled( ! in_array( $provider_key, $enabled_providers, true ) ); ?>>
+								<option value="<?php echo esc_attr( $provider_key ); ?>" <?php selected( $provider_key, $primary_provider_key ); ?> <?php disabled( ! isset( $available_providers[ $provider_key ] ) ); ?>>
 									<?php echo esc_html( $object->get_label() ); ?>
 								</option>
 							<?php endforeach; ?>
@@ -2118,10 +2206,28 @@ class Two_Factor_Core {
 	}
 
 	/**
+	 * Get the errors marked for a specific provider.
+	 *
+	 * @param string $provider_key The provider key to get errors for.
+	 *
+	 * @return WP_Error[] List of errors for the provider.
+	 */
+	private static function get_provider_errors( string $provider_key ): array {
+		return array_filter(
+			self::$profile_errors,
+			static function ( WP_Error $error ) use ( $provider_key ) {
+				$error_data = $error->get_error_data(); // This currently supports only one error per instance.
+
+				return isset( $error_data['provider'] ) && $error_data['provider'] === $provider_key;
+			}
+		);
+	}
+
+	/**
 	 * Enable a provider for a user.
 	 *
 	 * The caller is responsible for checking the user has permission to do this.
-	 * 
+	 *
 	 * @since 0.8.0
 	 *
 	 * @param int    $user_id      The ID of the user.
@@ -2154,7 +2260,7 @@ class Two_Factor_Core {
 	 * `get_primary_provider_for_user()` will pick a new one automatically.
 	 *
 	 * The caller is responsible for checking the user has permission to do this.
-	 * 
+	 *
 	 * @since 0.9.0
 	 *
 	 * @param int    $user_id            The ID of the user.
@@ -2208,17 +2314,40 @@ class Two_Factor_Core {
 				return;
 			}
 
+			$user               = self::fetch_user( $user_id );
 			$providers          = self::get_supported_providers_for_user( $user_id );
 			$enabled_providers  = $_POST[ self::ENABLED_PROVIDERS_USER_META_KEY ];
 			$existing_providers = self::get_enabled_providers_for_user( $user_id );
 
 			// Enable only the available providers.
-			$enabled_providers = array_intersect( $enabled_providers, array_keys( $providers ) );
-			update_user_meta( $user_id, self::ENABLED_PROVIDERS_USER_META_KEY, $enabled_providers );
+			$enabled_providers = array_intersect_key( $providers, array_flip( $enabled_providers ) );
+
+			// Ensure the enabled providers are configured and can be enabled.
+			foreach ( $enabled_providers as $provider_key => $provider ) {
+				if ( ! $provider->is_available_for_user( $user ) ) {
+					unset( $enabled_providers[ $provider_key ] );
+
+					self::add_error(
+						new WP_Error(
+							'two_factor_provider_not_configured_' . $provider_key,
+							sprintf(
+								/* translators: %s: provider label. */
+								__( 'The %s method must be configured before it can be enabled.', 'two-factor' ),
+								esc_html( $provider->get_label() )
+							),
+							array(
+								'provider' => $provider_key,
+							)
+						)
+					);
+				}
+			}
+
+			update_user_meta( $user_id, self::ENABLED_PROVIDERS_USER_META_KEY, array_keys( $enabled_providers ) );
 
 			// Primary provider must be enabled.
 			$new_provider = isset( $_POST[ self::PROVIDER_USER_META_KEY ] ) ? $_POST[ self::PROVIDER_USER_META_KEY ] : '';
-			if ( ! empty( $new_provider ) && in_array( $new_provider, $enabled_providers, true ) ) {
+			if ( ! empty( $new_provider ) && isset( $enabled_providers[ $new_provider ] ) ) {
 				update_user_meta( $user_id, self::PROVIDER_USER_META_KEY, $new_provider );
 			} else {
 				delete_user_meta( $user_id, self::PROVIDER_USER_META_KEY );
@@ -2251,7 +2380,7 @@ class Two_Factor_Core {
 				// No providers, enabling one (or more)
 				( ! $existing_providers && $enabled_providers ) ||
 				// Has providers, and is disabling one (or more), but remaining with 2FA.
-				( $existing_providers && $enabled_providers && array_diff( $existing_providers, $enabled_providers ) )
+				( $existing_providers && $enabled_providers && array_diff_key( $existing_providers, $enabled_providers ) )
 			) {
 				if ( $user_id === get_current_user_id() ) {
 					// Keep the current session, destroy others sessions for this user.
@@ -2268,7 +2397,7 @@ class Two_Factor_Core {
 	 * Update the current user session metadata.
 	 *
 	 * Any values set in $data that are null will be removed from the user session metadata.
-	 * 
+	 *
 	 * @since 0.9.0
 	 *
 	 * @param array $data The data to append/remove from the current session.
@@ -2297,7 +2426,7 @@ class Two_Factor_Core {
 
 	/**
 	 * Fetch the current user session metadata.
-	 * 
+	 *
 	 * @since 0.9.0
 	 *
 	 * @return false|array The session array, false on error.
@@ -2316,7 +2445,7 @@ class Two_Factor_Core {
 
 	/**
 	 * Should the login session persist between sessions.
-	 * 
+	 *
 	 * @since 0.5.0
 	 *
 	 * @return boolean
@@ -2337,7 +2466,7 @@ class Two_Factor_Core {
 	 * This is required as WordPress creates a new session when the user password is changed.
 	 *
 	 * @see https://core.trac.wordpress.org/ticket/58427
-	 * 
+	 *
 	 * @since 0.9.0
 	 *
 	 * @param array $session The Session information.
