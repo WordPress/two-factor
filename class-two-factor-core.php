@@ -2008,9 +2008,9 @@ class Two_Factor_Core {
 						' <a class="button" href="%s">' . esc_html__( 'Revalidate now', 'two-factor' ) . '</a>',
 						esc_url( $url )
 					),
-					[
-						'type' => 'warning'
-					]
+					array(
+						'type' => 'warning',
+					)
 				)
 			);
 		}
@@ -2020,9 +2020,9 @@ class Two_Factor_Core {
 				new WP_Error(
 					'two_factor_no_providers_supported',
 					__( 'No providers are available for your account.', 'two-factor' ),
-					[
-						'type' => 'notice'
-					]
+					array(
+						'type' => 'notice',
+					)
 				)
 			);
 		}
@@ -2033,9 +2033,9 @@ class Two_Factor_Core {
 				new WP_Error(
 					'two_factor_suggest_backup',
 					__( 'To prevent being locked out of your account, consider enabling a backup method like Recovery Codes in case you lose access to your primary authentication method.', 'two-factor' ),
-					[
-						'type' => 'warning'
-					]
+					array(
+						'type' => 'warning',
+					)
 				)
 			);
 		}
@@ -2107,8 +2107,8 @@ class Two_Factor_Core {
 				wp_admin_notice(
 					implode( '</p><p>', $error->get_error_messages() ),
 					array(
-						'type' => $error->get_error_data()['type'] ?? 'error',
-						'additional_classes' => [ 'inline' ],
+						'type'               => $error->get_error_data()['type'] ?? 'error',
+						'additional_classes' => array( 'inline' ),
 					)
 				);
 			}
@@ -2208,14 +2208,14 @@ class Two_Factor_Core {
 	 *
 	 * @return WP_Error[] List of errors for the provider.
 	 */
-	private static function get_provider_errors( string $provider_key ) {
+	private static function get_provider_errors( string $provider_key ): array {
 		return array_filter(
 			self::$profile_errors,
 			static function ( WP_Error $error ) use ( $provider_key ) {
 				$error_data = $error->get_error_data(); // This currently supports only one error per instance.
 
 				return isset( $error_data['provider'] ) && $error_data['provider'] === $provider_key;
-			 },
+			},
 		);
 	}
 
@@ -2331,9 +2331,9 @@ class Two_Factor_Core {
 								__( 'The %s method must be configured before it can be enabled.', 'two-factor' ),
 								esc_html( $provider->get_label() )
 							),
-							[
+							array(
 								'provider' => $provider_key,
-							]
+							)
 						)
 					);
 				}
