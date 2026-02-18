@@ -602,7 +602,7 @@ class Two_Factor_Core {
 	 * @see Two_Factor_Core::get_enabled_providers_for_user()
 	 *
 	 * @param int|WP_User $user Optional. User ID, or WP_User object of the the user. Defaults to current user.
-	 * @return array List of provider instances.
+	 * @return array|WP_Error List of provider instances, or a WP_Error if all configured providers are unavailable.
 	 */
 	public static function get_available_providers_for_user( $user = null ) {
 		$user = self::fetch_user( $user );
@@ -613,6 +613,31 @@ class Two_Factor_Core {
 		$providers            = self::get_supported_providers_for_user( $user ); // Returns full objects.
 		$enabled_providers    = self::get_enabled_providers_for_user( $user ); // Returns just the keys.
 		$configured_providers = array();
+		$user_providers_raw   = get_user_meta( $user->ID, self::ENABLED_PROVIDERS_USER_META_KEY, true );
+
+		/**
+		 * If the user had enabled providers, but none of them exist currently,
+		 * if emailed codes is available force it to be on, so that deprecated
+		 * or removed providers don't result in the two-factor requirement being
+		 * removed and 'failing open'.
+		 * 
+		 * Possible enhancement: add a filter to change the fallback method?
+		 */
+		if ( empty( $enabled_providers ) && $user_providers_raw ) {
+			if ( isset( $providers['Two_Factor_Email'] ) ) {
+				// Force Emailed codes to 'on'.
+				$enabled_providers[] = 'Two_Factor_Email';
+			} else {
+				return new WP_Error(
+					'no_available_2fa_methods',
+					__( 'Error: You have Two Factor method(s) enabled, but the provider(s) no longer exist. Please contact a site administrator for assistance.', 'two-factor' ),
+					array(
+						'user_providers_raw'  => $user_providers_raw,
+						'available_providers' => array_keys( $providers ),
+					)
+				);
+			}
+		}
 
 		foreach ( $providers as $provider_key => $provider ) {
 			if ( in_array( $provider_key, $enabled_providers, true ) && $provider->is_available_for_user( $user ) ) {
@@ -653,7 +678,7 @@ class Two_Factor_Core {
 
 		if ( is_string( $preferred_provider ) ) {
 			$providers = self::get_available_providers_for_user( $user );
-			if ( isset( $providers[ $preferred_provider ] ) ) {
+			if ( ! is_wp_error( $providers ) && isset( $providers[ $preferred_provider ] ) ) {
 				return $providers[ $preferred_provider ];
 			}
 		}
@@ -702,6 +727,9 @@ class Two_Factor_Core {
 		// If there's only one available provider, force that to be the primary.
 		if ( empty( $available_providers ) ) {
 			return null;
+		} elseif ( is_wp_error( $available_providers ) ) {
+			// If it returned an error, the configured methods don't exist, and it couldn't swap in a replacement.
+			wp_die( $available_providers );
 		} elseif ( 1 === count( $available_providers ) ) {
 			$provider = key( $available_providers );
 		} else {
@@ -999,6 +1027,11 @@ class Two_Factor_Core {
 		$interim_login       = isset( $_REQUEST['interim-login'] ); // phpcs:ignore WordPress.Security.NonceVerification.Recommended
 
 		$rememberme = intval( self::rememberme() );
+
+		if ( is_wp_error( $available_providers ) ) {
+			// If it returned an error, the configured methods don't exist, and it couldn't swap in a replacement.
+			wp_die( $available_providers );
+		}
 
 		if ( ! function_exists( 'login_header' ) ) {
 			// We really should migrate login_header() out of `wp-login.php` so it can be called from an includes file.
