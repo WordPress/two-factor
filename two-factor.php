@@ -67,7 +67,6 @@ register_uninstall_hook( __FILE__, array( Two_Factor_Core::class, 'uninstall' ) 
 function two_factor_register_admin_hooks() {
 	if ( is_admin() ) {
 		add_action( 'admin_menu', 'two_factor_add_settings_page' );
-		add_filter( 'plugin_action_links_' . plugin_basename( __FILE__ ), 'two_factor_plugin_action_links' );
 	}
 
 	// Load settings page assets when in admin.
@@ -189,18 +188,4 @@ function two_factor_filter_disabled_enabled_providers_for_user( $enabled, $user_
 	}
 
 	return array_values( array_diff( (array) $enabled, $disabled ) );
-}
-
-
-/**
- * Add a Settings link on the plugins list that points to our settings page.
- *
- * @param array $links Existing plugin action links.
- * @return array Modified links.
- */
-function two_factor_plugin_action_links( $links ) {
-	$settings_link = '<a href="' . esc_url( admin_url( 'options-general.php?page=two-factor-settings' ) ) . '">' . esc_html__( 'Settings', 'two-factor' ) . '</a>';
-	array_unshift( $links, $settings_link );
-
-	return $links;
 }
