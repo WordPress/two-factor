@@ -3,7 +3,7 @@
  * Admin settings UI for the Two-Factor plugin.
  * Provides a site-wide settings screen for disabling individual Two-Factor providers.
  *
- * @since 10.6
+ * @since 0.16
  *
  * @package Two_Factor
  */
@@ -11,7 +11,7 @@
 /**
  * Settings screen renderer for Two-Factor.
  *
- * @since 10.6
+ * @since 0.16
  */
 class Two_Factor_Settings {
 
@@ -19,7 +19,7 @@ class Two_Factor_Settings {
 	 * Render the settings page.
 	 * Also handles saving of settings when the form is submitted.
 	 *
-	 * @since 10.6
+	 * @since 0.16
 	 *
 	 * @return void
 	 */
