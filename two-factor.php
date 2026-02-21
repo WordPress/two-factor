@@ -63,6 +63,8 @@ register_uninstall_hook( __FILE__, array( Two_Factor_Core::class, 'uninstall' ) 
 
 /**
  * Register admin menu and plugin action links.
+ *
+ * @since 0.16
  */
 function two_factor_register_admin_hooks() {
 	if ( is_admin() ) {
@@ -81,6 +83,8 @@ add_action( 'init', 'two_factor_register_admin_hooks' );
 
 /**
  * Add the Two Factor settings page under Settings.
+ *
+ * @since 0.16
  */
 function two_factor_add_settings_page() {
 	add_options_page(
@@ -95,6 +99,8 @@ function two_factor_add_settings_page() {
 
 /**
  * Render the settings page via the settings class if available.
+ *
+ * @since 0.16
  */
 function two_factor_render_settings_page() {
 	if ( ! current_user_can( 'manage_options' ) ) {
@@ -117,6 +123,8 @@ function two_factor_render_settings_page() {
  * Helper: retrieve disabled providers option as an array of classnames.
  * Empty array / missing option means none disabled (all allowed).
  *
+ * @since 0.16
+ *
  * @return array
  */
 function two_factor_get_disabled_providers_option() {
@@ -131,6 +139,8 @@ function two_factor_get_disabled_providers_option() {
 /**
  * Filter the registered providers according to the saved disabled providers option.
  * This filter receives the providers in the same shape as core: classname => path.
+ *
+ * @since 0.16
  */
 function two_factor_filter_disabled_providers( $providers ) {
 	$disabled = two_factor_get_disabled_providers_option();
@@ -157,6 +167,8 @@ function two_factor_filter_disabled_providers( $providers ) {
 
 /**
  * Filter the supported providers for a specific user (instances keyed by provider key).
+ *
+ * @since 0.16
  */
 function two_factor_filter_disabled_providers_for_user( $providers, $user ) {
 	$disabled = two_factor_get_disabled_providers_option();
@@ -180,6 +192,8 @@ function two_factor_filter_disabled_providers_for_user( $providers, $user ) {
 
 /**
  * Filter enabled providers for a user (classnames array) to enforce disabled list.
+ *
+ * @since 0.16
  */
 function two_factor_filter_disabled_enabled_providers_for_user( $enabled, $user_id ) {
 	$disabled = two_factor_get_disabled_providers_option();
