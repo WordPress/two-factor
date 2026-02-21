@@ -8,9 +8,6 @@ class Two_Factor_Settings {
 
 		// Handle save.
 		if ( isset( $_POST['two_factor_settings_submit'] ) ) {
-			if ( ! current_user_can( 'manage_options' ) ) {
-				wp_die( esc_html__( 'You do not have permission to perform this action.', 'two-factor' ) );
-			}
 			check_admin_referer( 'two_factor_save_settings', 'two_factor_settings_nonce' );
 
 			$posted = isset( $_POST['two_factor_disabled_providers'] ) && is_array( $_POST['two_factor_disabled_providers'] ) ? wp_unslash( $_POST['two_factor_disabled_providers'] ) : array();
@@ -30,26 +27,12 @@ class Two_Factor_Settings {
 			echo '<div class="updated"><p>' . esc_html__( 'Settings saved.', 'two-factor' ) . '</p></div>';
 		}
 
-		// Build provider list for display using reflection (safe for private methods).
-		$default_providers = self::get_core_default_providers();
-		$all_providers = apply_filters( 'two_factor_providers', $default_providers );
-
+		// Build provider list for display using public core API.
 		$provider_instances = array();
-		foreach ( $all_providers as $provider_key => $provider_path ) {
-			if ( ! empty( $provider_path ) && is_readable( $provider_path ) ) {
-				require_once $provider_path;
-			}
-
-			$class = $provider_key;
-			/** This filter mirrors core behavior for dynamic classname filters. */
-			$class = apply_filters( "two_factor_provider_classname_{$provider_key}", $class, $provider_path );
-
-			if ( class_exists( $class ) ) {
-				try {
-					$provider_instances[ $provider_key ] = call_user_func( array( $class, 'get_instance' ) );
-				} catch ( Exception $e ) {
-					// Skip providers that fail to instantiate.
-				}
+		if ( class_exists( 'Two_Factor_Core' ) && method_exists( 'Two_Factor_Core', 'get_providers' ) ) {
+			$provider_instances = Two_Factor_Core::get_providers();
+			if ( ! is_array( $provider_instances ) ) {
+				$provider_instances = array();
 			}
 		}
 
@@ -93,29 +76,4 @@ class Two_Factor_Settings {
 		echo '</div>';
 	}
 
-	private static function get_core_default_providers() {
-		$default_providers = array();
-		if ( class_exists( 'Two_Factor_Core' ) && method_exists( 'Two_Factor_Core', 'get_default_providers' ) ) {
-			try {
-				$rm = new ReflectionMethod( 'Two_Factor_Core', 'get_default_providers' );
-				if ( ! $rm->isPublic() ) {
-					$rm->setAccessible( true );
-				}
-				if ( $rm->isStatic() ) {
-					$default_providers = $rm->invoke( null );
-				} else {
-					$instance = null;
-					if ( method_exists( 'Two_Factor_Core', 'get_instance' ) ) {
-						$instance = call_user_func( array( 'Two_Factor_Core', 'get_instance' ) );
-					}
-					if ( $instance ) {
-						$default_providers = $rm->invoke( $instance );
-					}
-				}
-			} catch ( Throwable $t ) {
-				$default_providers = array();
-			}
-		}
-		return is_array( $default_providers ) ? $default_providers : array();
-	}
 }
