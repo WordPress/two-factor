@@ -175,11 +175,11 @@ class Two_Factor_Totp extends Two_Factor_Provider {
 		$user_id = $request['user_id'];
 		$user    = get_user_by( 'id', $user_id );
 
-		$this->delete_user_totp_key( $user_id );
-
 		if ( ! Two_Factor_Core::disable_provider_for_user( $user_id, 'Two_Factor_Totp' ) ) {
 			return new WP_Error( 'db_error', __( 'Unable to disable TOTP provider for this user.', 'two-factor' ), array( 'status' => 500 ) );
 		}
+
+		$this->delete_user_totp_key( $user_id );
 
 		ob_start();
 		$this->user_two_factor_options( $user );
