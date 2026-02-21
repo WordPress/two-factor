@@ -352,22 +352,31 @@ class Two_Factor_Core {
 	}
 
 	/**
-	 * Add "Settings" link to the plugin action links on the Plugins screen.
+	 * Add Plugin and User Settings link to the plugin action links on the Plugins screen.
 	 *
 	 * @since 0.14.3
 	 *
 	 * @param string[] $links An array of plugin action links.
-	 * @return string[] Modified array with the Settings link added.
+	 * @return string[] Modified array with the User Settings link added.
 	 */
 	public static function add_settings_action_link( $links ) {
-		$settings_url  = admin_url( 'profile.php#application-passwords-section' );
-		$settings_link = sprintf(
+		$plugin_settings_url  = admin_url( 'options-general.php?page=two-factor-settings' );
+		$plugin_settings_link = sprintf(
 			'<a href="%s">%s</a>',
-			esc_url( $settings_url ),
-			esc_html__( 'Settings', 'two-factor' )
+			esc_url( $plugin_settings_url ),
+			esc_html__( 'Plugin Settings', 'two-factor' )
 		);
 
-		array_unshift( $links, $settings_link );
+		$user_settings_url  = admin_url( 'profile.php#application-passwords-section' );
+		$user_settings_link = sprintf(
+			'<a href="%s">%s</a>',
+			esc_url( $user_settings_url ),
+			esc_html__( 'User Settings', 'two-factor' )
+		);
+
+		// Show plugin settings first, then user settings.
+		array_unshift( $links, $user_settings_link );
+		array_unshift( $links, $plugin_settings_link );
 
 		return $links;
 	}
