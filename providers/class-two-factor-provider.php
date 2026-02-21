@@ -37,7 +37,6 @@ abstract class Two_Factor_Provider {
 	 * @since 0.1-dev
 	 */
 	protected function __construct() {
-		return $this;
 	}
 
 	/**
