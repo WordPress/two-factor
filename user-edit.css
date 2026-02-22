@@ -17,3 +17,9 @@
 	padding: 0.1rem 0.25rem;
 	margin: 0 0.15rem;
 }
+
+#two-factor-qr-code {
+	/* The size of the image will change based on the length of the URL inside it. */
+	min-width: 205px;
+	min-height: 205px;
+}
