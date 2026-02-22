@@ -369,13 +369,6 @@ class Two_Factor_Totp extends Two_Factor_Provider {
 					</p>
 				</li>
 			</ol>
-			<style>
-				#two-factor-qr-code {
-					/* The size of the image will change based on the length of the URL inside it. */
-					min-width: 205px;
-					min-height: 205px;
-				}
-			</style>
 			<script>
 				(function(){
 					var qr_generator = function() {
