@@ -839,7 +839,7 @@ class Two_Factor_Core {
 			 * Plugins can use this filter to modify or add links to the two-factor authentication
 			 * login form, allowing users to select backup methods for authentication or provide documentation links.
 			 *
-			 * @since 0.9.2
+			 * @since 0.16.0
 			 *
 			 * @param array<string> $links An array of links displayed on the two-factor login form.
 			 */
