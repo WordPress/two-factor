@@ -14,7 +14,7 @@ The Two-Factor plugin adds an extra layer of security to your WordPress login by
 
 ## Setup Instructions
 
-**Important**: Each user must individually configure their two-factor authentication settings.  There are no site-wide settings for this plugin.
+**Important**: Each user must individually configure their two-factor authentication settings.
 
 ### For Individual Users
 
@@ -32,7 +32,7 @@ The Two-Factor plugin adds an extra layer of security to your WordPress login by
 
 ### For Site Administrators
 
-- **No global settings**: This plugin operates on a per-user basis only. For more, see [GH#249](https://github.com/WordPress/two-factor/issues/249).
+- **Plugin settings**: The plugin provides a settings page under "Settings → Two-Factor" to configure which providers should be disabled site-wide.
 - **User management**: Administrators can configure 2FA for other users by editing their profiles
 - **Security recommendations**: Encourage users to enable backup methods to prevent account lockouts
 
@@ -124,10 +124,6 @@ The best place to report bugs, feature suggestions, or any other (non-security) 
 The plugin contributors and WordPress community take security bugs seriously. We appreciate your efforts to responsibly disclose your findings, and will make every effort to acknowledge your contributions.
 
 To report a security issue, please visit the [WordPress HackerOne](https://hackerone.com/wordpress) program.
-
-= Why doesn't this plugin have site-wide settings? =
-
-This plugin is designed to work on a per-user basis, allowing each user to choose their preferred authentication methods. This approach provides maximum flexibility and security. Site administrators can still configure 2FA for other users by editing their profiles. For more information, see [issue #437](https://github.com/WordPress/two-factor/issues/437).
 
 = What if I lose access to all my authentication methods? =
 
@@ -239,4 +235,5 @@ Bumps WordPress minimum supported version to 6.3 and PHP minimum to 7.2.
 
 = 0.9.0 =
 Users are now asked to re-authenticate with their two-factor before making changes to their two-factor settings. This associates each login session with the two-factor login meta data for improved handling of that session.
+
 
