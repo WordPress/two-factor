@@ -42,7 +42,7 @@
 }
 
 .input.authcode {
-	letter-spacing: .3em;
+	letter-spacing: 0.3em;
 }
 
 .input.authcode::placeholder {
