@@ -790,7 +790,7 @@ class Two_Factor_Totp extends Two_Factor_Provider {
 			<input type="text" inputmode="numeric" autocomplete="one-time-code" name="authcode" id="authcode" class="input authcode" value="" size="20" pattern="[0-9 ]*" placeholder="123 456" autocomplete="one-time-code" data-digits="<?php echo esc_attr( self::DEFAULT_DIGIT_COUNT ); ?>" />
 		</p>
 		<?php do_action( 'two_factor_after_authentication_input', $this ); ?>
-		<script type="text/javascript">
+		<script>
 			setTimeout( function(){
 				var d;
 				try{
