@@ -655,7 +655,7 @@ class Two_Factor_Totp extends Two_Factor_Provider {
 	/**
 	 * Pack stuff
 	 *
-	 * @param string $value The value to be packed.
+	 * @param int $value The value to be packed.
 	 *
 	 * @return string Binary packed string.
 	 */
