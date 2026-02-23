@@ -66,8 +66,6 @@ class Two_Factor_Email extends Two_Factor_Provider {
 	/**
 	 * Get the email token length.
 	 *
-	 * @since 0.11.0
-	 *
 	 * @return int Email token string length.
 	 */
 	private function get_token_length() {
@@ -101,8 +99,6 @@ class Two_Factor_Email extends Two_Factor_Provider {
 	/**
 	 * Check if user has a valid token already.
 	 *
-	 * @since 0.2.0
-	 *
 	 * @param  int $user_id User ID.
 	 * @return boolean      If user has a valid email token.
 	 */
@@ -118,8 +114,6 @@ class Two_Factor_Email extends Two_Factor_Provider {
 
 	/**
 	 * Has the user token validity timestamp expired.
-	 *
-	 * @since 0.6.0
 	 *
 	 * @param integer $user_id User ID.
 	 *
@@ -140,8 +134,6 @@ class Two_Factor_Email extends Two_Factor_Provider {
 	/**
 	 * Get the lifetime of a user token in seconds.
 	 *
-	 * @since 0.6.0
-	 *
 	 * @param integer $user_id User ID.
 	 *
 	 * @return integer|null Return `null` if the lifetime can't be measured.
@@ -158,8 +150,6 @@ class Two_Factor_Email extends Two_Factor_Provider {
 
 	/**
 	 * Return the token time-to-live for a user.
-	 *
-	 * @since 0.6.0
 	 *
 	 * @param integer $user_id User ID.
 	 *
@@ -191,8 +181,6 @@ class Two_Factor_Email extends Two_Factor_Provider {
 
 	/**
 	 * Get the authentication token for the user.
-	 *
-	 * @since 0.2.0
 	 *
 	 * @param  int $user_id    User ID.
 	 *
@@ -248,8 +236,6 @@ class Two_Factor_Email extends Two_Factor_Provider {
 
 	/**
 	 * Get the client IP address for the current request.
-	 *
-	 * @since 0.15.0
 	 *
 	 * Note that the IP address is used only for information purposes
 	 * and is expected to be configured correctly, if behind proxy.
@@ -373,8 +359,6 @@ class Two_Factor_Email extends Two_Factor_Provider {
 	 * Send the email code if missing or requested. Stop the authentication
 	 * validation if a new token has been generated and sent.
 	 *
-	 * @since 0.2.0
-	 *
 	 * @param  WP_User $user WP_User object of the logged-in user.
 	 * @return boolean
 	 */
@@ -442,8 +426,6 @@ class Two_Factor_Email extends Two_Factor_Provider {
 
 	/**
 	 * Return user meta keys to delete during plugin uninstall.
-	 *
-	 * @since 0.10.0
 	 *
 	 * @return array
 	 */
