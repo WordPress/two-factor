@@ -98,6 +98,8 @@ abstract class Two_Factor_Provider {
 	 * Return `true` to prevent the authentication and render the
 	 * authentication page.
 	 *
+	 * @since 0.2.0
+	 *
 	 * @param  WP_User $user WP_User object of the logged-in user.
 	 * @return boolean
 	 */
@@ -118,6 +120,8 @@ abstract class Two_Factor_Provider {
 	/**
 	 * Whether this Two Factor provider is configured and available for the user specified.
 	 *
+	 * @since 0.7.0
+	 *
 	 * @param WP_User $user WP_User object of the logged-in user.
 	 * @return boolean
 	 */
@@ -125,6 +129,8 @@ abstract class Two_Factor_Provider {
 
 	/**
 	 * If this provider should be available for the user.
+	 *
+	 * @since 0.13.0
 	 *
 	 * @param WP_User|int $user WP_User object, user ID or null to resolve the current user.
 	 *
@@ -159,6 +165,8 @@ abstract class Two_Factor_Provider {
 	/**
 	 * Sanitizes a numeric code to be used as an auth code.
 	 *
+	 * @since 0.8.0
+	 *
 	 * @param string $field  The _REQUEST field to check for the code.
 	 * @param int    $length The valid expected length of the field.
 	 * @return false|string Auth code on success, false if the field is not set or not expected length.
@@ -182,6 +190,8 @@ abstract class Two_Factor_Provider {
 	/**
 	 * Return the user meta keys that need to be deletated on plugin uninstall.
 	 *
+	 * @since 0.10.0
+	 *
 	 * @return array
 	 */
 	public static function uninstall_user_meta_keys() {
@@ -190,6 +200,8 @@ abstract class Two_Factor_Provider {
 
 	/**
 	 * Return the option keys that need to be deleted on plugin uninstall.
+	 *
+	 * @since 0.10.0
 	 *
 	 * Note: this method doesn't have access to the instantiated provider object.
 	 *
