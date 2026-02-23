@@ -244,7 +244,7 @@ class Two_Factor_Backup_Codes extends Two_Factor_Provider {
 	 * @param array   $args Optional arguments for assigning new codes.
 	 * @return array
 	 */
-	public function generate_codes( $user, $args = '' ) {
+	public function generate_codes( $user, $args = array() ) {
 		$codes        = array();
 		$codes_hashed = array();
 
