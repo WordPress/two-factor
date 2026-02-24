@@ -659,18 +659,17 @@ class Two_Factor_Totp extends Two_Factor_Provider {
 	 *
 	 * @return string Binary packed string.
 	 */
-	public static function pack64(int $value): string
-	{
-	    // Native 64-bit support (modern PHP on 64-bit builds)
-	    if (PHP_INT_SIZE === 8) {
-	        return pack('J', $value);
-	    }
+	public static function pack64( int $value ): string {
+		// Native 64-bit support (modern PHP on 64-bit builds).
+		if ( 8 === PHP_INT_SIZE ) {
+			return pack( 'J', $value );
+		}
 	
-	    // 32-bit PHP fallback
-	    $higher = ($value >> 32) & 0xFFFFFFFF;
-	    $lower  = $value & 0xFFFFFFFF;
+		// 32-bit PHP fallback
+		$higher = ( $value >> 32 ) & 0xFFFFFFFF;
+		$lower  = $value & 0xFFFFFFFF;
 	
-	    return pack('NN', $higher, $lower);
+		return pack( 'NN', $higher, $lower );
 	}
 
 	/**
