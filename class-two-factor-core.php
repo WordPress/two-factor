@@ -1067,7 +1067,7 @@ class Two_Factor_Core {
 		<?php
 			$links = [];
 
-			if ( $backup_providers ) :
+			if ( $backup_providers )  {
 				$backup_link_args = array(
 					'action'        => $action,
 					'wp-auth-id'    => $user->ID,
