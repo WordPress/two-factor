@@ -188,7 +188,7 @@ class Two_Factor_Backup_Codes extends Two_Factor_Provider {
 				<a class="button button-two-factor-backup-codes-download button-secondary hide-if-no-js" href="javascript:void(0);" id="two-factor-backup-codes-download-link" download="two-factor-backup-codes.txt"><?php esc_html_e( 'Download Codes', 'two-factor' ); ?></a>
 			<p>
 		</div>
-		<script type="text/javascript">
+		<script>
 			( function( $ ) {
 				$( '.button-two-factor-backup-codes-generate' ).click( function() {
 					wp.apiRequest( {
