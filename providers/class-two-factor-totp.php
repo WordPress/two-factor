@@ -686,15 +686,15 @@ class Two_Factor_Totp extends Two_Factor_Provider {
 	}
 
 	/**
-	 * Pack stuff
+	 * Pack stuff. We're currently only using this to pack integers, however the generic `pack` method can handle mixed.
 	 *
 	 * @since 0.2.0
 	 *
-	 * @param int $value The value to be packed.
+	 * @param mixed $value The value to be packed.
 	 *
 	 * @return string Binary packed string.
 	 */
-	public static function pack64( int $value ): string {
+	public static function pack64( mixed $value ): string {
 		// Native 64-bit support (modern PHP on 64-bit builds).
 		if ( 8 === PHP_INT_SIZE ) {
 			return pack( 'J', $value );
