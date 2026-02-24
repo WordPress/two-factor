@@ -36,4 +36,5 @@
 
 .two-factor-backup-codes-list-wrap .two-factor-backup-codes-token {
 	letter-spacing: 0.3em;
+	font-family: monospace;
 }
