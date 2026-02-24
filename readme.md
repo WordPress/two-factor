@@ -1,6 +1,6 @@
 # Two-Factor
 
-[![Test](https://github.com/WordPress/two-factor/actions/workflows/test.yml/badge.svg)](https://github.com/WordPress/two-factor/actions/workflows/test.yml) [![Deploy](https://github.com/WordPress/two-factor/actions/workflows/deploy.yml/badge.svg)](https://github.com/WordPress/two-factor/actions/workflows/deploy.yml)
+[![Test](https://github.com/WordPress/two-factor/actions/workflows/test.yml/badge.svg)](https://github.com/WordPress/two-factor/actions/workflows/test.yml) [![Deploy](https://github.com/WordPress/two-factor/actions/workflows/deploy.yml/badge.svg)](https://github.com/WordPress/two-factor/actions/workflows/deploy.yml) [![WordPress Playground Demo](https://img.shields.io/wordpress/plugin/v/two-factor?logo=wordpress&logoColor=FFFFFF&label=Playground%20Demo&labelColor=3858E9&color=3858E9)](https://playground.wordpress.net/?blueprint-url=https://raw.githubusercontent.com/WordPress/two-factor/master/.wordpress-org/blueprints/blueprint.json)
 
 Two-Factor plugin for WordPress. [View on WordPress.org →](https://wordpress.org/plugins/two-factor/)
 
@@ -16,11 +16,11 @@ Join the `#core-passwords` channel [on WordPress Slack](http://wordpress.slack.c
 
 To use the provided development environment, you'll first need to install and launch Docker. Once it's running, the next steps are:
 
-    $ git clone https://github.com/wordpress/two-factor.git
-    $ cd two-factor
-    $ npm install
-    $ npm run build
-    $ npm run env start
+    git clone https://github.com/wordpress/two-factor.git
+    cd two-factor
+    npm install
+    npm run build
+    npm run env start
 
 See `package.json` for other available scripts you might want to use during development, like linting and testing.
 
@@ -39,13 +39,19 @@ To view the code coverage report, you can open a web browser, go to `File > Open
 
 Deployments [to WP.org plugin repository](https://wordpress.org/plugins/two-factor/) are handled automatically by the GitHub action [.github/workflows/deploy.yml](.github/workflows/deploy.yml). All merges to the `master` branch are committed to the [`trunk` directory](https://plugins.trac.wordpress.org/browser/two-factor/trunk) while all [Git tags](https://github.com/WordPress/two-factor/tags) are pushed as versioned releases [under the `tags` directory](https://plugins.trac.wordpress.org/browser/two-factor/tags).
 
+[View release documentation →](RELEASING.md)
+
 ## Known Issues
 
 - PHP codebase doesn't pass the WordPress coding standard checks, see [#437](https://github.com/WordPress/two-factor/issues/437).
 
+## Changelog
+
+A complete listing of all notable changes are documented in [CHANGELOG.md](https://github.com/wordpress/two-factor/blob/master/CHANGELOG.md).
+
 ## Credits
 
-Created [by contributors](https://github.com/WordPress/two-factor/graphs/contributors) and released under [GPLv2 or later](LICENSE.md).
+Created [by contributors](https://github.com/WordPress/two-factor/blob/master/CREDITS.md) and released under [GPLv2 or later](LICENSE.md).
 
 ## Security
 

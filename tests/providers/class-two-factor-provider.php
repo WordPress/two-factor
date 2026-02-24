@@ -13,9 +13,11 @@
  */
 class Tests_Two_Factor_Provider extends WP_UnitTestCase {
 	/**
+	 * Test get_code method.
+	 *
 	 * @covers Two_Factor_Provider::get_code
 	 */
-	function test_get_code() {
+	public function test_get_code() {
 		$code = Two_Factor_Provider::get_code( 3, '1' );
 		$this->assertEquals( '111', $code );
 
@@ -24,7 +26,7 @@ class Tests_Two_Factor_Provider extends WP_UnitTestCase {
 
 		$code = Two_Factor_Provider::get_code( 8, 'A' );
 		$this->assertEquals( 'AAAAAAAA', $code );
-		
+
 		$code = Two_Factor_Provider::get_code( 30, array( 'A', 'B', 'C' ) );
 		$this->assertSame( 1, preg_match( '/^[ABC]{30}$/', $code ) );
 
@@ -40,8 +42,12 @@ class Tests_Two_Factor_Provider extends WP_UnitTestCase {
 	 *
 	 * @covers Two_Factor_Provider::sanitize_code_from_request
 	 * @dataProvider provider_sanitize_code_from_request
+	 * @param mixed  $expected Expected result.
+	 * @param string $field Field name.
+	 * @param mixed  $value Field value.
+	 * @param int    $length Expected length.
 	 */
-	function test_sanitize_code_from_request( $expected, $field, $value, $length = 0) {
+	public function test_sanitize_code_from_request( $expected, $field, $value, $length = 0 ) {
 		$_REQUEST[ $field ] = '';
 		if ( $value ) {
 			$_REQUEST[ $field ] = $value;
@@ -52,17 +58,22 @@ class Tests_Two_Factor_Provider extends WP_UnitTestCase {
 		unset( $_REQUEST[ $field ] );
 	}
 
-	function provider_sanitize_code_from_request() {
-		return [
-			[ '123123', 'authcode', '123123', 6 ],
-			[ false, 'authcode', '123123123', 6 ],
-			[ '123123', 'code', '123 123' ],
-			[ '123123', 'code', "\n123123\n" ],
-			[ '123123', 'code', "123\t123", 6 ],
-			[ false, 'code', '' ],
-			[ 'helloworld', 'code', 'helloworld' ],
-			[ false, false, false ],
-		];
+	/**
+	 * Data provider for test_sanitize_code_from_request.
+	 *
+	 * @return array
+	 */
+	public function provider_sanitize_code_from_request() {
+		return array(
+			array( '123123', 'authcode', '123123', 6 ),
+			array( false, 'authcode', '123123123', 6 ),
+			array( '123123', 'code', '123 123' ),
+			array( '123123', 'code', "\n123123\n" ),
+			array( '123123', 'code', "123\t123", 6 ),
+			array( false, 'code', '' ),
+			array( 'helloworld', 'code', 'helloworld' ),
+			array( false, false, false ),
+		);
 	}
 
 	/**
@@ -70,7 +81,7 @@ class Tests_Two_Factor_Provider extends WP_UnitTestCase {
 	 *
 	 * @covers Two_Factor_Provider::get_instance
 	 */
-	function test_get_instance() {
+	public function test_get_instance() {
 		$instance_one = Two_Factor_Dummy::get_instance();
 		$instance_two = Two_Factor_Dummy::get_instance();
 

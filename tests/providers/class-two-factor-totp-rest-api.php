@@ -35,22 +35,30 @@ class Tests_Two_Factor_Totp_REST_API extends WP_Test_REST_TestCase {
 	 */
 	protected static $editor_id;
 
+	/**
+	 * Set up test fixtures.
+	 *
+	 * @param WP_UnitTest_Factory $factory Factory instance.
+	 */
 	public static function wpSetUpBeforeClass( WP_UnitTest_Factory $factory ) {
 		self::$admin_id = $factory->user->create(
-				array(
-						'role' => 'administrator',
-				)
+			array(
+				'role' => 'administrator',
+			)
 		);
 
 		self::$editor_id = $factory->user->create(
-				array(
-						'role' => 'editor',
-				)
+			array(
+				'role' => 'editor',
+			)
 		);
 
 		self::$provider = Two_Factor_Totp::get_instance();
 	}
 
+	/**
+	 * Clean up test fixtures.
+	 */
 	public static function wpTearDownAfterClass() {
 			self::delete_user( self::$admin_id );
 			self::delete_user( self::$editor_id );
@@ -69,7 +77,7 @@ class Tests_Two_Factor_Totp_REST_API extends WP_Test_REST_TestCase {
 		$request->set_body_params(
 			array(
 				'user_id' => self::$admin_id,
-				'key'     => 'abcdef'
+				'key'     => 'abcdef',
 			)
 		);
 
@@ -123,7 +131,7 @@ class Tests_Two_Factor_Totp_REST_API extends WP_Test_REST_TestCase {
 			array(
 				'user_id' => self::$admin_id,
 				'key'     => $key,
-				'code'    => 'abcdef'
+				'code'    => 'abcdef',
 			)
 		);
 
@@ -274,5 +282,4 @@ class Tests_Two_Factor_Totp_REST_API extends WP_Test_REST_TestCase {
 			'Secret has not been deleted'
 		);
 	}
-
 }

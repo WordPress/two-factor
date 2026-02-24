@@ -12,7 +12,7 @@ concurrency:
 jobs:
     lint-js-css:
         name: Lint JS & CSS
-        runs-on: ubuntu-latest
+        runs-on: ubuntu-24.04
         steps:
             - name: Checkout
               uses: actions/checkout@v4
@@ -34,7 +34,7 @@ jobs:
 
     lint-php-and-compatibility:
         name: Lint PHP & PHP Compatibility checks.
-        runs-on: ubuntu-latest
+        runs-on: ubuntu-24.04
         steps:
             - name: Checkout
               uses: actions/checkout@v4
@@ -42,7 +42,7 @@ jobs:
             - name: Setup PHP and Composer
               uses: shivammathur/setup-php@v2
               with:
-                php-version: '8.2'
+                php-version: '8.3'
 
             - name: Setup Node
               uses: actions/setup-node@v4
@@ -59,12 +59,17 @@ jobs:
             - name: Lint PHP Compatibility
               run: composer lint-compat
 
+            - name: PHPStan
+              run: npm run lint:phpstan
+
     test-php:
         name: Test PHP ${{ matrix.php }} ${{ matrix.wp != '' && format( ' (WP {0}) ', matrix.wp ) || '' }}
-        runs-on: ubuntu-latest
+        runs-on: ubuntu-24.04
         strategy:
             matrix:
                 php:
+                  - '8.5'
+                  - '8.4'
                   - '8.3'
                   - '8.2'
                   - '8.1'
@@ -75,7 +80,14 @@ jobs:
                 wp:
                   - latest
                   - trunk
-                  - '6.3'
+                  - '6.8'
+                exclude:
+                  - php: '7.3'
+                    wp: trunk
+                  - php: '7.2'
+                    wp: trunk
+                  - php: '8.5'
+                    wp: '6.8'
         env:
             WP_ENV_PHP_VERSION: ${{ matrix.php }}
             WP_ENV_CORE: ${{ matrix.wp == 'trunk' && 'WordPress/WordPress' || format( 'https://wordpress.org/wordpress-{0}.zip', matrix.wp ) }}
@@ -87,7 +99,7 @@ jobs:
             - name: Setup PHP
               uses: shivammathur/setup-php@v2
               with:
-                php-version: '8.2'
+                php-version: '8.3'
 
             - name: Setup Node
               uses: actions/setup-node@v4
@@ -120,7 +132,7 @@ jobs:
 
     build:
         name: Build
-        runs-on: ubuntu-latest
+        runs-on: ubuntu-24.04
         steps:
             - name: Checkout
               uses: actions/checkout@v4
@@ -128,7 +140,7 @@ jobs:
             - name: Setup PHP
               uses: shivammathur/setup-php@v2
               with:
-                php-version: '8.2'
+                php-version: '8.3'
 
             - name: Setup Node
               uses: actions/setup-node@v4

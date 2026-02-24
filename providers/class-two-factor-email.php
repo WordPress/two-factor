@@ -64,6 +64,24 @@ class Two_Factor_Email extends Two_Factor_Provider {
 	}
 
 	/**
+	 * Get the email token length.
+	 *
+	 * @since 0.11.0
+	 *
+	 * @return int Email token string length.
+	 */
+	private function get_token_length() {
+		/**
+		 * Number of characters in the email token.
+		 *
+		 * @param int $token_length Number of characters in the email token.
+		 */
+		$token_length = (int) apply_filters( 'two_factor_email_token_length', 8 );
+
+		return $token_length;
+	}
+
+	/**
 	 * Generate the user token.
 	 *
 	 * @since 0.1-dev
@@ -72,7 +90,7 @@ class Two_Factor_Email extends Two_Factor_Provider {
 	 * @return string
 	 */
 	public function generate_token( $user_id ) {
-		$token = $this->get_code();
+		$token = $this->get_code( $this->get_token_length() );
 
 		update_user_meta( $user_id, self::TOKEN_META_KEY_TIMESTAMP, time() );
 		update_user_meta( $user_id, self::TOKEN_META_KEY, wp_hash( $token ) );
@@ -82,6 +100,8 @@ class Two_Factor_Email extends Two_Factor_Provider {
 
 	/**
 	 * Check if user has a valid token already.
+	 *
+	 * @since 0.2.0
 	 *
 	 * @param  int $user_id User ID.
 	 * @return boolean      If user has a valid email token.
@@ -98,6 +118,8 @@ class Two_Factor_Email extends Two_Factor_Provider {
 
 	/**
 	 * Has the user token validity timestamp expired.
+	 *
+	 * @since 0.6.0
 	 *
 	 * @param integer $user_id User ID.
 	 *
@@ -118,6 +140,8 @@ class Two_Factor_Email extends Two_Factor_Provider {
 	/**
 	 * Get the lifetime of a user token in seconds.
 	 *
+	 * @since 0.6.0
+	 *
 	 * @param integer $user_id User ID.
 	 *
 	 * @return integer|null Return `null` if the lifetime can't be measured.
@@ -135,6 +159,8 @@ class Two_Factor_Email extends Two_Factor_Provider {
 	/**
 	 * Return the token time-to-live for a user.
 	 *
+	 * @since 0.6.0
+	 *
 	 * @param integer $user_id User ID.
 	 *
 	 * @return integer
@@ -146,14 +172,27 @@ class Two_Factor_Email extends Two_Factor_Provider {
 		 * Number of seconds the token is considered valid
 		 * after the generation.
 		 *
+		 * @deprecated 0.11.0 Use {@see 'two_factor_email_token_ttl'} instead.
+		 *
 		 * @param integer $token_ttl Token time-to-live in seconds.
 		 * @param integer $user_id User ID.
 		 */
-		return (int) apply_filters( 'two_factor_token_ttl', $token_ttl, $user_id );
+		$token_ttl = (int) apply_filters_deprecated( 'two_factor_token_ttl', array( $token_ttl, $user_id ), '0.11.0', 'two_factor_email_token_ttl' );
+
+		/**
+		 * Number of seconds the token is considered valid
+		 * after the generation.
+		 *
+		 * @param integer $token_ttl Token time-to-live in seconds.
+		 * @param integer $user_id User ID.
+		 */
+		return (int) apply_filters( 'two_factor_email_token_ttl', $token_ttl, $user_id );
 	}
 
 	/**
 	 * Get the authentication token for the user.
+	 *
+	 * @since 0.2.0
 	 *
 	 * @param  int $user_id    User ID.
 	 *
@@ -208,6 +247,24 @@ class Two_Factor_Email extends Two_Factor_Provider {
 	}
 
 	/**
+	 * Get the client IP address for the current request.
+	 *
+	 * @since 0.15.0
+	 *
+	 * Note that the IP address is used only for information purposes
+	 * and is expected to be configured correctly, if behind proxy.
+	 *
+	 * @return string|null
+	 */
+	private function get_client_ip() {
+		if ( ! empty( $_SERVER['REMOTE_ADDR'] ) ) { // phpcs:ignore WordPressVIPMinimum.Variables.ServerVariables.UserControlledHeaders -- don't have more reliable option for now.
+			return preg_replace( '/[^0-9a-fA-F:., ]/', '', $_SERVER['REMOTE_ADDR'] ); // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized, WordPressVIPMinimum.Variables.ServerVariables.UserControlledHeaders, WordPressVIPMinimum.Variables.RestrictedVariables.cache_constraints___SERVER__REMOTE_ADDR__ -- we're limit the allowed characters.
+		}
+
+		return null;
+	}
+
+	/**
 	 * Generate and email the user token.
 	 *
 	 * @since 0.1-dev
@@ -216,12 +273,35 @@ class Two_Factor_Email extends Two_Factor_Provider {
 	 * @return bool Whether the email contents were sent successfully.
 	 */
 	public function generate_and_email_token( $user ) {
-		$token = $this->generate_token( $user->ID );
+		$token       = $this->generate_token( $user->ID );
+		$remote_ip   = $this->get_client_ip();
+		$ttl_minutes = (int) ceil( $this->user_token_ttl( $user->ID ) / MINUTE_IN_SECONDS );
 
-		/* translators: %s: site name */
-		$subject = wp_strip_all_tags( sprintf( __( 'Your login confirmation code for %s', 'two-factor' ), wp_specialchars_decode( get_option( 'blogname' ), ENT_QUOTES ) ) );
-		/* translators: %s: token */
-		$message = wp_strip_all_tags( sprintf( __( 'Enter %s to log in.', 'two-factor' ), $token ) );
+		$subject = wp_strip_all_tags(
+			sprintf(
+				/* translators: %s: site name */
+				__( '[%s] Login confirmation code', 'two-factor' ),
+				wp_specialchars_decode( get_option( 'blogname' ), ENT_QUOTES )
+			)
+		);
+
+		$message_parts = array(
+			__( 'Please complete the login by entering the verification code below:', 'two-factor' ),
+			$token,
+			sprintf(
+				/* translators: %d: number of minutes */
+				__( 'This code will expire in %d minutes.', 'two-factor' ),
+				$ttl_minutes
+			),
+			sprintf(
+				/* translators: $1$s: IP address of user, $2$s: user login */
+				__( 'A user from IP address %1$s has successfully authenticated as %2$s. If this wasn\'t you, please change your password.', 'two-factor' ),
+				$remote_ip,
+				$user->user_login
+			),
+		);
+
+		$message = wp_strip_all_tags( implode( "\n\n", $message_parts ) );
 
 		/**
 		 * Filter the token email subject.
@@ -259,18 +339,24 @@ class Two_Factor_Email extends Two_Factor_Provider {
 			$this->generate_and_email_token( $user );
 		}
 
+		$token_length      = $this->get_token_length();
+		$token_placeholder = str_repeat( 'X', $token_length );
+
 		require_once ABSPATH . '/wp-admin/includes/template.php';
 		?>
+		<?php do_action( 'two_factor_before_authentication_prompt', $this ); ?>
 		<p class="two-factor-prompt"><?php esc_html_e( 'A verification code has been sent to the email address associated with your account.', 'two-factor' ); ?></p>
+		<?php do_action( 'two_factor_after_authentication_prompt', $this ); ?>
 		<p>
 			<label for="authcode"><?php esc_html_e( 'Verification Code:', 'two-factor' ); ?></label>
-			<input type="text" inputmode="numeric" name="two-factor-email-code" id="authcode" class="input authcode" value="" size="20" pattern="[0-9 ]*" placeholder="1234 5678" data-digits="8" />
-			<?php submit_button( __( 'Log In', 'two-factor' ) ); ?>
+			<input type="text" inputmode="numeric" name="two-factor-email-code" id="authcode" class="input authcode" value="" size="20" pattern="[0-9 ]*" autocomplete="one-time-code" placeholder="<?php echo esc_attr( $token_placeholder ); ?>" data-digits="<?php echo esc_attr( $token_length ); ?>" />
 		</p>
+		<?php do_action( 'two_factor_after_authentication_input', $this ); ?>
+		<?php submit_button( __( 'Verify', 'two-factor' ) ); ?>
 		<p class="two-factor-email-resend">
 			<input type="submit" class="button" name="<?php echo esc_attr( self::INPUT_NAME_RESEND_CODE ); ?>" value="<?php esc_attr_e( 'Resend Code', 'two-factor' ); ?>" />
 		</p>
-		<script type="text/javascript">
+		<script>
 			setTimeout( function(){
 				var d;
 				try{
@@ -287,11 +373,13 @@ class Two_Factor_Email extends Two_Factor_Provider {
 	 * Send the email code if missing or requested. Stop the authentication
 	 * validation if a new token has been generated and sent.
 	 *
+	 * @since 0.2.0
+	 *
 	 * @param  WP_User $user WP_User object of the logged-in user.
 	 * @return boolean
 	 */
 	public function pre_process_authentication( $user ) {
-		if ( isset( $user->ID ) && isset( $_REQUEST[ self::INPUT_NAME_RESEND_CODE ] ) ) {
+		if ( isset( $user->ID ) && isset( $_REQUEST[ self::INPUT_NAME_RESEND_CODE ] ) ) { // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- non-distructive option that relies on user state.
 			$this->generate_and_email_token( $user );
 			return true;
 		}
@@ -338,7 +426,7 @@ class Two_Factor_Email extends Two_Factor_Provider {
 	public function user_options( $user ) {
 		$email = $user->user_email;
 		?>
-		<div>
+		<p>
 			<?php
 			echo esc_html(
 				sprintf(
@@ -348,7 +436,21 @@ class Two_Factor_Email extends Two_Factor_Provider {
 				)
 			);
 			?>
-		</div>
+		</p>
 		<?php
+	}
+
+	/**
+	 * Return user meta keys to delete during plugin uninstall.
+	 *
+	 * @since 0.10.0
+	 *
+	 * @return array
+	 */
+	public static function uninstall_user_meta_keys() {
+		return array(
+			self::TOKEN_META_KEY,
+			self::TOKEN_META_KEY_TIMESTAMP,
+		);
 	}
 }

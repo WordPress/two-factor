@@ -3,7 +3,7 @@
  * Two Factor
  *
  * @package     Two_Factor
- * @author      Plugin Contributors
+ * @author      WordPress.org Contributors
  * @copyright   2020 Plugin Contributors
  * @license     GPL-2.0-or-later
  *
@@ -11,16 +11,20 @@
  * Plugin Name:       Two Factor
  * Plugin URI:        https://wordpress.org/plugins/two-factor/
  * Description:       Enable Two-Factor Authentication using time-based one-time passwords, Universal 2nd Factor (FIDO U2F, YubiKey), email, and backup verification codes.
- * Version:           0.9.1
- * Requires at least: 6.3
+ * Requires at least: 6.8
+ * Version:           0.15.0
  * Requires PHP:      7.2
- * Author:            Plugin Contributors
+ * Author:            WordPress.org Contributors
  * Author URI:        https://github.com/wordpress/two-factor/graphs/contributors
  * License:           GPL-2.0-or-later
  * License URI:       https://spdx.org/licenses/GPL-2.0-or-later.html
  * Text Domain:       two-factor
  * Network:           True
  */
+
+if ( ! defined( 'ABSPATH' ) ) {
+	exit; // Exit if accessed directly.
+}
 
 /**
  * Shortcut constant to the path of this file.
@@ -30,7 +34,7 @@ define( 'TWO_FACTOR_DIR', plugin_dir_path( __FILE__ ) );
 /**
  * Version of the plugin.
  */
-define( 'TWO_FACTOR_VERSION', '0.9.1' );
+define( 'TWO_FACTOR_VERSION', '0.15.0' );
 
 /**
  * Include the base class here, so that other plugins can also extend it.
@@ -50,3 +54,6 @@ require_once TWO_FACTOR_DIR . 'class-two-factor-compat.php';
 $two_factor_compat = new Two_Factor_Compat();
 
 Two_Factor_Core::add_hooks( $two_factor_compat );
+
+// Delete our options and user meta during uninstall.
+register_uninstall_hook( __FILE__, array( Two_Factor_Core::class, 'uninstall' ) );
