@@ -17,3 +17,8 @@
 	padding: 0.1rem 0.25rem;
 	margin: 0 0.15rem;
 }
+
+#two-factor-qr-code {
+	min-width: 205px;
+	min-height: 205px;
+}
