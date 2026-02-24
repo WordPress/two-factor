@@ -46,6 +46,8 @@ class Two_Factor_Backup_Codes extends Two_Factor_Provider {
 	/**
 	 * Register the rest-api endpoints required for this provider.
 	 *
+	 * @since 0.8.0
+	 *
 	 * @codeCoverageIgnore
 	 */
 	public function register_rest_routes() {
@@ -219,6 +221,8 @@ class Two_Factor_Backup_Codes extends Two_Factor_Provider {
 	/**
 	 * Get the backup code length for a user.
 	 *
+	 * @since 0.11.0
+	 *
 	 * @param WP_User $user User object.
 	 *
 	 * @return int Number of characters.
@@ -331,6 +335,8 @@ class Two_Factor_Backup_Codes extends Two_Factor_Provider {
 	/**
 	 * Returns the number of unused codes for the specified user
 	 *
+	 * @since 0.2.0
+	 *
 	 * @param WP_User $user WP_User object of the logged-in user.
 	 * @return int $int  The number of unused codes remaining
 	 */
@@ -434,6 +440,8 @@ class Two_Factor_Backup_Codes extends Two_Factor_Provider {
 
 	/**
 	 * Return user meta keys to delete during plugin uninstall.
+	 *
+	 * @since 0.10.0
 	 *
 	 * @return array
 	 */
