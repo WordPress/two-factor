@@ -7,6 +7,8 @@
 
 /**
  * Class Two_Factor_Totp
+ *
+ * @since 0.2.0
  */
 class Two_Factor_Totp extends Two_Factor_Provider {
 
@@ -40,6 +42,8 @@ class Two_Factor_Totp extends Two_Factor_Provider {
 	/**
 	 * Class constructor. Sets up hooks, etc.
 	 *
+	 * @since 0.2.0
+	 *
 	 * @codeCoverageIgnore
 	 */
 	protected function __construct() {
@@ -61,6 +65,8 @@ class Two_Factor_Totp extends Two_Factor_Provider {
 	/**
 	 * Override time() in the current object for testing.
 	 *
+	 * @since 0.15.0
+	 *
 	 * @return int
 	 */
 	private static function time() {
@@ -70,6 +76,8 @@ class Two_Factor_Totp extends Two_Factor_Provider {
 	/**
 	 * Set up the internal state of time() invocations for deterministic generation.
 	 *
+	 * @since 0.15.0
+	 *
 	 * @param int $now Timestamp to use when overriding time().
 	 */
 	public static function set_time( $now ) {
@@ -78,6 +86,8 @@ class Two_Factor_Totp extends Two_Factor_Provider {
 
 	/**
 	 * Register the rest-api endpoints required for this provider.
+	 *
+	 * @since 0.8.0
 	 *
 	 * @codeCoverageIgnore
 	 */
@@ -133,6 +143,8 @@ class Two_Factor_Totp extends Two_Factor_Provider {
 
 	/**
 	 * Returns the name of the provider.
+	 *
+	 * @since 0.2.0
 	 */
 	public function get_label() {
 		return _x( 'Authenticator App', 'Provider Label', 'two-factor' );
@@ -149,6 +161,8 @@ class Two_Factor_Totp extends Two_Factor_Provider {
 
 	/**
 	 * Enqueue scripts
+	 *
+	 * @since 0.8.0
 	 *
 	 * @codeCoverageIgnore
 	 * @param string $hook_suffix Hook suffix.
@@ -167,6 +181,8 @@ class Two_Factor_Totp extends Two_Factor_Provider {
 
 	/**
 	 * Rest API endpoint for handling deactivation of TOTP.
+	 *
+	 * @since 0.8.0
 	 *
 	 * @param WP_REST_Request $request The Rest Request object.
 	 * @return array Success array.
@@ -193,6 +209,8 @@ class Two_Factor_Totp extends Two_Factor_Provider {
 
 	/**
 	 * REST API endpoint for setting up TOTP.
+	 *
+	 * @since 0.8.0
 	 *
 	 * @param WP_REST_Request $request The Rest Request object.
 	 * @return WP_Error|array Array of data on success, WP_Error on error.
@@ -232,6 +250,8 @@ class Two_Factor_Totp extends Two_Factor_Provider {
 
 	/**
 	 * Generates a URL that can be used to create a QR code.
+	 *
+	 * @since 0.8.0
 	 *
 	 * @param WP_User $user       The user to generate a URL for.
 	 * @param string  $secret_key The secret key.
@@ -288,6 +308,8 @@ class Two_Factor_Totp extends Two_Factor_Provider {
 
 	/**
 	 * Display TOTP options on the user settings page.
+	 *
+	 * @since 0.2.0
 	 *
 	 * @param WP_User $user The current user being edited.
 	 * @return void
@@ -369,13 +391,6 @@ class Two_Factor_Totp extends Two_Factor_Provider {
 					</p>
 				</li>
 			</ol>
-			<style>
-				#two-factor-qr-code {
-					/* The size of the image will change based on the length of the URL inside it. */
-					min-width: 205px;
-					min-height: 205px;
-				}
-			</style>
 			<script>
 				(function(){
 					var qr_generator = function() {
@@ -485,6 +500,8 @@ class Two_Factor_Totp extends Two_Factor_Provider {
 	/**
 	 * Get the TOTP secret key for a user.
 	 *
+	 * @since 0.2.0
+	 *
 	 * @param  int $user_id User ID.
 	 *
 	 * @return string
@@ -495,6 +512,8 @@ class Two_Factor_Totp extends Two_Factor_Provider {
 
 	/**
 	 * Set the TOTP secret key for a user.
+	 *
+	 * @since 0.2.0
 	 *
 	 * @param int    $user_id User ID.
 	 * @param string $key TOTP secret key.
@@ -508,6 +527,8 @@ class Two_Factor_Totp extends Two_Factor_Provider {
 	/**
 	 * Delete the TOTP secret key for a user.
 	 *
+	 * @since 0.2.0
+	 *
 	 * @param  int $user_id User ID.
 	 *
 	 * @return boolean If the key was deleted successfully.
@@ -519,6 +540,8 @@ class Two_Factor_Totp extends Two_Factor_Provider {
 
 	/**
 	 * Check if the TOTP secret key has a proper format.
+	 *
+	 * @since 0.2.0
 	 *
 	 * @param  string $key TOTP secret key.
 	 *
@@ -537,6 +560,8 @@ class Two_Factor_Totp extends Two_Factor_Provider {
 	/**
 	 * Validates authentication.
 	 *
+	 * @since 0.2.0
+	 *
 	 * @param WP_User $user WP_User object of the logged-in user.
 	 *
 	 * @return bool Whether the user gave a valid code
@@ -552,6 +577,8 @@ class Two_Factor_Totp extends Two_Factor_Provider {
 
 	/**
 	 * Validates an authentication code for a given user, preventing re-use and older TOTP keys.
+	 *
+	 * @since 0.8.0
 	 *
 	 * @param WP_User $user WP_User object of the logged-in user.
 	 * @param int     $code The TOTP token to validate.
@@ -584,6 +611,8 @@ class Two_Factor_Totp extends Two_Factor_Provider {
 	/**
 	 * Checks if a given code is valid for a given key, allowing for a certain amount of time drift.
 	 *
+	 * @since 0.15.0
+	 *
 	 * @param string $key      The share secret key to use.
 	 * @param string $authcode The code to test.
 	 * @param string $hash      The hash used to calculate the code.
@@ -597,6 +626,8 @@ class Two_Factor_Totp extends Two_Factor_Provider {
 
 	/**
 	 * Checks if a given code is valid for a given key, allowing for a certain amount of time drift.
+	 *
+	 * @since 0.15.0
 	 *
 	 * @param string $key      The share secret key to use.
 	 * @param string $authcode The code to test.
@@ -641,6 +672,8 @@ class Two_Factor_Totp extends Two_Factor_Provider {
 	/**
 	 * Generates key
 	 *
+	 * @since 0.2.0
+	 *
 	 * @param int $bitsize Nume of bits to use for key.
 	 *
 	 * @return string $bitsize long string composed of available base32 chars.
@@ -654,6 +687,8 @@ class Two_Factor_Totp extends Two_Factor_Provider {
 
 	/**
 	 * Pack stuff
+	 *
+	 * @since 0.2.0
 	 *
 	 * @param int $value The value to be packed.
 	 *
@@ -675,6 +710,8 @@ class Two_Factor_Totp extends Two_Factor_Provider {
 	/**
 	 * Pad a short secret with bytes from the same until it's the correct length
 	 * for hashing.
+	 *
+	 * @since 0.15.0
 	 *
 	 * @param string $secret Secret key to pad.
 	 * @param int    $length Byte length of the desired padded secret.
@@ -698,6 +735,8 @@ class Two_Factor_Totp extends Two_Factor_Provider {
 
 	/**
 	 * Calculate a valid code given the shared secret key
+	 *
+	 * @since 0.2.0
 	 *
 	 * @param string $key        The shared secret key to use for calculating code.
 	 * @param mixed  $step_count The time step used to calculate the code, which is the floor of time() divided by step size.
@@ -749,6 +788,8 @@ class Two_Factor_Totp extends Two_Factor_Provider {
 	/**
 	 * Whether this Two Factor provider is configured and available for the user specified.
 	 *
+	 * @since 0.2.0
+	 *
 	 * @param WP_User $user WP_User object of the logged-in user.
 	 *
 	 * @return boolean
@@ -762,6 +803,8 @@ class Two_Factor_Totp extends Two_Factor_Provider {
 
 	/**
 	 * Prints the form that prompts the user to authenticate.
+	 *
+	 * @since 0.2.0
 	 *
 	 * @param WP_User $user WP_User object of the logged-in user.
 	 *
@@ -780,7 +823,7 @@ class Two_Factor_Totp extends Two_Factor_Provider {
 			<input type="text" inputmode="numeric" name="authcode" id="authcode" class="input authcode" value="" size="20" pattern="[0-9 ]*" placeholder="123 456" autocomplete="one-time-code" data-digits="<?php echo esc_attr( self::DEFAULT_DIGIT_COUNT ); ?>" />
 		</p>
 		<?php do_action( 'two_factor_after_authentication_input', $this ); ?>
-		<script type="text/javascript">
+		<script>
 			setTimeout( function(){
 				var d;
 				try{
@@ -795,6 +838,8 @@ class Two_Factor_Totp extends Two_Factor_Provider {
 
 	/**
 	 * Returns a base32 encoded string.
+	 *
+	 * @since 0.2.0
 	 *
 	 * @param string $string String to be encoded using base32.
 	 *
@@ -823,6 +868,8 @@ class Two_Factor_Totp extends Two_Factor_Provider {
 
 	/**
 	 * Decode a base32 string and return a binary representation
+	 *
+	 * @since 0.2.0
 	 *
 	 * @param string $base32_string The base 32 string to decode.
 	 *
@@ -861,6 +908,8 @@ class Two_Factor_Totp extends Two_Factor_Provider {
 	/**
 	 * Used with usort to sort an array by distance from 0
 	 *
+	 * @since 0.2.0
+	 *
 	 * @param int $a First array element.
 	 * @param int $b Second array element.
 	 *
@@ -877,6 +926,8 @@ class Two_Factor_Totp extends Two_Factor_Provider {
 
 	/**
 	 * Return user meta keys to delete during plugin uninstall.
+	 *
+	 * @since 0.10.0
 	 *
 	 * @return array
 	 */
