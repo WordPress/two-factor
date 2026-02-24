@@ -46,6 +46,8 @@ class Two_Factor_Backup_Codes extends Two_Factor_Provider {
 	/**
 	 * Register the rest-api endpoints required for this provider.
 	 *
+	 * @since 0.8.0
+	 *
 	 * @codeCoverageIgnore
 	 */
 	public function register_rest_routes() {
@@ -106,7 +108,7 @@ class Two_Factor_Backup_Codes extends Two_Factor_Provider {
 						array( 'a' => array( 'href' => true ) )
 					);
 					?>
-				<span>
+				</span>
 			</p>
 		</div>
 		<?php
@@ -159,7 +161,7 @@ class Two_Factor_Backup_Codes extends Two_Factor_Provider {
 
 		$count = self::codes_remaining_for_user( $user );
 		?>
-		<p id="two-factor-backup-codes">
+		<div id="two-factor-backup-codes">
 			<p class="two-factor-backup-codes-count">
 			<?php
 				echo esc_html(
@@ -178,7 +180,7 @@ class Two_Factor_Backup_Codes extends Two_Factor_Provider {
 
 				<em><?php esc_html_e( 'This invalidates all currently stored codes.', 'two-factor' ); ?></em>
 			</p>
-		</p>
+		</div>
 		<div class="two-factor-backup-codes-wrapper" style="display:none;">
 			<div class="two-factor-backup-codes-list-wrap">
 				<ol class="two-factor-backup-codes-unused-codes"></ol>
@@ -189,7 +191,7 @@ class Two_Factor_Backup_Codes extends Two_Factor_Provider {
 				<a class="button button-two-factor-backup-codes-download button-secondary hide-if-no-js" href="javascript:void(0);" id="two-factor-backup-codes-download-link" download="two-factor-backup-codes.txt"><?php esc_html_e( 'Download Codes', 'two-factor' ); ?></a>
 			</p>
 		</div>
-		<script type="text/javascript">
+		<script>
 			( function( $ ) {
 				$( '.button-two-factor-backup-codes-copy' ).click( function() {
 					var csvCodes = $( '.two-factor-backup-codes-wrapper' ).data( 'codesCsv' );
@@ -242,6 +244,8 @@ class Two_Factor_Backup_Codes extends Two_Factor_Provider {
 
 	/**
 	 * Get the backup code length for a user.
+	 *
+	 * @since 0.11.0
 	 *
 	 * @param WP_User $user User object.
 	 *
@@ -355,6 +359,8 @@ class Two_Factor_Backup_Codes extends Two_Factor_Provider {
 	/**
 	 * Returns the number of unused codes for the specified user
 	 *
+	 * @since 0.2.0
+	 *
 	 * @param WP_User $user WP_User object of the logged-in user.
 	 * @return int $int  The number of unused codes remaining
 	 */
@@ -458,6 +464,8 @@ class Two_Factor_Backup_Codes extends Two_Factor_Provider {
 
 	/**
 	 * Return user meta keys to delete during plugin uninstall.
+	 *
+	 * @since 0.10.0
 	 *
 	 * @return array
 	 */

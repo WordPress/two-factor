@@ -38,3 +38,8 @@
 	letter-spacing: 0.3em;
 	font-family: monospace;
 }
+
+#two-factor-qr-code {
+	min-width: 205px;
+	min-height: 205px;
+}
