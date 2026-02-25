@@ -302,6 +302,52 @@ class Test_ClassTwoFactorCore extends WP_UnitTestCase {
 	}
 
 	/**
+	 * Verify that if a user has a non-existent provider set, that it
+	 * swaps to email instead, rather than treating the user as having
+	 * no methods enabled.
+	 */
+	public function test_deprecated_provider_for_user() {
+		$user = $this->get_dummy_user();
+
+		// Set the dummy user with a non-existent provider.
+		update_user_meta(
+			$user->ID,
+			Two_Factor_Core::ENABLED_PROVIDERS_USER_META_KEY,
+			array(
+				'Two_Factor_Deprecated',
+			)
+		);
+
+		// This should fail back to `Two_Factor_Email` then.
+		$this->assertEquals(
+			array(
+				'Two_Factor_Email',
+			),
+			array_keys( Two_Factor_Core::get_available_providers_for_user( $user ) )
+		);
+
+		// Set the dummy user with a non-existent provider and a valid one.
+		update_user_meta(
+			$user->ID,
+			Two_Factor_Core::ENABLED_PROVIDERS_USER_META_KEY,
+			array(
+				'Two_Factor_Deprecated',
+				'Two_Factor_Dummy',
+			)
+		);
+
+		// This time it should just strip out the invalid one, and not inject a new one.
+		$this->assertEquals(
+			array(
+				'Two_Factor_Dummy',
+			),
+			array_keys( Two_Factor_Core::get_available_providers_for_user( $user ) )
+		);
+
+		$this->clean_dummy_user();
+	}
+
+	/**
 	 * Verify primary provider for not-logged-in user.
 	 *
 	 * @covers Two_Factor_Core::get_primary_provider_for_user
@@ -398,17 +444,59 @@ class Test_ClassTwoFactorCore extends WP_UnitTestCase {
 		$user_default     = new WP_User( self::factory()->user->create() );
 		$user_2fa_enabled = $this->get_dummy_user(); // User with a dummy two-factor method enabled.
 
+		$this->assertFalse( Two_Factor_Core::is_api_request(), 'Is not an API request by default' );
+
+		$this->assertFalse(
+			has_filter( 'send_auth_cookies', '__return_false' ),
+			'Auth cookie block not registerd before the `authenticate` filter has run.'
+		);
+
+		Two_Factor_Core::filter_authenticate( $user_default );
+
+		$this->assertFalse(
+			has_filter( 'send_auth_cookies', '__return_false' ),
+			'User login without 2fa should not block auth cookies.'
+		);
+
+		Two_Factor_Core::filter_authenticate( $user_2fa_enabled );
+
+		$this->assertTrue(
+			has_filter( 'send_auth_cookies', '__return_false' ),
+			'User login with 2fa should block auth cookies.'
+		);
+	}
+
+	/**
+	 * Verify authentication filters.
+	 *
+	 * @covers Two_Factor_Core::filter_authenticate
+	 * @covers Two_Factor_Core::is_api_request
+	 */
+	public function test_filter_authenticate_api() {
+		$user_default     = new WP_User( self::factory()->user->create() );
+		$user_2fa_enabled = $this->get_dummy_user(); // User with a dummy two-factor method enabled.
+
 		// TODO: Get Two_Factor_Core away from static methods to allow mocking this.
 		define( 'XMLRPC_REQUEST', true );
 
+		$this->assertTrue( Two_Factor_Core::is_api_request(), 'Can detect an API request' );
+
 		$this->assertInstanceOf(
-			'WP_User',
-			Two_Factor_Core::filter_authenticate( $user_default )
+			WP_User::class,
+			Two_Factor_Core::filter_authenticate( $user_default ),
+			'Non-2FA user should be able to authenticate during API requests'
 		);
 
 		$this->assertInstanceOf(
-			'WP_Error',
-			Two_Factor_Core::filter_authenticate( $user_2fa_enabled )
+			WP_Error::class,
+			Two_Factor_Core::filter_authenticate( $user_2fa_enabled ),
+			'2FA user should not be able to authenticate during API requests'
+		);
+
+		$this->assertInstanceOf(
+			WP_User::class,
+			Two_Factor_Core::filter_authenticate( $user_2fa_enabled ),
+			'Existing user session without a username should not trigger 2FA'
 		);
 	}
 
@@ -627,7 +715,8 @@ class Test_ClassTwoFactorCore extends WP_UnitTestCase {
 
 		$this->assertNotEmpty( $contents );
 		$this->assertStringNotContainsString( '1 times', $contents );
-		$this->assertStringContainsString( 'login without providing a valid two factor token', $contents );
+		$this->assertStringContainsString( 'attempted to login', $contents );
+		$this->assertStringContainsString( 'without providing a valid two factor token', $contents );
 
 		// 5 failed login attempts 5 hours ago - User should be informed.
 		$five_hours_ago = time() - 5 * HOUR_IN_SECONDS;
@@ -1245,7 +1334,7 @@ class Test_ClassTwoFactorCore extends WP_UnitTestCase {
 			array(
 				'test-key'     => true,
 				'test-key-two' => true,
-			) 
+			)
 		);
 
 		// Retrieve the session again, and verify it's updated.
@@ -1258,7 +1347,7 @@ class Test_ClassTwoFactorCore extends WP_UnitTestCase {
 		Two_Factor_Core::update_current_user_session(
 			array(
 				'test-key' => null,
-			) 
+			)
 		);
 
 		// Check the key is no longer there.
@@ -1285,7 +1374,7 @@ class Test_ClassTwoFactorCore extends WP_UnitTestCase {
 			array(
 				'two-factor-provider' => 'Two_Factor_Dummy',
 				'two-factor-login'    => time(),
-			) 
+			)
 		);
 
 		$dummy = Two_Factor_Dummy::get_instance();
@@ -1339,7 +1428,7 @@ class Test_ClassTwoFactorCore extends WP_UnitTestCase {
 		Two_Factor_Core::update_current_user_session(
 			array(
 				'two-factor-provider' => $email->get_key(),
-			) 
+			)
 		);
 
 		// Validate it's now the default for the current session.
@@ -1400,7 +1489,7 @@ class Test_ClassTwoFactorCore extends WP_UnitTestCase {
 				'two-factor-test-key1' => 'test-value',
 				'two-factor-test-key2' => 'test-value',
 				'tests-key'            => 'test-value',
-			) 
+			)
 		);
 
 		$session = Two_Factor_Core::get_current_user_session();
@@ -1469,7 +1558,7 @@ class Test_ClassTwoFactorCore extends WP_UnitTestCase {
 			'set_logged_in_cookie',
 			function ( $logged_in_cookie ) {
 				$_COOKIE[ LOGGED_IN_COOKIE ] = $logged_in_cookie;
-			} 
+			}
 		);
 
 		$user_authenticated = wp_signon(

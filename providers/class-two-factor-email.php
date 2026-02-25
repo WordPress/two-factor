@@ -66,6 +66,8 @@ class Two_Factor_Email extends Two_Factor_Provider {
 	/**
 	 * Get the email token length.
 	 *
+	 * @since 0.11.0
+	 *
 	 * @return int Email token string length.
 	 */
 	private function get_token_length() {
@@ -99,6 +101,8 @@ class Two_Factor_Email extends Two_Factor_Provider {
 	/**
 	 * Check if user has a valid token already.
 	 *
+	 * @since 0.2.0
+	 *
 	 * @param  int $user_id User ID.
 	 * @return boolean      If user has a valid email token.
 	 */
@@ -114,6 +118,8 @@ class Two_Factor_Email extends Two_Factor_Provider {
 
 	/**
 	 * Has the user token validity timestamp expired.
+	 *
+	 * @since 0.6.0
 	 *
 	 * @param integer $user_id User ID.
 	 *
@@ -134,6 +140,8 @@ class Two_Factor_Email extends Two_Factor_Provider {
 	/**
 	 * Get the lifetime of a user token in seconds.
 	 *
+	 * @since 0.6.0
+	 *
 	 * @param integer $user_id User ID.
 	 *
 	 * @return integer|null Return `null` if the lifetime can't be measured.
@@ -150,6 +158,8 @@ class Two_Factor_Email extends Two_Factor_Provider {
 
 	/**
 	 * Return the token time-to-live for a user.
+	 *
+	 * @since 0.6.0
 	 *
 	 * @param integer $user_id User ID.
 	 *
@@ -181,6 +191,8 @@ class Two_Factor_Email extends Two_Factor_Provider {
 
 	/**
 	 * Get the authentication token for the user.
+	 *
+	 * @since 0.2.0
 	 *
 	 * @param  int $user_id    User ID.
 	 *
@@ -235,6 +247,24 @@ class Two_Factor_Email extends Two_Factor_Provider {
 	}
 
 	/**
+	 * Get the client IP address for the current request.
+	 *
+	 * @since 0.15.0
+	 *
+	 * Note that the IP address is used only for information purposes
+	 * and is expected to be configured correctly, if behind proxy.
+	 *
+	 * @return string|null
+	 */
+	private function get_client_ip() {
+		if ( ! empty( $_SERVER['REMOTE_ADDR'] ) ) { // phpcs:ignore WordPressVIPMinimum.Variables.ServerVariables.UserControlledHeaders -- don't have more reliable option for now.
+			return preg_replace( '/[^0-9a-fA-F:., ]/', '', $_SERVER['REMOTE_ADDR'] ); // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized, WordPressVIPMinimum.Variables.ServerVariables.UserControlledHeaders, WordPressVIPMinimum.Variables.RestrictedVariables.cache_constraints___SERVER__REMOTE_ADDR__ -- we're limit the allowed characters.
+		}
+
+		return null;
+	}
+
+	/**
 	 * Generate and email the user token.
 	 *
 	 * @since 0.1-dev
@@ -243,28 +273,35 @@ class Two_Factor_Email extends Two_Factor_Provider {
 	 * @return bool Whether the email contents were sent successfully.
 	 */
 	public function generate_and_email_token( $user ) {
-		$token     = $this->generate_token( $user->ID );
-		$remote_ip = preg_replace( '/[^0-9a-fA-F:., ]/', '', $_SERVER['REMOTE_ADDR'] );
+		$token       = $this->generate_token( $user->ID );
+		$remote_ip   = $this->get_client_ip();
+		$ttl_minutes = (int) ceil( $this->user_token_ttl( $user->ID ) / MINUTE_IN_SECONDS );
 
-		/* translators: %s: site name */
-		$subject = wp_strip_all_tags( sprintf( __( 'Your login confirmation code for %s', 'two-factor' ), wp_specialchars_decode( get_option( 'blogname' ), ENT_QUOTES ) ) );
-
-		$message = wp_strip_all_tags(
+		$subject = wp_strip_all_tags(
 			sprintf(
-				/* translators: %1$s: token, $2$s: IP address of user, %3$s: `user_login` of authenticated user */
-				__(
-					'Enter %1$s to log in.
-
-Didn\'t expect this?
-A user from %2$s has successfully authenticated as %3$s.
-If this wasn\'t you, please change your password.',
-					'two-factor'
-				),
-				$token,
-				$remote_ip,
-				$user->user_login
+				/* translators: %s: site name */
+				__( '[%s] Login confirmation code', 'two-factor' ),
+				wp_specialchars_decode( get_option( 'blogname' ), ENT_QUOTES )
 			)
 		);
+
+		$message_parts = array(
+			__( 'Please complete the login by entering the verification code below:', 'two-factor' ),
+			$token,
+			sprintf(
+				/* translators: %d: number of minutes */
+				__( 'This code will expire in %d minutes.', 'two-factor' ),
+				$ttl_minutes
+			),
+			sprintf(
+				/* translators: $1$s: IP address of user, $2$s: user login */
+				__( 'A user from IP address %1$s has successfully authenticated as %2$s. If this wasn\'t you, please change your password.', 'two-factor' ),
+				$remote_ip,
+				$user->user_login
+			),
+		);
+
+		$message = wp_strip_all_tags( implode( "\n\n", $message_parts ) );
 
 		/**
 		 * Filter the token email subject.
@@ -307,16 +344,19 @@ If this wasn\'t you, please change your password.',
 
 		require_once ABSPATH . '/wp-admin/includes/template.php';
 		?>
+		<?php do_action( 'two_factor_before_authentication_prompt', $this ); ?>
 		<p class="two-factor-prompt"><?php esc_html_e( 'A verification code has been sent to the email address associated with your account.', 'two-factor' ); ?></p>
+		<?php do_action( 'two_factor_after_authentication_prompt', $this ); ?>
 		<p>
 			<label for="authcode"><?php esc_html_e( 'Verification Code:', 'two-factor' ); ?></label>
 			<input type="text" inputmode="numeric" name="two-factor-email-code" id="authcode" class="input authcode" value="" size="20" pattern="[0-9 ]*" autocomplete="one-time-code" placeholder="<?php echo esc_attr( $token_placeholder ); ?>" data-digits="<?php echo esc_attr( $token_length ); ?>" />
-			<?php submit_button( __( 'Verify', 'two-factor' ) ); ?>
 		</p>
+		<?php do_action( 'two_factor_after_authentication_input', $this ); ?>
+		<?php submit_button( __( 'Verify', 'two-factor' ) ); ?>
 		<p class="two-factor-email-resend">
 			<input type="submit" class="button" name="<?php echo esc_attr( self::INPUT_NAME_RESEND_CODE ); ?>" value="<?php esc_attr_e( 'Resend Code', 'two-factor' ); ?>" />
 		</p>
-		<script type="text/javascript">
+		<script>
 			setTimeout( function(){
 				var d;
 				try{
@@ -333,11 +373,13 @@ If this wasn\'t you, please change your password.',
 	 * Send the email code if missing or requested. Stop the authentication
 	 * validation if a new token has been generated and sent.
 	 *
+	 * @since 0.2.0
+	 *
 	 * @param  WP_User $user WP_User object of the logged-in user.
 	 * @return boolean
 	 */
 	public function pre_process_authentication( $user ) {
-		if ( isset( $user->ID ) && isset( $_REQUEST[ self::INPUT_NAME_RESEND_CODE ] ) ) {
+		if ( isset( $user->ID ) && isset( $_REQUEST[ self::INPUT_NAME_RESEND_CODE ] ) ) { // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- non-distructive option that relies on user state.
 			$this->generate_and_email_token( $user );
 			return true;
 		}
@@ -400,6 +442,8 @@ If this wasn\'t you, please change your password.',
 
 	/**
 	 * Return user meta keys to delete during plugin uninstall.
+	 *
+	 * @since 0.10.0
 	 *
 	 * @return array
 	 */

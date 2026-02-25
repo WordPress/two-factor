@@ -11,8 +11,8 @@
  * Plugin Name:       Two Factor
  * Plugin URI:        https://wordpress.org/plugins/two-factor/
  * Description:       Enable Two-Factor Authentication using time-based one-time passwords, Universal 2nd Factor (FIDO U2F, YubiKey), email, and backup verification codes.
- * Requires at least: 6.7
- * Version:           0.14.2
+ * Requires at least: 6.8
+ * Version:           0.15.0
  * Requires PHP:      7.2
  * Author:            WordPress.org Contributors
  * Author URI:        https://github.com/wordpress/two-factor/graphs/contributors
@@ -22,6 +22,10 @@
  * Network:           True
  */
 
+if ( ! defined( 'ABSPATH' ) ) {
+	exit; // Exit if accessed directly.
+}
+
 /**
  * Shortcut constant to the path of this file.
  */
@@ -30,7 +34,7 @@ define( 'TWO_FACTOR_DIR', plugin_dir_path( __FILE__ ) );
 /**
  * Version of the plugin.
  */
-define( 'TWO_FACTOR_VERSION', '0.14.2' );
+define( 'TWO_FACTOR_VERSION', '0.15.0' );
 
 /**
  * Include the base class here, so that other plugins can also extend it.

@@ -17,3 +17,29 @@
 	padding: 0.1rem 0.25rem;
 	margin: 0 0.15rem;
 }
+
+.two-factor-backup-codes-wrapper > :not(:last-child) {
+	margin-bottom: 1em;
+}
+
+.two-factor-backup-codes-list-wrap {
+	background-color: #ddd;
+	display: inline-block;
+	margin-top: 24px;
+	padding: 20px;
+}
+
+.two-factor-backup-codes-list-wrap .two-factor-backup-codes-unused-codes {
+	margin: 0;
+	padding: revert;
+}
+
+.two-factor-backup-codes-list-wrap .two-factor-backup-codes-token {
+	letter-spacing: 0.3em;
+	font-family: monospace;
+}
+
+#two-factor-qr-code {
+	min-width: 205px;
+	min-height: 205px;
+}
