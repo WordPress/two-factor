@@ -39,8 +39,27 @@ class Two_Factor_Backup_Codes extends Two_Factor_Provider {
 		add_action( 'rest_api_init', array( $this, 'register_rest_routes' ) );
 		add_action( 'two_factor_user_options_' . __CLASS__, array( $this, 'user_options' ) );
 		add_action( 'admin_notices', array( $this, 'admin_notices' ) );
+		add_action( 'admin_enqueue_scripts', array( $this, 'enqueue_assets' ) );
+		add_action( 'wp_enqueue_scripts', array( $this, 'enqueue_assets' ) );
 
 		parent::__construct();
+	}
+
+	/**
+	 * Enqueue scripts for backup codes.
+	 *
+	 * @since 0.10.0
+	 *
+	 * @codeCoverageIgnore
+	 */
+	public function enqueue_assets() {
+		wp_register_script(
+			'two-factor-backup-codes-admin',
+			plugins_url( 'js/backup-codes-admin.js', __FILE__ ),
+			array( 'jquery', 'wp-api-request' ),
+			TWO_FACTOR_VERSION,
+			true
+		);
 	}
 
 	/**
@@ -156,8 +175,15 @@ class Two_Factor_Backup_Codes extends Two_Factor_Provider {
 	 * @param WP_User $user WP_User object of the logged-in user.
 	 */
 	public function user_options( $user ) {
-		wp_enqueue_script( 'wp-api-request' );
-		wp_enqueue_script( 'jquery' );
+		wp_localize_script(
+			'two-factor-backup-codes-admin',
+			'twoFactorBackupCodes',
+			array(
+				'restPath' => Two_Factor_Core::REST_NAMESPACE . '/generate-backup-codes',
+				'userId'   => $user->ID,
+			)
+		);
+		wp_enqueue_script( 'two-factor-backup-codes-admin' );
 
 		$count = self::codes_remaining_for_user( $user );
 		?>
@@ -191,54 +217,6 @@ class Two_Factor_Backup_Codes extends Two_Factor_Provider {
 				<a class="button button-two-factor-backup-codes-download button-secondary hide-if-no-js" href="javascript:void(0);" id="two-factor-backup-codes-download-link" download="two-factor-backup-codes.txt"><?php esc_html_e( 'Download Codes', 'two-factor' ); ?></a>
 			</p>
 		</div>
-		<script>
-			( function( $ ) {
-				$( '.button-two-factor-backup-codes-copy' ).click( function() {
-					var csvCodes = $( '.two-factor-backup-codes-wrapper' ).data( 'codesCsv' );
-
-					if ( ! csvCodes ) {
-						return;
-					}
-
-					if ( navigator.clipboard && navigator.clipboard.writeText ) {
-						navigator.clipboard.writeText( csvCodes );
-						return;
-					}
-
-					var $temp = $( '<textarea>' ).val( csvCodes ).css( { position: 'absolute', left: '-9999px' } );
-					$( 'body' ).append( $temp );
-					$temp[0].select();
-					document.execCommand( 'copy' );
-					$temp.remove();
-				} );
-
-				$( '.button-two-factor-backup-codes-generate' ).click( function() {
-					wp.apiRequest( {
-						method: 'POST',
-						path: <?php echo wp_json_encode( Two_Factor_Core::REST_NAMESPACE . '/generate-backup-codes' ); ?>,
-						data: {
-							user_id: <?php echo wp_json_encode( $user->ID ); ?>
-						}
-					} ).then( function( response ) {
-						var $codesList = $( '.two-factor-backup-codes-unused-codes' );
-
-						$( '.two-factor-backup-codes-wrapper' ).show();
-						$codesList.html( '' );
-						$codesList.css( { 'column-count': 2, 'column-gap': '80px', 'max-width': '420px' } );
-						$( '.two-factor-backup-codes-wrapper' ).data( 'codesCsv', response.codes.join( ',' ) );
-
-						// Append the codes.
-						for ( var i = 0; i < response.codes.length; i++ ) {
-							$codesList.append( '<li class="two-factor-backup-codes-token">' + response.codes[ i ] + '</li>' );
-						}
-
-						// Update counter.
-						$( '.two-factor-backup-codes-count' ).html( response.i18n.count );
-						$( '#two-factor-backup-codes-download-link' ).attr( 'href', response.download_link );
-					} );
-				} );
-			} )( jQuery );
-		</script>
 		<?php
 	}
 
