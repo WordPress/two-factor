@@ -690,11 +690,11 @@ class Two_Factor_Totp extends Two_Factor_Provider {
 	 *
 	 * @since 0.2.0
 	 *
-	 * @param mixed $value The value to be packed.
+	 * @param int $value The value to be packed.
 	 *
 	 * @return string Binary packed string.
 	 */
-	public static function pack64( mixed $value ): string {
+	public static function pack64( int $value ): string {
 		// Native 64-bit support (modern PHP on 64-bit builds).
 		if ( 8 === PHP_INT_SIZE ) {
 			return pack( 'J', $value );
