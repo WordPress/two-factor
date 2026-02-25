@@ -185,7 +185,7 @@ class Two_Factor_Totp extends Two_Factor_Provider {
 	 * @since 0.8.0
 	 *
 	 * @param WP_REST_Request $request The Rest Request object.
-	 * @return array Success array.
+	 * @return WP_Error|array Array of data on success, WP_Error on error.
 	 */
 	public function rest_delete_totp( $request ) {
 		$user_id = $request['user_id'];
@@ -654,15 +654,15 @@ class Two_Factor_Totp extends Two_Factor_Provider {
 		$ticks = range( - $max_ticks, $max_ticks );
 		usort( $ticks, array( __CLASS__, 'abssort' ) );
 
-		$time = floor( self::time() / $time_step );
+		$time = (int) floor( self::time() / $time_step );
 
 		$digits = strlen( $authcode );
 
 		foreach ( $ticks as $offset ) {
-			$log_time = $time + $offset;
+			$log_time = (int) ( $time + $offset );
 			if ( hash_equals( self::calc_totp( $key, $log_time, $digits, $hash, $time_step ), $authcode ) ) {
 				// Return the tick timestamp.
-				return $log_time * self::DEFAULT_TIME_STEP_SEC;
+				return (int) ( $log_time * self::DEFAULT_TIME_STEP_SEC );
 			}
 		}
 
