@@ -486,6 +486,12 @@ class Registration
 
     /** The counter associated with this registration */
     public $counter = -1;
+
+    /** Whether this is a new registration */
+    public $new;
+
+    /** Timestamp when this registration was last used */
+    public $last_used;
 }
 
 /**
