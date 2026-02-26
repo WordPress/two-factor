@@ -1,14 +1,16 @@
 /* global twoFactorTotpAdmin, qrcode, wp, document, jQuery */
 ( function( $ ) {
 	var generateQrCode = function( totpUrl ) {
-		var $qrLink = $( '#two-factor-qr-code a' );
+		var $qrLink = $( '#two-factor-qr-code a' ),
+			qr,
+			svg,
+			title;
+
 		if ( ! $qrLink.length || typeof qrcode === 'undefined' ) {
 			return;
 		}
 
-		var qr = qrcode( 0, 'L' ),
-			svg,
-			title;
+		qr = qrcode( 0, 'L' );
 
 		qr.addData( totpUrl );
 		qr.make();
@@ -78,10 +80,12 @@
 				user_id: parseInt( twoFactorTotpAdmin.userId, 10 )
 			}
 		} ).then( function( response ) {
+			var totpUrl;
+
 			$( '#enabled-Two_Factor_Totp' ).prop( 'checked', false );
 			$( '#two-factor-totp-options' ).html( response.html );
 
-			var totpUrl = $( '#two-factor-qr-code a' ).attr( 'href' );
+			totpUrl = $( '#two-factor-qr-code a' ).attr( 'href' );
 			if ( totpUrl ) {
 				generateQrCode( totpUrl );
 			}
