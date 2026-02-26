@@ -1,5 +1,29 @@
-/* global twoFactorTotpAdmin, wp, document, jQuery */
+/* global twoFactorTotpAdmin, qrcode, wp, document, jQuery */
 ( function( $ ) {
+	var generateQrCode = function( totpUrl ) {
+		var $qrLink = $( '#two-factor-qr-code a' );
+		if ( ! $qrLink.length || typeof qrcode === 'undefined' ) {
+			return;
+		}
+
+		var qr = qrcode( 0, 'L' ),
+			svg,
+			title;
+
+		qr.addData( totpUrl );
+		qr.make();
+		$qrLink.html( qr.createSvgTag( 5 ) );
+
+		svg = $qrLink.find( 'svg' )[ 0 ];
+		if ( svg ) {
+			title = document.createElement( 'title' );
+			svg.role = 'image';
+			svg.ariaLabel = 'Authenticator App QR Code';
+			title.innerText = svg.ariaLabel;
+			svg.appendChild( title );
+		}
+	};
+
 	var checkbox = document.getElementById( 'enabled-Two_Factor_Totp' );
 
 	// Focus the auth code input when the checkbox is clicked.
@@ -56,6 +80,11 @@
 		} ).then( function( response ) {
 			$( '#enabled-Two_Factor_Totp' ).prop( 'checked', false );
 			$( '#two-factor-totp-options' ).html( response.html );
+
+			var totpUrl = $( '#two-factor-qr-code a' ).attr( 'href' );
+			if ( totpUrl ) {
+				generateQrCode( totpUrl );
+			}
 		} );
 	} );
 }( jQuery ) );

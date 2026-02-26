@@ -189,7 +189,7 @@ class Two_Factor_Totp extends Two_Factor_Provider {
 		wp_register_script(
 			'two-factor-totp-admin',
 			plugins_url( 'js/totp-admin.js', __FILE__ ),
-			array( 'jquery', 'wp-api-request' ),
+			array( 'jquery', 'wp-api-request', 'two-factor-qr-code-generator' ),
 			TWO_FACTOR_VERSION,
 			true
 		);
