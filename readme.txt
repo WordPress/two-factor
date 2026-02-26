@@ -138,9 +138,9 @@ Yes. For passkeys and hardware security keys, you can install the Two-Factor Pro
 == Screenshots ==
 
 1. Two-factor options under User Profile - Shows the main configuration area where users can enable different authentication methods.
-3. Email Code Authentication during WordPress Login - Shows the email verification screen that appears during login.
-4. Authenticator App (TOTP) setup with QR code - Demonstrates the QR code generation and manual key entry for TOTP setup.
-5. Backup codes generation and management - Shows the backup codes interface for generating and managing emergency access codes.
+2. Email Code Authentication during WordPress Login - Shows the email verification screen that appears during login.
+3. Authenticator App (TOTP) setup with QR code - Demonstrates the QR code generation and manual key entry for TOTP setup.
+4. Backup codes generation and management - Shows the backup codes interface for generating and managing emergency access codes.
 
 == Changelog ==
 
