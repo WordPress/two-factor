@@ -67,7 +67,7 @@ The Two-Factor plugin adds an extra layer of security to your WordPress login by
 ## Important Notes
 
 ### HTTPS Requirement
-- Other methods work on both HTTP and HTTPS sites
+- All methods work on both HTTP and HTTPS sites
 
 ### Browser Compatibility
 - TOTP and email methods work on all devices and browsers
