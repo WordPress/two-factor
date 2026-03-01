@@ -1027,6 +1027,7 @@ class Two_Factor_Core {
 		$interim_login       = isset( $_REQUEST['interim-login'] ); // phpcs:ignore WordPress.Security.NonceVerification.Recommended
 
 		$rememberme = intval( self::rememberme() );
+		$auto_submit_authcode = apply_filters( 'two_factor_auto_submit_authcode', true );
 
 		if ( is_wp_error( $available_providers ) ) {
 			// If it returned an error, the configured methods don't exist, and it couldn't swap in a replacement.
@@ -1050,7 +1051,7 @@ class Two_Factor_Core {
 		}
 		?>
 
-		<form name="validate_2fa_form" id="loginform" action="<?php echo esc_url( self::login_url( array( 'action' => $action ), 'login_post' ) ); ?>" method="post" autocomplete="off">
+		<form name="validate_2fa_form" id="loginform" action="<?php echo esc_url( self::login_url( array( 'action' => $action ), 'login_post' ) ); ?>" method="post" autocomplete="off"<?php if ( $auto_submit_authcode ) { ?> data-auto-submit="true"<?php } ?>>
 				<input type="hidden" name="provider"      id="provider"      value="<?php echo esc_attr( $provider_key ); ?>" />
 				<input type="hidden" name="wp-auth-id"    id="wp-auth-id"    value="<?php echo esc_attr( $user->ID ); ?>" />
 				<input type="hidden" name="wp-auth-nonce" id="wp-auth-nonce" value="<?php echo esc_attr( $login_nonce ); ?>" />
@@ -1150,8 +1151,8 @@ class Two_Factor_Core {
 
 							this.value = value;
 
-							// Auto-submit if it's the expected length.
-							if ( expectedLength && value.replace( / /g, '' ).length == expectedLength ) {
+							// Auto-submit if auto-submit is enabled and entered value is the expected length.
+							if ( form.dataset.autoSubmit && expectedLength && value.replace( / /g, '' ).length == expectedLength ) {
 								if ( undefined !== form.requestSubmit ) {
 									form.requestSubmit();
 									form.submit.disabled = "disabled";
