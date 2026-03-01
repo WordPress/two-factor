@@ -707,34 +707,24 @@ class Two_Factor_Totp extends Two_Factor_Provider {
 	}
 
 	/**
-	 * Pack stuff
+	 * Pack stuff. We're currently only using this to pack integers, however the generic `pack` method can handle mixed.
 	 *
 	 * @since 0.2.0
 	 *
-	 * @param string $value The value to be packed.
+	 * @param int $value The value to be packed.
 	 *
 	 * @return string Binary packed string.
 	 */
-	public static function pack64( $value ) {
-		// 64bit mode (PHP_INT_SIZE == 8).
-		if ( PHP_INT_SIZE >= 8 ) {
-			// If we're on PHP 5.6.3+ we can use the new 64bit pack functionality.
-			if ( version_compare( PHP_VERSION, '5.6.3', '>=' ) && PHP_INT_SIZE >= 8 ) {
-				return pack( 'J', $value ); // phpcs:ignore PHPCompatibility.ParameterValues.NewPackFormat.NewFormatFound
-			}
-			$highmap = 0xffffffff << 32;
-			$higher  = ( $value & $highmap ) >> 32;
-		} else {
-			/*
-			 * 32bit PHP can't shift 32 bits like that, so we have to assume 0 for the higher
-			 * and not pack anything beyond it's limits.
-			 */
-			$higher = 0;
+	public static function pack64( int $value ): string {
+		// Native 64-bit support (modern PHP on 64-bit builds).
+		if ( 8 === PHP_INT_SIZE ) {
+			return pack( 'J', $value );
 		}
-
-		$lowmap = 0xffffffff;
-		$lower  = $value & $lowmap;
-
+	
+		// 32-bit PHP fallback
+		$higher = ( $value >> 32 ) & 0xFFFFFFFF;
+		$lower  = $value & 0xFFFFFFFF;
+	
 		return pack( 'NN', $higher, $lower );
 	}
 
@@ -857,7 +847,7 @@ class Two_Factor_Totp extends Two_Factor_Provider {
 		?>
 		<p>
 			<label for="authcode"><?php esc_html_e( 'Authentication Code:', 'two-factor' ); ?></label>
-			<input type="text" inputmode="numeric" autocomplete="one-time-code" name="authcode" id="authcode" class="input authcode" value="" size="20" pattern="[0-9 ]*" placeholder="123 456" autocomplete="one-time-code" data-digits="<?php echo esc_attr( self::DEFAULT_DIGIT_COUNT ); ?>" />
+			<input type="text" inputmode="numeric" name="authcode" id="authcode" class="input authcode" value="" size="20" pattern="[0-9 ]*" placeholder="123 456" autocomplete="one-time-code" data-digits="<?php echo esc_attr( self::DEFAULT_DIGIT_COUNT ); ?>" />
 		</p>
 		<?php
 		/** This action is documented in providers/class-two-factor-backup-codes.php */
