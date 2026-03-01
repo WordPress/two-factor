@@ -10,7 +10,7 @@
  * @wordpress-plugin
  * Plugin Name:       Two Factor
  * Plugin URI:        https://wordpress.org/plugins/two-factor/
- * Description:       Enable Two-Factor Authentication using time-based one-time passwords, Universal 2nd Factor (FIDO U2F, YubiKey), email, and backup verification codes.
+ * Description:       Enable Two-Factor Authentication using time-based one-time passwords, email, and backup verification codes.
  * Requires at least: 6.8
  * Version:           0.15.0
  * Requires PHP:      7.2

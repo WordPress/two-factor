@@ -214,7 +214,6 @@ class Two_Factor_Core {
 		return array(
 			'Two_Factor_Email'        => TWO_FACTOR_DIR . 'providers/class-two-factor-email.php',
 			'Two_Factor_Totp'         => TWO_FACTOR_DIR . 'providers/class-two-factor-totp.php',
-			'Two_Factor_FIDO_U2F'     => TWO_FACTOR_DIR . 'providers/class-two-factor-fido-u2f.php',
 			'Two_Factor_Backup_Codes' => TWO_FACTOR_DIR . 'providers/class-two-factor-backup-codes.php',
 			'Two_Factor_Dummy'        => TWO_FACTOR_DIR . 'providers/class-two-factor-dummy.php',
 		);
@@ -286,18 +285,6 @@ class Two_Factor_Core {
 		 *                         the value is the path to the file containing the class.
 		 */
 		$providers = apply_filters( 'two_factor_providers', $providers );
-
-		// FIDO U2F is PHP 5.3+ only.
-		if ( isset( $providers['Two_Factor_FIDO_U2F'] ) && version_compare( PHP_VERSION, '5.3.0', '<' ) ) {
-			unset( $providers['Two_Factor_FIDO_U2F'] );
-			trigger_error( // phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_trigger_error
-				sprintf(
-				/* translators: %s: version number */
-					__( 'FIDO U2F is not available because you are using PHP %s. (Requires 5.3 or greater)', 'two-factor' ), // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
-					PHP_VERSION
-				)
-			);
-		}
 
 		// Map provider keys to classes so that we can instantiate them.
 		$providers = self::get_providers_classes( $providers );
@@ -626,7 +613,7 @@ class Two_Factor_Core {
 		 * if emailed codes is available force it to be on, so that deprecated
 		 * or removed providers don't result in the two-factor requirement being
 		 * removed and 'failing open'.
-		 * 
+		 *
 		 * Possible enhancement: add a filter to change the fallback method?
 		 */
 		if ( empty( $enabled_providers ) && $user_providers_raw ) {
