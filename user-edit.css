@@ -18,6 +18,37 @@
 	margin: 0 0.15rem;
 }
 
+.backup-methods-wrap {
+	margin-top: 16px;
+	padding: 0 24px;
+}
+
+.backup-methods-wrap a {
+	text-decoration: none;
+}
+
+.backup-methods-wrap ul {
+	list-style-position: inside;
+}
+
+/* Prevent Jetpack from hiding our controls, see https://github.com/Automattic/jetpack/issues/3747 */
+.jetpack-sso-form-display #loginform > p,
+.jetpack-sso-form-display #loginform > div {
+	display: block;
+}
+
+#login form p.two-factor-prompt {
+	margin-bottom: 1em;
+}
+
+.input.authcode {
+	letter-spacing: 0.3em;
+}
+
+.input.authcode::placeholder {
+	opacity: 0.5;
+}
+
 .two-factor-backup-codes-wrapper > :not(:last-child) {
 	margin-bottom: 1em;
 }

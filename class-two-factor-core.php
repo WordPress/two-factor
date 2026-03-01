@@ -1051,6 +1051,8 @@ class Two_Factor_Core {
 		// Disable the language switcher.
 		add_filter( 'login_display_language_dropdown', '__return_false' );
 
+		wp_enqueue_style( 'user-edit-2fa', plugins_url( 'user-edit.css', __FILE__ ), array(), TWO_FACTOR_VERSION );
+
 		login_header();
 
 		if ( ! empty( $error_msg ) ) {
@@ -1110,33 +1112,6 @@ class Two_Factor_Core {
 			</div>
 		<?php endif; ?>
 
-		<style>
-			/* @todo: migrate to an external stylesheet. */
-			.backup-methods-wrap {
-				margin-top: 16px;
-				padding: 0 24px;
-			}
-			.backup-methods-wrap a {
-				text-decoration: none;
-			}
-			.backup-methods-wrap ul {
-				list-style-position: inside;
-			}
-			/* Prevent Jetpack from hiding our controls, see https://github.com/Automattic/jetpack/issues/3747 */
-			.jetpack-sso-form-display #loginform > p,
-			.jetpack-sso-form-display #loginform > div {
-				display: block;
-			}
-			#login form p.two-factor-prompt {
-				margin-bottom: 1em;
-			}
-			.input.authcode {
-				letter-spacing: .3em;
-			}
-			.input.authcode::placeholder {
-				opacity: 0.5;
-			}
-		</style>
 		<script>
 			(function() {
 				// Enforce numeric-only input for numeric inputmode elements.
