@@ -237,15 +237,11 @@ class Two_Factor_FIDO_U2F_Admin {
 	 * @return void|never
 	 */
 	public static function catch_submission( $user_id ) {
-		if ( ! empty( $_REQUEST['do_new_security_key'] ) ) { // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Nonce is verified immediately below.
+		if ( ! empty( $_REQUEST['do_new_security_key'] ) ) {
 			check_admin_referer( "user_security_keys-{$user_id}", '_nonce_user_security_keys' );
 
-			if ( ! isset( $_POST['u2f_response'] ) ) {
-				return;
-			}
-
 			try {
-				$response = json_decode( wp_unslash( $_POST['u2f_response'] ) ); // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- JSON data decoded immediately.
+				$response = json_decode( stripslashes( $_POST['u2f_response'] ) );
 				$reg      = Two_Factor_FIDO_U2F::$u2f->doRegister( get_user_meta( $user_id, self::REGISTER_DATA_USER_META_KEY, true ), $response );
 				$reg->new = true;
 
@@ -281,8 +277,8 @@ class Two_Factor_FIDO_U2F_Admin {
 	public static function catch_delete_security_key() {
 		$user_id = Two_Factor_Core::current_user_being_edited();
 
-		if ( ! empty( $user_id ) && ! empty( $_REQUEST['delete_security_key'] ) ) { // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Nonce requires the slug value, verified immediately below.
-			$slug = sanitize_text_field( wp_unslash( $_REQUEST['delete_security_key'] ) );
+		if ( ! empty( $user_id ) && ! empty( $_REQUEST['delete_security_key'] ) ) {
+			$slug = $_REQUEST['delete_security_key'];
 
 			check_admin_referer( "delete_security_key-{$slug}", '_nonce_delete_security_key' );
 
@@ -301,10 +297,10 @@ class Two_Factor_FIDO_U2F_Admin {
 	 * @access public
 	 * @static
 	 *
-	 * @param object $item The current item.
+	 * @param array $item The current item.
 	 * @return string
 	 */
-	public static function rename_link( $item ) { // phpcs:ignore Generic.CodeAnalysis.UnusedFunctionParameter.Found -- Required by WP_List_Table column callback interface.
+	public static function rename_link( $item ) {
 		return sprintf( '<a href="#" class="editinline">%s</a>', esc_html__( 'Rename', 'two-factor' ) );
 	}
 
@@ -316,7 +312,7 @@ class Two_Factor_FIDO_U2F_Admin {
 	 * @access public
 	 * @static
 	 *
-	 * @param object $item The current item.
+	 * @param array $item The current item.
 	 * @return string
 	 */
 	public static function delete_link( $item ) {
@@ -349,23 +345,13 @@ class Two_Factor_FIDO_U2F_Admin {
 			wp_die();
 		}
 
-		$key = null;
-		foreach ( $security_keys as $security_key ) {
-			if ( $security_key->keyHandle === $_POST['keyHandle'] ) { // phpcs:ignore WordPress.NamingConventions.ValidVariableName.UsedPropertyNotSnakeCase
-				$key = $security_key;
+		foreach ( $security_keys as &$key ) {
+			if ( $key->keyHandle === $_POST['keyHandle'] ) { // phpcs:ignore WordPress.NamingConventions.ValidVariableName.UsedPropertyNotSnakeCase
 				break;
 			}
 		}
 
-		if ( ! $key ) {
-			wp_die();
-		}
-
-		if ( ! isset( $_POST['name'] ) ) {
-			wp_die();
-		}
-
-		$key->name = sanitize_text_field( wp_unslash( $_POST['name'] ) );
+		$key->name = $_POST['name'];
 
 		$updated = Two_Factor_FIDO_U2F::update_security_key( $user_id, $key );
 		if ( ! $updated ) {
