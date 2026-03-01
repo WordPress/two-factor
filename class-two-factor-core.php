@@ -590,7 +590,7 @@ class Two_Factor_Core {
 		/**
 		 * Filter the enabled two-factor authentication providers for this user.
 		 *
-		 * @since 0.1-dev
+		 * @since 0.5.2
 		 *
 		 * @param array  $enabled_providers The enabled providers.
 		 * @param int    $user_id           The user ID.
@@ -750,7 +750,7 @@ class Two_Factor_Core {
 		/**
 		 * Filter the two-factor authentication provider used for this user.
 		 *
-		 * @since 0.1-dev
+		 * @since 0.2.0
 		 *
 		 * @param string $provider The provider currently being used.
 		 * @param int    $user_id  The user ID.
@@ -871,7 +871,7 @@ class Two_Factor_Core {
 		 * Allow or prevent logins without two-factor during
 		 * API requests such as XML-RPC and REST.
 		 *
-		 * @since 0.1-dev
+		 * @since 0.4.0
 		 *
 		 * @param boolean $enabled Whether the user can login via API requests.
 		 * @param integer $user_id User ID.
@@ -1598,7 +1598,7 @@ class Two_Factor_Core {
 		/**
 		 * Fires after a user has been authenticated via two-factor.
 		 *
-		 * @since 0.1-dev
+		 * @since 0.5.2
 		 *
 		 * @param WP_User               $user     The authenticated user.
 		 * @param Two_Factor_Provider $provider The two-factor provider used for authentication.
@@ -2107,7 +2107,7 @@ class Two_Factor_Core {
 		 * @since 0.14.0
 		 *
 		 * @param array   $recommended_providers The recommended providers.
-		 * @param WP_User $user                  The user.
+		 * @param WP_User $user The user.
 		 */
 		return (array) apply_filters( 'two_factor_recommended_providers', $providers, $user );
 	}

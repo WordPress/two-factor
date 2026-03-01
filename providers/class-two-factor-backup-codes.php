@@ -392,7 +392,7 @@ class Two_Factor_Backup_Codes extends Two_Factor_Provider {
 		/**
 		 * Fires before the two-factor authentication prompt text.
 		 *
-		 * @since 0.1-dev
+		 * @since 0.15.0
 		 *
 		 * @param Two_Factor_Provider $provider The two-factor provider instance.
 		 */
@@ -403,7 +403,7 @@ class Two_Factor_Backup_Codes extends Two_Factor_Provider {
 		/**
 		 * Fires after the two-factor authentication prompt text.
 		 *
-		 * @since 0.1-dev
+		 * @since 0.15.0
 		 *
 		 * @param Two_Factor_Provider $provider The two-factor provider instance.
 		 */
@@ -417,7 +417,7 @@ class Two_Factor_Backup_Codes extends Two_Factor_Provider {
 		/**
 		 * Fires after the two-factor authentication input field.
 		 *
-		 * @since 0.1-dev
+		 * @since 0.15.0
 		 *
 		 * @param Two_Factor_Provider $provider The two-factor provider instance.
 		 */

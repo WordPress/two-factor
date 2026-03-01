@@ -173,11 +173,11 @@ class Two_Factor_Email extends Two_Factor_Provider {
 		/**
 		 * Filters the number of seconds the email token is considered valid after generation.
 		 *
-		 * @since 0.1-dev
+		 * @since 0.6.0
 		 * @deprecated 0.11.0 Use {@see 'two_factor_email_token_ttl'} instead.
 		 *
 		 * @param int $token_ttl Token time-to-live in seconds.
-		 * @param int $user_id   User ID.
+		 * @param int $user_id User ID.
 		 */
 		$token_ttl = (int) apply_filters_deprecated( 'two_factor_token_ttl', array( $token_ttl, $user_id ), '0.11.0', 'two_factor_email_token_ttl' );
 
@@ -187,7 +187,7 @@ class Two_Factor_Email extends Two_Factor_Provider {
 		 * @since 0.11.0
 		 *
 		 * @param int $token_ttl Token time-to-live in seconds.
-		 * @param int $user_id   User ID.
+		 * @param int $user_id User ID.
 		 */
 		return (int) apply_filters( 'two_factor_email_token_ttl', $token_ttl, $user_id );
 	}
@@ -309,7 +309,7 @@ class Two_Factor_Email extends Two_Factor_Provider {
 		/**
 		 * Filters the token email subject.
 		 *
-		 * @since 0.1-dev
+		 * @since 0.5.2
 		 *
 		 * @param string $subject The email subject line.
 		 * @param int    $user_id The ID of the user.
@@ -319,7 +319,7 @@ class Two_Factor_Email extends Two_Factor_Provider {
 		/**
 		 * Filters the token email message.
 		 *
-		 * @since 0.1-dev
+		 * @since 0.5.2
 		 *
 		 * @param string $message The email message.
 		 * @param string $token   The token.

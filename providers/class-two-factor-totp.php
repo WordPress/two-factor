@@ -279,7 +279,7 @@ class Two_Factor_Totp extends Two_Factor_Provider {
 		 *
 		 * Must follow the TOTP format for a "label". Do not URL Encode.
 		 *
-		 * @since 0.1-dev
+		 * @since 0.4.7
 		 *
 		 * @see https://github.com/google/google-authenticator/wiki/Key-Uri-Format#label
 		 *
@@ -652,7 +652,7 @@ class Two_Factor_Totp extends Two_Factor_Provider {
 		 * Ticks are the allowed offset from the correct time in 30 second increments,
 		 * so the default of 4 allows codes that are two minutes to either side of server time.
 		 *
-		 * @since 0.1-dev
+		 * @since 0.2.0
 		 * @deprecated 0.7.0 Use {@see 'two_factor_totp_time_step_allowance'} instead.
 		 *
 		 * @param int $max_ticks Max ticks of time correction to allow. Default 4.
