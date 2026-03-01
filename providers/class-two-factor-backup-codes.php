@@ -46,6 +46,8 @@ class Two_Factor_Backup_Codes extends Two_Factor_Provider {
 	/**
 	 * Register the rest-api endpoints required for this provider.
 	 *
+	 * @since 0.8.0
+	 *
 	 * @codeCoverageIgnore
 	 */
 	public function register_rest_routes() {
@@ -106,7 +108,7 @@ class Two_Factor_Backup_Codes extends Two_Factor_Provider {
 						array( 'a' => array( 'href' => true ) )
 					);
 					?>
-				<span>
+				</span>
 			</p>
 		</div>
 		<?php
@@ -159,7 +161,7 @@ class Two_Factor_Backup_Codes extends Two_Factor_Provider {
 
 		$count = self::codes_remaining_for_user( $user );
 		?>
-		<p id="two-factor-backup-codes">
+		<div id="two-factor-backup-codes">
 			<p class="two-factor-backup-codes-count">
 			<?php
 				echo esc_html(
@@ -178,16 +180,38 @@ class Two_Factor_Backup_Codes extends Two_Factor_Provider {
 
 				<em><?php esc_html_e( 'This invalidates all currently stored codes.', 'two-factor' ); ?></em>
 			</p>
-		</p>
+		</div>
 		<div class="two-factor-backup-codes-wrapper" style="display:none;">
-			<ol class="two-factor-backup-codes-unused-codes"></ol>
+			<div class="two-factor-backup-codes-list-wrap">
+				<ol class="two-factor-backup-codes-unused-codes"></ol>
+			</div>
 			<p class="description"><?php esc_html_e( 'Write these down! Once you navigate away from this page, you will not be able to view these codes again.', 'two-factor' ); ?></p>
 			<p>
+				<a class="button button-two-factor-backup-codes-copy button-secondary hide-if-no-js" href="javascript:void(0);" id="two-factor-backup-codes-copy-link"><?php esc_html_e( 'Copy Codes', 'two-factor' ); ?></a>
 				<a class="button button-two-factor-backup-codes-download button-secondary hide-if-no-js" href="javascript:void(0);" id="two-factor-backup-codes-download-link" download="two-factor-backup-codes.txt"><?php esc_html_e( 'Download Codes', 'two-factor' ); ?></a>
-			<p>
+			</p>
 		</div>
-		<script type="text/javascript">
+		<script>
 			( function( $ ) {
+				$( '.button-two-factor-backup-codes-copy' ).click( function() {
+					var csvCodes = $( '.two-factor-backup-codes-wrapper' ).data( 'codesCsv' );
+
+					if ( ! csvCodes ) {
+						return;
+					}
+
+					if ( navigator.clipboard && navigator.clipboard.writeText ) {
+						navigator.clipboard.writeText( csvCodes );
+						return;
+					}
+
+					var $temp = $( '<textarea>' ).val( csvCodes ).css( { position: 'absolute', left: '-9999px' } );
+					$( 'body' ).append( $temp );
+					$temp[0].select();
+					document.execCommand( 'copy' );
+					$temp.remove();
+				} );
+
 				$( '.button-two-factor-backup-codes-generate' ).click( function() {
 					wp.apiRequest( {
 						method: 'POST',
@@ -200,10 +224,12 @@ class Two_Factor_Backup_Codes extends Two_Factor_Provider {
 
 						$( '.two-factor-backup-codes-wrapper' ).show();
 						$codesList.html( '' );
+						$codesList.css( { 'column-count': 2, 'column-gap': '80px', 'max-width': '420px' } );
+						$( '.two-factor-backup-codes-wrapper' ).data( 'codesCsv', response.codes.join( ',' ) );
 
 						// Append the codes.
-						for ( i = 0; i < response.codes.length; i++ ) {
-							$codesList.append( '<li>' + response.codes[ i ] + '</li>' );
+						for ( var i = 0; i < response.codes.length; i++ ) {
+							$codesList.append( '<li class="two-factor-backup-codes-token">' + response.codes[ i ] + '</li>' );
 						}
 
 						// Update counter.
@@ -219,16 +245,20 @@ class Two_Factor_Backup_Codes extends Two_Factor_Provider {
 	/**
 	 * Get the backup code length for a user.
 	 *
+	 * @since 0.11.0
+	 *
 	 * @param WP_User $user User object.
 	 *
 	 * @return int Number of characters.
 	 */
 	private function get_backup_code_length( $user ) {
 		/**
-		 * Customize the character count of the backup codes.
+		 * Filters the character count of the backup codes.
 		 *
-		 * @var int $code_length Length of the backup code.
-		 * @var WP_User $user User object.
+		 * @since 0.11.0
+		 *
+		 * @param int     $code_length Length of the backup code. Default 8.
+		 * @param WP_User $user        User object.
 		 */
 		$code_length = (int) apply_filters( 'two_factor_backup_code_length', 8, $user );
 
@@ -244,7 +274,7 @@ class Two_Factor_Backup_Codes extends Two_Factor_Provider {
 	 * @param array   $args Optional arguments for assigning new codes.
 	 * @return array
 	 */
-	public function generate_codes( $user, $args = '' ) {
+	public function generate_codes( $user, $args = array() ) {
 		$codes        = array();
 		$codes_hashed = array();
 
@@ -331,6 +361,8 @@ class Two_Factor_Backup_Codes extends Two_Factor_Provider {
 	/**
 	 * Returns the number of unused codes for the specified user
 	 *
+	 * @since 0.2.0
+	 *
 	 * @param WP_User $user WP_User object of the logged-in user.
 	 * @return int $int  The number of unused codes remaining
 	 */
@@ -356,14 +388,41 @@ class Two_Factor_Backup_Codes extends Two_Factor_Provider {
 		$code_placeholder = str_repeat( 'X', $code_length );
 
 		?>
-		<?php do_action( 'two_factor_before_authentication_prompt', $this ); ?>
+		<?php
+		/**
+		 * Fires before the two-factor authentication prompt text.
+		 *
+		 * @since 0.15.0
+		 *
+		 * @param Two_Factor_Provider $provider The two-factor provider instance.
+		 */
+		do_action( 'two_factor_before_authentication_prompt', $this );
+		?>
 		<p class="two-factor-prompt"><?php esc_html_e( 'Enter a recovery code.', 'two-factor' ); ?></p>
-		<?php do_action( 'two_factor_after_authentication_prompt', $this ); ?>
+		<?php
+		/**
+		 * Fires after the two-factor authentication prompt text.
+		 *
+		 * @since 0.15.0
+		 *
+		 * @param Two_Factor_Provider $provider The two-factor provider instance.
+		 */
+		do_action( 'two_factor_after_authentication_prompt', $this );
+		?>
 		<p>
 			<label for="authcode"><?php esc_html_e( 'Recovery Code:', 'two-factor' ); ?></label>
 			<input type="text" inputmode="numeric" name="two-factor-backup-code" id="authcode" class="input authcode" value="" size="20" pattern="[0-9 ]*" placeholder="<?php echo esc_attr( $code_placeholder ); ?>" data-digits="<?php echo esc_attr( $code_length ); ?>" />
 		</p>
-		<?php do_action( 'two_factor_after_authentication_input', $this ); ?>
+		<?php
+		/**
+		 * Fires after the two-factor authentication input field.
+		 *
+		 * @since 0.15.0
+		 *
+		 * @param Two_Factor_Provider $provider The two-factor provider instance.
+		 */
+		do_action( 'two_factor_after_authentication_input', $this );
+		?>
 		<?php
 		submit_button( __( 'Verify', 'two-factor' ) );
 	}
@@ -434,6 +493,8 @@ class Two_Factor_Backup_Codes extends Two_Factor_Provider {
 
 	/**
 	 * Return user meta keys to delete during plugin uninstall.
+	 *
+	 * @since 0.10.0
 	 *
 	 * @return array
 	 */

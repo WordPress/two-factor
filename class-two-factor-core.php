@@ -239,6 +239,8 @@ class Two_Factor_Core {
 			/**
 			 * Filters the classname for a provider. The dynamic portion of the filter is the defined providers key.
 			 *
+			 * @since 0.9.0
+			 *
 			 * @param string $class The PHP Classname of the provider.
 			 * @param string $path  The provided provider path to be included.
 			 */
@@ -276,6 +278,8 @@ class Two_Factor_Core {
 		 *
 		 * This lets third-parties either remove providers (such as Email), or
 		 * add their own providers (such as text message or Clef).
+		 *
+		 * @since 0.1-dev
 		 *
 		 * @param array $providers A key-value array where the key is the class name, and
 		 *                         the value is the path to the file containing the class.
@@ -573,6 +577,8 @@ class Two_Factor_Core {
 		/**
 		 * Filter the enabled two-factor authentication providers for this user.
 		 *
+		 * @since 0.5.2
+		 *
 		 * @param array  $enabled_providers The enabled providers.
 		 * @param int    $user_id           The user ID.
 		 */
@@ -731,6 +737,8 @@ class Two_Factor_Core {
 		/**
 		 * Filter the two-factor authentication provider used for this user.
 		 *
+		 * @since 0.2.0
+		 *
 		 * @param string $provider The provider currently being used.
 		 * @param int    $user_id  The user ID.
 		 */
@@ -849,6 +857,8 @@ class Two_Factor_Core {
 		/**
 		 * Allow or prevent logins without two-factor during
 		 * API requests such as XML-RPC and REST.
+		 *
+		 * @since 0.4.0
 		 *
 		 * @param boolean $enabled Whether the user can login via API requests.
 		 * @param integer $user_id User ID.
@@ -1310,6 +1320,8 @@ class Two_Factor_Core {
 		/**
 		 * Filter the minimum time duration between two factor attempts.
 		 *
+		 * @since 0.8.0
+		 *
 		 * @param int $rate_limit The number of seconds between two factor attempts.
 		 */
 		$rate_limit = apply_filters( 'two_factor_rate_limit', 1 );
@@ -1321,6 +1333,8 @@ class Two_Factor_Core {
 			/**
 			 * Filter the maximum time duration a user may be locked out from retrying two factor authentications.
 			 *
+			 * @since 0.8.0
+			 *
 			 * @param int $max_rate_limit The maximum number of seconds a user might be locked out for. Default 15 minutes.
 			 */
 			$max_rate_limit = apply_filters( 'two_factor_max_rate_limit', 15 * MINUTE_IN_SECONDS );
@@ -1330,6 +1344,8 @@ class Two_Factor_Core {
 
 		/**
 		 * Filters the per-user time duration between two factor login attempts.
+		 *
+		 * @since 0.8.0
 		 *
 		 * @param int     $rate_limit The number of seconds between two factor attempts.
 		 * @param WP_User $user       The user attempting to login.
@@ -1360,8 +1376,10 @@ class Two_Factor_Core {
 		 * This allows for dedicated plugins to rate limit two factor login attempts
 		 * based on their own rules.
 		 *
-		 * @param bool     $rate_limited Whether the user login is rate limited.
-		 * @param WP_User $user          The user attempting to login.
+		 * @since 0.8.0
+		 *
+		 * @param bool    $rate_limited Whether the user login is rate limited.
+		 * @param WP_User $user         The user attempting to login.
 		 */
 		return apply_filters( 'two_factor_is_user_rate_limited', $rate_limited, $user );
 	}
@@ -1457,6 +1475,14 @@ class Two_Factor_Core {
 			return new WP_Error( 'revalidation_required', __( 'Two Factor Revalidation required.', 'two-factor' ) );
 		}
 
+		/**
+		 * Filters whether the current user can edit another user's two-factor options via the REST API.
+		 *
+		 * @since 0.7.0
+		 *
+		 * @param bool $can_edit Whether the user can edit the two-factor options. Default true.
+		 * @param int  $user_id  The user ID being updated.
+		 */
 		return apply_filters( 'two_factor_rest_api_can_edit_user', true, $user_id );
 	}
 
@@ -1556,6 +1582,14 @@ class Two_Factor_Core {
 
 		wp_set_auth_cookie( $user->ID, $rememberme );
 
+		/**
+		 * Fires after a user has been authenticated via two-factor.
+		 *
+		 * @since 0.5.2
+		 *
+		 * @param WP_User               $user     The authenticated user.
+		 * @param Two_Factor_Provider $provider The two-factor provider used for authentication.
+		 */
 		do_action( 'two_factor_user_authenticated', $user, $provider );
 
 		remove_filter( 'attach_session_information', $session_information_callback );
@@ -1579,7 +1613,7 @@ class Two_Factor_Core {
 			do_action( 'login_footer' ); // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedHooknameFound -- Core WordPress action.
 			?>
 			<?php if ( $customize_login ) : ?>
-				<script type="text/javascript">setTimeout( function(){ new wp.customize.Messenger({ url: '<?php echo esc_url( wp_customize_url() ); ?>', channel: 'login' }).send('login') }, 1000 );</script>
+				<script>setTimeout( function(){ new wp.customize.Messenger({ url: '<?php echo esc_url( wp_customize_url() ); ?>', channel: 'login' }).send('login') }, 1000 );</script>
 			<?php endif; ?>
 			</body></html>
 			<?php
@@ -1664,6 +1698,14 @@ class Two_Factor_Core {
 			)
 		);
 
+		/**
+		 * Fires after a user has been revalidated via two-factor.
+		 *
+		 * @since 0.8.0
+		 *
+		 * @param WP_User               $user     The revalidated user.
+		 * @param Two_Factor_Provider $provider The two-factor provider used for revalidation.
+		 */
 		do_action( 'two_factor_user_revalidated', $user, $provider );
 
 		// Must be global because that's how login_header() uses it.
@@ -1774,10 +1816,12 @@ class Two_Factor_Core {
 		 * that the password has been compromised and an attacker is trying to brute force the 2nd
 		 * factor.
 		 *
-		 * ⚠️ `get_user_time_delay()` mitigates brute force attempts, but many 2nd factors --
+		 * `get_user_time_delay()` mitigates brute force attempts, but many 2nd factors --
 		 * like TOTP and backup codes -- are very weak on their own, so it's not safe to give
 		 * attackers unlimited attempts. Setting this to a very large number is strongly
 		 * discouraged.
+		 *
+		 * @since 0.8.0
 		 *
 		 * @param int $limit The number of attempts before the password is reset.
 		 */
@@ -1823,6 +1867,8 @@ class Two_Factor_Core {
 		/**
 		 * Filters whether or not to email the site admin when a user's password has been
 		 * compromised and reset.
+		 *
+		 * @since 0.8.0
 		 *
 		 * @param bool $reset `true` to notify the admin, `false` to not notify them.
 		 */
@@ -2043,7 +2089,9 @@ class Two_Factor_Core {
 		);
 
 		/**
-		 * Set the keys of the recommended (secure) methods.
+		 * Filters the keys of the recommended (secure) methods.
+		 *
+		 * @since 0.14.0
 		 *
 		 * @param array   $recommended_providers The recommended providers.
 		 * @param WP_User $user The user.
@@ -2347,6 +2395,13 @@ class Two_Factor_Core {
 			$rememberme = true;
 		}
 
+		/**
+		 * Filters whether the login session should persist between browser sessions.
+		 *
+		 * @since 0.5.0
+		 *
+		 * @param bool $rememberme Whether to remember the user. Default false.
+		 */
 		return (bool) apply_filters( 'two_factor_rememberme', $rememberme );
 	}
 
