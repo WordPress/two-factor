@@ -1062,37 +1062,58 @@ class Two_Factor_Core {
 		</form>
 
 		<?php
-		if ( $backup_providers ) :
-			$backup_link_args = array(
-				'action'        => $action,
-				'wp-auth-id'    => $user->ID,
-				'wp-auth-nonce' => $login_nonce,
-			);
-			if ( $rememberme ) {
-				$backup_link_args['rememberme'] = $rememberme;
+			$links = [];
+
+			if ( $backup_providers )  {
+				$backup_link_args = array(
+					'action'        => $action,
+					'wp-auth-id'    => $user->ID,
+					'wp-auth-nonce' => $login_nonce,
+				);
+				if ( $rememberme ) {
+					$backup_link_args['rememberme'] = $rememberme;
+				}
+				if ( $redirect_to ) {
+					$backup_link_args['redirect_to'] = $redirect_to;
+				}
+				if ( $interim_login ) {
+					$backup_link_args['interim-login'] = 1;
+				}
+
+				foreach ( $backup_providers as $backup_provider_key => $backup_provider ) {
+					$backup_link_args['provider'] = $backup_provider_key;
+					$links[] = sprintf(
+						'<a href="%1$s">%2$s</a>',
+						esc_url( self::login_url( $backup_link_args ) ),
+						esc_html( $backup_provider->get_alternative_provider_label() )
+					);
+				}
 			}
-			if ( $redirect_to ) {
-				$backup_link_args['redirect_to'] = $redirect_to;
-			}
-			if ( $interim_login ) {
-				$backup_link_args['interim-login'] = 1;
-			}
-			?>
+
+			/**
+			 * Filters the html links displayed on the two-factor login form.
+			 *
+			 * Plugins can use this filter to modify or add links to the two-factor authentication
+			 * login form, allowing users to select backup methods for authentication or provide documentation links.
+			 *
+			 * @since 0.16.0
+			 *
+			 * @param array<string> $links An array of links displayed on the two-factor login form.
+			 */
+			$links = apply_filters( 'two_factor_login_backup_links', $links );
+		?>
+
+		<?php if ( ! empty( $links ) ) : ?>
 			<div class="backup-methods-wrap">
 				<p>
 					<?php esc_html_e( 'Having Problems?', 'two-factor' ); ?>
 				</p>
 				<ul>
-					<?php
-					foreach ( $backup_providers as $backup_provider_key => $backup_provider ) :
-						$backup_link_args['provider'] = $backup_provider_key;
-						?>
-						<li>
-							<a href="<?php echo esc_url( self::login_url( $backup_link_args ) ); ?>">
-								<?php echo esc_html( $backup_provider->get_alternative_provider_label() ); ?>
-							</a>
-						</li>
-					<?php endforeach; ?>
+				<?php
+					foreach ( $links as $link ) {
+						echo  '<li>' . $link . '</li>';
+					}
+				?>
 				</ul>
 			</div>
 		<?php endif; ?>

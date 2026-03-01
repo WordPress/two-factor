@@ -93,6 +93,7 @@ Here is a list of action and filter hooks provided by the plugin:
 - `two_factor_providers_for_user` filter overrides the available two-factor providers for a specific user. Array values are instances of provider classes and the user object `WP_User` is available as the second argument.
 - `two_factor_enabled_providers_for_user` filter overrides the list of two-factor providers enabled for a user. First argument is an array of enabled provider classnames as values, the second argument is the user ID.
 - `two_factor_user_authenticated` action which receives the logged in `WP_User` object as the first argument for determining the logged in user right after the authentication workflow.
+- `two_factor_token_ttl` filter overrides the time interval in seconds that an email token is considered after generation. Accepts the time in seconds as the first argument and the ID of the `WP_User` object being authenticated.
 - `two_factor_user_api_login_enable` filter restricts authentication for REST API and XML-RPC to application passwords only. Provides the user ID as the second argument.
 - `two_factor_email_token_ttl` filter overrides the time interval in seconds that an email token is considered after generation. Accepts the time in seconds as the first argument and the ID of the `WP_User` object being authenticated.
 - `two_factor_email_token_length` filter overrides the default 8 character count for email tokens.
@@ -101,6 +102,7 @@ Here is a list of action and filter hooks provided by the plugin:
 - `two_factor_before_authentication_prompt` action which receives the provider object and fires prior to the prompt shown on the authentication input form.
 - `two_factor_after_authentication_prompt` action which receives the provider object and fires after the prompt shown on the authentication input form.
 - `two_factor_after_authentication_input`action which receives the provider object and fires after the input shown on the authentication input form (if form contains no input, action fires immediately after `two_factor_after_authentication_prompt`).
+- `two_factor_login_backup_links` filters the backup links displayed on the two-factor login form.
 
 == Frequently Asked Questions ==
 
