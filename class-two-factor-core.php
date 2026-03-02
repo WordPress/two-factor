@@ -1100,7 +1100,7 @@ class Two_Factor_Core {
 			 *
 			 * @since 0.16.0
 			 *
-			 * @param array<string> $links An array of links displayed on the two-factor login form.
+			 * @param array $links An array of links displayed on the two-factor login form, each with `url` and `label` keys.
 			 */
 			$links = apply_filters( 'two_factor_login_backup_links', $links );
 		?>
