@@ -1027,7 +1027,7 @@ class Two_Factor_Core {
 		$interim_login       = isset( $_REQUEST['interim-login'] ); // phpcs:ignore WordPress.Security.NonceVerification.Recommended
 
 		$rememberme = intval( self::rememberme() );
-		$auto_submit_authcode = apply_filters( 'two_factor_auto_submit_authcode', true );
+		$auto_submit_authcode = apply_filters( 'two_factor_auto_submit_authcode', true, $provider_key );
 
 		if ( is_wp_error( $available_providers ) ) {
 			// If it returned an error, the configured methods don't exist, and it couldn't swap in a replacement.
