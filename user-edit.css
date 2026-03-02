@@ -18,16 +18,16 @@
 	margin: 0 0.15rem;
 }
 
-.backup-methods-wrap {
+#login .backup-methods-wrap {
 	margin-top: 16px;
 	padding: 0 24px;
 }
 
-.backup-methods-wrap a {
+#login .backup-methods-wrap a {
 	text-decoration: none;
 }
 
-.backup-methods-wrap ul {
+#login .backup-methods-wrap ul {
 	list-style-position: inside;
 }
 
@@ -41,11 +41,11 @@
 	margin-bottom: 1em;
 }
 
-.input.authcode {
+#loginform .input.authcode {
 	letter-spacing: 0.3em;
 }
 
-.input.authcode::placeholder {
+#loginform .input.authcode::placeholder {
 	opacity: 0.5;
 }
 
