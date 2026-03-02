@@ -101,6 +101,7 @@ Here is a list of action and filter hooks provided by the plugin:
 - `two_factor_before_authentication_prompt` action which receives the provider object and fires prior to the prompt shown on the authentication input form.
 - `two_factor_after_authentication_prompt` action which receives the provider object and fires after the prompt shown on the authentication input form.
 - `two_factor_after_authentication_input`action which receives the provider object and fires after the input shown on the authentication input form (if form contains no input, action fires immediately after `two_factor_after_authentication_prompt`).
+- `two_factor_login_backup_links` filters the backup links displayed on the two-factor login form.
 
 == Frequently Asked Questions ==
 
