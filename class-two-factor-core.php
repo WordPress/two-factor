@@ -1093,7 +1093,7 @@ class Two_Factor_Core {
 			}
 
 			/**
-			 * Filters the html links displayed on the two-factor login form.
+			 * Filters the links displayed on the two-factor login form.
 			 *
 			 * Plugins can use this filter to modify or add links to the two-factor authentication
 			 * login form, allowing users to select backup methods for authentication or provide documentation links.
