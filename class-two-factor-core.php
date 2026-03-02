@@ -1113,7 +1113,7 @@ class Two_Factor_Core {
 				<ul>
 				<?php
 					foreach ( $links as $link ) {
-						echo  '<li>' . $link . '</li>';
+						echo '<li><a href="' . esc_url( $link['url'] ) . '">' . esc_html( $link['label'] ) . '</a></li>';
 					}
 				?>
 				</ul>
