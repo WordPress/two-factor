@@ -1085,10 +1085,9 @@ class Two_Factor_Core {
 
 				foreach ( $backup_providers as $backup_provider_key => $backup_provider ) {
 					$backup_link_args['provider'] = $backup_provider_key;
-					$links[] = sprintf(
-						'<a href="%1$s">%2$s</a>',
-						esc_url( self::login_url( $backup_link_args ) ),
-						esc_html( $backup_provider->get_alternative_provider_label() )
+					$links[] = array(
+						'url'   => self::login_url( $backup_link_args ),
+						'label' => $backup_provider->get_alternative_provider_label(),
 					);
 				}
 			}
