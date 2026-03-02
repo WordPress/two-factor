@@ -1065,7 +1065,7 @@ class Two_Factor_Core {
 		</form>
 
 		<?php
-			$links = [];
+			$links = array();
 
 			if ( $backup_providers )  {
 				$backup_link_args = array(
