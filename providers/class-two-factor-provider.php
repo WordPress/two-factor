@@ -209,4 +209,28 @@ abstract class Two_Factor_Provider {
 	public static function uninstall_options() {
 		return array();
 	}
+
+	/**
+	 * Returns whether the authentication code field should auto-submit when the last digit is entered.
+	 *
+	 * @since 0.16.0
+	 *
+	 * @return bool
+	 */
+	protected function is_authcode_auto_submit_enabled() {
+		/**
+		 * Filters whether the authentication code field should auto‑submit when the last digit is entered.
+		 *
+		 * This allows providers or site owners to disable (or enable) auto‑submission behavior
+		 * of the TOTP/verification code input, e.g., for accessibility, UX, or device‑specific reasons.
+		 *
+		 * @since 0.16.0
+		 *
+		 * @param bool   $auto_submit  Whether to auto‑submit the auth code. Default true.
+		 * @param string $provider_key The current two‑factor provider key.
+		 * @return bool  Filtered value of $auto_submit.
+		 */
+
+		return (bool) apply_filters( 'two_factor_auto_submit_authcode', true, $this->get_key() );
+	}
 }
