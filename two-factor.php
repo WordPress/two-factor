@@ -22,11 +22,17 @@
  * Network:           True
  */
 
+if ( ! defined( 'TWO_FACTOR_DIR' ) ) {
+	define( 'TWO_FACTOR_DIR', __DIR__ . '/' );
+}
+
+if ( ! defined( 'TWO_FACTOR_VERSION' ) ) {
+	define( 'TWO_FACTOR_VERSION', '0.15.0' );
+}
+
 if ( ! defined( 'ABSPATH' ) ) {
 	exit; // Exit if accessed directly.
 }
-
-require_once __DIR__ . '/constants.php';
 
 /**
  * Include the base class here, so that other plugins can also extend it.
