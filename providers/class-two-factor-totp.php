@@ -5,6 +5,8 @@
  * @package Two_Factor
  */
 
+require_once __DIR__ . '/class-two-factor-totp-secret.php';
+
 /**
  * Class Two_Factor_Totp
  *
@@ -516,7 +518,8 @@ class Two_Factor_Totp extends Two_Factor_Provider {
 	 * @return string
 	 */
 	public function get_user_totp_key( $user_id ) {
-		return (string) get_user_meta( $user_id, self::SECRET_META_KEY, true );
+		$stored_value = (string) get_user_meta( $user_id, self::SECRET_META_KEY, true );
+		return Two_Factor_Totp_Secret::resolve( $stored_value, $user_id );
 	}
 
 	/**
@@ -530,7 +533,8 @@ class Two_Factor_Totp extends Two_Factor_Provider {
 	 * @return boolean If the key was stored successfully.
 	 */
 	public function set_user_totp_key( $user_id, $key ) {
-		return update_user_meta( $user_id, self::SECRET_META_KEY, $key );
+		$value = Two_Factor_Totp_Secret::prepare_for_storage( $key, $user_id );
+		return update_user_meta( $user_id, self::SECRET_META_KEY, $value );
 	}
 
 	/**
