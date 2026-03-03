@@ -219,6 +219,15 @@ class Two_Factor_Totp_Secret {
 				$encrypted = self::encrypt( $stored_value, $user_id );
 				if ( false !== $encrypted ) {
 					update_user_meta( $user_id, '_two_factor_totp_key', $encrypted );
+
+					/**
+					 * Fires after a plaintext TOTP secret is opportunistically encrypted on read.
+					 *
+					 * @since 0.10.0
+					 *
+					 * @param int $user_id The user ID whose secret was encrypted.
+					 */
+					do_action( 'two_factor_totp_secret_encrypted', $user_id );
 				}
 			}
 			return $stored_value;
@@ -227,14 +236,47 @@ class Two_Factor_Totp_Secret {
 		// Encrypted value — attempt decryption.
 		$result = self::decrypt( $stored_value, $user_id );
 		if ( false === $result ) {
+			/**
+			 * Fires when an encrypted TOTP secret cannot be decrypted.
+			 *
+			 * This may indicate a missing or incorrect encryption key, or data corruption.
+			 * Useful for security audit logging and monitoring.
+			 *
+			 * @since 0.10.0
+			 *
+			 * @param int $user_id The user ID whose secret failed to decrypt.
+			 */
+			do_action( 'two_factor_totp_secret_decrypt_failed', $user_id );
 			return '';
 		}
+
+		/**
+		 * Fires after a TOTP secret is successfully decrypted.
+		 *
+		 * @since 0.10.0
+		 *
+		 * @param int  $user_id         The user ID whose secret was decrypted.
+		 * @param bool $needs_reencrypt Whether the secret needs re-encryption due to key rotation.
+		 */
+		do_action( 'two_factor_totp_secret_decrypted', $user_id, $result['needs_reencrypt'] );
 
 		// Re-encrypt with current key if needed (key rotation).
 		if ( $result['needs_reencrypt'] ) {
 			$encrypted = self::encrypt( $result['plaintext'], $user_id );
 			if ( false !== $encrypted ) {
 				update_user_meta( $user_id, '_two_factor_totp_key', $encrypted );
+
+				/**
+				 * Fires after a TOTP secret is re-encrypted during key rotation.
+				 *
+				 * The secret was decrypted with the previous key and re-encrypted
+				 * with the current key.
+				 *
+				 * @since 0.10.0
+				 *
+				 * @param int $user_id The user ID whose secret was rotated.
+				 */
+				do_action( 'two_factor_totp_secret_rotated', $user_id );
 			}
 		}
 
@@ -255,6 +297,8 @@ class Two_Factor_Totp_Secret {
 		if ( self::is_encryption_available() ) {
 			$encrypted = self::encrypt( $plaintext, $user_id );
 			if ( false !== $encrypted ) {
+				/** This action is documented in providers/class-two-factor-totp-secret.php */
+				do_action( 'two_factor_totp_secret_encrypted', $user_id );
 				return $encrypted;
 			}
 		}

@@ -54,6 +54,9 @@ class Two_Factor_Totp extends Two_Factor_Provider {
 		add_action( 'wp_enqueue_scripts', array( $this, 'enqueue_assets' ) );
 		add_action( 'two_factor_user_options_' . __CLASS__, array( $this, 'user_two_factor_options' ) );
 
+		add_filter( 'two_factor_totp_secret_resolve', array( 'Two_Factor_Totp_Secret', 'resolve' ), 10, 2 );
+		add_filter( 'two_factor_totp_secret_prepare', array( 'Two_Factor_Totp_Secret', 'prepare_for_storage' ), 10, 2 );
+
 		parent::__construct();
 	}
 
@@ -519,7 +522,19 @@ class Two_Factor_Totp extends Two_Factor_Provider {
 	 */
 	public function get_user_totp_key( $user_id ) {
 		$stored_value = (string) get_user_meta( $user_id, self::SECRET_META_KEY, true );
-		return Two_Factor_Totp_Secret::resolve( $stored_value, $user_id );
+
+		/**
+		 * Filters the TOTP secret after reading it from the database.
+		 *
+		 * The default callback (Two_Factor_Totp_Secret::resolve) handles decryption,
+		 * opportunistic encryption, and key rotation transparently.
+		 *
+		 * @since 0.10.0
+		 *
+		 * @param string $stored_value The raw value from the database.
+		 * @param int    $user_id      The user ID.
+		 */
+		return apply_filters( 'two_factor_totp_secret_resolve', $stored_value, $user_id );
 	}
 
 	/**
@@ -533,7 +548,19 @@ class Two_Factor_Totp extends Two_Factor_Provider {
 	 * @return boolean If the key was stored successfully.
 	 */
 	public function set_user_totp_key( $user_id, $key ) {
-		$value = Two_Factor_Totp_Secret::prepare_for_storage( $key, $user_id );
+		/**
+		 * Filters the TOTP secret before writing it to the database.
+		 *
+		 * The default callback (Two_Factor_Totp_Secret::prepare_for_storage) handles
+		 * encryption when an encryption key is configured.
+		 *
+		 * @since 0.10.0
+		 *
+		 * @param string $key     The plaintext TOTP secret.
+		 * @param int    $user_id The user ID.
+		 */
+		$value = apply_filters( 'two_factor_totp_secret_prepare', $key, $user_id );
+
 		return update_user_meta( $user_id, self::SECRET_META_KEY, $value );
 	}
 
