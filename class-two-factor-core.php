@@ -214,7 +214,6 @@ class Two_Factor_Core {
 		return array(
 			'Two_Factor_Email'        => TWO_FACTOR_DIR . 'providers/class-two-factor-email.php',
 			'Two_Factor_Totp'         => TWO_FACTOR_DIR . 'providers/class-two-factor-totp.php',
-			'Two_Factor_FIDO_U2F'     => TWO_FACTOR_DIR . 'providers/class-two-factor-fido-u2f.php',
 			'Two_Factor_Backup_Codes' => TWO_FACTOR_DIR . 'providers/class-two-factor-backup-codes.php',
 			'Two_Factor_Dummy'        => TWO_FACTOR_DIR . 'providers/class-two-factor-dummy.php',
 		);
@@ -239,6 +238,8 @@ class Two_Factor_Core {
 
 			/**
 			 * Filters the classname for a provider. The dynamic portion of the filter is the defined providers key.
+			 *
+			 * @since 0.9.0
 			 *
 			 * @param string $class The PHP Classname of the provider.
 			 * @param string $path  The provided provider path to be included.
@@ -278,22 +279,12 @@ class Two_Factor_Core {
 		 * This lets third-parties either remove providers (such as Email), or
 		 * add their own providers (such as text message or Clef).
 		 *
+		 * @since 0.1-dev
+		 *
 		 * @param array $providers A key-value array where the key is the class name, and
 		 *                         the value is the path to the file containing the class.
 		 */
 		$providers = apply_filters( 'two_factor_providers', $providers );
-
-		// FIDO U2F is PHP 5.3+ only.
-		if ( isset( $providers['Two_Factor_FIDO_U2F'] ) && version_compare( PHP_VERSION, '5.3.0', '<' ) ) {
-			unset( $providers['Two_Factor_FIDO_U2F'] );
-			trigger_error( // phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_trigger_error
-				sprintf(
-				/* translators: %s: version number */
-					__( 'FIDO U2F is not available because you are using PHP %s. (Requires 5.3 or greater)', 'two-factor' ), // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
-					PHP_VERSION
-				)
-			);
-		}
 
 		// Map provider keys to classes so that we can instantiate them.
 		$providers = self::get_providers_classes( $providers );
@@ -586,6 +577,8 @@ class Two_Factor_Core {
 		/**
 		 * Filter the enabled two-factor authentication providers for this user.
 		 *
+		 * @since 0.5.2
+		 *
 		 * @param array  $enabled_providers The enabled providers.
 		 * @param int    $user_id           The user ID.
 		 */
@@ -620,7 +613,7 @@ class Two_Factor_Core {
 		 * if emailed codes is available force it to be on, so that deprecated
 		 * or removed providers don't result in the two-factor requirement being
 		 * removed and 'failing open'.
-		 * 
+		 *
 		 * Possible enhancement: add a filter to change the fallback method?
 		 */
 		if ( empty( $enabled_providers ) && $user_providers_raw ) {
@@ -744,6 +737,8 @@ class Two_Factor_Core {
 		/**
 		 * Filter the two-factor authentication provider used for this user.
 		 *
+		 * @since 0.2.0
+		 *
 		 * @param string $provider The provider currently being used.
 		 * @param int    $user_id  The user ID.
 		 */
@@ -862,6 +857,8 @@ class Two_Factor_Core {
 		/**
 		 * Allow or prevent logins without two-factor during
 		 * API requests such as XML-RPC and REST.
+		 *
+		 * @since 0.4.0
 		 *
 		 * @param boolean $enabled Whether the user can login via API requests.
 		 * @param integer $user_id User ID.
@@ -1056,6 +1053,8 @@ class Two_Factor_Core {
 		// Disable the language switcher.
 		add_filter( 'login_display_language_dropdown', '__return_false' );
 
+		wp_enqueue_style( 'user-edit-2fa', plugins_url( 'user-edit.css', __FILE__ ), array(), TWO_FACTOR_VERSION );
+
 		login_header();
 
 		if ( ! empty( $error_msg ) ) {
@@ -1080,68 +1079,61 @@ class Two_Factor_Core {
 		</form>
 
 		<?php
-		if ( $backup_providers ) :
-			$backup_link_args = array(
-				'action'        => $action,
-				'wp-auth-id'    => $user->ID,
-				'wp-auth-nonce' => $login_nonce,
-			);
-			if ( $rememberme ) {
-				$backup_link_args['rememberme'] = $rememberme;
+			$links = array();
+
+			if ( $backup_providers ) {
+				$backup_link_args = array(
+					'action'        => $action,
+					'wp-auth-id'    => $user->ID,
+					'wp-auth-nonce' => $login_nonce,
+				);
+				if ( $rememberme ) {
+					$backup_link_args['rememberme'] = $rememberme;
+				}
+				if ( $redirect_to ) {
+					$backup_link_args['redirect_to'] = $redirect_to;
+				}
+				if ( $interim_login ) {
+					$backup_link_args['interim-login'] = 1;
+				}
+
+				foreach ( $backup_providers as $backup_provider_key => $backup_provider ) {
+					$backup_link_args['provider'] = $backup_provider_key;
+					$links[] = array(
+						'url'   => self::login_url( $backup_link_args ),
+						'label' => $backup_provider->get_alternative_provider_label(),
+					);
+				}
 			}
-			if ( $redirect_to ) {
-				$backup_link_args['redirect_to'] = $redirect_to;
-			}
-			if ( $interim_login ) {
-				$backup_link_args['interim-login'] = 1;
-			}
-			?>
+
+			/**
+			 * Filters the links displayed on the two-factor login form.
+			 *
+			 * Plugins can use this filter to modify or add links to the two-factor authentication
+			 * login form, allowing users to select backup methods for authentication or provide documentation links.
+			 *
+			 * @since 0.16.0
+			 *
+			 * @param array $links An array of links displayed on the two-factor login form, each with `url` and `label` keys.
+			 */
+			$links = apply_filters( 'two_factor_login_backup_links', $links );
+		?>
+
+		<?php if ( ! empty( $links ) ) : ?>
 			<div class="backup-methods-wrap">
 				<p>
 					<?php esc_html_e( 'Having Problems?', 'two-factor' ); ?>
 				</p>
 				<ul>
-					<?php
-					foreach ( $backup_providers as $backup_provider_key => $backup_provider ) :
-						$backup_link_args['provider'] = $backup_provider_key;
-						?>
-						<li>
-							<a href="<?php echo esc_url( self::login_url( $backup_link_args ) ); ?>">
-								<?php echo esc_html( $backup_provider->get_alternative_provider_label() ); ?>
-							</a>
-						</li>
-					<?php endforeach; ?>
+				<?php
+					foreach ( $links as $link ) {
+						echo '<li><a href="' . esc_url( $link['url'] ) . '">' . esc_html( $link['label'] ) . '</a></li>';
+					}
+				?>
 				</ul>
 			</div>
 		<?php endif; ?>
 
-		<style>
-			/* @todo: migrate to an external stylesheet. */
-			.backup-methods-wrap {
-				margin-top: 16px;
-				padding: 0 24px;
-			}
-			.backup-methods-wrap a {
-				text-decoration: none;
-			}
-			.backup-methods-wrap ul {
-				list-style-position: inside;
-			}
-			/* Prevent Jetpack from hiding our controls, see https://github.com/Automattic/jetpack/issues/3747 */
-			.jetpack-sso-form-display #loginform > p,
-			.jetpack-sso-form-display #loginform > div {
-				display: block;
-			}
-			#login form p.two-factor-prompt {
-				margin-bottom: 1em;
-			}
-			.input.authcode {
-				letter-spacing: .3em;
-			}
-			.input.authcode::placeholder {
-				opacity: 0.5;
-			}
-		</style>
 		<script>
 			(function() {
 				// Enforce numeric-only input for numeric inputmode elements.
@@ -1338,6 +1330,8 @@ class Two_Factor_Core {
 		/**
 		 * Filter the minimum time duration between two factor attempts.
 		 *
+		 * @since 0.8.0
+		 *
 		 * @param int $rate_limit The number of seconds between two factor attempts.
 		 */
 		$rate_limit = apply_filters( 'two_factor_rate_limit', 1 );
@@ -1349,6 +1343,8 @@ class Two_Factor_Core {
 			/**
 			 * Filter the maximum time duration a user may be locked out from retrying two factor authentications.
 			 *
+			 * @since 0.8.0
+			 *
 			 * @param int $max_rate_limit The maximum number of seconds a user might be locked out for. Default 15 minutes.
 			 */
 			$max_rate_limit = apply_filters( 'two_factor_max_rate_limit', 15 * MINUTE_IN_SECONDS );
@@ -1358,6 +1354,8 @@ class Two_Factor_Core {
 
 		/**
 		 * Filters the per-user time duration between two factor login attempts.
+		 *
+		 * @since 0.8.0
 		 *
 		 * @param int     $rate_limit The number of seconds between two factor attempts.
 		 * @param WP_User $user       The user attempting to login.
@@ -1388,8 +1386,10 @@ class Two_Factor_Core {
 		 * This allows for dedicated plugins to rate limit two factor login attempts
 		 * based on their own rules.
 		 *
-		 * @param bool     $rate_limited Whether the user login is rate limited.
-		 * @param WP_User $user          The user attempting to login.
+		 * @since 0.8.0
+		 *
+		 * @param bool    $rate_limited Whether the user login is rate limited.
+		 * @param WP_User $user         The user attempting to login.
 		 */
 		return apply_filters( 'two_factor_is_user_rate_limited', $rate_limited, $user );
 	}
@@ -1485,6 +1485,14 @@ class Two_Factor_Core {
 			return new WP_Error( 'revalidation_required', __( 'Two Factor Revalidation required.', 'two-factor' ) );
 		}
 
+		/**
+		 * Filters whether the current user can edit another user's two-factor options via the REST API.
+		 *
+		 * @since 0.7.0
+		 *
+		 * @param bool $can_edit Whether the user can edit the two-factor options. Default true.
+		 * @param int  $user_id  The user ID being updated.
+		 */
 		return apply_filters( 'two_factor_rest_api_can_edit_user', true, $user_id );
 	}
 
@@ -1584,6 +1592,14 @@ class Two_Factor_Core {
 
 		wp_set_auth_cookie( $user->ID, $rememberme );
 
+		/**
+		 * Fires after a user has been authenticated via two-factor.
+		 *
+		 * @since 0.5.2
+		 *
+		 * @param WP_User               $user     The authenticated user.
+		 * @param Two_Factor_Provider $provider The two-factor provider used for authentication.
+		 */
 		do_action( 'two_factor_user_authenticated', $user, $provider );
 
 		remove_filter( 'attach_session_information', $session_information_callback );
@@ -1692,6 +1708,14 @@ class Two_Factor_Core {
 			)
 		);
 
+		/**
+		 * Fires after a user has been revalidated via two-factor.
+		 *
+		 * @since 0.8.0
+		 *
+		 * @param WP_User               $user     The revalidated user.
+		 * @param Two_Factor_Provider $provider The two-factor provider used for revalidation.
+		 */
 		do_action( 'two_factor_user_revalidated', $user, $provider );
 
 		// Must be global because that's how login_header() uses it.
@@ -1802,10 +1826,12 @@ class Two_Factor_Core {
 		 * that the password has been compromised and an attacker is trying to brute force the 2nd
 		 * factor.
 		 *
-		 * ⚠️ `get_user_time_delay()` mitigates brute force attempts, but many 2nd factors --
+		 * `get_user_time_delay()` mitigates brute force attempts, but many 2nd factors --
 		 * like TOTP and backup codes -- are very weak on their own, so it's not safe to give
 		 * attackers unlimited attempts. Setting this to a very large number is strongly
 		 * discouraged.
+		 *
+		 * @since 0.8.0
 		 *
 		 * @param int $limit The number of attempts before the password is reset.
 		 */
@@ -1851,6 +1877,8 @@ class Two_Factor_Core {
 		/**
 		 * Filters whether or not to email the site admin when a user's password has been
 		 * compromised and reset.
+		 *
+		 * @since 0.8.0
 		 *
 		 * @param bool $reset `true` to notify the admin, `false` to not notify them.
 		 */
@@ -2071,7 +2099,9 @@ class Two_Factor_Core {
 		);
 
 		/**
-		 * Set the keys of the recommended (secure) methods.
+		 * Filters the keys of the recommended (secure) methods.
+		 *
+		 * @since 0.14.0
 		 *
 		 * @param array   $recommended_providers The recommended providers.
 		 * @param WP_User $user The user.
@@ -2375,6 +2405,13 @@ class Two_Factor_Core {
 			$rememberme = true;
 		}
 
+		/**
+		 * Filters whether the login session should persist between browser sessions.
+		 *
+		 * @since 0.5.0
+		 *
+		 * @param bool $rememberme Whether to remember the user. Default false.
+		 */
 		return (bool) apply_filters( 'two_factor_rememberme', $rememberme );
 	}
 

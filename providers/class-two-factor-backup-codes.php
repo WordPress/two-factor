@@ -253,10 +253,12 @@ class Two_Factor_Backup_Codes extends Two_Factor_Provider {
 	 */
 	private function get_backup_code_length( $user ) {
 		/**
-		 * Customize the character count of the backup codes.
+		 * Filters the character count of the backup codes.
 		 *
-		 * @var int $code_length Length of the backup code.
-		 * @var WP_User $user User object.
+		 * @since 0.11.0
+		 *
+		 * @param int     $code_length Length of the backup code. Default 8.
+		 * @param WP_User $user        User object.
 		 */
 		$code_length = (int) apply_filters( 'two_factor_backup_code_length', 8, $user );
 
@@ -386,14 +388,41 @@ class Two_Factor_Backup_Codes extends Two_Factor_Provider {
 		$code_placeholder = str_repeat( 'X', $code_length );
 
 		?>
-		<?php do_action( 'two_factor_before_authentication_prompt', $this ); ?>
+		<?php
+		/**
+		 * Fires before the two-factor authentication prompt text.
+		 *
+		 * @since 0.15.0
+		 *
+		 * @param Two_Factor_Provider $provider The two-factor provider instance.
+		 */
+		do_action( 'two_factor_before_authentication_prompt', $this );
+		?>
 		<p class="two-factor-prompt"><?php esc_html_e( 'Enter a recovery code.', 'two-factor' ); ?></p>
-		<?php do_action( 'two_factor_after_authentication_prompt', $this ); ?>
+		<?php
+		/**
+		 * Fires after the two-factor authentication prompt text.
+		 *
+		 * @since 0.15.0
+		 *
+		 * @param Two_Factor_Provider $provider The two-factor provider instance.
+		 */
+		do_action( 'two_factor_after_authentication_prompt', $this );
+		?>
 		<p>
 			<label for="authcode"><?php esc_html_e( 'Recovery Code:', 'two-factor' ); ?></label>
 			<input type="text" inputmode="numeric" name="two-factor-backup-code" id="authcode" class="input authcode" value="" size="20" pattern="[0-9 ]*" placeholder="<?php echo esc_attr( $code_placeholder ); ?>" data-digits="<?php echo esc_attr( $code_length ); ?>" />
 		</p>
-		<?php do_action( 'two_factor_after_authentication_input', $this ); ?>
+		<?php
+		/**
+		 * Fires after the two-factor authentication input field.
+		 *
+		 * @since 0.15.0
+		 *
+		 * @param Two_Factor_Provider $provider The two-factor provider instance.
+		 */
+		do_action( 'two_factor_after_authentication_input', $this );
+		?>
 		<?php
 		submit_button( __( 'Verify', 'two-factor' ) );
 	}

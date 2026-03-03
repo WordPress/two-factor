@@ -191,11 +191,11 @@ class Two_Factor_Totp extends Two_Factor_Provider {
 		$user_id = $request['user_id'];
 		$user    = get_user_by( 'id', $user_id );
 
-		$this->delete_user_totp_key( $user_id );
-
 		if ( ! Two_Factor_Core::disable_provider_for_user( $user_id, 'Two_Factor_Totp' ) ) {
 			return new WP_Error( 'db_error', __( 'Unable to disable TOTP provider for this user.', 'two-factor' ), array( 'status' => 500 ) );
 		}
+
+		$this->delete_user_totp_key( $user_id );
 
 		ob_start();
 		$this->user_two_factor_options( $user );
@@ -262,21 +262,27 @@ class Two_Factor_Totp extends Two_Factor_Provider {
 		$issuer = get_bloginfo( 'name', 'display' );
 
 		/**
-		 * Filter the Issuer for the TOTP.
+		 * Filters the Issuer for the TOTP.
 		 *
 		 * Must follow the TOTP format for a "issuer". Do not URL Encode.
 		 *
+		 * @since 0.8.0
+		 *
 		 * @see https://github.com/google/google-authenticator/wiki/Key-Uri-Format#issuer
+		 *
 		 * @param string $issuer The issuer for TOTP.
 		 */
 		$issuer = apply_filters( 'two_factor_totp_issuer', $issuer );
 
 		/**
-		 * Filter the Label for the TOTP.
+		 * Filters the Label for the TOTP.
 		 *
 		 * Must follow the TOTP format for a "label". Do not URL Encode.
 		 *
+		 * @since 0.4.7
+		 *
 		 * @see https://github.com/google/google-authenticator/wiki/Key-Uri-Format#label
+		 *
 		 * @param string  $totp_title The label for the TOTP.
 		 * @param WP_User $user       The User object.
 		 * @param string  $issuer     The issuer of the TOTP. This should be the prefix of the result.
@@ -292,11 +298,14 @@ class Two_Factor_Totp extends Two_Factor_Provider {
 		);
 
 		/**
-		 * Filter the TOTP generated URL.
+		 * Filters the TOTP generated URL.
 		 *
 		 * Must follow the TOTP format. Do not URL Encode.
 		 *
+		 * @since 0.8.0
+		 *
 		 * @see https://github.com/google/google-authenticator/wiki/Key-Uri-Format
+		 *
 		 * @param string  $totp_url The TOTP URL.
 		 * @param WP_User $user     The user object.
 		 */
@@ -641,13 +650,25 @@ class Two_Factor_Totp extends Two_Factor_Provider {
 		 * Filter the maximum ticks to allow when checking valid codes.
 		 *
 		 * Ticks are the allowed offset from the correct time in 30 second increments,
-		 * so the default of 4 allows codes that are two minutes to either side of server time
+		 * so the default of 4 allows codes that are two minutes to either side of server time.
 		 *
+		 * @since 0.2.0
 		 * @deprecated 0.7.0 Use {@see 'two_factor_totp_time_step_allowance'} instead.
+		 *
 		 * @param int $max_ticks Max ticks of time correction to allow. Default 4.
 		 */
 		$max_ticks = apply_filters_deprecated( 'two-factor-totp-time-step-allowance', array( self::DEFAULT_TIME_STEP_ALLOWANCE ), '0.7.0', 'two_factor_totp_time_step_allowance' );
 
+		/**
+		 * Filters the maximum ticks to allow when checking valid codes.
+		 *
+		 * Ticks are the allowed offset from the correct time in 30 second increments,
+		 * so the default of 4 allows codes that are two minutes to either side of server time.
+		 *
+		 * @since 0.7.0
+		 *
+		 * @param int $max_ticks Max ticks of time correction to allow. Default 4.
+		 */
 		$max_ticks = apply_filters( 'two_factor_totp_time_step_allowance', self::DEFAULT_TIME_STEP_ALLOWANCE );
 
 		// Array of all ticks to allow, sorted using absolute value to test closest match first.
@@ -686,34 +707,24 @@ class Two_Factor_Totp extends Two_Factor_Provider {
 	}
 
 	/**
-	 * Pack stuff
+	 * Pack stuff. We're currently only using this to pack integers, however the generic `pack` method can handle mixed.
 	 *
 	 * @since 0.2.0
 	 *
-	 * @param string $value The value to be packed.
+	 * @param int $value The value to be packed.
 	 *
 	 * @return string Binary packed string.
 	 */
-	public static function pack64( $value ) {
-		// 64bit mode (PHP_INT_SIZE == 8).
-		if ( PHP_INT_SIZE >= 8 ) {
-			// If we're on PHP 5.6.3+ we can use the new 64bit pack functionality.
-			if ( version_compare( PHP_VERSION, '5.6.3', '>=' ) && PHP_INT_SIZE >= 8 ) {
-				return pack( 'J', $value ); // phpcs:ignore PHPCompatibility.ParameterValues.NewPackFormat.NewFormatFound
-			}
-			$highmap = 0xffffffff << 32;
-			$higher  = ( $value & $highmap ) >> 32;
-		} else {
-			/*
-			 * 32bit PHP can't shift 32 bits like that, so we have to assume 0 for the higher
-			 * and not pack anything beyond it's limits.
-			 */
-			$higher = 0;
+	public static function pack64( int $value ): string {
+		// Native 64-bit support (modern PHP on 64-bit builds).
+		if ( 8 === PHP_INT_SIZE ) {
+			return pack( 'J', $value );
 		}
-
-		$lowmap = 0xffffffff;
-		$lower  = $value & $lowmap;
-
+	
+		// 32-bit PHP fallback
+		$higher = ( $value >> 32 ) & 0xFFFFFFFF;
+		$lower  = $value & 0xFFFFFFFF;
+	
 		return pack( 'NN', $higher, $lower );
 	}
 
@@ -823,16 +834,25 @@ class Two_Factor_Totp extends Two_Factor_Provider {
 	public function authentication_page( $user ) {
 		require_once ABSPATH . '/wp-admin/includes/template.php';
 		?>
-		<?php do_action( 'two_factor_before_authentication_prompt', $this ); ?>
+		<?php
+		/** This action is documented in providers/class-two-factor-backup-codes.php */
+		do_action( 'two_factor_before_authentication_prompt', $this );
+		?>
 		<p class="two-factor-prompt">
 			<?php esc_html_e( 'Enter the code generated by your authenticator app.', 'two-factor' ); ?>
 		</p>
-		<?php do_action( 'two_factor_after_authentication_prompt', $this ); ?>
+		<?php
+		/** This action is documented in providers/class-two-factor-backup-codes.php */
+		do_action( 'two_factor_after_authentication_prompt', $this );
+		?>
 		<p>
 			<label for="authcode"><?php esc_html_e( 'Authentication Code:', 'two-factor' ); ?></label>
-			<input type="text" inputmode="numeric" autocomplete="one-time-code" name="authcode" id="authcode" class="input authcode" value="" size="20" pattern="[0-9 ]*" placeholder="123 456" autocomplete="one-time-code" data-digits="<?php echo esc_attr( self::DEFAULT_DIGIT_COUNT ); ?>" />
+			<input type="text" inputmode="numeric" name="authcode" id="authcode" class="input authcode" value="" size="20" pattern="[0-9 ]*" placeholder="123 456" autocomplete="one-time-code" data-digits="<?php echo esc_attr( self::DEFAULT_DIGIT_COUNT ); ?>" />
 		</p>
-		<?php do_action( 'two_factor_after_authentication_input', $this ); ?>
+		<?php
+		/** This action is documented in providers/class-two-factor-backup-codes.php */
+		do_action( 'two_factor_after_authentication_input', $this );
+		?>
 		<script>
 			setTimeout( function(){
 				var d;
