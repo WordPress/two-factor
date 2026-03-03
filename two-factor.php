@@ -26,15 +26,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit; // Exit if accessed directly.
 }
 
-/**
- * Shortcut constant to the path of this file.
- */
-define( 'TWO_FACTOR_DIR', plugin_dir_path( __FILE__ ) );
-
-/**
- * Version of the plugin.
- */
-define( 'TWO_FACTOR_VERSION', '0.15.0' );
+require_once __DIR__ . '/constants.php';
 
 /**
  * Include the base class here, so that other plugins can also extend it.
