@@ -1027,6 +1027,20 @@ class Two_Factor_Core {
 		$interim_login       = isset( $_REQUEST['interim-login'] ); // phpcs:ignore WordPress.Security.NonceVerification.Recommended
 
 		$rememberme = intval( self::rememberme() );
+		
+        /**
+         * Filters whether the authentication code field should auto‑submit when the last digit is entered.
+         *
+         * This allows providers or site owners to disable (or enable) auto‑submission behavior
+         * of the TOTP/verification code input, e.g., for accessibility, UX, or device‑specific reasons.
+         *
+         * @since 0.16.0
+         *
+         * @param bool   $auto_submit  Whether to auto‑submit the auth code. Default true.
+         * @param string $provider_key The current two‑factor provider key.
+         * @return bool  Filtered value of $auto_submit.
+         */
+
 		$auto_submit_authcode = apply_filters( 'two_factor_auto_submit_authcode', true, $provider_key );
 
 		if ( is_wp_error( $available_providers ) ) {
