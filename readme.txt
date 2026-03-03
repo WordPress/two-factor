@@ -102,6 +102,41 @@ Here is a list of action and filter hooks provided by the plugin:
 - `two_factor_after_authentication_prompt` action which receives the provider object and fires after the prompt shown on the authentication input form.
 - `two_factor_after_authentication_input`action which receives the provider object and fires after the input shown on the authentication input form (if form contains no input, action fires immediately after `two_factor_after_authentication_prompt`).
 - `two_factor_login_backup_links` filters the backup links displayed on the two-factor login form.
+- `two_factor_totp_secret_resolve` filter processes a TOTP secret after reading it from the database. The default callback handles decryption, opportunistic encryption of plaintext secrets, and key rotation. Receives the raw stored value as the first argument and the user ID as the second argument.
+- `two_factor_totp_secret_prepare` filter processes a TOTP secret before writing it to the database. The default callback encrypts the secret when an encryption key is configured. Receives the plaintext secret as the first argument and the user ID as the second argument.
+- `two_factor_totp_secret_encrypted` action fires after a TOTP secret is encrypted, whether during an explicit write, an opportunistic encryption on read, or a bulk migration via WP-CLI. Receives the user ID as its argument.
+- `two_factor_totp_secret_decrypted` action fires after a TOTP secret is successfully decrypted. Receives the user ID as the first argument and a boolean indicating whether re-encryption is needed (due to key rotation) as the second argument.
+- `two_factor_totp_secret_rotated` action fires after a TOTP secret is re-encrypted with the current key during key rotation. Receives the user ID as its argument.
+- `two_factor_totp_secret_decrypt_failed` action fires when an encrypted TOTP secret cannot be decrypted, which may indicate a missing or incorrect encryption key or data corruption. Receives the user ID as its argument. Useful for security audit logging.
+
+= WP-CLI Commands =
+
+The plugin provides WP-CLI commands for managing TOTP secrets.
+
+== Encrypting TOTP Secrets at Rest ==
+
+TOTP secrets can be encrypted at rest using AES-256-GCM. This requires defining an encryption key constant in `wp-config.php`:
+
+`define( 'TWO_FACTOR_TOTP_ENCRYPTION_KEY', '<64 hex characters>' );`
+
+Generate a key with: `php -r "echo bin2hex(random_bytes(32));"`
+
+Once configured, new secrets are encrypted automatically and existing secrets are encrypted opportunistically when users log in. To encrypt all remaining plaintext secrets immediately, use:
+
+`wp two-factor totp encrypt-secrets`
+
+Use the `--dry-run` flag to preview what would be encrypted without making changes:
+
+`wp two-factor totp encrypt-secrets --dry-run`
+
+== Key Rotation ==
+
+To rotate your encryption key, move the current key to `TWO_FACTOR_TOTP_ENCRYPTION_KEY_PREVIOUS` and set a new `TWO_FACTOR_TOTP_ENCRYPTION_KEY`:
+
+`define( 'TWO_FACTOR_TOTP_ENCRYPTION_KEY', '<new 64 hex characters>' );`
+`define( 'TWO_FACTOR_TOTP_ENCRYPTION_KEY_PREVIOUS', '<old 64 hex characters>' );`
+
+Secrets encrypted with the previous key are automatically re-encrypted with the new key when read. Run `wp two-factor totp encrypt-secrets` to re-encrypt all secrets immediately.
 
 == Frequently Asked Questions ==
 
