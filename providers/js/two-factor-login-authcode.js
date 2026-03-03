@@ -10,7 +10,8 @@
 		inputEl.addEventListener(
 			'input',
 			function() {
-				var value = this.value.replace( /[^0-9 ]/g, '' ).trimStart();
+				var value = this.value.replace( /[^0-9 ]/g, '' ).replace( /^\s+/, '' ),
+					submitControl;
 
 				if ( ! spaceInserted && expectedLength && value.length === Math.floor( expectedLength / 2 ) ) {
 					value += ' ';
@@ -23,9 +24,12 @@
 
 				// Auto-submit if it's the expected length.
 				if ( expectedLength && value.replace( / /g, '' ).length === parseInt( expectedLength, 10 ) ) {
-					if ( undefined !== form.requestSubmit ) {
+					if ( form && typeof form.requestSubmit === 'function' ) {
 						form.requestSubmit();
-						form.submit.disabled = 'disabled';
+						submitControl = form.querySelector( '[type="submit"]' );
+						if ( submitControl ) {
+							submitControl.disabled = true;
+						}
 					}
 				}
 			}

@@ -18,10 +18,11 @@
 
 		svg = $qrLink.find( 'svg' )[ 0 ];
 		if ( svg ) {
+			var ariaLabel = ( typeof twoFactorTotpAdmin !== 'undefined' && twoFactorTotpAdmin && twoFactorTotpAdmin.qrCodeAriaLabel ) ? twoFactorTotpAdmin.qrCodeAriaLabel : 'Authenticator App QR Code';
 			title = document.createElement( 'title' );
-			svg.role = 'image';
-			svg.ariaLabel = 'Authenticator App QR Code';
-			title.innerText = svg.ariaLabel;
+			svg.setAttribute( 'role', 'img' );
+			svg.setAttribute( 'aria-label', ariaLabel );
+			title.innerText = ariaLabel;
 			svg.appendChild( title );
 		}
 	};
@@ -53,7 +54,7 @@
 				enable_provider: true
 			}
 		} ).fail( function( response, status ) {
-			var errorMessage = response.responseJSON.message || status,
+			var errorMessage = ( response && response.responseJSON && response.responseJSON.message ) || ( response && response.statusText ) || status || '',
 				$error = $( '#totp-setup-error' );
 
 			if ( ! $error.length ) {

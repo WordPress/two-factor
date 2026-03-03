@@ -343,8 +343,9 @@ class Two_Factor_Totp extends Two_Factor_Provider {
 			'two-factor-totp-admin',
 			'twoFactorTotpAdmin',
 			array(
-				'restPath' => Two_Factor_Core::REST_NAMESPACE . '/totp',
-				'userId'   => $user->ID,
+				'restPath'        => Two_Factor_Core::REST_NAMESPACE . '/totp',
+				'userId'          => $user->ID,
+				'qrCodeAriaLabel' => __( 'Authenticator App QR Code', 'two-factor' ),
 			)
 		);
 		wp_enqueue_script( 'two-factor-totp-admin' );

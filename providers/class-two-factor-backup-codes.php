@@ -51,8 +51,10 @@ class Two_Factor_Backup_Codes extends Two_Factor_Provider {
 	 * @since 0.10.0
 	 *
 	 * @codeCoverageIgnore
+	 *
+	 * @param string $hook_suffix Optional. The current admin page hook suffix.
 	 */
-	public function enqueue_assets() {
+	public function enqueue_assets( $hook_suffix = '' ) {
 		wp_register_script(
 			'two-factor-backup-codes-admin',
 			plugins_url( 'js/backup-codes-admin.js', __FILE__ ),

@@ -1575,6 +1575,10 @@ class Two_Factor_Core {
 			$customize_login = isset( $_REQUEST['customize-login'] );
 			if ( $customize_login ) {
 				wp_enqueue_script( 'customize-base' );
+				wp_add_inline_script(
+					'customize-base',
+					'setTimeout( function(){ new wp.customize.Messenger({ url: ' . wp_json_encode( esc_url( wp_customize_url() ) ) . ', channel: \'login\' }).send(\'login\') }, 1000 );'
+				);
 			}
 			$message       = '<p class="message">' . __( 'You have logged in successfully.', 'two-factor' ) . '</p>';
 			$interim_login = 'success'; // phpcs:ignore WordPress.WP.GlobalVariablesOverride.Prohibited
@@ -1585,14 +1589,6 @@ class Two_Factor_Core {
 			/** This action is documented in wp-login.php */
 			do_action( 'login_footer' ); // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedHooknameFound -- Core WordPress action.
 			?>
-			<?php if ( $customize_login ) : ?>
-				<?php
-				wp_add_inline_script(
-					'customize-base',
-					'setTimeout( function(){ new wp.customize.Messenger({ url: ' . wp_json_encode( esc_url( wp_customize_url() ) ) . ', channel: \'login\' }).send(\'login\') }, 1000 );'
-				);
-				?>
-			<?php endif; ?>
 			</body></html>
 			<?php
 			return;

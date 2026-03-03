@@ -20,9 +20,9 @@
 		svg = document.querySelector( '#two-factor-qr-code a svg' );
 		title = document.createElement( 'title' );
 
-		svg.role = 'image';
-		svg.ariaLabel = twoFactorTotpQrcode.qrCodeLabel;
-		title.innerText = svg.ariaLabel;
+		svg.setAttribute( 'role', 'img' );
+		svg.setAttribute( 'aria-label', twoFactorTotpQrcode.qrCodeLabel );
+		title.innerText = twoFactorTotpQrcode.qrCodeLabel;
 		svg.appendChild( title );
 	};
 
