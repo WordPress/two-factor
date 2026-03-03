@@ -22,19 +22,17 @@
  * Network:           True
  */
 
+if ( ! defined( 'TWO_FACTOR_DIR' ) ) {
+	define( 'TWO_FACTOR_DIR', __DIR__ . '/' );
+}
+
+if ( ! defined( 'TWO_FACTOR_VERSION' ) ) {
+	define( 'TWO_FACTOR_VERSION', '0.15.0' );
+}
+
 if ( ! defined( 'ABSPATH' ) ) {
 	exit; // Exit if accessed directly.
 }
-
-/**
- * Shortcut constant to the path of this file.
- */
-define( 'TWO_FACTOR_DIR', plugin_dir_path( __FILE__ ) );
-
-/**
- * Version of the plugin.
- */
-define( 'TWO_FACTOR_VERSION', '0.15.0' );
 
 /**
  * Include the base class here, so that other plugins can also extend it.

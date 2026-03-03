@@ -8,3 +8,7 @@ parameters:
 		- class-two-factor-compat.php
 		- class-two-factor-core.php
 		- two-factor.php
+	excludePaths:
+		- providers/class-two-factor-fido-u2f.php
+		- providers/class-two-factor-fido-u2f-admin.php
+		- providers/class-two-factor-fido-u2f-admin-list-table.php
