@@ -175,7 +175,7 @@ abstract class Two_Factor_Provider {
 	 */
 	public static function get_code_length( $default = 8, $provider = null ) {
 		/**
-		 * Filter the length of the code for a user.
+		 * Filter the default code length for a provider.
 		 *
 		 * @since 0.?.0
 		 *
