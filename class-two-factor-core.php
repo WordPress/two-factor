@@ -1124,7 +1124,7 @@ class Two_Factor_Core {
 				// Enforce numeric-only input for numeric inputmode elements.
 				const form = document.querySelector( '#loginform' ),
 					inputEl = document.querySelector( 'input.authcode[inputmode="numeric"]' ),
-					expectedLength = inputEl?.dataset.digits || 0;
+					expectedLength = parseInt( ( inputEl?.dataset.digits || 0 ), 10 );
 
 				if ( inputEl ) {
 					let spaceInserted = false;
