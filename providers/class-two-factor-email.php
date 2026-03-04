@@ -76,7 +76,8 @@ class Two_Factor_Email extends Two_Factor_Provider {
 		 *
 		 * @since 0.11.0
 		 *
-		 * @param int $token_length Number of characters in the email token. Default 8.
+		 * @param int $token_length Number of characters in the email token. Defaults to the value of the
+		 *                          `two_factor_code_length` filter (8 if not filtered).
 		 */
 		$token_length = (int) apply_filters( 'two_factor_email_token_length', self::get_code_length() );
 
