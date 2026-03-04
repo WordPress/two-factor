@@ -218,4 +218,27 @@ class Tests_Two_Factor_Backup_Codes extends WP_UnitTestCase {
 
 		remove_all_filters( 'two_factor_backup_code_length' );
 	}
+
+	/**
+	 * Test that the two_factor_autosubmit_length filter changes the data-digits attribute on the authentication page.
+	 *
+	 * @covers Two_Factor_Backup_Codes::authentication_page
+	 */
+	public function test_autosubmit_length_filter_affects_authentication_page() {
+		// Default: data-digits should reflect the default backup code length (8).
+		// Pass false as the user since no user-specific code length is needed for this test.
+		ob_start();
+		$this->provider->authentication_page( false );
+		$default_output = ob_get_clean();
+		$this->assertStringContainsString( 'data-digits="8"', $default_output );
+
+		// With filter: data-digits should be overridden to 0 (disables autosubmit).
+		add_filter( 'two_factor_autosubmit_length', '__return_zero' );
+		ob_start();
+		$this->provider->authentication_page( false );
+		$filtered_output = ob_get_clean();
+		remove_filter( 'two_factor_autosubmit_length', '__return_zero' );
+
+		$this->assertStringContainsString( 'data-digits="0"', $filtered_output );
+	}
 }
