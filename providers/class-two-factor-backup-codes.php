@@ -257,7 +257,7 @@ class Two_Factor_Backup_Codes extends Two_Factor_Provider {
 		 *
 		 * @since 0.11.0
 		 *
-		 * @param int     $code_length Length of the backup code. Default 8.
+		 * @param int     $code_length Length of the backup code. Default is taken from the `two_factor_code_length` filter (which defaults to 8 if not filtered).
 		 * @param WP_User $user        User object.
 		 */
 		$code_length = (int) apply_filters( 'two_factor_backup_code_length', self::get_code_length(), $user );
