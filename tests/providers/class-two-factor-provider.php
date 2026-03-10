@@ -120,7 +120,7 @@ class Tests_Two_Factor_Provider extends WP_UnitTestCase {
 		$user = self::factory()->user->create_and_get();
 
 		// Remove Two_Factor_Dummy from supported providers for this user via filter.
-		$filter = function( $providers ) {
+		$filter = function ( $providers ) {
 			unset( $providers['Two_Factor_Dummy'] );
 			return $providers;
 		};

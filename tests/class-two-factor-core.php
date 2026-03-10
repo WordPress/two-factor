@@ -137,7 +137,7 @@ class Test_ClassTwoFactorCore extends WP_UnitTestCase {
 	 * @param callable $callable Code that may trigger a redirect.
 	 */
 	private function do_redirect_callable( $callable ) {
-		$redirect_filter = function( $location ) {
+		$redirect_filter = function ( $location ) {
 			throw new Two_Factor_Redirect_Exception( $location );
 		};
 		add_filter( 'wp_redirect', $redirect_filter, PHP_INT_MAX );
@@ -480,7 +480,7 @@ class Test_ClassTwoFactorCore extends WP_UnitTestCase {
 		// prevent real cookies from being set during tests. Check for the plugin's specific filter
 		// at PHP_INT_MAX instead.
 		global $wp_filter;
-		$has_plugin_cookie_block = function() {
+		$has_plugin_cookie_block = function () {
 			global $wp_filter;
 			return ! empty( $wp_filter['send_auth_cookies']->callbacks[ PHP_INT_MAX ] );
 		};
@@ -1170,9 +1170,11 @@ class Test_ClassTwoFactorCore extends WP_UnitTestCase {
 		$this->assertNotFalse( $login_nonce );
 
 		// Process it.
-		$this->do_redirect_callable( function() use ( $user, $login_nonce ) {
-			Two_Factor_Core::_login_form_validate_2fa( $user, $login_nonce['key'], 'Two_Factor_Dummy', '', true );
-		} );
+		$this->do_redirect_callable(
+			function () use ( $user, $login_nonce ) {
+				Two_Factor_Core::_login_form_validate_2fa( $user, $login_nonce['key'], 'Two_Factor_Dummy', '', true );
+			}
+		);
 
 		$this->assertNotEmpty( $_COOKIE[ AUTH_COOKIE ] );
 		$this->assertNotEmpty( $_COOKIE[ LOGGED_IN_COOKIE ] );
@@ -1220,9 +1222,11 @@ class Test_ClassTwoFactorCore extends WP_UnitTestCase {
 		$this->assertNotFalse( $login_nonce );
 
 		// Process it.
-		$this->do_redirect_callable( function() use ( $user, $login_nonce ) {
-			Two_Factor_Core::_login_form_validate_2fa( $user, $login_nonce['key'], 'Two_Factor_Dummy', '', true );
-		} );
+		$this->do_redirect_callable(
+			function () use ( $user, $login_nonce ) {
+				Two_Factor_Core::_login_form_validate_2fa( $user, $login_nonce['key'], 'Two_Factor_Dummy', '', true );
+			}
+		);
 
 		$this->assertNotEmpty( $_COOKIE[ AUTH_COOKIE ] );
 		$this->assertNotEmpty( $_COOKIE[ LOGGED_IN_COOKIE ] );
@@ -1264,9 +1268,11 @@ class Test_ClassTwoFactorCore extends WP_UnitTestCase {
 
 		// Simulate clicking it with an incorrect nonce.
 		$bad_nonce = '__BAD_NONCE__';
-		$this->do_redirect_callable( function() use ( $bad_nonce ) {
-			Two_Factor_Core::_login_form_revalidate_2fa( $bad_nonce, 'Two_Factor_Dummy', '', true );
-		} );
+		$this->do_redirect_callable(
+			function () use ( $bad_nonce ) {
+				Two_Factor_Core::_login_form_revalidate_2fa( $bad_nonce, 'Two_Factor_Dummy', '', true );
+			}
+		);
 
 		// Check it's still expired.
 		$this->assertLessThan( time(), Two_Factor_Core::is_current_user_session_two_factor() );
@@ -1274,9 +1280,11 @@ class Test_ClassTwoFactorCore extends WP_UnitTestCase {
 		// Simulate clicking it.
 		$login_nonce = wp_create_nonce( 'two_factor_revalidate_' . $user->ID );
 
-		$this->do_redirect_callable( function() use ( $login_nonce ) {
-			Two_Factor_Core::_login_form_revalidate_2fa( $login_nonce, 'Two_Factor_Dummy', '', true );
-		} );
+		$this->do_redirect_callable(
+			function () use ( $login_nonce ) {
+				Two_Factor_Core::_login_form_revalidate_2fa( $login_nonce, 'Two_Factor_Dummy', '', true );
+			}
+		);
 
 		// Validate that the session is flagged as 2FA, and set to now-ish.
 		$current_session_two_factor = Two_Factor_Core::is_current_user_session_two_factor();
@@ -1507,9 +1515,11 @@ class Test_ClassTwoFactorCore extends WP_UnitTestCase {
 		$this->assertNotFalse( $login_nonce );
 
 		// Process it.
-		$this->do_redirect_callable( function() use ( $user, $login_nonce ) {
-			Two_Factor_Core::_login_form_validate_2fa( $user, $login_nonce['key'], 'Two_Factor_Dummy', '', true );
-		} );
+		$this->do_redirect_callable(
+			function () use ( $user, $login_nonce ) {
+				Two_Factor_Core::_login_form_validate_2fa( $user, $login_nonce['key'], 'Two_Factor_Dummy', '', true );
+			}
+		);
 
 		$this->assertNotEmpty( $_COOKIE[ AUTH_COOKIE ] );
 		$this->assertNotEmpty( $_COOKIE[ LOGGED_IN_COOKIE ] );
@@ -1915,7 +1925,7 @@ class Test_ClassTwoFactorCore extends WP_UnitTestCase {
 		$this->assertFalse( Two_Factor_Core::is_valid_user_action( $user_id, $action ), 'Action is invalid with wrong nonce' );
 
 		// Test with valid nonce.
-		$nonce                                                               = wp_create_nonce( sprintf( '%d-%s', $user_id, $action ) );
+		$nonce = wp_create_nonce( sprintf( '%d-%s', $user_id, $action ) );
 		$_REQUEST[ Two_Factor_Core::USER_SETTINGS_ACTION_NONCE_QUERY_ARG ] = $nonce;
 		$this->assertNotFalse( Two_Factor_Core::is_valid_user_action( $user_id, $action ), 'Action is valid with correct nonce' );
 
@@ -1992,8 +2002,8 @@ class Test_ClassTwoFactorCore extends WP_UnitTestCase {
 		$this->assertFalse( $action_fired, 'Action does not fire without valid nonce' );
 
 		// Set up valid action and nonce.
-		$_REQUEST[ Two_Factor_Core::USER_SETTINGS_ACTION_QUERY_VAR ]       = $action;
-		$nonce                                                              = wp_create_nonce( sprintf( '%d-%s', $user_id, $action ) );
+		$_REQUEST[ Two_Factor_Core::USER_SETTINGS_ACTION_QUERY_VAR ] = $action;
+		$nonce = wp_create_nonce( sprintf( '%d-%s', $user_id, $action ) );
 		$_REQUEST[ Two_Factor_Core::USER_SETTINGS_ACTION_NONCE_QUERY_ARG ] = $nonce;
 
 		// Trigger the action.
@@ -2398,7 +2408,7 @@ class Test_ClassTwoFactorCore extends WP_UnitTestCase {
 
 		// Filter should receive (true, $user_id) and its return value used.
 		$filter_result = false;
-		$filter = function( $can, $user_id ) use ( &$filter_result ) {
+		$filter        = function ( $can, $user_id ) use ( &$filter_result ) {
 			$filter_result = $user_id;
 			return 'filtered';
 		};
