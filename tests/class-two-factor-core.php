@@ -487,7 +487,7 @@ class Test_ClassTwoFactorCore extends WP_UnitTestCase {
 
 		$this->assertFalse(
 			$has_plugin_cookie_block(),
-			'Auth cookie block not registerd before the `authenticate` filter has run.'
+			'Auth cookie block not registered before the `authenticate` filter has run.'
 		);
 
 		Two_Factor_Core::filter_authenticate( $user_default );
@@ -1987,15 +1987,11 @@ class Test_ClassTwoFactorCore extends WP_UnitTestCase {
 		$received_args = array();
 
 		// Add a test hook.
-		add_action(
-			'two_factor_user_settings_action',
-			function ( $uid, $act ) use ( &$action_fired, &$received_args ) {
-				$action_fired  = true;
-				$received_args = array( $uid, $act );
-			},
-			10,
-			2
-		);
+		$test_callback = function ( $uid, $act ) use ( &$action_fired, &$received_args ) {
+			$action_fired  = true;
+			$received_args = array( $uid, $act );
+		};
+		add_action( 'two_factor_user_settings_action', $test_callback, 10, 2 );
 
 		// Test without valid nonce.
 		Two_Factor_Core::trigger_user_settings_action();
@@ -2014,7 +2010,7 @@ class Test_ClassTwoFactorCore extends WP_UnitTestCase {
 		$this->assertEquals( $action, $received_args[1], 'Action receives correct action name' );
 
 		// Cleanup.
-		remove_all_actions( 'two_factor_user_settings_action' );
+		remove_action( 'two_factor_user_settings_action', $test_callback, 10 );
 		unset( $_REQUEST[ Two_Factor_Core::USER_SETTINGS_ACTION_QUERY_VAR ] );
 		unset( $_REQUEST[ Two_Factor_Core::USER_SETTINGS_ACTION_NONCE_QUERY_ARG ] );
 	}
@@ -2407,19 +2403,19 @@ class Test_ClassTwoFactorCore extends WP_UnitTestCase {
 		$manager->update( $token, $session );
 
 		// Filter should receive (true, $user_id) and its return value used.
-		$filter_result = false;
-		$filter        = function ( $can, $user_id ) use ( &$filter_result ) {
-			$filter_result = $user_id;
-			return 'filtered';
+		$filter_received_user_id = null;
+		$filter                  = function ( $can, $user_id ) use ( &$filter_received_user_id ) {
+			$filter_received_user_id = $user_id;
+			return false;
 		};
 		add_filter( 'two_factor_rest_api_can_edit_user', $filter, 10, 2 );
 
 		$result = Two_Factor_Core::rest_api_can_edit_user_and_update_two_factor_options( $user->ID );
 
-		remove_filter( 'two_factor_rest_api_can_edit_user', $filter );
+		remove_filter( 'two_factor_rest_api_can_edit_user', $filter, 10 );
 
-		$this->assertSame( 'filtered', $result );
-		$this->assertSame( $user->ID, $filter_result );
+		$this->assertFalse( $result, 'Filter return value overrides default' );
+		$this->assertSame( $user->ID, $filter_received_user_id, 'Filter receives correct user ID' );
 	}
 
 	/**
