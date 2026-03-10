@@ -155,9 +155,17 @@ class Tests_Two_Factor_Email extends WP_UnitTestCase {
 	public function test_generate_and_email_token() {
 		$user = new WP_User( self::factory()->user->create() );
 
+		$prev_remote_addr       = $_SERVER['REMOTE_ADDR'] ?? null;
 		$_SERVER['REMOTE_ADDR'] = '127.0.0.1';
-		$this->provider->generate_and_email_token( $user );
-		unset( $_SERVER['REMOTE_ADDR'] );
+		try {
+			$this->provider->generate_and_email_token( $user );
+		} finally {
+			if ( null === $prev_remote_addr ) {
+				unset( $_SERVER['REMOTE_ADDR'] );
+			} else {
+				$_SERVER['REMOTE_ADDR'] = $prev_remote_addr;
+			}
+		}
 
 		$pattern = '/verification code below:\n\n(\d+)/';
 		$content = $GLOBALS['phpmailer']->Body;

@@ -125,10 +125,11 @@ class Tests_Two_Factor_Provider extends WP_UnitTestCase {
 			return $providers;
 		};
 		add_filter( 'two_factor_providers_for_user', $filter );
-
-		$this->assertFalse( Two_Factor_Dummy::is_supported_for_user( $user ) );
-
-		remove_filter( 'two_factor_providers_for_user', $filter );
+		try {
+			$this->assertFalse( Two_Factor_Dummy::is_supported_for_user( $user ) );
+		} finally {
+			remove_filter( 'two_factor_providers_for_user', $filter );
+		}
 	}
 
 	/**
