@@ -351,7 +351,7 @@ class Two_Factor_Core {
 	 * @return string[] Modified array with the Settings link added.
 	 */
 	public static function add_settings_action_link( $links ) {
-		$settings_url  = admin_url( 'profile.php#application-passwords-section' );
+		$settings_url  = admin_url( 'profile.php#two-factor-options' );
 		$settings_link = sprintf(
 			'<a href="%s">%s</a>',
 			esc_url( $settings_url ),
