@@ -1886,7 +1886,8 @@ class Two_Factor_Core {
 	 */
 	public static function notify_user_password_reset( $user ) {
 		$user_message = sprintf(
-			'Hello %1$s, an unusually high number of failed login attempts have been detected on your account at %2$s.
+			/* translators: 1: username, 2: site URL, 3: URL to password best-practices article, 4: URL to reset password */
+			__( 'Hello %1$s, an unusually high number of failed login attempts have been detected on your account at %2$s.
 
 			These attempts successfully entered your password, and were only blocked because they failed to enter your second authentication factor. Despite not being able to access your account, this behavior indicates that the attackers have compromised your password. The most common reasons for this are that your password was easy to guess, or was reused on another site which has been compromised.
 
@@ -1894,7 +1895,7 @@ class Two_Factor_Core {
 
 			To pick a new password, please visit %4$s
 
-			This is an automated notification. If you would like to speak to a site administrator, please contact them directly.',
+			This is an automated notification. If you would like to speak to a site administrator, please contact them directly.', 'two-factor' ),
 			esc_html( $user->user_login ),
 			home_url(),
 			'https://wordpress.org/documentation/article/password-best-practices/',
@@ -1902,7 +1903,7 @@ class Two_Factor_Core {
 		);
 		$user_message = str_replace( "\t", '', $user_message );
 
-		return wp_mail( $user->user_email, 'Your password was compromised and has been reset', $user_message );
+		return wp_mail( $user->user_email, __( 'Your password was compromised and has been reset', 'two-factor' ), $user_message );
 	}
 
 	/**
@@ -1916,10 +1917,15 @@ class Two_Factor_Core {
 	 */
 	public static function notify_admin_user_password_reset( $user ) {
 		$admin_email = get_option( 'admin_email' );
-		$subject     = sprintf( 'Compromised password for %s has been reset', esc_html( $user->user_login ) );
+		$subject     = sprintf(
+			/* translators: %s: username */
+			__( 'Compromised password for %s has been reset', 'two-factor' ),
+			esc_html( $user->user_login )
+		);
 
 		$message = sprintf(
-			'Hello, this is a notice from the Two Factor plugin to inform you that an unusually high number of failed login attempts have been detected on the %1$s account (ID %2$d).
+			/* translators: 1: username, 2: user ID, 3: URL to developer docs */
+			__( 'Hello, this is a notice from the Two Factor plugin to inform you that an unusually high number of failed login attempts have been detected on the %1$s account (ID %2$d).
 
 			Those attempts successfully entered the user\'s password, and were only blocked because they entered invalid second authentication factors.
 
@@ -1927,7 +1933,7 @@ class Two_Factor_Core {
 
 			If you do not wish to receive these notifications, you can disable them with the `two_factor_notify_admin_user_password_reset` filter. See %3$s for more information.
 
-			Thank you',
+			Thank you', 'two-factor' ),
 			esc_html( $user->user_login ),
 			$user->ID,
 			'https://developer.wordpress.org/plugins/hooks/'
@@ -2023,10 +2029,10 @@ class Two_Factor_Core {
 			);
 
 			$notices['warning two-factor-warning-revalidate-session'] = sprintf(
-				esc_html__( 'To update your Two-Factor options, you must first revalidate your session.', 'two-factor' ) .
-					' <a class="button" href="%s">' . esc_html__( 'Revalidate now', 'two-factor' ) . '</a>',
+				/* translators: %s: URL to revalidate the session */
+				__( 'To update your Two-Factor options, you must first revalidate your session. <a class="button" href="%s">Revalidate now</a>', 'two-factor' ),
 				esc_url( $url )
-			);
+            );
 		}
 
 		if ( empty( $providers ) ) {
