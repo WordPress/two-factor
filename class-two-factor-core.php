@@ -2032,7 +2032,7 @@ class Two_Factor_Core {
 				/* translators: %s: URL to revalidate the session */
 				__( 'To update your Two-Factor options, you must first revalidate your session. <a class="button" href="%s">Revalidate now</a>', 'two-factor' ),
 				esc_url( $url )
-            );
+			);
 		}
 
 		if ( empty( $providers ) ) {
