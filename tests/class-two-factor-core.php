@@ -477,12 +477,19 @@ class Test_ClassTwoFactorCore extends WP_UnitTestCase {
 		$this->assertFalse( Two_Factor_Core::is_api_request(), 'Is not an API request by default' );
 
 		// The WP test framework registers __return_false on send_auth_cookies at priority 10 to
-		// prevent real cookies from being set during tests. Check for the plugin's specific filter
-		// at PHP_INT_MAX instead.
-		global $wp_filter;
+		// prevent real cookies from being set during tests. Check for the plugin's specific
+		// __return_false callback at PHP_INT_MAX (see Two_Factor_Core::filter_authenticate).
 		$has_plugin_cookie_block = function () {
 			global $wp_filter;
-			return ! empty( $wp_filter['send_auth_cookies']->callbacks[ PHP_INT_MAX ] );
+			if ( empty( $wp_filter['send_auth_cookies']->callbacks[ PHP_INT_MAX ] ) ) {
+				return false;
+			}
+			foreach ( $wp_filter['send_auth_cookies']->callbacks[ PHP_INT_MAX ] as $cb ) {
+				if ( '__return_false' === $cb['function'] ) {
+					return true;
+				}
+			}
+			return false;
 		};
 
 		$this->assertFalse(
@@ -2177,9 +2184,14 @@ class Test_ClassTwoFactorCore extends WP_UnitTestCase {
 			)
 		);
 
-		$user = new WP_User( $user_id );
+		// Reset the private static before the test to ensure a clean baseline.
+		$reflection = new ReflectionClass( Two_Factor_Core::class );
+		$prop       = $reflection->getProperty( 'password_auth_tokens' );
+		$prop->setAccessible( true );
+		$prop->setValue( null, array() );
 
-		// Authenticate user to generate cookies.
+		// Authenticate user — this fires set_auth_cookie / set_logged_in_cookie,
+		// which call collect_auth_cookie_tokens() via hook.
 		$authenticated = wp_signon(
 			array(
 				'user_login'    => 'testuser',
@@ -2187,15 +2199,14 @@ class Test_ClassTwoFactorCore extends WP_UnitTestCase {
 			)
 		);
 
-		$this->assertEquals( $user, $authenticated, 'User can authenticate' );
+		$this->assertSame( $user_id, $authenticated->ID, 'Correct user authenticated' );
 
-		// The collect_auth_cookie_tokens is called via hooks during wp_signon.
-		// Verify session exists.
-		$session_manager = WP_Session_Tokens::get_instance( $user_id );
-		$this->assertGreaterThan( 0, count( $session_manager->get_all() ), 'Session was created' );
+		// Verify collect_auth_cookie_tokens() actually stored at least one token.
+		$tokens = $prop->getValue( null );
+		$this->assertNotEmpty( $tokens, 'collect_auth_cookie_tokens stored at least one token' );
 
 		// Cleanup.
-		$session_manager->destroy_all();
+		WP_Session_Tokens::get_instance( $user_id )->destroy_all();
 	}
 
 	/**

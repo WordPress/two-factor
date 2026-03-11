@@ -99,14 +99,16 @@ class Tests_Two_Factor_Provider extends WP_UnitTestCase {
 	}
 
 	/**
-	 * Verify is_supported_for_user() returns true when the provider is enabled for the user.
+	 * Verify is_supported_for_user() returns true when the provider is globally registered.
+	 *
+	 * is_supported_for_user() checks Two_Factor_Core::get_supported_providers_for_user(),
+	 * which reflects global registration (the two_factor_providers filter), not per-user
+	 * enabled state. Two_Factor_Dummy is registered globally when WP_DEBUG is true.
 	 *
 	 * @covers Two_Factor_Provider::is_supported_for_user
 	 */
-	public function test_is_supported_for_user_with_active_provider() {
+	public function test_is_supported_for_user_when_globally_registered() {
 		$user = self::factory()->user->create_and_get();
-
-		Two_Factor_Core::enable_provider_for_user( $user->ID, 'Two_Factor_Dummy' );
 
 		$this->assertTrue( Two_Factor_Dummy::is_supported_for_user( $user ) );
 	}
