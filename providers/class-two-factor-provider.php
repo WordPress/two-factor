@@ -175,7 +175,7 @@ abstract class Two_Factor_Provider {
 			return false;
 		}
 
-		$code = wp_unslash( $_REQUEST[ $field ] ); // phpcs:ignore WordPress.Security.NonceVerification.Recommended, WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- Caller (core) verifies nonce; value sanitized below.
+		$code = wp_unslash( $_REQUEST[ $field ] ); // phpcs:ignore WordPress.Security.NonceVerification.Recommended, WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- Caller (core) verifies nonce; value normalized below.
 		$code = preg_replace( '/\s+/', '', $code );
 
 		// Maybe validate the length.

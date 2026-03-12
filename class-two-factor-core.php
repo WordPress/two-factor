@@ -452,7 +452,12 @@ class Two_Factor_Core {
 	 * @return boolean
 	 */
 	public static function is_valid_user_action( $user_id, $action ) {
-		$request_nonce = isset( $_REQUEST[ self::USER_SETTINGS_ACTION_NONCE_QUERY_ARG ] ) ? wp_unslash( $_REQUEST[ self::USER_SETTINGS_ACTION_NONCE_QUERY_ARG ] ) : ''; // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- Value only passed to wp_verify_nonce().
+		$request_nonce_raw = isset( $_REQUEST[ self::USER_SETTINGS_ACTION_NONCE_QUERY_ARG ] ) ? wp_unslash( $_REQUEST[ self::USER_SETTINGS_ACTION_NONCE_QUERY_ARG ] ) : ''; // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- Value sanitized and then only passed to wp_verify_nonce().
+		if ( ! is_scalar( $request_nonce_raw ) ) {
+			$request_nonce = '';
+		} else {
+			$request_nonce = sanitize_text_field( (string) $request_nonce_raw );
+		}
 
 		if ( ! $user_id || ! $action || ! $request_nonce ) {
 			return false;
@@ -493,8 +498,9 @@ class Two_Factor_Core {
 	 * @return void
 	 */
 	public static function trigger_user_settings_action() {
-		$action  = isset( $_REQUEST[ self::USER_SETTINGS_ACTION_QUERY_VAR ] ) ? wp_unslash( $_REQUEST[ self::USER_SETTINGS_ACTION_QUERY_VAR ] ) : ''; // phpcs:ignore WordPress.Security.NonceVerification.Recommended, WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- Nonce verified in is_valid_user_action() before do_action.
-		$user_id = self::current_user_being_edited();
+		$action_raw = isset( $_REQUEST[ self::USER_SETTINGS_ACTION_QUERY_VAR ] ) ? wp_unslash( $_REQUEST[ self::USER_SETTINGS_ACTION_QUERY_VAR ] ) : ''; // phpcs:ignore WordPress.Security.NonceVerification.Recommended, WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- Value sanitized below; nonce verified in is_valid_user_action() before do_action.
+		$action     = ( is_scalar( $action_raw ) && (string) $action_raw !== '' ) ? sanitize_key( (string) $action_raw ) : '';
+		$user_id    = self::current_user_being_edited();
 
 		if ( self::is_valid_user_action( $user_id, $action ) ) {
 			/**
@@ -1494,7 +1500,7 @@ class Two_Factor_Core {
 	 */
 	public static function login_form_validate_2fa() {
 		$wp_auth_id      = ! empty( $_REQUEST['wp-auth-id'] ) ? absint( $_REQUEST['wp-auth-id'] ) : 0; // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Nonce verified in _login_form_validate_2fa() via verify_login_nonce() before any use.
-		$nonce           = ! empty( $_REQUEST['wp-auth-nonce'] ) ? wp_unslash( $_REQUEST['wp-auth-nonce'] ) : ''; // phpcs:ignore WordPress.Security.NonceVerification.Recommended, WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- Nonce verified in _login_form_validate_2fa() before any use.
+		$nonce           = ( isset( $_REQUEST['wp-auth-nonce'] ) && is_scalar( $_REQUEST['wp-auth-nonce'] ) ) ? sanitize_text_field( wp_unslash( (string) $_REQUEST['wp-auth-nonce'] ) ) : ''; // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Nonce verified in _login_form_validate_2fa() before any use.
 		$provider        = ! empty( $_REQUEST['provider'] ) ? sanitize_text_field( wp_unslash( $_REQUEST['provider'] ) ) : ''; // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Nonce verified in _login_form_validate_2fa() before any use.
 		$redirect_to     = ! empty( $_REQUEST['redirect_to'] ) ? esc_url_raw( wp_unslash( $_REQUEST['redirect_to'] ) ) : ''; // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Nonce verified in _login_form_validate_2fa() before any use.
 		$is_post_request = isset( $_SERVER['REQUEST_METHOD'] ) && 'POST' === strtoupper( $_SERVER['REQUEST_METHOD'] ); // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.MissingUnslash, WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- REQUEST_METHOD is not user input.
@@ -1633,7 +1639,7 @@ class Two_Factor_Core {
 	 * @since 0.9.0
 	 */
 	public static function login_form_revalidate_2fa() {
-		$nonce           = ! empty( $_REQUEST['wp-auth-nonce'] ) ? wp_unslash( $_REQUEST['wp-auth-nonce'] ) : ''; // phpcs:ignore WordPress.Security.NonceVerification.Recommended, WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- Nonce verified in _login_form_revalidate_2fa() for POST before processing.
+		$nonce           = ( isset( $_REQUEST['wp-auth-nonce'] ) && is_scalar( $_REQUEST['wp-auth-nonce'] ) ) ? sanitize_text_field( wp_unslash( (string) $_REQUEST['wp-auth-nonce'] ) ) : ''; // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Nonce verified in _login_form_revalidate_2fa() for POST before processing.
 		$provider        = ! empty( $_REQUEST['provider'] ) ? sanitize_text_field( wp_unslash( $_REQUEST['provider'] ) ) : false; // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Nonce verified in _login_form_revalidate_2fa() for POST before processing.
 		$redirect_to     = ! empty( $_REQUEST['redirect_to'] ) ? esc_url_raw( wp_unslash( $_REQUEST['redirect_to'] ) ) : admin_url(); // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Nonce verified in _login_form_revalidate_2fa() for POST before processing.
 		$is_post_request = isset( $_SERVER['REQUEST_METHOD'] ) && 'POST' === strtoupper( $_SERVER['REQUEST_METHOD'] ); // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.MissingUnslash, WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- REQUEST_METHOD is not user input.
@@ -2392,7 +2398,7 @@ class Two_Factor_Core {
 	public static function rememberme() {
 		$rememberme = false;
 
-		if ( ! empty( $_REQUEST['rememberme'] ) ) { // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Only used after 2FA login nonce verified by caller.
+		if ( ! empty( $_REQUEST['rememberme'] ) ) { // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Non-destructive display/flow flag; value normalized to bool below.
 			$rememberme = true;
 		}
 
