@@ -521,13 +521,18 @@ class Test_ClassTwoFactorCore extends WP_UnitTestCase {
 	 *
 	 * @covers Two_Factor_Core::filter_authenticate
 	 * @covers Two_Factor_Core::is_api_request
+	 * @runInSeparateProcess
+	 * @preserveGlobalState disabled
 	 */
 	public function test_filter_authenticate_api() {
 		$user_default     = new WP_User( self::factory()->user->create() );
 		$user_2fa_enabled = $this->get_dummy_user(); // User with a dummy two-factor method enabled.
 
 		// TODO: Get Two_Factor_Core away from static methods to allow mocking this.
-		define( 'XMLRPC_REQUEST', true );
+		// Guard against re-definition if the constant is already set in this process.
+		if ( ! defined( 'XMLRPC_REQUEST' ) ) {
+			define( 'XMLRPC_REQUEST', true );
+		}
 
 		$this->assertTrue( Two_Factor_Core::is_api_request(), 'Can detect an API request' );
 
@@ -2190,10 +2195,10 @@ class Test_ClassTwoFactorCore extends WP_UnitTestCase {
 
 		// Reset the private static before the test to ensure a clean baseline,
 		// but capture the original value so it can be restored afterward.
-		$reflection       = new ReflectionClass( Two_Factor_Core::class );
-		$prop             = $reflection->getProperty( 'password_auth_tokens' );
+		$reflection = new ReflectionClass( Two_Factor_Core::class );
+		$prop       = $reflection->getProperty( 'password_auth_tokens' );
 		$prop->setAccessible( true );
-		$original_tokens  = $prop->getValue( null );
+		$original_tokens = $prop->getValue( null );
 
 		try {
 			$prop->setValue( null, array() );
