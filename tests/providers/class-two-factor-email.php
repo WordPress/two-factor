@@ -149,14 +149,25 @@ class Tests_Two_Factor_Email extends WP_UnitTestCase {
 	 * Verify emailed tokens can be validated.
 	 *
 	 * @covers Two_Factor_Email::generate_and_email_token
+	 * @covers Two_Factor_Email::get_client_ip
 	 * @covers Two_Factor_Email::validate_token
 	 */
 	public function test_generate_and_email_token() {
 		$user = new WP_User( self::factory()->user->create() );
 
-		$this->provider->generate_and_email_token( $user );
+		$prev_remote_addr       = $_SERVER['REMOTE_ADDR'] ?? null;
+		$_SERVER['REMOTE_ADDR'] = '127.0.0.1';
+		try {
+			$this->provider->generate_and_email_token( $user );
+		} finally {
+			if ( null === $prev_remote_addr ) {
+				unset( $_SERVER['REMOTE_ADDR'] );
+			} else {
+				$_SERVER['REMOTE_ADDR'] = $prev_remote_addr;
+			}
+		}
 
-		$pattern = '/Enter (\d*) to log in./';
+		$pattern = '/verification code below:\R\R(\d+)/';
 		$content = $GLOBALS['phpmailer']->Body;
 
 		$this->assertGreaterThan( 0, preg_match( $pattern, $content, $match ) );
@@ -284,6 +295,7 @@ class Tests_Two_Factor_Email extends WP_UnitTestCase {
 	/**
 	 * Ensure the token generation time is stored.
 	 *
+	 * @covers Two_Factor_Email::user_has_token
 	 * @covers Two_Factor_Email::user_token_lifetime
 	 */
 	public function test_tokens_have_generation_time() {
@@ -337,7 +349,10 @@ class Tests_Two_Factor_Email extends WP_UnitTestCase {
 			'Fresh tokens are also valid'
 		);
 
-		// Update the generation time to one second before the TTL.
+		// Regenerate a fresh token (previous validate_token call deleted the original).
+		$token = $this->provider->generate_token( $user_id );
+
+		// Update the generation time to one second after the TTL.
 		$expired_token_timestamp = time() - $this->provider->user_token_ttl( $user_id ) - 1;
 		update_user_meta( $user_id, Two_Factor_Email::TOKEN_META_KEY_TIMESTAMP, $expired_token_timestamp );
 
@@ -416,5 +431,98 @@ class Tests_Two_Factor_Email extends WP_UnitTestCase {
 		);
 
 		remove_all_filters( 'two_factor_token_ttl' );
+	}
+
+	/**
+	 * Verify the alternative provider label contains expected text.
+	 *
+	 * @covers Two_Factor_Email::get_alternative_provider_label
+	 */
+	public function test_get_alternative_provider_label() {
+		$label = $this->provider->get_alternative_provider_label();
+		$this->assertStringContainsString( 'email', strtolower( $label ) );
+	}
+
+	/**
+	 * Verify pre_process_authentication returns false when no resend code is set.
+	 *
+	 * @covers Two_Factor_Email::pre_process_authentication
+	 */
+	public function test_pre_process_authentication_without_resend() {
+		$user = self::factory()->user->create_and_get();
+
+		$this->assertFalse(
+			$this->provider->pre_process_authentication( $user ),
+			'Returns false when no resend is requested'
+		);
+	}
+
+	/**
+	 * Verify authentication_page outputs the login form for a valid user with no token.
+	 *
+	 * @covers Two_Factor_Email::authentication_page
+	 * @covers Two_Factor_Email::get_client_ip
+	 */
+	public function test_authentication_page_with_user_no_token() {
+		$user = self::factory()->user->create_and_get();
+
+		ob_start();
+		$this->provider->authentication_page( $user );
+		$output = ob_get_clean();
+
+		$this->assertStringContainsString( 'two-factor-email-code', $output );
+		$this->assertStringContainsString( 'authcode', $output );
+	}
+
+	/**
+	 * Verify authentication_page skips token generation when a valid token already exists.
+	 *
+	 * @covers Two_Factor_Email::authentication_page
+	 */
+	public function test_authentication_page_with_existing_token() {
+		$user = self::factory()->user->create_and_get();
+
+		// Pre-generate a token so authentication_page should NOT email a new one.
+		$this->provider->generate_token( $user->ID );
+
+		$emails_before = count( self::$mockmailer->mock_sent );
+
+		ob_start();
+		$this->provider->authentication_page( $user );
+		$output = ob_get_clean();
+
+		$this->assertCount( $emails_before, self::$mockmailer->mock_sent, 'No new email sent when token already exists' );
+		$this->assertStringContainsString( 'two-factor-email-code', $output );
+	}
+
+	/**
+	 * Verify user_options outputs the user's email address.
+	 *
+	 * @covers Two_Factor_Email::user_options
+	 */
+	public function test_user_options() {
+		$user = self::factory()->user->create_and_get(
+			array(
+				'user_email' => 'test-coverage@example.com',
+			)
+		);
+
+		ob_start();
+		$this->provider->user_options( $user );
+		$output = ob_get_clean();
+
+		$this->assertStringContainsString( 'test-coverage@example.com', $output );
+	}
+
+	/**
+	 * Verify uninstall_user_meta_keys returns the expected meta keys.
+	 *
+	 * @covers Two_Factor_Email::uninstall_user_meta_keys
+	 */
+	public function test_uninstall_user_meta_keys() {
+		$keys = Two_Factor_Email::uninstall_user_meta_keys();
+
+		$this->assertContains( Two_Factor_Email::TOKEN_META_KEY, $keys );
+		$this->assertContains( Two_Factor_Email::TOKEN_META_KEY_TIMESTAMP, $keys );
 	}
 }

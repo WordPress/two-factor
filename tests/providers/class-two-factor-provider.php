@@ -87,4 +87,92 @@ class Tests_Two_Factor_Provider extends WP_UnitTestCase {
 
 		$this->assertSame( $instance_one, $instance_two );
 	}
+
+	/**
+	 * Verify get_key() returns the provider's class name.
+	 *
+	 * @covers Two_Factor_Provider::get_key
+	 */
+	public function test_get_key_returns_class_name() {
+		$provider = Two_Factor_Dummy::get_instance();
+		$this->assertSame( 'Two_Factor_Dummy', $provider->get_key() );
+	}
+
+	/**
+	 * Verify is_supported_for_user() returns true when the provider is globally registered.
+	 *
+	 * is_supported_for_user() checks Two_Factor_Core::get_supported_providers_for_user(),
+	 * which reflects global registration (the two_factor_providers filter), not per-user
+	 * enabled state. Two_Factor_Dummy is registered globally when WP_DEBUG is true.
+	 *
+	 * @covers Two_Factor_Provider::is_supported_for_user
+	 */
+	public function test_is_supported_for_user_when_globally_registered() {
+		$user = self::factory()->user->create_and_get();
+
+		$this->assertTrue( Two_Factor_Dummy::is_supported_for_user( $user ) );
+	}
+
+	/**
+	 * Verify is_supported_for_user() returns false when the provider is not enabled for the user.
+	 *
+	 * @covers Two_Factor_Provider::is_supported_for_user
+	 */
+	public function test_is_supported_for_user_without_active_provider() {
+		$user = self::factory()->user->create_and_get();
+
+		// Remove Two_Factor_Dummy from supported providers for this user via filter.
+		$filter = function ( $providers ) {
+			unset( $providers['Two_Factor_Dummy'] );
+			return $providers;
+		};
+		add_filter( 'two_factor_providers_for_user', $filter );
+		try {
+			$this->assertFalse( Two_Factor_Dummy::is_supported_for_user( $user ) );
+		} finally {
+			remove_filter( 'two_factor_providers_for_user', $filter );
+		}
+	}
+
+	/**
+	 * Verify get_alternative_provider_label() returns the default "Use {label}" string.
+	 *
+	 * @covers Two_Factor_Provider::get_alternative_provider_label
+	 */
+	public function test_get_alternative_provider_label_default() {
+		$provider = Two_Factor_Dummy::get_instance();
+		$label    = $provider->get_alternative_provider_label();
+
+		$this->assertStringContainsString( $provider->get_label(), $label );
+	}
+
+	/**
+	 * Verify the base pre_process_authentication() returns false.
+	 *
+	 * @covers Two_Factor_Provider::pre_process_authentication
+	 */
+	public function test_pre_process_authentication_base_returns_false() {
+		$provider = Two_Factor_Dummy::get_instance();
+		$user     = self::factory()->user->create_and_get();
+
+		$this->assertFalse( $provider->pre_process_authentication( $user ) );
+	}
+
+	/**
+	 * Verify the base uninstall_user_meta_keys() returns an empty array.
+	 *
+	 * @covers Two_Factor_Provider::uninstall_user_meta_keys
+	 */
+	public function test_uninstall_user_meta_keys_base_returns_empty() {
+		$this->assertSame( array(), Two_Factor_Dummy::uninstall_user_meta_keys() );
+	}
+
+	/**
+	 * Verify the base uninstall_options() returns an empty array.
+	 *
+	 * @covers Two_Factor_Provider::uninstall_options
+	 */
+	public function test_uninstall_options_base_returns_empty() {
+		$this->assertSame( array(), Two_Factor_Dummy::uninstall_options() );
+	}
 }
