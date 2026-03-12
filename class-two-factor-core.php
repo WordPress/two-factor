@@ -452,7 +452,7 @@ class Two_Factor_Core {
 	 * @return boolean
 	 */
 	public static function is_valid_user_action( $user_id, $action ) {
-		$request_nonce = isset( $_REQUEST[ self::USER_SETTINGS_ACTION_NONCE_QUERY_ARG ] ) ? wp_unslash( $_REQUEST[ self::USER_SETTINGS_ACTION_NONCE_QUERY_ARG ] ) : '';
+		$request_nonce = isset( $_REQUEST[ self::USER_SETTINGS_ACTION_NONCE_QUERY_ARG ] ) ? wp_unslash( $_REQUEST[ self::USER_SETTINGS_ACTION_NONCE_QUERY_ARG ] ) : ''; // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- Value only passed to wp_verify_nonce().
 
 		if ( ! $user_id || ! $action || ! $request_nonce ) {
 			return false;
@@ -473,8 +473,8 @@ class Two_Factor_Core {
 	 */
 	public static function current_user_being_edited() {
 		// Try to resolve the user ID from the request first.
-		if ( ! empty( $_REQUEST['user_id'] ) ) {
-			$user_id = intval( $_REQUEST['user_id'] );
+		if ( ! empty( $_REQUEST['user_id'] ) ) { // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Nonce verified in trigger_user_settings_action() via is_valid_user_action() before any state change.
+			$user_id = intval( $_REQUEST['user_id'] ); // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Nonce verified in trigger_user_settings_action() via is_valid_user_action() before any state change.
 
 			if ( current_user_can( 'edit_user', $user_id ) ) {
 				return $user_id;
@@ -493,7 +493,7 @@ class Two_Factor_Core {
 	 * @return void
 	 */
 	public static function trigger_user_settings_action() {
-		$action  = isset( $_REQUEST[ self::USER_SETTINGS_ACTION_QUERY_VAR ] ) ? wp_unslash( $_REQUEST[ self::USER_SETTINGS_ACTION_QUERY_VAR ] ) : '';
+		$action  = isset( $_REQUEST[ self::USER_SETTINGS_ACTION_QUERY_VAR ] ) ? wp_unslash( $_REQUEST[ self::USER_SETTINGS_ACTION_QUERY_VAR ] ) : ''; // phpcs:ignore WordPress.Security.NonceVerification.Recommended, WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- Nonce verified in is_valid_user_action() before do_action.
 		$user_id = self::current_user_being_edited();
 
 		if ( self::is_valid_user_action( $user_id, $action ) ) {
@@ -906,7 +906,7 @@ class Two_Factor_Core {
 			wp_die( esc_html__( 'Failed to create a login nonce.', 'two-factor' ) );
 		}
 
-		$redirect_to = isset( $_REQUEST['redirect_to'] ) ? $_REQUEST['redirect_to'] : admin_url();
+		$redirect_to = isset( $_REQUEST['redirect_to'] ) ? esc_url_raw( wp_unslash( $_REQUEST['redirect_to'] ) ) : admin_url(); // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Value only used for redirect; auth protected by 2FA login nonce later.
 
 		self::login_html( $user, $login_nonce['key'], $redirect_to );
 	}
@@ -960,6 +960,12 @@ class Two_Factor_Core {
 			return $errors;
 		}
 
+		// Verify login form nonce when present (e.g. wp-login.php); skip only when nonce is not sent (custom login forms).
+		if ( isset( $_POST['_wpnonce'] ) && ! wp_verify_nonce( sanitize_text_field( wp_unslash( $_POST['_wpnonce'] ) ), 'log-in' ) ) {
+			return $errors;
+		}
+
+		// phpcs:ignore WordPress.Security.NonceVerification.Missing -- Nonce verified above when _wpnonce present; absent for custom login forms.
 		$user_name      = sanitize_user( wp_unslash( $_POST['log'] ) );
 		$attempted_user = get_user_by( 'login', $user_name );
 		if ( ! $attempted_user && str_contains( $user_name, '@' ) ) {
@@ -1487,11 +1493,11 @@ class Two_Factor_Core {
 	 * @since 0.2.0
 	 */
 	public static function login_form_validate_2fa() {
-		$wp_auth_id      = ! empty( $_REQUEST['wp-auth-id'] ) ? absint( $_REQUEST['wp-auth-id'] ) : 0;
-		$nonce           = ! empty( $_REQUEST['wp-auth-nonce'] ) ? wp_unslash( $_REQUEST['wp-auth-nonce'] ) : '';
-		$provider        = ! empty( $_REQUEST['provider'] ) ? wp_unslash( $_REQUEST['provider'] ) : '';
-		$redirect_to     = ! empty( $_REQUEST['redirect_to'] ) ? wp_unslash( $_REQUEST['redirect_to'] ) : '';
-		$is_post_request = ( 'POST' === strtoupper( $_SERVER['REQUEST_METHOD'] ) );
+		$wp_auth_id      = ! empty( $_REQUEST['wp-auth-id'] ) ? absint( $_REQUEST['wp-auth-id'] ) : 0; // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Nonce verified in _login_form_validate_2fa() via verify_login_nonce() before any use.
+		$nonce           = ! empty( $_REQUEST['wp-auth-nonce'] ) ? wp_unslash( $_REQUEST['wp-auth-nonce'] ) : ''; // phpcs:ignore WordPress.Security.NonceVerification.Recommended, WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- Nonce verified in _login_form_validate_2fa() before any use.
+		$provider        = ! empty( $_REQUEST['provider'] ) ? sanitize_text_field( wp_unslash( $_REQUEST['provider'] ) ) : ''; // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Nonce verified in _login_form_validate_2fa() before any use.
+		$redirect_to     = ! empty( $_REQUEST['redirect_to'] ) ? esc_url_raw( wp_unslash( $_REQUEST['redirect_to'] ) ) : ''; // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Nonce verified in _login_form_validate_2fa() before any use.
+		$is_post_request = isset( $_SERVER['REQUEST_METHOD'] ) && 'POST' === strtoupper( $_SERVER['REQUEST_METHOD'] ); // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.MissingUnslash, WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- REQUEST_METHOD is not user input.
 		$user            = get_user_by( 'id', $wp_auth_id );
 
 		if ( ! $wp_auth_id || ! $nonce || ! $user ) {
@@ -1553,7 +1559,7 @@ class Two_Factor_Core {
 		delete_user_meta( $user->ID, self::USER_FAILED_LOGIN_ATTEMPTS_KEY );
 
 		$rememberme = false;
-		if ( isset( $_REQUEST['rememberme'] ) && $_REQUEST['rememberme'] ) {
+		if ( isset( $_REQUEST['rememberme'] ) && $_REQUEST['rememberme'] ) { // phpcs:ignore WordPress.Security.NonceVerification.Recommended, WordPress.Security.ValidatedSanitizedInput.MissingUnslash, WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- Request read only after successful verify_login_nonce() in this request.
 			$rememberme = true;
 		}
 
@@ -1594,7 +1600,7 @@ class Two_Factor_Core {
 		$interim_login = isset( $_REQUEST['interim-login'] ); // phpcs:ignore WordPress.WP.GlobalVariablesOverride.Prohibited,WordPress.Security.NonceVerification.Recommended
 
 		if ( $interim_login ) {
-			$customize_login = isset( $_REQUEST['customize-login'] );
+			$customize_login = isset( $_REQUEST['customize-login'] ); // phpcs:ignore WordPress.Security.NonceVerification.Recommended, WordPress.Security.ValidatedSanitizedInput.MissingUnslash, WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- Request read only after successful verify_login_nonce() in this request.
 			if ( $customize_login ) {
 				wp_enqueue_script( 'customize-base' );
 			}
@@ -1627,10 +1633,10 @@ class Two_Factor_Core {
 	 * @since 0.9.0
 	 */
 	public static function login_form_revalidate_2fa() {
-		$nonce           = ! empty( $_REQUEST['wp-auth-nonce'] ) ? wp_unslash( $_REQUEST['wp-auth-nonce'] ) : '';
-		$provider        = ! empty( $_REQUEST['provider'] ) ? sanitize_text_field( wp_unslash( $_REQUEST['provider'] ) ) : false;
-		$redirect_to     = ! empty( $_REQUEST['redirect_to'] ) ? wp_unslash( $_REQUEST['redirect_to'] ) : admin_url();
-		$is_post_request = ( 'POST' === strtoupper( $_SERVER['REQUEST_METHOD'] ) );
+		$nonce           = ! empty( $_REQUEST['wp-auth-nonce'] ) ? wp_unslash( $_REQUEST['wp-auth-nonce'] ) : ''; // phpcs:ignore WordPress.Security.NonceVerification.Recommended, WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- Nonce verified in _login_form_revalidate_2fa() for POST before processing.
+		$provider        = ! empty( $_REQUEST['provider'] ) ? sanitize_text_field( wp_unslash( $_REQUEST['provider'] ) ) : false; // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Nonce verified in _login_form_revalidate_2fa() for POST before processing.
+		$redirect_to     = ! empty( $_REQUEST['redirect_to'] ) ? esc_url_raw( wp_unslash( $_REQUEST['redirect_to'] ) ) : admin_url(); // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Nonce verified in _login_form_revalidate_2fa() for POST before processing.
+		$is_post_request = isset( $_SERVER['REQUEST_METHOD'] ) && 'POST' === strtoupper( $_SERVER['REQUEST_METHOD'] ); // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.MissingUnslash, WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- REQUEST_METHOD is not user input.
 
 		self::_login_form_revalidate_2fa( $nonce, $provider, $redirect_to, $is_post_request );
 		exit;
@@ -2386,7 +2392,7 @@ class Two_Factor_Core {
 	public static function rememberme() {
 		$rememberme = false;
 
-		if ( ! empty( $_REQUEST['rememberme'] ) ) {
+		if ( ! empty( $_REQUEST['rememberme'] ) ) { // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Only used after 2FA login nonce verified by caller.
 			$rememberme = true;
 		}
 
