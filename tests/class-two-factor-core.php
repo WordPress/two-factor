@@ -2184,29 +2184,37 @@ class Test_ClassTwoFactorCore extends WP_UnitTestCase {
 			)
 		);
 
-		// Reset the private static before the test to ensure a clean baseline.
-		$reflection = new ReflectionClass( Two_Factor_Core::class );
-		$prop       = $reflection->getProperty( 'password_auth_tokens' );
+		// Reset the private static before the test to ensure a clean baseline,
+		// but capture the original value so it can be restored afterward.
+		$reflection       = new ReflectionClass( Two_Factor_Core::class );
+		$prop             = $reflection->getProperty( 'password_auth_tokens' );
 		$prop->setAccessible( true );
-		$prop->setValue( null, array() );
+		$original_tokens  = $prop->getValue( null );
 
-		// Authenticate user — this fires set_auth_cookie / set_logged_in_cookie,
-		// which call collect_auth_cookie_tokens() via hook.
-		$authenticated = wp_signon(
-			array(
-				'user_login'    => 'testuser',
-				'user_password' => 'password123',
-			)
-		);
+		try {
+			$prop->setValue( null, array() );
 
-		$this->assertSame( $user_id, $authenticated->ID, 'Correct user authenticated' );
+			// Authenticate user — this fires set_auth_cookie / set_logged_in_cookie,
+			// which call collect_auth_cookie_tokens() via hook.
+			$authenticated = wp_signon(
+				array(
+					'user_login'    => 'testuser',
+					'user_password' => 'password123',
+				)
+			);
 
-		// Verify collect_auth_cookie_tokens() actually stored at least one token.
-		$tokens = $prop->getValue( null );
-		$this->assertNotEmpty( $tokens, 'collect_auth_cookie_tokens stored at least one token' );
+			$this->assertSame( $user_id, $authenticated->ID, 'Correct user authenticated' );
 
-		// Cleanup.
-		WP_Session_Tokens::get_instance( $user_id )->destroy_all();
+			// Verify collect_auth_cookie_tokens() actually stored at least one token.
+			$tokens = $prop->getValue( null );
+			$this->assertNotEmpty( $tokens, 'collect_auth_cookie_tokens stored at least one token' );
+
+			// Cleanup.
+			WP_Session_Tokens::get_instance( $user_id )->destroy_all();
+		} finally {
+			// Restore original static state to avoid leaking into other tests.
+			$prop->setValue( null, $original_tokens );
+		}
 	}
 
 	/**
