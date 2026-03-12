@@ -54,6 +54,10 @@ class Test_ClassTwoFactorCore extends WP_UnitTestCase {
 		parent::tearDown();
 
 		unset( $_COOKIE[ AUTH_COOKIE ], $_COOKIE[ LOGGED_IN_COOKIE ] );
+
+		// Remove the plugin's send_auth_cookies block that filter_authenticate installs,
+		// so it does not leak into subsequent tests that expect cookies to be settable.
+		remove_filter( 'send_auth_cookies', '__return_false', PHP_INT_MAX );
 	}
 
 	/**

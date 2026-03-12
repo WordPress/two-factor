@@ -167,7 +167,7 @@ class Tests_Two_Factor_Email extends WP_UnitTestCase {
 			}
 		}
 
-		$pattern = '/verification code below:\n\n(\d+)/';
+		$pattern = '/verification code below:\R\R(\d+)/';
 		$content = $GLOBALS['phpmailer']->Body;
 
 		$this->assertGreaterThan( 0, preg_match( $pattern, $content, $match ) );
