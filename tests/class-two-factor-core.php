@@ -485,9 +485,15 @@ class Test_ClassTwoFactorCore extends WP_UnitTestCase {
 		// __return_false callback at PHP_INT_MAX (see Two_Factor_Core::filter_authenticate).
 		$has_plugin_cookie_block = function () {
 			global $wp_filter;
-			if ( empty( $wp_filter['send_auth_cookies']->callbacks[ PHP_INT_MAX ] ) ) {
+
+			if (
+				! isset( $wp_filter['send_auth_cookies'] ) ||
+				! $wp_filter['send_auth_cookies'] instanceof WP_Hook ||
+				empty( $wp_filter['send_auth_cookies']->callbacks[ PHP_INT_MAX ] )
+			) {
 				return false;
 			}
+
 			foreach ( $wp_filter['send_auth_cookies']->callbacks[ PHP_INT_MAX ] as $cb ) {
 				if ( '__return_false' === $cb['function'] ) {
 					return true;
