@@ -1565,7 +1565,7 @@ class Two_Factor_Core {
 		delete_user_meta( $user->ID, self::USER_FAILED_LOGIN_ATTEMPTS_KEY );
 
 		$rememberme = false;
-		if ( isset( $_REQUEST['rememberme'] ) && $_REQUEST['rememberme'] ) { // phpcs:ignore WordPress.Security.NonceVerification.Recommended, WordPress.Security.ValidatedSanitizedInput.MissingUnslash, WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- Request read only after successful verify_login_nonce() in this request.
+		if ( ! empty( $_REQUEST['rememberme'] ) ) { // phpcs:ignore WordPress.Security.NonceVerification.Recommended, WordPress.Security.ValidatedSanitizedInput.MissingUnslash, WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- Request read only after successful verify_login_nonce() in this request.
 			$rememberme = true;
 		}
 
@@ -2396,11 +2396,7 @@ class Two_Factor_Core {
 	 * @return boolean
 	 */
 	public static function rememberme() {
-		$rememberme = false;
-
-		if ( ! empty( $_REQUEST['rememberme'] ) ) { // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Non-destructive display/flow flag; value normalized to bool below.
-			$rememberme = true;
-		}
+		$rememberme = ! empty( $_REQUEST['rememberme'] ); // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Non-destructive display/flow flag; value normalized to bool below.
 
 		/**
 		 * Filters whether the login session should persist between browser sessions.
