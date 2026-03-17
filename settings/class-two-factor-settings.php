@@ -32,19 +32,14 @@ class Two_Factor_Settings {
 		if ( isset( $_POST['two_factor_settings_submit'] ) ) {
 			check_admin_referer( 'two_factor_save_settings', 'two_factor_settings_nonce' );
 
-			$posted = isset( $_POST['two_factor_disabled_providers'] ) && is_array( $_POST['two_factor_disabled_providers'] ) ? wp_unslash( $_POST['two_factor_disabled_providers'] ) : array();
+			$posted = isset( $_POST['two_factor_enabled_providers'] ) && is_array( $_POST['two_factor_enabled_providers'] ) ? wp_unslash( $_POST['two_factor_enabled_providers'] ) : array();
 
 			// Sanitize posted values immediately.
 			$posted = array_map( 'sanitize_text_field', (array) $posted );
 			// Remove empty values.
-			$disabled = array_values( array_filter( $posted, 'strlen' ) );
+			$enabled = array_values( array_filter( $posted, 'strlen' ) );
 
-			if ( ! empty( $disabled ) ) {
-				update_option( 'two_factor_disabled_providers', array_values( array_unique( $disabled ) ) );
-			} else {
-				// Empty means none disabled (all allowed).
-				delete_option( 'two_factor_disabled_providers' );
-			}
+			update_option( 'two_factor_enabled_providers', array_values( array_unique( $enabled ) ) );
 
 			echo '<div class="updated"><p>' . esc_html__( 'Settings saved.', 'two-factor' ) . '</p></div>';
 		}
@@ -58,12 +53,14 @@ class Two_Factor_Settings {
 			}
 		}
 
-		$saved_disabled = get_option( 'two_factor_disabled_providers', array() );
+		// Default to all providers enabled when the option has never been saved.
+		$all_provider_keys = array_keys( $provider_instances );
+		$saved_enabled = get_option( 'two_factor_enabled_providers', $all_provider_keys );
 
 		echo '<div class="wrap two-factor-settings">';
 		echo '<h1>' . esc_html__( 'Two-Factor Settings', 'two-factor' ) . '</h1>';
-		echo '<h2>' . esc_html__( 'Disable Providers', 'two-factor' ) . '</h2>';
-		echo '<p class="description">' . esc_html__( 'Disable any Two-Factor providers you do not want available on this site. By default all providers are available.', 'two-factor' ) . '</p>';
+		echo '<h2>' . esc_html__( 'Enabled Providers', 'two-factor' ) . '</h2>';
+		echo '<p class="description">' . esc_html__( 'Choose which Two-Factor providers are available on this site. All providers are enabled by default.', 'two-factor' ) . '</p>';
 		echo '<form method="post" action="">';
 		wp_nonce_field( 'two_factor_save_settings', 'two_factor_settings_nonce' );
 
@@ -80,7 +77,7 @@ class Two_Factor_Settings {
 				$label = method_exists( $instance, 'get_label' ) ? $instance->get_label() : $provider_key;
 
 				echo '<p class="provider-item"><label for="provider_' . esc_attr( $provider_key ) . '">';
-				echo '<input type="checkbox" name="two_factor_disabled_providers[]" id="provider_' . esc_attr( $provider_key ) . '" value="' . esc_attr( $provider_key ) . '" ' . checked( in_array( $provider_key, (array) $saved_disabled, true ), true, false ) . ' /> ';
+				echo '<input type="checkbox" name="two_factor_enabled_providers[]" id="provider_' . esc_attr( $provider_key ) . '" value="' . esc_attr( $provider_key ) . '" ' . checked( in_array( $provider_key, (array) $saved_enabled, true ), true, false ) . ' /> ';
 				echo esc_html( $label );
 				echo '</label></p>';
 			}
