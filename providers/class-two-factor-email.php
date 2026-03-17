@@ -76,9 +76,10 @@ class Two_Factor_Email extends Two_Factor_Provider {
 		 *
 		 * @since 0.11.0
 		 *
-		 * @param int $token_length Number of characters in the email token. Default 8.
+		 * @param int $token_length Number of characters in the email token. Defaults to the value of the
+		 *                          `two_factor_code_length` filter (8 if not filtered).
 		 */
-		$token_length = (int) apply_filters( 'two_factor_email_token_length', 8 );
+		$token_length = (int) apply_filters( 'two_factor_email_token_length', self::get_code_length() );
 
 		return $token_length;
 	}
@@ -348,6 +349,9 @@ class Two_Factor_Email extends Two_Factor_Provider {
 
 		$token_length      = $this->get_token_length();
 		$token_placeholder = str_repeat( 'X', $token_length );
+
+		/** This filter is documented in providers/class-two-factor-backup-codes.php */
+		$token_length = apply_filters( 'two_factor_autosubmit_length', $token_length, $this );
 
 		require_once ABSPATH . '/wp-admin/includes/template.php';
 		?>

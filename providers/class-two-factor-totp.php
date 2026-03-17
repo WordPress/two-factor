@@ -720,11 +720,11 @@ class Two_Factor_Totp extends Two_Factor_Provider {
 		if ( 8 === PHP_INT_SIZE ) {
 			return pack( 'J', $value );
 		}
-	
+
 		// 32-bit PHP fallback
 		$higher = ( $value >> 32 ) & 0xFFFFFFFF;
 		$lower  = $value & 0xFFFFFFFF;
-	
+
 		return pack( 'NN', $higher, $lower );
 	}
 
@@ -832,6 +832,10 @@ class Two_Factor_Totp extends Two_Factor_Provider {
 	 * @codeCoverageIgnore
 	 */
 	public function authentication_page( $user ) {
+
+		/** This filter is documented in providers/class-two-factor-backup-codes.php */
+		$code_length = apply_filters( 'two_factor_autosubmit_length', self::DEFAULT_DIGIT_COUNT, $this );
+
 		require_once ABSPATH . '/wp-admin/includes/template.php';
 		?>
 		<?php
@@ -847,7 +851,7 @@ class Two_Factor_Totp extends Two_Factor_Provider {
 		?>
 		<p>
 			<label for="authcode"><?php esc_html_e( 'Authentication Code:', 'two-factor' ); ?></label>
-			<input type="text" inputmode="numeric" name="authcode" id="authcode" class="input authcode" value="" size="20" pattern="[0-9 ]*" placeholder="123 456" autocomplete="one-time-code" data-digits="<?php echo esc_attr( self::DEFAULT_DIGIT_COUNT ); ?>" />
+			<input type="text" inputmode="numeric" name="authcode" id="authcode" class="input authcode" value="" size="20" pattern="[0-9 ]*" placeholder="123 456" autocomplete="one-time-code" data-digits="<?php echo esc_attr( $code_length ); ?>" />
 		</p>
 		<?php
 		/** This action is documented in providers/class-two-factor-backup-codes.php */

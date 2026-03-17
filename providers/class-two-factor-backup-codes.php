@@ -257,10 +257,10 @@ class Two_Factor_Backup_Codes extends Two_Factor_Provider {
 		 *
 		 * @since 0.11.0
 		 *
-		 * @param int     $code_length Length of the backup code. Default 8.
+		 * @param int     $code_length Length of the backup code. Default is taken from the `two_factor_code_length` filter (which defaults to 8 if not filtered).
 		 * @param WP_User $user        User object.
 		 */
-		$code_length = (int) apply_filters( 'two_factor_backup_code_length', 8, $user );
+		$code_length = (int) apply_filters( 'two_factor_backup_code_length', self::get_code_length(), $user );
 
 		return $code_length;
 	}
@@ -386,6 +386,18 @@ class Two_Factor_Backup_Codes extends Two_Factor_Provider {
 
 		$code_length      = $this->get_backup_code_length( $user );
 		$code_placeholder = str_repeat( 'X', $code_length );
+
+		/**
+		 * Filters the `digits` dataset attribute of the backup code input field on the authentication screen.
+		 *
+		 * To disable autosubmit, set the digits to `0` via the core method `__return_zero`.
+		 *
+		 * @since 0.?.0
+		 *
+		 * @param int $code_length The length of the backup code.
+		 * @param Two_Factor_Provider $provider The two-factor provider instance.
+		 */
+		$code_length = apply_filters( 'two_factor_autosubmit_length', $code_length, $this );
 
 		?>
 		<?php
