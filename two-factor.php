@@ -74,9 +74,9 @@ function two_factor_register_admin_hooks() {
 	// Load settings page assets when in admin.
 	// Settings assets handled inline via standard markup; no extra CSS enqueued.
 
-	/* Enforcement filters: restrict providers based on saved disabled option. */
-	add_filter( 'two_factor_providers', 'two_factor_filter_disabled_providers' );
-	add_filter( 'two_factor_enabled_providers_for_user', 'two_factor_filter_disabled_enabled_providers_for_user', 10, 2 );
+	/* Enforcement filters: restrict providers based on saved enabled-providers option. */
+	add_filter( 'two_factor_providers', 'two_factor_filter_enabled_providers' );
+	add_filter( 'two_factor_enabled_providers_for_user', 'two_factor_filter_enabled_providers_for_user', 10, 2 );
 }
 
 add_action( 'init', 'two_factor_register_admin_hooks' );
@@ -120,43 +120,44 @@ function two_factor_render_settings_page() {
 
 
 /**
- * Helper: retrieve disabled providers option as an array of classnames.
- * Empty array / missing option means none disabled (all allowed).
+ * Helper: retrieve the site-enabled providers option.
+ * Returns null when the option has never been saved (meaning all providers are allowed).
+ * Returns an array (possibly empty) when the admin has explicitly saved a selection.
  *
  * @since 0.16
  *
- * @return array
+ * @return array|null
  */
-function two_factor_get_disabled_providers_option() {
-	$disabled = get_option( 'two_factor_disabled_providers', array() );
-	if ( empty( $disabled ) || ! is_array( $disabled ) ) {
-		return array();
+function two_factor_get_enabled_providers_option() {
+	$enabled = get_option( 'two_factor_enabled_providers', null );
+	if ( null === $enabled ) {
+		return null; // Never saved — allow everything.
 	}
-	return $disabled;
+	return is_array( $enabled ) ? $enabled : array();
 }
 
 
 /**
- * Filter the registered providers according to the saved disabled providers option.
- * This filter receives the providers in the same shape as core: classname => path.
+ * Filter the registered providers to only those in the site-enabled list.
+ * This filter receives providers in core format: classname => path.
  *
  * @since 0.16
  */
-function two_factor_filter_disabled_providers( $providers ) {
-	$disabled = two_factor_get_disabled_providers_option();
+function two_factor_filter_enabled_providers( $providers ) {
+	$site_enabled = two_factor_get_enabled_providers_option();
 
-	// Empty disabled list means allow all providers.
-	if ( empty( $disabled ) ) {
+	// null means the option was never saved — allow all providers.
+	if ( null === $site_enabled ) {
 		return $providers;
 	}
 
-	// If we are rendering the settings page, do not filter so admins may re-enable providers.
+	// On the settings page itself, show all providers so admins can change the selection.
 	if ( is_admin() && isset( $_GET['page'] ) && 'two-factor-settings' === $_GET['page'] ) {
 		return $providers;
 	}
 
 	foreach ( $providers as $key => $path ) {
-		if ( in_array( $key, $disabled, true ) ) {
+		if ( ! in_array( $key, $site_enabled, true ) ) {
 			unset( $providers[ $key ] );
 		}
 	}
@@ -166,40 +167,17 @@ function two_factor_filter_disabled_providers( $providers ) {
 
 
 /**
- * Filter the supported providers for a specific user (instances keyed by provider key).
+ * Filter enabled providers for a user (classnames array) to enforce the site-enabled list.
  *
  * @since 0.16
  */
-function two_factor_filter_disabled_providers_for_user( $providers, $user ) {
-	$disabled = two_factor_get_disabled_providers_option();
-	if ( empty( $disabled ) ) {
-		return $providers;
-	}
+function two_factor_filter_enabled_providers_for_user( $enabled, $user_id ) {
+	$site_enabled = two_factor_get_enabled_providers_option();
 
-	if ( is_admin() && isset( $_GET['page'] ) && 'two-factor-settings' === $_GET['page'] ) {
-		return $providers;
-	}
-
-	foreach ( $providers as $key => $instance ) {
-		if ( in_array( $key, $disabled, true ) ) {
-			unset( $providers[ $key ] );
-		}
-	}
-
-	return $providers;
-}
-
-
-/**
- * Filter enabled providers for a user (classnames array) to enforce disabled list.
- *
- * @since 0.16
- */
-function two_factor_filter_disabled_enabled_providers_for_user( $enabled, $user_id ) {
-	$disabled = two_factor_get_disabled_providers_option();
-	if ( empty( $disabled ) ) {
+	// null means the option was never saved — allow all.
+	if ( null === $site_enabled ) {
 		return $enabled;
 	}
 
-	return array_values( array_diff( (array) $enabled, $disabled ) );
+	return array_values( array_intersect( (array) $enabled, $site_enabled ) );
 }
