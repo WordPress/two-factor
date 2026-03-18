@@ -395,7 +395,10 @@ class Two_Factor_Core {
 
 		// Show plugin settings first, then user settings.
 		array_unshift( $links, $user_settings_link );
-		array_unshift( $links, $plugin_settings_link );
+
+		if ( current_user_can( 'manage_options' ) ) {
+			array_unshift( $links, $plugin_settings_link );
+		}
 
 		return $links;
 	}
