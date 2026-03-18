@@ -39,6 +39,8 @@ class Two_Factor_Email extends Two_Factor_Provider {
 	 * Class constructor.
 	 *
 	 * @since 0.1-dev
+	 *
+	 * @codeCoverageIgnore
 	 */
 	protected function __construct() {
 		add_action( 'two_factor_user_options_' . __CLASS__, array( $this, 'user_options' ) );
