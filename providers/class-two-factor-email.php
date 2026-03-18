@@ -348,6 +348,7 @@ class Two_Factor_Email extends Two_Factor_Provider {
 			$this->generate_and_email_token( $user );
 		}
 
+		$auto_submit_authcode = $this->is_authcode_auto_submit_enabled();
 		$token_length      = $this->get_token_length();
 		$token_placeholder = str_repeat( 'X', $token_length );
 
@@ -364,7 +365,7 @@ class Two_Factor_Email extends Two_Factor_Provider {
 		?>
 		<p>
 			<label for="authcode"><?php esc_html_e( 'Verification Code:', 'two-factor' ); ?></label>
-			<input type="text" inputmode="numeric" name="two-factor-email-code" id="authcode" class="input authcode" value="" size="20" pattern="[0-9 ]*" autocomplete="one-time-code" placeholder="<?php echo esc_attr( $token_placeholder ); ?>" data-digits="<?php echo esc_attr( $token_length ); ?>" />
+			<input type="text" inputmode="numeric" name="two-factor-email-code" id="authcode" class="input authcode" value="" size="20" pattern="[0-9 ]*" autocomplete="one-time-code" placeholder="<?php echo esc_attr( $token_placeholder ); ?>" data-digits="<?php echo $auto_submit_authcode ? esc_attr( $token_length ) : 'false'; ?>" />
 		</p>
 		<?php
 		/** This action is documented in providers/class-two-factor-backup-codes.php */
