@@ -126,6 +126,7 @@ class Two_Factor_Core {
 
 		add_filter( 'attach_session_information', array( __CLASS__, 'filter_session_information' ), 10, 2 );
 
+		add_action( 'login_enqueue_scripts', array( __CLASS__, 'login_enqueue_scripts' ), 5 );
 		add_action( 'admin_init', array( __CLASS__, 'trigger_user_settings_action' ) );
 		add_filter( 'two_factor_providers', array( __CLASS__, 'enable_dummy_method_for_debug' ) );
 
@@ -133,6 +134,33 @@ class Two_Factor_Core {
 		add_filter( 'plugin_action_links_' . plugin_basename( TWO_FACTOR_DIR . 'two-factor.php' ), array( __CLASS__, 'add_settings_action_link' ) );
 
 		$compat->init();
+	}
+
+	/**
+	 * Register login page scripts.
+	 *
+	 * @since 0.10.0
+	 *
+	 * @codeCoverageIgnore
+	 */
+	public static function login_enqueue_scripts() {
+		$environment_prefix = file_exists( TWO_FACTOR_DIR . '/dist' ) ? '/dist' : '';
+
+		wp_register_script(
+			'two-factor-login',
+			plugins_url( $environment_prefix . '/providers/js/two-factor-login.js', __FILE__ ),
+			array(),
+			TWO_FACTOR_VERSION,
+			true
+		);
+
+		wp_register_script(
+			'two-factor-login-authcode',
+			plugins_url( $environment_prefix . '/providers/js/two-factor-login-authcode.js', __FILE__ ),
+			array(),
+			TWO_FACTOR_VERSION,
+			true
+		);
 	}
 
 	/**
@@ -214,7 +242,6 @@ class Two_Factor_Core {
 		return array(
 			'Two_Factor_Email'        => TWO_FACTOR_DIR . 'providers/class-two-factor-email.php',
 			'Two_Factor_Totp'         => TWO_FACTOR_DIR . 'providers/class-two-factor-totp.php',
-			'Two_Factor_FIDO_U2F'     => TWO_FACTOR_DIR . 'providers/class-two-factor-fido-u2f.php',
 			'Two_Factor_Backup_Codes' => TWO_FACTOR_DIR . 'providers/class-two-factor-backup-codes.php',
 			'Two_Factor_Dummy'        => TWO_FACTOR_DIR . 'providers/class-two-factor-dummy.php',
 		);
@@ -287,18 +314,6 @@ class Two_Factor_Core {
 		 */
 		$providers = apply_filters( 'two_factor_providers', $providers );
 
-		// FIDO U2F is PHP 5.3+ only.
-		if ( isset( $providers['Two_Factor_FIDO_U2F'] ) && version_compare( PHP_VERSION, '5.3.0', '<' ) ) {
-			unset( $providers['Two_Factor_FIDO_U2F'] );
-			trigger_error( // phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_trigger_error
-				sprintf(
-				/* translators: %s: version number */
-					__( 'FIDO U2F is not available because you are using PHP %s. (Requires 5.3 or greater)', 'two-factor' ), // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
-					PHP_VERSION
-				)
-			);
-		}
-
 		// Map provider keys to classes so that we can instantiate them.
 		$providers = self::get_providers_classes( $providers );
 
@@ -364,7 +379,7 @@ class Two_Factor_Core {
 	 * @return string[] Modified array with the Settings link added.
 	 */
 	public static function add_settings_action_link( $links ) {
-		$settings_url  = admin_url( 'profile.php#application-passwords-section' );
+		$settings_url  = admin_url( 'profile.php#two-factor-options' );
 		$settings_link = sprintf(
 			'<a href="%s">%s</a>',
 			esc_url( $settings_url ),
@@ -626,7 +641,7 @@ class Two_Factor_Core {
 		 * if emailed codes is available force it to be on, so that deprecated
 		 * or removed providers don't result in the two-factor requirement being
 		 * removed and 'failing open'.
-		 * 
+		 *
 		 * Possible enhancement: add a filter to change the fallback method?
 		 */
 		if ( empty( $enabled_providers ) && $user_providers_raw ) {
@@ -1051,6 +1066,8 @@ class Two_Factor_Core {
 		// Disable the language switcher.
 		add_filter( 'login_display_language_dropdown', '__return_false' );
 
+		wp_enqueue_style( 'user-edit-2fa', plugins_url( 'user-edit.css', __FILE__ ), array(), TWO_FACTOR_VERSION );
+
 		login_header();
 
 		if ( ! empty( $error_msg ) ) {
@@ -1075,37 +1092,57 @@ class Two_Factor_Core {
 		</form>
 
 		<?php
-		if ( $backup_providers ) :
-			$backup_link_args = array(
-				'action'        => $action,
-				'wp-auth-id'    => $user->ID,
-				'wp-auth-nonce' => $login_nonce,
-			);
-			if ( $rememberme ) {
-				$backup_link_args['rememberme'] = $rememberme;
+			$links = array();
+
+			if ( $backup_providers ) {
+				$backup_link_args = array(
+					'action'        => $action,
+					'wp-auth-id'    => $user->ID,
+					'wp-auth-nonce' => $login_nonce,
+				);
+				if ( $rememberme ) {
+					$backup_link_args['rememberme'] = $rememberme;
+				}
+				if ( $redirect_to ) {
+					$backup_link_args['redirect_to'] = $redirect_to;
+				}
+				if ( $interim_login ) {
+					$backup_link_args['interim-login'] = 1;
+				}
+
+				foreach ( $backup_providers as $backup_provider_key => $backup_provider ) {
+					$backup_link_args['provider'] = $backup_provider_key;
+					$links[] = array(
+						'url'   => self::login_url( $backup_link_args ),
+						'label' => $backup_provider->get_alternative_provider_label(),
+					);
+				}
 			}
-			if ( $redirect_to ) {
-				$backup_link_args['redirect_to'] = $redirect_to;
-			}
-			if ( $interim_login ) {
-				$backup_link_args['interim-login'] = 1;
-			}
-			?>
+
+			/**
+			 * Filters the links displayed on the two-factor login form.
+			 *
+			 * Plugins can use this filter to modify or add links to the two-factor authentication
+			 * login form, allowing users to select backup methods for authentication or provide documentation links.
+			 *
+			 * @since 0.16.0
+			 *
+			 * @param array $links An array of links displayed on the two-factor login form, each with `url` and `label` keys.
+			 */
+			$links = apply_filters( 'two_factor_login_backup_links', $links );
+		?>
+
+		<?php if ( ! empty( $links ) ) : ?>
 			<div class="backup-methods-wrap">
 				<p>
 					<?php esc_html_e( 'Having Problems?', 'two-factor' ); ?>
 				</p>
 				<ul>
-					<?php
-					foreach ( $backup_providers as $backup_provider_key => $backup_provider ) :
-						$backup_link_args['provider'] = $backup_provider_key;
-						?>
-						<li>
-							<a href="<?php echo esc_url( self::login_url( $backup_link_args ) ); ?>">
-								<?php echo esc_html( $backup_provider->get_alternative_provider_label() ); ?>
-							</a>
-						</li>
-					<?php endforeach; ?>
+				<?php
+					foreach ( $links as $link ) {
+						echo '<li><a href="' . esc_url( $link['url'] ) . '">' . esc_html( $link['label'] ) . '</a></li>';
+					}
+				?>
 				</ul>
 			</div>
 		<?php endif; ?>
@@ -1137,41 +1174,7 @@ class Two_Factor_Core {
 				opacity: 0.5;
 			}
 		</style>
-		<script>
-			(function() {
-				// Enforce numeric-only input for numeric inputmode elements.
-				const form = document.querySelector( '#loginform' ),
-					inputEl = document.querySelector( 'input.authcode[inputmode="numeric"]' ),
-					expectedLength = inputEl?.dataset.digits || 0;
-
-				if ( inputEl ) {
-					let spaceInserted = false;
-					inputEl.addEventListener(
-						'input',
-						function() {
-							let value = this.value.replace( /[^0-9 ]/g, '' ).trimStart();
-
-							if ( ! spaceInserted && expectedLength && value.length === Math.floor( expectedLength / 2 ) ) {
-								value += ' ';
-								spaceInserted = true;
-							} else if ( spaceInserted && ! this.value ) {
-								spaceInserted = false;
-							}
-
-							this.value = value;
-
-							// Auto-submit if it's the expected length.
-							if ( expectedLength && value.replace( / /g, '' ).length == expectedLength ) {
-								if ( undefined !== form.requestSubmit ) {
-									form.requestSubmit();
-									form.submit.disabled = "disabled";
-								}
-							}
-						}
-					);
-				}
-			})();
-		</script>
+		<?php wp_enqueue_script( 'two-factor-login-authcode' ); ?>
 		<?php
 		if ( ! function_exists( 'login_footer' ) ) {
 			require_once TWO_FACTOR_DIR . 'includes/function.login-footer.php';
@@ -1615,6 +1618,10 @@ class Two_Factor_Core {
 			$customize_login = isset( $_REQUEST['customize-login'] );
 			if ( $customize_login ) {
 				wp_enqueue_script( 'customize-base' );
+				wp_add_inline_script(
+					'customize-base',
+					'setTimeout( function(){ new wp.customize.Messenger({ url: ' . wp_json_encode( esc_url( wp_customize_url() ) ) . ', channel: \'login\' }).send(\'login\') }, 1000 );'
+				);
 			}
 			$message       = '<p class="message">' . __( 'You have logged in successfully.', 'two-factor' ) . '</p>';
 			$interim_login = 'success'; // phpcs:ignore WordPress.WP.GlobalVariablesOverride.Prohibited
@@ -1625,9 +1632,6 @@ class Two_Factor_Core {
 			/** This action is documented in wp-login.php */
 			do_action( 'login_footer' ); // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedHooknameFound -- Core WordPress action.
 			?>
-			<?php if ( $customize_login ) : ?>
-				<script>setTimeout( function(){ new wp.customize.Messenger({ url: '<?php echo esc_url( wp_customize_url() ); ?>', channel: 'login' }).send('login') }, 1000 );</script>
-			<?php endif; ?>
 			</body></html>
 			<?php
 			return;
@@ -1904,7 +1908,8 @@ class Two_Factor_Core {
 	 */
 	public static function notify_user_password_reset( $user ) {
 		$user_message = sprintf(
-			'Hello %1$s, an unusually high number of failed login attempts have been detected on your account at %2$s.
+			/* translators: 1: username, 2: site URL, 3: URL to password best-practices article, 4: URL to reset password */
+			__( 'Hello %1$s, an unusually high number of failed login attempts have been detected on your account at %2$s.
 
 			These attempts successfully entered your password, and were only blocked because they failed to enter your second authentication factor. Despite not being able to access your account, this behavior indicates that the attackers have compromised your password. The most common reasons for this are that your password was easy to guess, or was reused on another site which has been compromised.
 
@@ -1912,7 +1917,7 @@ class Two_Factor_Core {
 
 			To pick a new password, please visit %4$s
 
-			This is an automated notification. If you would like to speak to a site administrator, please contact them directly.',
+			This is an automated notification. If you would like to speak to a site administrator, please contact them directly.', 'two-factor' ),
 			esc_html( $user->user_login ),
 			home_url(),
 			'https://wordpress.org/documentation/article/password-best-practices/',
@@ -1920,7 +1925,7 @@ class Two_Factor_Core {
 		);
 		$user_message = str_replace( "\t", '', $user_message );
 
-		return wp_mail( $user->user_email, 'Your password was compromised and has been reset', $user_message );
+		return wp_mail( $user->user_email, __( 'Your password was compromised and has been reset', 'two-factor' ), $user_message );
 	}
 
 	/**
@@ -1934,10 +1939,15 @@ class Two_Factor_Core {
 	 */
 	public static function notify_admin_user_password_reset( $user ) {
 		$admin_email = get_option( 'admin_email' );
-		$subject     = sprintf( 'Compromised password for %s has been reset', esc_html( $user->user_login ) );
+		$subject     = sprintf(
+			/* translators: %s: username */
+			__( 'Compromised password for %s has been reset', 'two-factor' ),
+			esc_html( $user->user_login )
+		);
 
 		$message = sprintf(
-			'Hello, this is a notice from the Two Factor plugin to inform you that an unusually high number of failed login attempts have been detected on the %1$s account (ID %2$d).
+			/* translators: 1: username, 2: user ID, 3: URL to developer docs */
+			__( 'Hello, this is a notice from the Two Factor plugin to inform you that an unusually high number of failed login attempts have been detected on the %1$s account (ID %2$d).
 
 			Those attempts successfully entered the user\'s password, and were only blocked because they entered invalid second authentication factors.
 
@@ -1945,7 +1955,7 @@ class Two_Factor_Core {
 
 			If you do not wish to receive these notifications, you can disable them with the `two_factor_notify_admin_user_password_reset` filter. See %3$s for more information.
 
-			Thank you',
+			Thank you', 'two-factor' ),
 			esc_html( $user->user_login ),
 			$user->ID,
 			'https://developer.wordpress.org/plugins/hooks/'
@@ -2041,8 +2051,8 @@ class Two_Factor_Core {
 			);
 
 			$notices['warning two-factor-warning-revalidate-session'] = sprintf(
-				esc_html__( 'To update your Two-Factor options, you must first revalidate your session.', 'two-factor' ) .
-					' <a class="button" href="%s">' . esc_html__( 'Revalidate now', 'two-factor' ) . '</a>',
+				/* translators: %s: URL to revalidate the session */
+				__( 'To update your Two-Factor options, you must first revalidate your session. <a class="button" href="%s">Revalidate now</a>', 'two-factor' ),
 				esc_url( $url )
 			);
 		}
@@ -2065,6 +2075,7 @@ class Two_Factor_Core {
 		<?php endforeach; ?>
 
 		<fieldset id="two-factor-options" <?php echo $show_2fa_options ? '' : 'disabled="disabled"'; ?>>
+		<legend class="screen-reader-text"><?php esc_html_e( 'Two-Factor Options', 'two-factor' ); ?></legend>
 		<?php
 		if ( $providers ) {
 			self::render_user_providers_form( $user, $providers );
@@ -2179,9 +2190,9 @@ class Two_Factor_Core {
 		<table class="form-table two-factor-primary-method-table" role="presentation">
 			<tbody>
 				<tr>
-					<th><?php esc_html_e( 'Primary Method', 'two-factor' ); ?></th>
+					<th><label for="two-factor-primary-provider"><?php esc_html_e( 'Primary Method', 'two-factor' ); ?></label></th>
 					<td>
-						<select name="<?php echo esc_attr( self::PROVIDER_USER_META_KEY ); ?>">
+						<select id="two-factor-primary-provider" name="<?php echo esc_attr( self::PROVIDER_USER_META_KEY ); ?>">
 							<option value=""><?php echo esc_html( __( 'Default', 'two-factor' ) ); ?></option>
 							<?php foreach ( $providers as $provider_key => $object ) : ?>
 								<option value="<?php echo esc_attr( $provider_key ); ?>" <?php selected( $provider_key, $primary_provider_key ); ?> <?php disabled( ! in_array( $provider_key, $enabled_providers, true ) ); ?>>
