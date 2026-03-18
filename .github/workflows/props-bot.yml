@@ -71,7 +71,7 @@ jobs:
 
     steps:
       - name: Gather a list of contributors
-        uses: WordPress/props-bot-action@trunk
+        uses: WordPress/props-bot-action@992186595bc18334988a431c317237c48b7711a5 # v1.0.0
         with:
           format: 'git'
 
