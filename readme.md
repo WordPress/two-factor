@@ -1,8 +1,18 @@
 # Two-Factor
+![Two-Factor](https://github.com/WordPress/two-factor/blob/master/.wordpress-org/banner-1544x500.png)
 
-[![Test](https://github.com/WordPress/two-factor/actions/workflows/test.yml/badge.svg)](https://github.com/WordPress/two-factor/actions/workflows/test.yml) [![Deploy](https://github.com/WordPress/two-factor/actions/workflows/deploy.yml/badge.svg)](https://github.com/WordPress/two-factor/actions/workflows/deploy.yml) [![WordPress Playground Demo](https://img.shields.io/wordpress/plugin/v/two-factor?logo=wordpress&logoColor=FFFFFF&label=Playground%20Demo&labelColor=3858E9&color=3858E9)](https://playground.wordpress.net/?blueprint-url=https://raw.githubusercontent.com/WordPress/two-factor/master/.wordpress-org/blueprints/blueprint.json)
+![Required PHP Version](https://img.shields.io/wordpress/plugin/required-php/two-factor?label=Requires%20PHP) ![Required WordPress Version](https://img.shields.io/wordpress/plugin/wp-version/two-factor?label=Requires%20WordPress) ![WordPress Tested Up To](https://img.shields.io/wordpress/plugin/tested/two-factor?label=WordPress) [![GPL-2.0-or-later License](https://img.shields.io/github/license/WordPress/ai.svg)](https://github.com/WordPress/two-factor/blob/trunk/LICENSE.md?label=License)
 
-Two-Factor plugin for WordPress. [View on WordPress.org →](https://wordpress.org/plugins/two-factor/)
+![WordPress.org Rating](https://img.shields.io/wordpress/plugin/rating/two-factor?label=WP.org%20Rating) ![WordPress Plugin Downloads](https://img.shields.io/wordpress/plugin/dt/two-factor?label=WP.org%20Downloads) ![WordPress Plugin Active Installs](https://img.shields.io/wordpress/plugin/installs/two-factor?label=WP.org%20Active%20Installs) [![WordPress Playground Demo](https://img.shields.io/wordpress/plugin/v/two-factor?logo=wordpress&logoColor=FFFFFF&label=Live%20Demo&labelColor=3858E9&color=3858E9)](https://playground.wordpress.net/?blueprint-url=https://raw.githubusercontent.com/WordPress/two-factor/master/.wordpress-org/blueprints/blueprint.json)
+
+[![Test](https://github.com/WordPress/two-factor/actions/workflows/test.yml/badge.svg)](https://github.com/WordPress/two-factor/actions/workflows/test.yml) [![Deploy](https://github.com/WordPress/two-factor/actions/workflows/deploy.yml/badge.svg)](https://github.com/WordPress/two-factor/actions/workflows/deploy.yml)
+
+> Two-Factor plugin for WordPress. [View on WordPress.org →](https://wordpress.org/plugins/two-factor/)
+
+## Description
+
+The Two-Factor plugin adds an extra layer of security to your WordPress login by requiring users to provide a second form of authentication in addition to their password. This helps protect against unauthorized access even if passwords are compromised.
+
 
 ## Usage
 
