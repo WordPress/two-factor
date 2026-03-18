@@ -351,7 +351,7 @@ class Two_Factor_Core {
 	 * @return string[] Modified array with the Settings link added.
 	 */
 	public static function add_settings_action_link( $links ) {
-		$settings_url  = admin_url( 'profile.php#application-passwords-section' );
+		$settings_url  = admin_url( 'profile.php#two-factor-options' );
 		$settings_link = sprintf(
 			'<a href="%s">%s</a>',
 			esc_url( $settings_url ),
@@ -2047,6 +2047,7 @@ class Two_Factor_Core {
 		<?php endforeach; ?>
 
 		<fieldset id="two-factor-options" <?php echo $show_2fa_options ? '' : 'disabled="disabled"'; ?>>
+		<legend class="screen-reader-text"><?php esc_html_e( 'Two-Factor Options', 'two-factor' ); ?></legend>
 		<?php
 		if ( $providers ) {
 			self::render_user_providers_form( $user, $providers );
@@ -2161,9 +2162,9 @@ class Two_Factor_Core {
 		<table class="form-table two-factor-primary-method-table" role="presentation">
 			<tbody>
 				<tr>
-					<th><?php esc_html_e( 'Primary Method', 'two-factor' ); ?></th>
+					<th><label for="two-factor-primary-provider"><?php esc_html_e( 'Primary Method', 'two-factor' ); ?></label></th>
 					<td>
-						<select name="<?php echo esc_attr( self::PROVIDER_USER_META_KEY ); ?>">
+						<select id="two-factor-primary-provider" name="<?php echo esc_attr( self::PROVIDER_USER_META_KEY ); ?>">
 							<option value=""><?php echo esc_html( __( 'Default', 'two-factor' ) ); ?></option>
 							<?php foreach ( $providers as $provider_key => $object ) : ?>
 								<option value="<?php echo esc_attr( $provider_key ); ?>" <?php selected( $provider_key, $primary_provider_key ); ?> <?php disabled( ! in_array( $provider_key, $enabled_providers, true ) ); ?>>
