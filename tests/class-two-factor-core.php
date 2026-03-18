@@ -2548,10 +2548,10 @@ class Test_ClassTwoFactorCore extends WP_UnitTestCase {
 		$result = Two_Factor_Core::add_settings_action_link( $links );
 
 		// Settings link should be first.
-		$this->assertCount( 2, $result );
+		$this->assertCount( 3, $result );
 		$first = reset( $result );
 		$this->assertStringContainsString( '<a', $first );
 		$this->assertStringContainsString( 'Settings', $first );
-		$this->assertStringContainsString( 'profile.php', $first );
+		$this->assertStringContainsString( 'options-general.php', $first );
 	}
 }
