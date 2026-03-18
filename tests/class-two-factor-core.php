@@ -2552,6 +2552,6 @@ class Test_ClassTwoFactorCore extends WP_UnitTestCase {
 		$first = reset( $result );
 		$this->assertStringContainsString( '<a', $first );
 		$this->assertStringContainsString( 'Settings', $first );
-		$this->assertStringContainsString( 'profile.php', $first );
+		$this->assertStringContainsString( 'options-general.php', $first );
 	}
 }
