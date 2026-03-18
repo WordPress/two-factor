@@ -52,7 +52,7 @@ The plugin follows a provider pattern. `Two_Factor_Core` owns the login intercep
 - **`class-two-factor-compat.php`** — Compatibility shims for third-party plugins (currently: Jetpack SSO). New integrations go here; the goal is to avoid any plugin-specific logic outside this file.
 - **`providers/class-two-factor-provider.php`** — Abstract base class all providers extend. Defines the required interface: `get_label()`, `is_available_for_user()`, `authentication_page()`, `validate_authentication()`, and optional hooks for REST routes, settings UI, and uninstall cleanup.
 - **`providers/`** — Concrete providers: `class-two-factor-totp.php`, `class-two-factor-email.php`, `class-two-factor-backup-codes.php`, `class-two-factor-dummy.php`.
-- **`includes/`** — Custom `login_header()` and `login_footer()` template functions that replace the WordPress core versions with additional filter hooks. Excluded from PHPCS because they intentionally deviate from core function signatures.
+- **`includes/`** — Custom `login_header()` and `login_footer()` template functions that replace the WordPress core versions with additional filter hooks. Excluded from PHPCS because they intentionally deviate from core function signatures. Do not modify files in includes/ directly. They are intentionally kept close to WordPress core function signatures to ease future merging into Core. Any functional changes should go through the filter hooks they expose instead.
 - **`tests/`** — PHPUnit tests. See [TESTS.md](TESTS.md).
 
 ### Login Flow
