@@ -126,6 +126,7 @@ class Two_Factor_Core {
 
 		add_filter( 'attach_session_information', array( __CLASS__, 'filter_session_information' ), 10, 2 );
 
+		add_action( 'login_enqueue_scripts', array( __CLASS__, 'login_enqueue_scripts' ), 5 );
 		add_action( 'admin_init', array( __CLASS__, 'trigger_user_settings_action' ) );
 		add_filter( 'two_factor_providers', array( __CLASS__, 'enable_dummy_method_for_debug' ) );
 
@@ -133,6 +134,33 @@ class Two_Factor_Core {
 		add_filter( 'plugin_action_links_' . plugin_basename( TWO_FACTOR_DIR . 'two-factor.php' ), array( __CLASS__, 'add_settings_action_link' ) );
 
 		$compat->init();
+	}
+
+	/**
+	 * Register login page scripts.
+	 *
+	 * @since 0.10.0
+	 *
+	 * @codeCoverageIgnore
+	 */
+	public static function login_enqueue_scripts() {
+		$environment_prefix = file_exists( TWO_FACTOR_DIR . '/dist' ) ? '/dist' : '';
+
+		wp_register_script(
+			'two-factor-login',
+			plugins_url( $environment_prefix . '/providers/js/two-factor-login.js', __FILE__ ),
+			array(),
+			TWO_FACTOR_VERSION,
+			true
+		);
+
+		wp_register_script(
+			'two-factor-login-authcode',
+			plugins_url( $environment_prefix . '/providers/js/two-factor-login-authcode.js', __FILE__ ),
+			array(),
+			TWO_FACTOR_VERSION,
+			true
+		);
 	}
 
 	/**
@@ -1119,41 +1147,34 @@ class Two_Factor_Core {
 			</div>
 		<?php endif; ?>
 
-		<script>
-			(function() {
-				// Enforce numeric-only input for numeric inputmode elements.
-				const form = document.querySelector( '#loginform' ),
-					inputEl = document.querySelector( 'input.authcode[inputmode="numeric"]' ),
-					expectedLength = inputEl?.dataset.digits || 0;
-
-				if ( inputEl ) {
-					let spaceInserted = false;
-					inputEl.addEventListener(
-						'input',
-						function() {
-							let value = this.value.replace( /[^0-9 ]/g, '' ).trimStart();
-
-							if ( ! spaceInserted && expectedLength && value.length === Math.floor( expectedLength / 2 ) ) {
-								value += ' ';
-								spaceInserted = true;
-							} else if ( spaceInserted && ! this.value ) {
-								spaceInserted = false;
-							}
-
-							this.value = value;
-
-							// Auto-submit if it's the expected length.
-							if ( expectedLength && value.replace( / /g, '' ).length == expectedLength ) {
-								if ( undefined !== form.requestSubmit ) {
-									form.requestSubmit();
-									form.submit.disabled = "disabled";
-								}
-							}
-						}
-					);
-				}
-			})();
-		</script>
+		<style>
+			/* @todo: migrate to an external stylesheet. */
+			.backup-methods-wrap {
+				margin-top: 16px;
+				padding: 0 24px;
+			}
+			.backup-methods-wrap a {
+				text-decoration: none;
+			}
+			.backup-methods-wrap ul {
+				list-style-position: inside;
+			}
+			/* Prevent Jetpack from hiding our controls, see https://github.com/Automattic/jetpack/issues/3747 */
+			.jetpack-sso-form-display #loginform > p,
+			.jetpack-sso-form-display #loginform > div {
+				display: block;
+			}
+			#login form p.two-factor-prompt {
+				margin-bottom: 1em;
+			}
+			.input.authcode {
+				letter-spacing: .3em;
+			}
+			.input.authcode::placeholder {
+				opacity: 0.5;
+			}
+		</style>
+		<?php wp_enqueue_script( 'two-factor-login-authcode' ); ?>
 		<?php
 		if ( ! function_exists( 'login_footer' ) ) {
 			require_once TWO_FACTOR_DIR . 'includes/function.login-footer.php';
@@ -1597,6 +1618,10 @@ class Two_Factor_Core {
 			$customize_login = isset( $_REQUEST['customize-login'] );
 			if ( $customize_login ) {
 				wp_enqueue_script( 'customize-base' );
+				wp_add_inline_script(
+					'customize-base',
+					'setTimeout( function(){ new wp.customize.Messenger({ url: ' . wp_json_encode( esc_url( wp_customize_url() ) ) . ', channel: \'login\' }).send(\'login\') }, 1000 );'
+				);
 			}
 			$message       = '<p class="message">' . __( 'You have logged in successfully.', 'two-factor' ) . '</p>';
 			$interim_login = 'success'; // phpcs:ignore WordPress.WP.GlobalVariablesOverride.Prohibited
@@ -1607,9 +1632,6 @@ class Two_Factor_Core {
 			/** This action is documented in wp-login.php */
 			do_action( 'login_footer' ); // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedHooknameFound -- Core WordPress action.
 			?>
-			<?php if ( $customize_login ) : ?>
-				<script>setTimeout( function(){ new wp.customize.Messenger({ url: '<?php echo esc_url( wp_customize_url() ); ?>', channel: 'login' }).send('login') }, 1000 );</script>
-			<?php endif; ?>
 			</body></html>
 			<?php
 			return;
