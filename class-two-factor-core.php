@@ -2217,7 +2217,7 @@ class Two_Factor_Core {
 		return array_filter(
 			self::$profile_errors,
 			static function ( WP_Error $error ) use ( $provider_key ) {
-				$error_data = $error->get_error_data(); // This currently supports only one error per instance.
+				$error_data = $error->get_error_data(); // Return the data for the first error.
 
 				return isset( $error_data['provider'] ) && $error_data['provider'] === $provider_key;
 			}
