@@ -2484,7 +2484,7 @@ class Two_Factor_Core {
 				// No providers, enabling one (or more)
 				( ! $existing_providers && $enabled_providers ) ||
 				// Has providers, and is disabling one (or more), but remaining with 2FA.
-				( $existing_providers && $enabled_providers && array_diff( $existing_providers, $enabled_providers ) )
+				( $existing_providers && $enabled_providers && array_diff( $existing_providers, array_keys( $enabled_providers ) ) )
 			) {
 				if ( $user_id === get_current_user_id() ) {
 					// Keep the current session, destroy others sessions for this user.
