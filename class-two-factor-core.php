@@ -2044,7 +2044,7 @@ class Two_Factor_Core {
 			self::$profile_errors,
 			static function ( WP_Error $error ) {
 				$error_data = $error->get_error_data();
-				return ! empty( $error_data['provider'] ); // Where the associated provider is not set.
+				return empty( $error_data['provider'] ); // Where the associated provider is not set.
 			}
 		);
 
