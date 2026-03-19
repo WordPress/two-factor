@@ -6,7 +6,7 @@ Stable tag:   0.15.0
 License:      GPL-2.0-or-later
 License URI:  https://spdx.org/licenses/GPL-2.0-or-later.html
 
-Enable Two-Factor Authentication (2FA) using time-based one-time passwords (TOTP), Universal 2nd Factor (U2F), email, and backup verification codes.
+Enable Two-Factor Authentication (2FA) using time-based one-time passwords (TOTP), email, and backup verification codes.
 
 == Description ==
 
@@ -14,7 +14,7 @@ The Two-Factor plugin adds an extra layer of security to your WordPress login by
 
 ## Setup Instructions
 
-**Important**: Each user must individually configure their two-factor authentication settings.  There are no site-wide settings for this plugin.
+**Important**: Each user must individually configure their two-factor authentication settings.
 
 ### For Individual Users
 
@@ -23,7 +23,6 @@ The Two-Factor plugin adds an extra layer of security to your WordPress login by
 3. **Choose your methods**: Enable one or more authentication providers (noting a site admin may have hidden one or more so what is available could vary):
    - **Authenticator App (TOTP)** - Use apps like Google Authenticator, Authy, or 1Password
    - **Email Codes** - Receive one-time codes via email
-   - **FIDO U2F Security Keys** - Use physical security keys (requires HTTPS)
    - **Backup Codes** - Generate one-time backup codes for emergencies
    - **Dummy Method** - For testing purposes only (requires WP_DEBUG)
 4. **Configure each method**: Follow the setup instructions for each enabled provider
@@ -32,7 +31,7 @@ The Two-Factor plugin adds an extra layer of security to your WordPress login by
 
 ### For Site Administrators
 
-- **No global settings**: This plugin operates on a per-user basis only. For more, see [GH#249](https://github.com/WordPress/two-factor/issues/249).
+- **Plugin settings**: The plugin provides a settings page under "Settings → Two-Factor" to configure which providers should be disabled site-wide.
 - **User management**: Administrators can configure 2FA for other users by editing their profiles
 - **Security recommendations**: Encourage users to enable backup methods to prevent account lockouts
 
@@ -57,11 +56,7 @@ The Two-Factor plugin adds an extra layer of security to your WordPress login by
 - **Best for**: Users who prefer email-based authentication
 
 ### FIDO U2F Security Keys
-- **Security**: High - Hardware-based authentication
-- **Setup**: Register physical security keys (USB, NFC, or Bluetooth)
-- **Requirements**: HTTPS connection required, compatible browser needed
-- **Browser Support**: Chrome, Firefox, Edge (varies by key type)
-- **Best for**: Users with security keys who want maximum security
+- Deprecated and removed due to loss of browser support.
 
 ### Dummy Method
 - **Security**: None - Always succeeds
@@ -72,11 +67,9 @@ The Two-Factor plugin adds an extra layer of security to your WordPress login by
 ## Important Notes
 
 ### HTTPS Requirement
-- FIDO U2F Security Keys require an HTTPS connection to function
-- Other methods work on both HTTP and HTTPS sites
+- All methods work on both HTTP and HTTPS sites
 
 ### Browser Compatibility
-- FIDO U2F requires a compatible browser and may not work on all devices
 - TOTP and email methods work on all devices and browsers
 
 ### Account Recovery
@@ -108,6 +101,7 @@ Here is a list of action and filter hooks provided by the plugin:
 - `two_factor_before_authentication_prompt` action which receives the provider object and fires prior to the prompt shown on the authentication input form.
 - `two_factor_after_authentication_prompt` action which receives the provider object and fires after the prompt shown on the authentication input form.
 - `two_factor_after_authentication_input`action which receives the provider object and fires after the input shown on the authentication input form (if form contains no input, action fires immediately after `two_factor_after_authentication_prompt`).
+- `two_factor_login_backup_links` filters the backup links displayed on the two-factor login form.
 
 == Frequently Asked Questions ==
 
@@ -125,17 +119,13 @@ The plugin contributors and WordPress community take security bugs seriously. We
 
 To report a security issue, please visit the [WordPress HackerOne](https://hackerone.com/wordpress) program.
 
-= Why doesn't this plugin have site-wide settings? =
-
-This plugin is designed to work on a per-user basis, allowing each user to choose their preferred authentication methods. This approach provides maximum flexibility and security. Site administrators can still configure 2FA for other users by editing their profiles. For more information, see [issue #437](https://github.com/WordPress/two-factor/issues/437).
-
 = What if I lose access to all my authentication methods? =
 
 If you have backup codes enabled, you can use one of those to regain access. If you don't have backup codes or have used them all, you'll need to contact your site administrator to reset your account. This is why it's important to always enable backup codes and keep them in a secure location.
 
 = Can I use this plugin with WebAuthn? =
 
-The plugin currently supports FIDO U2F, which is the predecessor to WebAuthn. For full WebAuthn support, you may want to look into additional plugins that extend this functionality. The current U2F implementation requires HTTPS and has browser compatibility limitations.
+The plugin previously supported FIDO U2F, which was a predecessor to WebAuthn. There is an open issue to add WebAuthn support here: https://github.com/WordPress/two-factor/pull/427
 
 = Is there a recommended way to use passkeys or hardware security keys with Two-Factor? =
 
@@ -145,10 +135,9 @@ Yes. For passkeys and hardware security keys, you can install the Two-Factor Pro
 == Screenshots ==
 
 1. Two-factor options under User Profile - Shows the main configuration area where users can enable different authentication methods.
-2. U2F Security Keys section under User Profile - Displays the security key management interface for registering and managing FIDO U2F devices.
-3. Email Code Authentication during WordPress Login - Shows the email verification screen that appears during login.
-4. Authenticator App (TOTP) setup with QR code - Demonstrates the QR code generation and manual key entry for TOTP setup.
-5. Backup codes generation and management - Shows the backup codes interface for generating and managing emergency access codes.
+2. Email Code Authentication during WordPress Login - Shows the email verification screen that appears during login.
+3. Authenticator App (TOTP) setup with QR code - Demonstrates the QR code generation and manual key entry for TOTP setup.
+4. Backup codes generation and management - Shows the backup codes interface for generating and managing emergency access codes.
 
 == Changelog ==
 
@@ -239,4 +228,5 @@ Bumps WordPress minimum supported version to 6.3 and PHP minimum to 7.2.
 
 = 0.9.0 =
 Users are now asked to re-authenticate with their two-factor before making changes to their two-factor settings. This associates each login session with the two-factor login meta data for improved handling of that session.
+
 
