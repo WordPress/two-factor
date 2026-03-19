@@ -2107,10 +2107,12 @@ class Two_Factor_Core {
 	private static function render_errors( array $errors ) {
 		foreach ( $errors as $error ) {
 			if ( $error->has_errors() ) {
+				$error_type = $error->get_error_data()['type'] ?? null;
+
 				wp_admin_notice(
 					implode( '</p><p>', $error->get_error_messages() ),
 					array(
-						'type'               => $error->get_error_data()['type'] ?? 'error',
+						'type'               => is_string( $error_type ) ? $error_type : 'error',
 						'additional_classes' => array( 'inline' ),
 					)
 				);
