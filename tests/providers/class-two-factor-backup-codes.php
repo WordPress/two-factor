@@ -159,13 +159,19 @@ class Tests_Two_Factor_Backup_Codes extends WP_UnitTestCase {
 	public function test_user_options() {
 		$user = new WP_User( self::factory()->user->create() );
 
+		// Register the script so wp_localize_script() can attach data to it.
+		$this->provider->enqueue_assets();
+
 		ob_start();
 		$this->provider->user_options( $user );
 		$buffer = ob_get_clean();
 
 		$this->assertStringContainsString( '<div id="two-factor-backup-codes">', $buffer );
 		$this->assertStringContainsString( '<div class="two-factor-backup-codes-wrapper" style="display:none;">', $buffer );
-		$this->assertStringContainsString( "user_id: {$user->ID}", $buffer );
+
+		// User ID is passed via wp_localize_script; check the registered script data rather than the HTML buffer.
+		$script_data = wp_scripts()->get_data( 'two-factor-backup-codes-admin', 'data' );
+		$this->assertStringContainsString( '"userId":"' . $user->ID . '"', $script_data );
 	}
 
 	/**
