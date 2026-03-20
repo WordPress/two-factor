@@ -392,6 +392,9 @@ class Test_ClassTwoFactorCore extends WP_UnitTestCase {
 			)
 		);
 
+		// Mark the user as verified for Two_Factor_Email.
+		update_user_meta( $user->ID, Two_Factor_Email::VERIFIED_META_KEY, $user->user_email );
+
 		// This should fail back to `Two_Factor_Email` then.
 		$this->assertEquals(
 			array(
@@ -3350,5 +3353,7 @@ class Test_ClassTwoFactorCore extends WP_UnitTestCase {
 		$this->assertStringContainsString( '<a', $first );
 		$this->assertStringContainsString( 'Settings', $first );
 		$this->assertStringContainsString( 'options-general.php', $first );
+
+		wp_set_current_user( 0 );
 	}
 }
