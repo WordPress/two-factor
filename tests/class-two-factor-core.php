@@ -2544,8 +2544,14 @@ class Test_ClassTwoFactorCore extends WP_UnitTestCase {
 	 * @covers Two_Factor_Core::add_settings_action_link
 	 */
 	public function test_add_settings_action_link() {
+		$old_user_id = get_current_user_id();
+		$admin       = self::factory()->user->create_and_get( array( 'role' => 'administrator' ) );
+		wp_set_current_user( $admin->ID );
+
 		$links  = array( 'deactivate' => '<a href="#">Deactivate</a>' );
 		$result = Two_Factor_Core::add_settings_action_link( $links );
+
+		wp_set_current_user( $old_user_id );
 
 		// Settings link should be first.
 		$this->assertCount( 3, $result );
