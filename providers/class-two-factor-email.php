@@ -29,6 +29,13 @@ class Two_Factor_Email extends Two_Factor_Provider {
 	const TOKEN_META_KEY_TIMESTAMP = '_two_factor_email_token_timestamp';
 
 	/**
+	 * The user meta verified key.
+	 *
+	 * @var string
+	 */
+	const VERIFIED_META_KEY = '_two_factor_email_verified';
+
+	/**
 	 * Name of the input field used for code resend.
 	 *
 	 * @var string
@@ -43,8 +50,32 @@ class Two_Factor_Email extends Two_Factor_Provider {
 	 * @codeCoverageIgnore
 	 */
 	protected function __construct() {
+		add_action( 'rest_api_init', array( $this, 'register_rest_routes' ) );
 		add_action( 'two_factor_user_options_' . __CLASS__, array( $this, 'user_options' ) );
+		add_action( 'personal_options_update', array( $this, 'pre_user_options_update' ), 5 );
+		add_action( 'edit_user_profile_update', array( $this, 'pre_user_options_update' ), 5 );
+		add_action( 'admin_enqueue_scripts', array( $this, 'enqueue_assets' ) );
+		add_action( 'wp_enqueue_scripts', array( $this, 'enqueue_assets' ) );
 		parent::__construct();
+	}
+
+	/**
+	 * Enqueue scripts for email provider.
+	 *
+	 * @since 0.10.0
+	 *
+	 * @codeCoverageIgnore
+	 *
+	 * @param string $hook_suffix Optional. The current admin page hook suffix.
+	 */
+	public function enqueue_assets( $hook_suffix = '' ) {
+		wp_register_script(
+			'two-factor-email-admin',
+			plugins_url( 'js/email-admin.js', __FILE__ ),
+			array( 'jquery', 'wp-api-request' ),
+			TWO_FACTOR_VERSION,
+			true
+		);
 	}
 
 	/**
@@ -63,6 +94,122 @@ class Two_Factor_Email extends Two_Factor_Provider {
 	 */
 	public function get_alternative_provider_label() {
 		return __( 'Send a code to your email', 'two-factor' );
+	}
+
+	/**
+	 * Register the rest-api endpoints required for this provider.
+	 */
+	public function register_rest_routes() {
+		register_rest_route(
+			Two_Factor_Core::REST_NAMESPACE,
+			'/email',
+			array(
+				array(
+					'methods'             => WP_REST_Server::DELETABLE,
+					'callback'            => array( $this, 'rest_delete_email' ),
+					'permission_callback' => function ( $request ) {
+						return Two_Factor_Core::rest_api_can_edit_user_and_update_two_factor_options( $request['user_id'] );
+					},
+					'args'                => array(
+						'user_id' => array(
+							'required' => true,
+							'type'     => 'integer',
+						),
+					),
+				),
+				array(
+					'methods'             => WP_REST_Server::CREATABLE,
+					'callback'            => array( $this, 'rest_setup_email' ),
+					'permission_callback' => function ( $request ) {
+						return Two_Factor_Core::rest_api_can_edit_user_and_update_two_factor_options( $request['user_id'] );
+					},
+					'args'                => array(
+						'user_id' => array(
+							'required' => true,
+							'type'     => 'integer',
+						),
+						'code'    => array(
+							'type'              => 'string',
+							'default'           => '',
+							'validate_callback' => null, // Note: validation handled in ::rest_setup_email().
+						),
+						'enable_provider' => array(
+							'required' => false,
+							'type'     => 'boolean',
+							'default'  => false,
+						),
+					),
+				),
+			)
+		);
+	}
+
+	/**
+	 * REST API endpoint for setting up Email.
+	 *
+	 * @param WP_REST_Request $request The Rest Request object.
+	 * @return WP_Error|array Array of data on success, WP_Error on error.
+	 */
+	public function rest_setup_email( $request ) {
+		$user_id = $request['user_id'];
+		$user    = get_user_by( 'id', $user_id );
+
+		$code = preg_replace( '/\s+/', '', $request['code'] );
+
+		// If no code, generate and email one.
+		if ( empty( $code ) ) {
+			if ( $this->generate_and_email_token( $user, 'verification_setup' ) ) {
+				return array( 'success' => true );
+			}
+			return new WP_Error( 'email_error', __( 'Unable to send email. Please check your server settings.', 'two-factor' ), array( 'status' => 500 ) );
+		}
+
+		// Verify code.
+		if ( ! $this->validate_token( $user_id, $code ) ) {
+			return new WP_Error( 'invalid_code', __( 'Invalid verification code.', 'two-factor' ), array( 'status' => 400 ) );
+		}
+
+		// Mark as verified.
+		update_user_meta( $user_id, self::VERIFIED_META_KEY, true );
+
+		if ( $request->get_param( 'enable_provider' ) && ! Two_Factor_Core::enable_provider_for_user( $user_id, 'Two_Factor_Email' ) ) {
+			return new WP_Error( 'db_error', __( 'Unable to enable Email provider for this user.', 'two-factor' ), array( 'status' => 500 ) );
+		}
+
+		ob_start();
+		$this->user_options( $user );
+		$html = ob_get_clean();
+
+		return array(
+			'success' => true,
+			'html'    => $html,
+		);
+	}
+
+	/**
+	 * Rest API endpoint for handling deactivation of Email.
+	 *
+	 * @param WP_REST_Request $request The Rest Request object.
+	 * @return array Success array.
+	 */
+	public function rest_delete_email( $request ) {
+		$user_id = $request['user_id'];
+		$user    = get_user_by( 'id', $user_id );
+
+		delete_user_meta( $user_id, self::VERIFIED_META_KEY );
+
+		if ( ! Two_Factor_Core::disable_provider_for_user( $user_id, 'Two_Factor_Email' ) ) {
+			return new WP_Error( 'db_error', __( 'Unable to disable Email provider for this user.', 'two-factor' ), array( 'status' => 500 ) );
+		}
+
+		ob_start();
+		$this->user_options( $user );
+		$html = ob_get_clean();
+
+		return array(
+			'success' => true,
+			'html'    => $html,
+		);
 	}
 
 	/**
@@ -274,39 +421,57 @@ class Two_Factor_Email extends Two_Factor_Provider {
 	 *
 	 * @since 0.1-dev
 	 *
-	 * @param WP_User $user WP_User object of the logged-in user.
+	 * @param WP_User $user   WP_User object of the logged-in user.
+	 * @param string  $action Optional. The action intended for the token. Default 'login'.
+	 *                        Accepts 'login', 'verification_setup'.
 	 * @return bool Whether the email contents were sent successfully.
 	 */
-	public function generate_and_email_token( $user ) {
+	public function generate_and_email_token( $user, $action = 'login' ) {
 		$token       = $this->generate_token( $user->ID );
 		$remote_ip   = $this->get_client_ip();
 		$ttl_minutes = (int) ceil( $this->user_token_ttl( $user->ID ) / MINUTE_IN_SECONDS );
 
-		$subject = wp_strip_all_tags(
-			sprintf(
-				/* translators: %s: site name */
-				__( '[%s] Login confirmation code', 'two-factor' ),
-				wp_specialchars_decode( get_option( 'blogname' ), ENT_QUOTES )
-			)
-		);
+		if ( 'verification_setup' === $action ) {
+			$subject = wp_strip_all_tags(
+				sprintf(
+					/* translators: %s: site name */
+					__( 'Verify your email for Two-Factor Authentication at %s', 'two-factor' ),
+					wp_specialchars_decode( get_option( 'blogname' ), ENT_QUOTES )
+				)
+			);
+			$message = wp_strip_all_tags(
+				sprintf(
+					/* translators: %s: token */
+					__( 'Enter %s to verify your email address for two-factor authentication.', 'two-factor' ),
+					$token
+				)
+			);
+		} else {
+			$subject = wp_strip_all_tags(
+				sprintf(
+					/* translators: %s: site name */
+					__( '[%s] Login confirmation code', 'two-factor' ),
+					wp_specialchars_decode( get_option( 'blogname' ), ENT_QUOTES )
+				)
+			);
 
-		$message_parts = array(
-			__( 'Please complete the login by entering the verification code below:', 'two-factor' ),
-			$token,
-			sprintf(
-				/* translators: %d: number of minutes */
-				__( 'This code will expire in %d minutes.', 'two-factor' ),
-				$ttl_minutes
-			),
-			sprintf(
-				/* translators: %1$s: IP address of user, %2$s: user login */
-				__( 'A user from IP address %1$s has successfully authenticated as %2$s. If this wasn\'t you, please change your password.', 'two-factor' ),
-				$remote_ip,
-				$user->user_login
-			),
-		);
-
-		$message = wp_strip_all_tags( implode( "\n\n", $message_parts ) );
+			$message_parts = array(
+				__( 'Please complete the login by entering the verification code below:', 'two-factor' ),
+				$token,
+				sprintf(
+					/* translators: %d: number of minutes */
+					__( 'This code will expire in %d minutes.', 'two-factor' ),
+					$ttl_minutes
+				),
+				sprintf(
+					/* translators: %1$s: IP address of user, %2$s: user login */
+					__( 'A user from IP address %1$s has successfully authenticated as %2$s. If this wasn\'t you, please change your password.', 'two-factor' ),
+					$remote_ip,
+					$user->user_login
+				),
+			);
+			$message = wp_strip_all_tags( implode( "\n\n", $message_parts ) );
+		}
 
 		/**
 		 * Filters the token email subject.
@@ -422,7 +587,14 @@ class Two_Factor_Email extends Two_Factor_Provider {
 	 * @return boolean
 	 */
 	public function is_available_for_user( $user ) {
-		return true;
+		// If the user has already enabled the provider (legacy), allow them to continue using it.
+		$providers = get_user_meta( $user->ID, Two_Factor_Core::ENABLED_PROVIDERS_USER_META_KEY, true );
+		if ( is_array( $providers ) && in_array( 'Two_Factor_Email', $providers, true ) ) {
+			return true;
+		}
+
+		// Otherwise, only available if verified.
+		return (bool) get_user_meta( $user->ID, self::VERIFIED_META_KEY, true );
 	}
 
 	/**
@@ -434,7 +606,21 @@ class Two_Factor_Email extends Two_Factor_Provider {
 	 */
 	public function user_options( $user ) {
 		$email = $user->user_email;
+
+		// Check if user is verified.
+		$is_verified = $this->is_available_for_user( $user );
+
+		wp_localize_script(
+			'two-factor-email-admin',
+			'twoFactorEmailAdmin',
+			array(
+				'restPath' => Two_Factor_Core::REST_NAMESPACE . '/email',
+				'userId'   => $user->ID,
+			)
+		);
+		wp_enqueue_script( 'two-factor-email-admin' );
 		?>
+		<div id="two-factor-email-options">
 		<p>
 			<?php
 			echo esc_html(
@@ -446,11 +632,50 @@ class Two_Factor_Email extends Two_Factor_Provider {
 			);
 			?>
 		</p>
+		<?php if ( ! $is_verified ) : ?>
+			<p>
+				<button type="button" class="button" id="two-factor-email-send-code">
+					<?php esc_html_e( 'Verify your e-mail address', 'two-factor' ); ?>
+				</button>
+			</p>
+			<div id="two-factor-email-verification-form" style="display:none; margin-top: 10px;">
+				<p>
+					<label for="two-factor-email-code-input"><?php esc_html_e( 'Verification Code:', 'two-factor' ); ?></label>
+					<input type="text" id="two-factor-email-code-input" class="input" size="20" autocomplete="off" />
+					<button type="button" class="button" id="two-factor-email-verify-code">
+						<?php esc_html_e( 'Verify', 'two-factor' ); ?>
+					</button>
+				</p>
+			</div>
+		<?php endif; ?>
+		</div>
 		<?php
 	}
 
 	/**
-	 * Return user meta keys to delete during plugin uninstall.
+	 * Prevent enabling the Email provider if it hasn't been verified (and isn't a legacy enabled user).
+	 *
+	 * @param int $user_id The user ID.
+	 */
+	public function pre_user_options_update( $user_id ) {
+		// phpcs:ignore WordPress.Security.NonceVerification.Missing -- Nonce validation is handled by core.
+		if ( isset( $_POST[ Two_Factor_Core::ENABLED_PROVIDERS_USER_META_KEY ] ) && is_array( $_POST[ Two_Factor_Core::ENABLED_PROVIDERS_USER_META_KEY ] ) ) {
+			$enabled_providers = $_POST[ Two_Factor_Core::ENABLED_PROVIDERS_USER_META_KEY ]; // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- Payload is sanitized when saved.
+			if ( in_array( 'Two_Factor_Email', $enabled_providers, true ) ) {
+				$is_verified = get_user_meta( $user_id, self::VERIFIED_META_KEY, true );
+				$current_providers = get_user_meta( $user_id, Two_Factor_Core::ENABLED_PROVIDERS_USER_META_KEY, true );
+				
+				// If not verified, and NOT currently enabled (legacy), disallow enabling.
+				if ( ! $is_verified && ( ! is_array( $current_providers ) || ! in_array( 'Two_Factor_Email', $current_providers, true ) ) ) {
+					$enabled_providers = array_diff( $enabled_providers, array( 'Two_Factor_Email' ) );
+					$_POST[ Two_Factor_Core::ENABLED_PROVIDERS_USER_META_KEY ] = $enabled_providers;
+				}
+			}
+		}
+	}
+
+	/**
+	 * Returns the key of the user meta. keys to delete during plugin uninstall.
 	 *
 	 * @since 0.10.0
 	 *
@@ -460,6 +685,7 @@ class Two_Factor_Email extends Two_Factor_Provider {
 		return array(
 			self::TOKEN_META_KEY,
 			self::TOKEN_META_KEY_TIMESTAMP,
+			self::VERIFIED_META_KEY,
 		);
 	}
 }

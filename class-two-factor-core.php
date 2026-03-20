@@ -697,7 +697,7 @@ class Two_Factor_Core {
 		 * Possible enhancement: add a filter to change the fallback method?
 		 */
 		if ( empty( $enabled_providers ) && $user_providers_raw ) {
-			if ( isset( $providers['Two_Factor_Email'] ) ) {
+			if ( isset( $providers['Two_Factor_Email'] ) && $providers['Two_Factor_Email']->is_available_for_user( $user ) ) {
 				// Force Emailed codes to 'on'.
 				$enabled_providers[] = 'Two_Factor_Email';
 			} else {
@@ -772,6 +772,10 @@ class Two_Factor_Core {
 	private static function get_primary_provider_key_selected_for_user( $user ) {
 		$primary_provider    = get_user_meta( $user->ID, self::PROVIDER_USER_META_KEY, true );
 		$available_providers = self::get_available_providers_for_user( $user );
+
+		if ( is_wp_error( $available_providers ) ) {
+			return null;
+		}
 
 		if ( ! empty( $primary_provider ) && ! empty( $available_providers[ $primary_provider ] ) ) {
 			return $primary_provider;
@@ -1100,15 +1104,15 @@ class Two_Factor_Core {
 
 		$provider_key        = $provider->get_key();
 		$available_providers = self::get_available_providers_for_user( $user );
+		if ( is_wp_error( $available_providers ) ) {
+			wp_die( $available_providers );
+		}
 		$backup_providers    = array_diff_key( $available_providers, array( $provider_key => null ) );
 		$interim_login       = isset( $_REQUEST['interim-login'] ); // phpcs:ignore WordPress.Security.NonceVerification.Recommended
 
 		$rememberme = intval( self::rememberme() );
 
-		if ( is_wp_error( $available_providers ) ) {
-			// If it returned an error, the configured methods don't exist, and it couldn't swap in a replacement.
-			wp_die( $available_providers );
-		}
+
 
 		if ( ! function_exists( 'login_header' ) ) {
 			// We really should migrate login_header() out of `wp-login.php` so it can be called from an includes file.
@@ -2088,7 +2092,8 @@ class Two_Factor_Core {
 
 		wp_enqueue_style( 'user-edit-2fa', plugins_url( 'user-edit.css', __FILE__ ), array(), TWO_FACTOR_VERSION );
 
-		$enabled_providers = array_keys( self::get_available_providers_for_user( $user ) );
+		$available_providers_result = self::get_available_providers_for_user( $user );
+		$enabled_providers = is_wp_error( $available_providers_result ) ? array() : array_keys( $available_providers_result );
 
 		// This is specific to the current session, not the displayed user.
 		$show_2fa_options = self::current_user_can_update_two_factor_options();
