@@ -215,8 +215,8 @@ class Tests_Two_Factor_Email extends WP_UnitTestCase {
 
 		$content = $GLOBALS['phpmailer']->Body;
 
-		$this->assertStringContainsString( 'Enter', $content );
-		$this->assertStringContainsString( 'log in', $content );
+		$this->assertStringContainsString( 'entering', $content );
+		$this->assertStringContainsString( 'login', $content );
 		// Check that IP is effectively in the message (and not the token key or something else)
 		$this->assertStringContainsString( '127.0.0.1', $content );
 		// Check that username is in the message

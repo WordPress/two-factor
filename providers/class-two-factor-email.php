@@ -62,7 +62,7 @@ class Two_Factor_Email extends Two_Factor_Provider {
 	/**
 	 * Enqueue scripts for email provider.
 	 *
-	 * @since 0.10.0
+	 * @since 0.16.0
 	 *
 	 * @codeCoverageIgnore
 	 *
@@ -98,6 +98,8 @@ class Two_Factor_Email extends Two_Factor_Provider {
 
 	/**
 	 * Register the rest-api endpoints required for this provider.
+	 *
+	 * @since 0.16.0
 	 */
 	public function register_rest_routes() {
 		register_rest_route(
@@ -147,6 +149,8 @@ class Two_Factor_Email extends Two_Factor_Provider {
 	/**
 	 * REST API endpoint for setting up Email.
 	 *
+	 * @since 0.16.0
+	 *
 	 * @param WP_REST_Request $request The Rest Request object.
 	 * @return WP_Error|array Array of data on success, WP_Error on error.
 	 */
@@ -188,6 +192,8 @@ class Two_Factor_Email extends Two_Factor_Provider {
 
 	/**
 	 * Rest API endpoint for handling deactivation of Email.
+	 *
+	 * @since 0.16.0
 	 *
 	 * @param WP_REST_Request $request The Rest Request object.
 	 * @return array Success array.
@@ -654,6 +660,8 @@ class Two_Factor_Email extends Two_Factor_Provider {
 
 	/**
 	 * Prevent enabling the Email provider if it hasn't been verified (and isn't a legacy enabled user).
+	 *
+	 * @since 0.16.0
 	 *
 	 * @param int $user_id The user ID.
 	 */

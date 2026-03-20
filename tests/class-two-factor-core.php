@@ -1671,6 +1671,9 @@ class Test_ClassTwoFactorCore extends WP_UnitTestCase {
 		$session_manager->create( time() + DAY_IN_SECONDS );
 		$this->assertCount( 2, $session_manager->get_all(), 'Failed to create another session' );
 
+		// Set the email provider as verified so it can be enabled.
+		update_user_meta( $user->ID, Two_Factor_Email::VERIFIED_META_KEY, true );
+
 		$_POST[ Two_Factor_Core::ENABLED_PROVIDERS_USER_META_KEY ] = array(
 			'Two_Factor_Dummy' => 'Two_Factor_Dummy',
 			'Two_Factor_Email' => 'Two_Factor_Email',
