@@ -184,7 +184,7 @@ class Tests_Two_Factor_Email_REST_API extends WP_Test_REST_TestCase {
 
 		// Should be verified and enabled.
 		$this->assertTrue( (bool) get_user_meta( self::$admin_id, Two_Factor_Email::VERIFIED_META_KEY, true ) );
-		$this->assertTrue( Two_Factor_Core::is_provider_enabled_for_user( self::$admin_id, 'Two_Factor_Email' ) );
+		$this->assertTrue( in_array( 'Two_Factor_Email', Two_Factor_Core::get_enabled_providers_for_user( self::$admin_id ), true ) );
 	}
 
 	/**
@@ -194,8 +194,8 @@ class Tests_Two_Factor_Email_REST_API extends WP_Test_REST_TestCase {
 	 */
 	public function test_user_can_delete_email_verification() {
 		wp_set_current_user( self::$admin_id );
-		Two_Factor_Core::enable_provider_for_user( self::$admin_id, 'Two_Factor_Email' );
 		update_user_meta( self::$admin_id, Two_Factor_Email::VERIFIED_META_KEY, true );
+		Two_Factor_Core::enable_provider_for_user( self::$admin_id, 'Two_Factor_Email' );
 
 		$request = new WP_REST_Request( 'DELETE', '/' . Two_Factor_Core::REST_NAMESPACE . '/email' );
 		$request->set_body_params(
@@ -219,6 +219,7 @@ class Tests_Two_Factor_Email_REST_API extends WP_Test_REST_TestCase {
 	public function test_admin_can_delete_email_for_others() {
 		wp_set_current_user( self::$admin_id );
 		update_user_meta( self::$editor_id, Two_Factor_Email::VERIFIED_META_KEY, true );
+		Two_Factor_Core::enable_provider_for_user( self::$editor_id, 'Two_Factor_Email' );
 
 		$request = new WP_REST_Request( 'DELETE', '/' . Two_Factor_Core::REST_NAMESPACE . '/email' );
 		$request->set_body_params(
