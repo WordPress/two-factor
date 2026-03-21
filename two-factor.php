@@ -181,3 +181,101 @@ function two_factor_filter_enabled_providers_for_user( $enabled, $user_id ) {
 
 	return array_values( array_intersect( (array) $enabled, $site_enabled ) );
 }
+
+/**
+ * Enforce Two-Factor for users in roles that require it.
+ *
+ * Runs after the site-enabled filter (priority 20). If a user belongs to an
+ * enforced role but has no providers configured, email verification is
+ * injected so they are prompted to authenticate on their next login.
+ *
+ * @since 0.16
+ *
+ * @param array $enabled  Currently enabled provider classnames for the user.
+ * @param int   $user_id  The user ID.
+ * @return array
+ */
+function two_factor_enforce_for_user( $enabled, $user_id ) {
+	// User already has at least one provider — nothing to enforce.
+	if ( ! empty( $enabled ) ) {
+		return $enabled;
+	}
+
+	$enforced_roles = (array) get_option( 'two_factor_enforced_roles', array() );
+	if ( empty( $enforced_roles ) ) {
+		return $enabled;
+	}
+
+	$user = get_userdata( $user_id );
+	if ( ! $user ) {
+		return $enabled;
+	}
+
+	// Check whether the user has at least one enforced role.
+	if ( empty( array_intersect( (array) $user->roles, $enforced_roles ) ) ) {
+		return $enabled;
+	}
+
+	// Determine which provider to inject. Prefer Email; fall back to the
+	// first site-enabled provider if Email has been disabled site-wide.
+	$site_enabled = two_factor_get_enabled_providers_option();
+
+	if ( null === $site_enabled || in_array( 'Two_Factor_Email', $site_enabled, true ) ) {
+		return array( 'Two_Factor_Email' );
+	}
+
+	// Email is not site-enabled; use the first available site-enabled provider.
+	if ( ! empty( $site_enabled ) ) {
+		return array( $site_enabled[0] );
+	}
+
+	return $enabled;
+}
+add_filter( 'two_factor_enabled_providers_for_user', 'two_factor_enforce_for_user', 20, 2 );
+
+/**
+ * Auto-configure email verification for new users in enforced roles.
+ *
+ * Fires immediately after a new user account is created so that enforced
+ * users are required to verify via email on their very first login.
+ *
+ * @since 0.16
+ *
+ * @param int $user_id The newly registered user ID.
+ * @return void
+ */
+function two_factor_force_on_user_register( $user_id ) {
+	$enforced_roles = (array) get_option( 'two_factor_enforced_roles', array() );
+	if ( empty( $enforced_roles ) ) {
+		return;
+	}
+
+	$user = get_userdata( $user_id );
+	if ( ! $user ) {
+		return;
+	}
+
+	if ( empty( array_intersect( (array) $user->roles, $enforced_roles ) ) ) {
+		return;
+	}
+
+	// Do not overwrite a configuration that already exists.
+	$existing = get_user_meta( $user_id, Two_Factor_Core::ENABLED_PROVIDERS_USER_META_KEY, true );
+	if ( ! empty( $existing ) ) {
+		return;
+	}
+
+	// Determine which provider to assign (same logic as the runtime filter).
+	$site_enabled = two_factor_get_enabled_providers_option();
+	$provider     = 'Two_Factor_Email';
+
+	if ( null !== $site_enabled && ! in_array( 'Two_Factor_Email', $site_enabled, true ) ) {
+		$provider = ! empty( $site_enabled ) ? $site_enabled[0] : null;
+	}
+
+	if ( $provider ) {
+		update_user_meta( $user_id, Two_Factor_Core::ENABLED_PROVIDERS_USER_META_KEY, array( $provider ) );
+		update_user_meta( $user_id, Two_Factor_Core::PROVIDER_USER_META_KEY, $provider );
+	}
+}
+add_action( 'user_register', 'two_factor_force_on_user_register', 10, 1 );
