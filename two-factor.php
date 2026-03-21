@@ -272,6 +272,12 @@ function two_factor_force_on_user_register( $user_id ) {
 		return;
 	}
 
+	// Ensure the Email provider is actually registered/supported for this user.
+	$supported_providers = Two_Factor_Core::get_supported_providers_for_user( $user );
+	if ( empty( $supported_providers ) || ! isset( $supported_providers['Two_Factor_Email'] ) ) {
+		// Email provider is not supported for this user; skip auto-enrolment.
+		return;
+	}
 	update_user_meta( $user_id, Two_Factor_Core::ENABLED_PROVIDERS_USER_META_KEY, array( 'Two_Factor_Email' ) );
 	update_user_meta( $user_id, Two_Factor_Core::PROVIDER_USER_META_KEY, 'Two_Factor_Email' );
 }

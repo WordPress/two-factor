@@ -51,12 +51,12 @@ class Two_Factor_Settings {
 
 		// Show a warning when enforcement is active but the Email provider is disabled,
 		// because enforcement relies on Email being available for users not yet enrolled.
-		$_enforced = (array) get_option( 'two_factor_enforced_roles', array() );
-		if ( ! empty( $_enforced ) ) {
-			$_site_enabled = function_exists( 'two_factor_get_enabled_providers_option' )
+		$enforced_roles = (array) get_option( 'two_factor_enforced_roles', array() );
+		if ( ! empty( $enforced_roles ) ) {
+			$site_enabled = function_exists( 'two_factor_get_enabled_providers_option' )
 				? two_factor_get_enabled_providers_option()
 				: null;
-			if ( null !== $_site_enabled && ! in_array( 'Two_Factor_Email', $_site_enabled, true ) ) {
+			if ( null !== $site_enabled && ! in_array( 'Two_Factor_Email', $site_enabled, true ) ) {
 				echo '<div class="notice notice-warning"><p>' . esc_html__( 'Two-Factor enforcement is active, but the Email provider is disabled. Users in enforced roles who have not yet set up 2FA will not be challenged on login. Enable the Email provider to ensure enforcement works.', 'two-factor' ) . '</p></div>';
 			}
 		}
