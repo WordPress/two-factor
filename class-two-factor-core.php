@@ -227,6 +227,10 @@ class Two_Factor_Core {
 			}
 		}
 
+		// Add site-level options owned by the settings screen.
+		$option_keys[] = 'two_factor_enabled_providers';
+		$option_keys[] = 'two_factor_enforced_roles';
+
 		// Delete options first since that is faster.
 		if ( ! empty( $option_keys ) ) {
 			foreach ( $option_keys as $option_key ) {
