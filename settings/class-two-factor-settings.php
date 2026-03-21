@@ -41,6 +41,11 @@ class Two_Factor_Settings {
 
 			update_option( 'two_factor_enabled_providers', array_values( array_unique( $enabled ) ) );
 
+			$enforced_roles_posted = isset( $_POST['two_factor_enforced_roles'] ) && is_array( $_POST['two_factor_enforced_roles'] )
+				? array_map( 'sanitize_key', wp_unslash( $_POST['two_factor_enforced_roles'] ) )
+				: array();
+			update_option( 'two_factor_enforced_roles', array_values( array_unique( $enforced_roles_posted ) ) );
+
 			echo '<div class="updated"><p>' . esc_html__( 'Settings saved.', 'two-factor' ) . '</p></div>';
 		}
 
@@ -84,6 +89,34 @@ class Two_Factor_Settings {
 
 			echo '</td>';
 			echo '</tr>';
+		}
+
+		echo '</tbody></table>';
+
+		echo '</fieldset>';
+
+		// --- Enforcement section ---
+		$saved_enforced_roles = (array) get_option( 'two_factor_enforced_roles', array() );
+		$all_roles            = wp_roles()->get_names();
+
+		echo '<h2>' . esc_html__( 'Two-Factor Enforcement', 'two-factor' ) . '</h2>';
+		echo '<p class="description">' . esc_html__( 'Require Two-Factor authentication for specific user roles. Users in enforced roles who have not yet configured 2FA will automatically be challenged via email verification on login. New users in enforced roles will also have email verification enabled on registration.', 'two-factor' ) . '</p>';
+
+		echo '<fieldset class="two-factor-enforcement"><legend class="screen-reader-text">' . esc_html__( 'Enforced Roles', 'two-factor' ) . '</legend>';
+		echo '<table class="form-table"><tbody>';
+
+		if ( empty( $all_roles ) ) {
+			echo '<tr><td>' . esc_html__( 'No roles found.', 'two-factor' ) . '</td></tr>';
+		} else {
+			echo '<tr><td>';
+			foreach ( $all_roles as $role_slug => $role_name ) {
+				$role_slug = sanitize_key( $role_slug );
+				echo '<p class="provider-item"><label for="role_' . esc_attr( $role_slug ) . '">';
+				echo '<input type="checkbox" name="two_factor_enforced_roles[]" id="role_' . esc_attr( $role_slug ) . '" value="' . esc_attr( $role_slug ) . '" ' . checked( in_array( $role_slug, $saved_enforced_roles, true ), true, false ) . ' /> ';
+				echo esc_html( translate_user_role( $role_name ) );
+				echo '</label></p>';
+			}
+			echo '</td></tr>';
 		}
 
 		echo '</tbody></table>';
