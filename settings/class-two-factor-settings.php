@@ -49,6 +49,18 @@ class Two_Factor_Settings {
 			echo '<div class="updated"><p>' . esc_html__( 'Settings saved.', 'two-factor' ) . '</p></div>';
 		}
 
+		// Show a warning when enforcement is active but the Email provider is disabled,
+		// because enforcement relies on Email being available for users not yet enrolled.
+		$_enforced = (array) get_option( 'two_factor_enforced_roles', array() );
+		if ( ! empty( $_enforced ) ) {
+			$_site_enabled = function_exists( 'two_factor_get_enabled_providers_option' )
+				? two_factor_get_enabled_providers_option()
+				: null;
+			if ( null !== $_site_enabled && ! in_array( 'Two_Factor_Email', $_site_enabled, true ) ) {
+				echo '<div class="notice notice-warning"><p>' . esc_html__( 'Two-Factor enforcement is active, but the Email provider is disabled. Users in enforced roles who have not yet set up 2FA will not be challenged on login. Enable the Email provider to ensure enforcement works.', 'two-factor' ) . '</p></div>';
+			}
+		}
+
 		// Build provider list for display using public core API.
 		$provider_instances = array();
 		if ( class_exists( 'Two_Factor_Core' ) && method_exists( 'Two_Factor_Core', 'get_providers' ) ) {
@@ -100,7 +112,7 @@ class Two_Factor_Settings {
 		$all_roles            = wp_roles()->get_names();
 
 		echo '<h2>' . esc_html__( 'Two-Factor Enforcement', 'two-factor' ) . '</h2>';
-		echo '<p class="description">' . esc_html__( 'Require Two-Factor authentication for specific user roles. Users in enforced roles who have not yet configured 2FA will automatically be challenged via email verification on login. New users in enforced roles will also have email verification enabled on registration.', 'two-factor' ) . '</p>';
+		echo '<p class="description">' . esc_html__( 'Require Two-Factor authentication for specific user roles. Users in enforced roles who have not yet set up 2FA will be challenged via the Email provider on login. This requires the Email provider to be enabled above. New users in enforced roles will also have the Email provider enabled on registration.', 'two-factor' ) . '</p>';
 
 		echo '<fieldset class="two-factor-enforcement"><legend class="screen-reader-text">' . esc_html__( 'Enforced Roles', 'two-factor' ) . '</legend>';
 		echo '<table class="form-table"><tbody>';
