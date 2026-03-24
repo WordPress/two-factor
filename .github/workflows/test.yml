@@ -146,7 +146,7 @@ jobs:
               with:
                 file: tests/logs/clover.xml
                 flags: phpunit
-                token: ${{ secrets.CODECOV_TOKEN }}
+                fail_ci_if_error: false
 
     build:
         name: Build
