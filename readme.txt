@@ -103,6 +103,14 @@ Here is a list of action and filter hooks provided by the plugin:
 - `two_factor_after_authentication_input`action which receives the provider object and fires after the input shown on the authentication input form (if form contains no input, action fires immediately after `two_factor_after_authentication_prompt`).
 - `two_factor_login_backup_links` filters the backup links displayed on the two-factor login form.
 
+== Redirect After the Two-Factor Challenge ==
+
+To redirect users to a specific URL after completing the two-factor challenge, use the `login_redirect` filter:
+
+    add_filter( 'login_redirect', function( $redirect_to, $requested_redirect_to, $user ) {
+        return home_url( '/dashboard/' );
+    }, 10, 3 );
+
 == Frequently Asked Questions ==
 
 = What PHP and WordPress versions does the Two-Factor plugin support? =
