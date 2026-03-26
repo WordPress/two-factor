@@ -157,4 +157,4 @@ Tests `Two_Factor_Dummy_Secure` (a fixture that always _fails_ authentication, u
 ## Test Helpers
 
 - **`tests/bootstrap.php`** — Locates the WordPress test library (via `WP_TESTS_DIR` env var, relative path, or `/tmp/wordpress-tests-lib`), loads the plugin via `muplugins_loaded`, then boots the WP test environment.
-- **`tests/class-secure-dummy.php`** — Defines `Two_Factor_Dummy_Secure`, a test-only provider class that spoofs the key of `Two_Factor_Dummy` but always fails `validate_authentication`. Used by `Tests_Two_Factor_Dummy_Secure` and some core tests.
+- **`tests/class-two-factor-secure-dummy.php`** — Defines `Two_Factor_Dummy_Secure`, a test-only provider class that spoofs the key of `Two_Factor_Dummy` but always fails `validate_authentication`. Used by `Tests_Two_Factor_Dummy_Secure` and some core tests.
