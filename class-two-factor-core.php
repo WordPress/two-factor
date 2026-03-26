@@ -209,8 +209,7 @@ class Two_Factor_Core {
 						$user_meta_keys,
 						call_user_func( array( $provider_class, 'uninstall_user_meta_keys' ) )
 					);
-				} catch ( Exception $e ) {
-					error_log( sprintf( 'Two Factor: failed to retrieve uninstall user meta keys for %s: %s', $provider_class, $e->getMessage() ) );
+				} catch ( Exception $e ) { // phpcs:ignore Generic.CodeAnalysis.EmptyStatement.DetectedCatch -- Intentionally empty, provider may not implement this method.
 				}
 			}
 
@@ -221,8 +220,7 @@ class Two_Factor_Core {
 						$option_keys,
 						call_user_func( array( $provider_class, 'uninstall_options' ) )
 					);
-				} catch ( Exception $e ) {
-					error_log( sprintf( 'Two Factor: failed to retrieve uninstall options for %s: %s', $provider_class, $e->getMessage() ) );
+				} catch ( Exception $e ) { // phpcs:ignore Generic.CodeAnalysis.EmptyStatement.DetectedCatch -- Intentionally empty, provider may not implement this method.
 				}
 			}
 		}
