@@ -210,7 +210,7 @@ class Two_Factor_Core {
 						call_user_func( array( $provider_class, 'uninstall_user_meta_keys' ) )
 					);
 				} catch ( Exception $e ) {
-					// Do nothing.
+					error_log( sprintf( 'Two Factor: failed to retrieve uninstall user meta keys for %s: %s', $provider_class, $e->getMessage() ) );
 				}
 			}
 
@@ -222,7 +222,7 @@ class Two_Factor_Core {
 						call_user_func( array( $provider_class, 'uninstall_options' ) )
 					);
 				} catch ( Exception $e ) {
-					// Do nothing.
+					error_log( sprintf( 'Two Factor: failed to retrieve uninstall options for %s: %s', $provider_class, $e->getMessage() ) );
 				}
 			}
 		}
