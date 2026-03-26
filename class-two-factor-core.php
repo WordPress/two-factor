@@ -1144,32 +1144,32 @@ class Two_Factor_Core {
 		</form>
 
 		<?php
-			$links = array();
+		$links = array();
 
-			if ( $backup_providers ) {
-				$backup_link_args = array(
-					'action'        => $action,
-					'wp-auth-id'    => $user->ID,
-					'wp-auth-nonce' => $login_nonce,
-				);
-				if ( $rememberme ) {
-					$backup_link_args['rememberme'] = $rememberme;
-				}
-				if ( $redirect_to ) {
-					$backup_link_args['redirect_to'] = $redirect_to;
-				}
-				if ( $interim_login ) {
-					$backup_link_args['interim-login'] = 1;
-				}
-
-				foreach ( $backup_providers as $backup_provider_key => $backup_provider ) {
-					$backup_link_args['provider'] = $backup_provider_key;
-					$links[] = array(
-						'url'   => self::login_url( $backup_link_args ),
-						'label' => $backup_provider->get_alternative_provider_label(),
-					);
-				}
+		if ( $backup_providers ) {
+			$backup_link_args = array(
+				'action'        => $action,
+				'wp-auth-id'    => $user->ID,
+				'wp-auth-nonce' => $login_nonce,
+			);
+			if ( $rememberme ) {
+				$backup_link_args['rememberme'] = $rememberme;
 			}
+			if ( $redirect_to ) {
+				$backup_link_args['redirect_to'] = $redirect_to;
+			}
+			if ( $interim_login ) {
+				$backup_link_args['interim-login'] = 1;
+			}
+
+			foreach ( $backup_providers as $backup_provider_key => $backup_provider ) {
+				$backup_link_args['provider'] = $backup_provider_key;
+				$links[] = array(
+					'url'   => self::login_url( $backup_link_args ),
+					'label' => $backup_provider->get_alternative_provider_label(),
+				);
+			}
+		}
 
 			/**
 			 * Filters the links displayed on the two-factor login form.
@@ -1191,9 +1191,9 @@ class Two_Factor_Core {
 				</p>
 				<ul>
 				<?php
-					foreach ( $links as $link ) {
-						echo '<li><a href="' . esc_url( $link['url'] ) . '">' . esc_html( $link['label'] ) . '</a></li>';
-					}
+				foreach ( $links as $link ) {
+					echo '<li><a href="' . esc_url( $link['url'] ) . '">' . esc_html( $link['label'] ) . '</a></li>';
+				}
 				?>
 				</ul>
 			</div>
