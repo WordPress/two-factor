@@ -105,7 +105,7 @@ Here is a list of action and filter hooks provided by the plugin:
 
 == Redirect After the Two-Factor Challenge ==
 
-To redirect users to a specific URL after completing the two-factor challenge, use the `login_redirect` filter:
+To redirect users to a specific URL after completing the two-factor challenge, use WordPress Core built-in login_redirect filter. The filter works the same way as in a standard WordPress login flow:
 
     add_filter( 'login_redirect', function( $redirect_to, $requested_redirect_to, $user ) {
         return home_url( '/dashboard/' );
