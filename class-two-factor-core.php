@@ -1505,7 +1505,7 @@ class Two_Factor_Core {
 		 */
 		$two_factor_revalidate_time = apply_filters( 'two_factor_revalidate_time', 10 * MINUTE_IN_SECONDS, $user_id, $context );
 
-		if ( $context === 'save' ) {
+		if ( 'save' === $context ) {
 			$two_factor_revalidate_time *= 2;
 		}
 
@@ -1959,15 +1959,14 @@ class Two_Factor_Core {
 	public static function notify_user_password_reset( $user ) {
 		$user_message = sprintf(
 			/* translators: 1: username, 2: site URL, 3: URL to password best-practices article, 4: URL to reset password */
-			__( 'Hello %1$s, an unusually high number of failed login attempts have been detected on your account at %2$s.
-
-			These attempts successfully entered your password, and were only blocked because they failed to enter your second authentication factor. Despite not being able to access your account, this behavior indicates that the attackers have compromised your password. The most common reasons for this are that your password was easy to guess, or was reused on another site which has been compromised.
-
-			To protect your account, your password has been reset, and you will need to create a new one. For advice on setting a strong password, please read %3$s
-
-			To pick a new password, please visit %4$s
-
-			This is an automated notification. If you would like to speak to a site administrator, please contact them directly.', 'two-factor' ),
+			__(
+			    'Hello %1$s, an unusually high number of failed login attempts have been detected on your account at %2$s.
+			    These attempts successfully entered your password, and were only blocked because they failed to enter your second authentication factor. Despite not being able to access your account, this behavior indicates that the attackers have compromised your password. The most common reasons for this are that your password was easy to guess, or was reused on another site which has been compromised.
+			    To protect your account, your password has been reset, and you will need to create a new one. For advice on setting a strong password, please read %3$s
+			    To pick a new password, please visit %4$s
+			    This is an automated notification. If you would like to speak to a site administrator, please contact them directly.',
+			    'two-factor'
+			),
 			esc_html( $user->user_login ),
 			home_url(),
 			'https://wordpress.org/documentation/article/password-best-practices/',
@@ -1997,15 +1996,14 @@ class Two_Factor_Core {
 
 		$message = sprintf(
 			/* translators: 1: username, 2: user ID, 3: URL to developer docs */
-			__( 'Hello, this is a notice from the Two Factor plugin to inform you that an unusually high number of failed login attempts have been detected on the %1$s account (ID %2$d).
-
-			Those attempts successfully entered the user\'s password, and were only blocked because they entered invalid second authentication factors.
-
-			To protect their account, the password has automatically been reset, and they have been notified that they will need to create a new one.
-
-			If you do not wish to receive these notifications, you can disable them with the `two_factor_notify_admin_user_password_reset` filter. See %3$s for more information.
-
-			Thank you', 'two-factor' ),
+			__(
+		        'Hello, this is a notice from the Two Factor plugin to inform you that an unusually high number of failed login attempts have been detected on the %1$s account (ID %2$d).
+		        Those attempts successfully entered the user\'s password, and were only blocked because they entered invalid second authentication factors.
+		        To protect their account, the password has automatically been reset, and they have been notified that they will need to create a new one.
+		        If you do not wish to receive these notifications, you can disable them with the `two_factor_notify_admin_user_password_reset` filter. See %3$s for more information.
+		        Thank you',
+		        'two-factor'
+		    ),
 			esc_html( $user->user_login ),
 			$user->ID,
 			'https://developer.wordpress.org/plugins/hooks/'
@@ -2456,7 +2454,7 @@ class Two_Factor_Core {
 			}
 
 			// Have we changed the two-factor settings for the current user? Alter their session metadata.
-			if ( $user_id === get_current_user_id() ) {
+			if ( get_current_user_id() === $user_id ) {
 
 				if ( $enabled_providers && ! $existing_providers && ! self::is_current_user_session_two_factor() ) {
 					// We've enabled two-factor from a non-two-factor session, set the key but not the provider, as no provider has been used yet.
@@ -2477,14 +2475,14 @@ class Two_Factor_Core {
 				}
 			}
 
-			// Destroy other sessions if setup 2FA for the first time, or deactivated a provider
+			// Destroy other sessions if setup 2FA for the first time, or deactivated a provider.
 			if (
-				// No providers, enabling one (or more)
+				// No providers, enabling one (or more).
 				( ! $existing_providers && $enabled_providers ) ||
 				// Has providers, and is disabling one (or more), but remaining with 2FA.
 				( $existing_providers && $enabled_providers && array_diff( $existing_providers, array_keys( $enabled_providers ) ) )
 			) {
-				if ( $user_id === get_current_user_id() ) {
+				if ( get_current_user_id() === $user_id ) {
 					// Keep the current session, destroy others sessions for this user.
 					wp_destroy_other_sessions();
 				} else {
@@ -2583,7 +2581,7 @@ class Two_Factor_Core {
 	 * @return array
 	 */
 	public static function filter_session_information( $session, $user_id ) {
-		if ( $user_id !== get_current_user_id() ) {
+		if ( get_current_user_id() !== $user_id ) {
 			return $session;
 		}
 
