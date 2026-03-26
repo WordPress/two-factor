@@ -142,6 +142,9 @@ function two_factor_get_enabled_providers_option() {
  * This filter receives providers in core format: classname => path.
  *
  * @since 0.16
+ * 
+ * @param array $providers Registered providers in classname => path format.
+ * @return array Filtered list of enabled providers.
  */
 function two_factor_filter_enabled_providers( $providers ) {
 	$site_enabled = two_factor_get_enabled_providers_option();
@@ -170,6 +173,10 @@ function two_factor_filter_enabled_providers( $providers ) {
  * Filter enabled providers for a user (classnames array) to enforce the site-enabled list.
  *
  * @since 0.16
+ *
+ * @param array $enabled  Enabled provider classnames for the user.
+ * @param int   $user_id  ID of the user being filtered.
+ * @return array Filtered list of provider classnames allowed by the site.
  */
 function two_factor_filter_enabled_providers_for_user( $enabled, $user_id ) {
 	$site_enabled = two_factor_get_enabled_providers_option();
