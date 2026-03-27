@@ -261,7 +261,7 @@ All notable changes to this project will be documented in this file, per [the Ke
 - Fix: allow spaces in email code input and strip them away before processing, see #379. Props @shay1383.
 - Fix: remove references to Google Authenticator app since there are a lot more TOTP authenticators these days, see #367. Props @r-a-y.
 - Fix: register FIDO U2F related scripts during the suggested action hooks to avoid PHP noticed, see #356 and #368. Props @cojennin.
-- Rename and deprecate action and filter names two-factor-user-options- and two-factor-totp-time-step-allowance that don't following the WP coding standards. Use two*factor_user_options* and two_factor_totp_time_step_allowance now. See #363. Props @paulschreiber.
+- Rename and deprecate action and filter names two-factor-user-options- and two-factor-totp-time-step-allowance that don't following the WP coding standards. Use two_factor_user_options_ and two_factor_totp_time_step_allowance now. See #363. Props @paulschreiber.
 - Update codebase to match the WordPress coding standards, see #340. Props @paulschreiber.
 - Add tooling to run PHPUnit tests locally during development, see #355. Props @kasparsd.
 
