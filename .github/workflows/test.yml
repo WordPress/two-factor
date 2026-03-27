@@ -63,7 +63,7 @@ jobs:
               run: npm run lint:phpstan
 
     test-php:
-        name: Test PHP ${{ matrix.php }} ${{ matrix.wp != '' && format( ' (WP {0}) ', matrix.wp ) || '' }}${{ matrix.coverage && ' (with coverage)' || '' }}
+        name: Test PHP ${{ matrix.php }} ${{ matrix.wp != '' && format( ' (WP {0}) ', matrix.wp ) || '' }}
         runs-on: ubuntu-24.04
         strategy:
             matrix:
@@ -81,11 +81,6 @@ jobs:
                   - latest
                   - trunk
                   - '6.8'
-                coverage: [false]
-                include:
-                  - php: '8.3'
-                    wp: latest
-                    coverage: true
                 exclude:
                   - php: '7.3'
                     wp: trunk
@@ -120,12 +115,7 @@ jobs:
               with:
                 timeout_minutes: 10
                 max_attempts: 3
-                command: |
-                  if [[ ${{ matrix.coverage == true }} == true ]]; then
-                    npm run env start -- --xdebug=coverage
-                  else
-                    npm run env start
-                  fi
+                command: npm run env start -- --xdebug=coverage
 
             - name: Composer install
               run: |
@@ -141,7 +131,7 @@ jobs:
               run: npm run test
 
             - name: Upload code coverage report
-              if: ${{ matrix.coverage }}
+              if: ${{ matrix.php == '8.3' && matrix.wp == 'latest' }}
               uses: codecov/codecov-action@671740ac38dd9b0130fbe1cec585b89eea48d3de
               with:
                 file: tests/logs/clover.xml
