@@ -23,6 +23,5 @@ The following software libraries are utilized in this repository.
 - [qrcode-generator](https://github.com/kazuhikoarase/qrcode-generator) — JavaScript QR code generation used for TOTP setup.
 
 ## Special Thanks
+
 - All [contributors](https://github.com/WordPress/two-factor/graphs/contributors)
-
-
