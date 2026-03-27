@@ -328,7 +328,7 @@ All notable changes to this project will be documented in this file, per [the Ke
 
 ## [0.4.1] - 2019-04-12
 
-- Redirect to admin_url() instead of $\_SERVER['REQUEST_URI'] if $\_REQUEST['redirect_to'] is not set, see #276 (props @joshbetz).
+- Redirect to `admin_url()` instead of `$_SERVER['REQUEST_URI']` if `$_REQUEST['redirect_to']` is not set, see #276 (props @joshbetz).
 
 ## [0.4.0] - 2019-03-19
 
