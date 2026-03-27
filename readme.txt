@@ -1,5 +1,5 @@
 === Two Factor ===
-Contributors: georgestephanis, valendesigns, stevenkword, extendwings, sgrant, aaroncampbell, johnbillion, stevegrunwell, netweb, kasparsd, alihusnainarshad, passoniate
+Contributors: georgestephanis, kasparsd, masteradhoc, valendesigns, stevenkword, extendwings, sgrant, aaroncampbell, johnbillion, stevegrunwell, netweb, alihusnainarshad, passoniate
 Tags:         2fa, mfa, totp, authentication, security
 Tested up to: 6.9
 Stable tag:   0.16.0
