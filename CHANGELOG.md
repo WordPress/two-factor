@@ -2,6 +2,39 @@
 
 All notable changes to this project will be documented in this file, per [the Keep a Changelog standard](http://keepachangelog.com/), and will adhere to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.16.0] - 2026-03-27
+
+### Breaking Changes
+
+- Remove legacy FIDO U2F provider support by [#439](https://github.com/WordPress/two-factor/pull/439).
+
+### New Features
+
+- Add a dedicated settings page for plugin configuration in wp-admin by [#764](https://github.com/WordPress/two-factor/pull/764).
+- Add a new support links filter so consumers can customize contextual recovery/help links by [#615](https://github.com/WordPress/two-factor/pull/615).
+- Refresh backup codes UI styling and behavior by [#804](https://github.com/WordPress/two-factor/pull/804).
+
+### Bug Fixes
+
+- Delete stored TOTP secrets when the TOTP provider is disabled by [#802](https://github.com/WordPress/two-factor/pull/802).
+- Harden provider handling so login/settings checks do not fail open when expected providers disappear by [#586](https://github.com/WordPress/two-factor/pull/586).
+- Ensure only configured providers are saved and enabled in user settings by [#798](https://github.com/WordPress/two-factor/pull/798).
+- Improve settings-page accessibility and fix profile settings link behavior by [#828](https://github.com/WordPress/two-factor/pull/828) and [#830](https://github.com/WordPress/two-factor/pull/830).
+- Resolve PHPCS violations in provider files by [#851](https://github.com/WordPress/two-factor/pull/851).
+
+### Development Updates
+
+- Move login styles and provider scripts from inline output to enqueued/external assets by [#807](https://github.com/WordPress/two-factor/pull/807) and [#814](https://github.com/WordPress/two-factor/pull/814).
+- Improve inline docs and static-analysis compatibility (WPCS/phpstan) by [#810](https://github.com/WordPress/two-factor/pull/810), [#815](https://github.com/WordPress/two-factor/pull/815), and [#817](https://github.com/WordPress/two-factor/pull/817).
+- Improve unit test reliability and integrate CI code coverage reporting by [#825](https://github.com/WordPress/two-factor/pull/825), [#841](https://github.com/WordPress/two-factor/pull/841), and [#842](https://github.com/WordPress/two-factor/pull/842).
+- Update readme docs and modernize CI workflow infrastructure by [#835](https://github.com/WordPress/two-factor/pull/835), [#837](https://github.com/WordPress/two-factor/pull/837), [#843](https://github.com/WordPress/two-factor/pull/843), and [#849](https://github.com/WordPress/two-factor/pull/849).
+
+### Dependency Updates
+
+- Bump `qs` from 6.14.1 to 6.14.2 by [#794](https://github.com/WordPress/two-factor/pull/794).
+- Bump `basic-ftp` from 5.0.5 to 5.2.0 by [#816](https://github.com/WordPress/two-factor/pull/816).
+- Apply automatic lint/format updates and associated Composer package refreshes by [#799](https://github.com/WordPress/two-factor/pull/799).
+
 ## [0.15.0] - 2026-02-13
 
 ### Breaking Changes
