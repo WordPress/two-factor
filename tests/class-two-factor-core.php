@@ -695,6 +695,86 @@ class Test_ClassTwoFactorCore extends WP_UnitTestCase {
 	}
 
 	/**
+	 * Test that switching providers while rate-limited invalidates email token.
+	 *
+	 * If a user fails on TOTP triggering rate limiting, then switches back
+	 * to email, the rate-limit gate should invalidate the email token.
+	 *
+	 * @covers Two_Factor_Core::process_provider()
+	 */
+	public function test_process_provider_invalidates_email_token_on_provider_switch_while_rate_limited() {
+		$user          = $this->get_dummy_user( array( 'Two_Factor_Email' => 'Two_Factor_Email' ) );
+		$email_provider = Two_Factor_Email::get_instance();
+
+		// Generate an email token.
+		$email_provider->generate_token( $user->ID );
+		$this->assertTrue( $email_provider->user_has_token( $user->ID ), 'Email token exists before TOTP failures' );
+
+		// Simulate rate-limited state from TOTP failures.
+		update_user_meta( $user->ID, Two_Factor_Core::USER_FAILED_LOGIN_ATTEMPTS_KEY, 5 );
+		update_user_meta( $user->ID, Two_Factor_Core::USER_RATE_LIMIT_KEY, time() );
+
+		// User switches back to email provider while rate-limited.
+		$result = Two_Factor_Core::process_provider( $email_provider, $user, true );
+
+		$this->assertWPError( $result );
+		$this->assertSame( 'two_factor_too_fast', $result->get_error_code() );
+		$this->assertFalse( $email_provider->user_has_token( $user->ID ), 'Email token is invalidated when rate-limited via another provider' );
+	}
+
+	/**
+	 * Test that GET requests pass through without rate-limit side effects.
+	 *
+	 * Page reloads should not trigger rate limiting, token deletion, or
+	 * error messages — even when the user is rate-limited.
+	 *
+	 * @covers Two_Factor_Core::process_provider()
+	 */
+	public function test_process_provider_get_request_bypasses_rate_limit() {
+		$user     = $this->get_dummy_user( array( 'Two_Factor_Email' => 'Two_Factor_Email' ) );
+		$provider = Two_Factor_Email::get_instance();
+
+		$provider->generate_token( $user->ID );
+
+		$this->assertTrue( $provider->user_has_token( $user->ID ), 'Token exists before GET request' );
+
+		// Simulate a rate-limited state.
+		update_user_meta( $user->ID, Two_Factor_Core::USER_FAILED_LOGIN_ATTEMPTS_KEY, 3 );
+		update_user_meta( $user->ID, Two_Factor_Core::USER_RATE_LIMIT_KEY, time() );
+
+		// GET request (is_post_request = false).
+		$result = Two_Factor_Core::process_provider( $provider, $user, false );
+
+		$this->assertFalse( $result, 'GET request returns false, not WP_Error' );
+		$this->assertTrue( $provider->user_has_token( $user->ID ), 'Token survives GET request while rate-limited' );
+	}
+
+	/**
+	 * Test that rate limiting applies during the revalidation flow.
+	 *
+	 * @covers Two_Factor_Core::process_provider()
+	 */
+	public function test_process_provider_rate_limits_revalidation() {
+		$user     = $this->get_dummy_user( array( 'Two_Factor_Email' => 'Two_Factor_Email' ) );
+		$provider = Two_Factor_Email::get_instance();
+
+		$provider->generate_token( $user->ID );
+
+		$this->assertTrue( $provider->user_has_token( $user->ID ), 'Token exists before revalidation' );
+
+		// Simulate rate-limited state from prior failures.
+		update_user_meta( $user->ID, Two_Factor_Core::USER_FAILED_LOGIN_ATTEMPTS_KEY, 3 );
+		update_user_meta( $user->ID, Two_Factor_Core::USER_RATE_LIMIT_KEY, time() );
+
+		// Revalidation is also a POST through process_provider.
+		$result = Two_Factor_Core::process_provider( $provider, $user, true );
+
+		$this->assertWPError( $result );
+		$this->assertSame( 'two_factor_too_fast', $result->get_error_code() );
+		$this->assertFalse( $provider->user_has_token( $user->ID ), 'Token is invalidated during rate-limited revalidation' );
+	}
+
+	/**
 	 * Test that the "invalid login attempts have occurred" login notice works as expected.
 	 *
 	 * @covers Two_Factor_Core::maybe_show_last_login_failure_notice()
