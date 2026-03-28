@@ -1688,18 +1688,18 @@ class Two_Factor_Core {
 			);
 		}
 
-		// Allow the provider to re-send codes, etc.
-		if ( true === $provider->pre_process_authentication( $user ) ) {
-			return false;
-		}
-
 		// If it's not a POST request, there's no processing to perform.
 		if ( ! $is_post_request ) {
 			return false;
 		}
 
-		// Rate limit two factor authentication attempts.
+		// Rate limit two factor authentication attempts, including pre-processing (e.g. resend).
 		if ( true === self::is_user_rate_limited( $user ) ) {
+			// Invalidate any provider token to prevent reuse after rate limiting.
+			if ( method_exists( $provider, 'delete_token' ) ) {
+				$provider->delete_token( $user->ID );
+			}
+
 			$time_delay = self::get_user_time_delay( $user );
 			$last_login = get_user_meta( $user->ID, self::USER_RATE_LIMIT_KEY, true );
 
@@ -1711,6 +1711,11 @@ class Two_Factor_Core {
 					human_time_diff( $last_login + $time_delay )
 				)
 			);
+		}
+
+		// Allow the provider to re-send codes, etc.
+		if ( true === $provider->pre_process_authentication( $user ) ) {
+			return false;
 		}
 
 		// Ask the provider to verify the second factor.
