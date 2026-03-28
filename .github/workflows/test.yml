@@ -145,6 +145,17 @@ jobs:
                   cat /var/www/html/wp-content/plugins/two-factor/tests/logs/clover.xml \
                   > tests/logs/clover.xml
 
+            - name: Debug coverage report
+              if: ${{ matrix.php == '8.3' && matrix.wp == 'latest' }}
+              continue-on-error: true
+              run: |
+                echo "=== clover.xml file size ==="
+                wc -c tests/logs/clover.xml || echo "File not found"
+                echo "=== clover.xml first 30 lines ==="
+                head -30 tests/logs/clover.xml || echo "Cannot read file"
+                echo "=== xdebug mode in tests-cli ==="
+                npm run env run tests-cli -- php -r "echo xdebug_info();" 2>&1 | grep -i "mode\|coverage" || echo "xdebug info unavailable"
+
             - name: Upload code coverage report
               if: ${{ matrix.php == '8.3' && matrix.wp == 'latest' }}
               uses: codecov/codecov-action@671740ac38dd9b0130fbe1cec585b89eea48d3de
