@@ -132,42 +132,25 @@ jobs:
 
             - name: Test
               run: |
-                # Create tests/logs inside the container (uid=1000) so PHPUnit can write coverage
-                # reports to the shared Docker volume. The host runner (uid=1001) cannot create a
-                # writable directory here due to the UID mismatch with the container user.
+                # Create tests/logs inside the container so PHPUnit can write coverage reports.
+                # The plugin directory is bind-mounted from the workspace, so PHPUnit writing to
+                # tests/logs/clover.xml inside the container also writes to the workspace path on
+                # the host runner. The directory must be created by the container user (uid=1000)
+                # to be writable; creating it on the runner (uid=1001) would cause a permissions
+                # mismatch and prevent PHPUnit from writing coverage output.
                 npm run env run tests-cli --env-cwd=wp-content/plugins/two-factor -- mkdir -p tests/logs
                 npm run test
 
-            - name: Retrieve coverage report from container
+            - name: Verify coverage report
               if: ${{ matrix.php == '8.3' && matrix.wp == 'latest' }}
               run: |
-                # PHPUnit writes clover.xml inside the tests-wordpress Docker volume. We use
-                # docker exec (not wp-env run) because wp-env run creates a new ephemeral container
-                # that does not share the named volume state where PHPUnit wrote its output.
-                # The tests-wordpress container shares the volume and is guaranteed to be running.
-                CONTAINER=$(docker ps --filter "name=tests-wordpress" --format "{{.Names}}" | head -1)
-                if [ -z "$CONTAINER" ]; then
-                  echo "Error: tests-wordpress container not found"
-                  exit 1
-                fi
-                mkdir -p tests/logs
-                docker exec "$CONTAINER" \
-                  cat /var/www/html/wp-content/plugins/two-factor/tests/logs/clover.xml \
-                  > tests/logs/clover.xml
                 if [ ! -s tests/logs/clover.xml ]; then
-                  echo "Error: clover.xml is empty or was not retrieved"
+                  echo "Error: tests/logs/clover.xml is missing or empty. Coverage was not generated."
                   exit 1
                 fi
-                echo "Coverage report retrieved: $(wc -c < tests/logs/clover.xml) bytes"
-
-            - name: Debug coverage report
-              if: ${{ matrix.php == '8.3' && matrix.wp == 'latest' }}
-              continue-on-error: true
-              run: |
-                echo "=== clover.xml first 30 lines ==="
-                head -30 tests/logs/clover.xml
-                echo "=== xdebug mode in tests-cli ==="
-                npm run env run tests-cli -- php -r "echo xdebug_info();" 2>&1 | grep -i "mode\|coverage" || echo "xdebug info unavailable"
+                echo "Coverage report found: $(wc -c < tests/logs/clover.xml) bytes"
+                echo "=== clover.xml project summary (first 10 lines) ==="
+                head -10 tests/logs/clover.xml
 
             - name: Upload code coverage report
               if: ${{ matrix.php == '8.3' && matrix.wp == 'latest' && hashFiles('tests/logs/clover.xml') != '' }}
