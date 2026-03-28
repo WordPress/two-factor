@@ -132,25 +132,34 @@ jobs:
 
             - name: Test
               run: |
-                # Create tests/logs inside the container so PHPUnit can write coverage reports.
-                # The plugin directory is bind-mounted from the workspace, so PHPUnit writing to
-                # tests/logs/clover.xml inside the container also writes to the workspace path on
-                # the host runner. The directory must be created by the container user (uid=1000)
-                # to be writable; creating it on the runner (uid=1001) would cause a permissions
-                # mismatch and prevent PHPUnit from writing coverage output.
                 npm run env run tests-cli --env-cwd=wp-content/plugins/two-factor -- mkdir -p tests/logs
                 npm run test
 
-            - name: Verify coverage report
+            - name: Retrieve coverage report from container
               if: ${{ matrix.php == '8.3' && matrix.wp == 'latest' }}
               run: |
-                if [ ! -s tests/logs/clover.xml ]; then
-                  echo "Error: tests/logs/clover.xml is missing or empty. Coverage was not generated."
+                # PHPUnit writes clover.xml into the named Docker volume shared between the
+                # tests-wordpress and tests-cli containers. The plugin directory is NOT bind-mounted
+                # from the workspace in CI, so the file does not appear on the host filesystem after
+                # npm run test. We use docker cp (not 'docker exec cat > file') because docker cp is
+                # an atomic Docker API call that reads from the container's merged filesystem without
+                # a shell redirect that would pre-truncate the destination and cause a self-overwrite.
+                CONTAINER=$(docker ps --filter "name=tests-wordpress" --format "{{.Names}}" | head -1)
+                if [ -z "$CONTAINER" ]; then
+                  echo "Error: tests-wordpress container not found"
                   exit 1
                 fi
-                echo "Coverage report found: $(wc -c < tests/logs/clover.xml) bytes"
-                echo "=== clover.xml project summary (first 10 lines) ==="
+                mkdir -p tests/logs
+                docker cp "$CONTAINER:/var/www/html/wp-content/plugins/two-factor/tests/logs/clover.xml" tests/logs/clover.xml
+                echo "=== xdebug mode reported by tests-wordpress ==="
+                docker exec "$CONTAINER" php -r "echo ini_get('xdebug.mode') . PHP_EOL;"
+                echo "=== clover.xml size and summary ==="
+                wc -c tests/logs/clover.xml
                 head -10 tests/logs/clover.xml
+                if [ ! -s tests/logs/clover.xml ]; then
+                  echo "Error: clover.xml is empty — coverage was not generated"
+                  exit 1
+                fi
 
             - name: Upload code coverage report
               if: ${{ matrix.php == '8.3' && matrix.wp == 'latest' && hashFiles('tests/logs/clover.xml') != '' }}
