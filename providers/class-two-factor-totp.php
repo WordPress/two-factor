@@ -70,7 +70,7 @@ class Two_Factor_Totp extends Two_Factor_Provider {
 	 * @return int
 	 */
 	private static function time() {
-		return self::$now ?: time();
+		return self::$now ? self::$now : time();
 	}
 
 	/**
@@ -428,7 +428,7 @@ class Two_Factor_Totp extends Two_Factor_Provider {
 				'two-factor-totp-qrcode',
 				'twoFactorTotpQrcode',
 				array(
-					'totpUrl'    => $totp_url,
+					'totpUrl'     => $totp_url,
 					'qrCodeLabel' => __( 'Authenticator App QR Code', 'two-factor' ),
 				)
 			);
@@ -806,18 +806,18 @@ class Two_Factor_Totp extends Two_Factor_Provider {
 	 *
 	 * @since 0.2.0
 	 *
-	 * @param string $string String to be encoded using base32.
+	 * @param string $input String to be encoded using base32.
 	 *
 	 * @return string base32 encoded string without padding.
 	 */
-	public static function base32_encode( $string ) {
-		if ( empty( $string ) ) {
+	public static function base32_encode( $input ) {
+		if ( empty( $input ) ) {
 			return '';
 		}
 
 		$binary_string = '';
 
-		foreach ( str_split( $string ) as $character ) {
+		foreach ( str_split( $input ) as $character ) {
 			$binary_string .= str_pad( base_convert( ord( $character ), 10, 2 ), 8, '0', STR_PAD_LEFT );
 		}
 

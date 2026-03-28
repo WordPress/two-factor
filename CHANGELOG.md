@@ -2,6 +2,39 @@
 
 All notable changes to this project will be documented in this file, per [the Keep a Changelog standard](http://keepachangelog.com/), and will adhere to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.16.0] - 2026-03-27
+
+### Breaking Changes
+
+- Remove legacy FIDO U2F provider support by [#439](https://github.com/WordPress/two-factor/pull/439).
+
+### New Features
+
+- Add a dedicated settings page for plugin configuration in wp-admin by [#764](https://github.com/WordPress/two-factor/pull/764).
+- Add a new support links filter so consumers can customize contextual recovery/help links by [#615](https://github.com/WordPress/two-factor/pull/615).
+- Refresh backup codes UI styling and behavior by [#804](https://github.com/WordPress/two-factor/pull/804).
+
+### Bug Fixes
+
+- Delete stored TOTP secrets when the TOTP provider is disabled by [#802](https://github.com/WordPress/two-factor/pull/802).
+- Harden provider handling so login/settings checks do not fail open when expected providers disappear by [#586](https://github.com/WordPress/two-factor/pull/586).
+- Ensure only configured providers are saved and enabled in user settings by [#798](https://github.com/WordPress/two-factor/pull/798).
+- Improve settings-page accessibility and fix profile settings link behavior by [#828](https://github.com/WordPress/two-factor/pull/828) and [#830](https://github.com/WordPress/two-factor/pull/830).
+- Resolve PHPCS violations in provider files by [#851](https://github.com/WordPress/two-factor/pull/851).
+
+### Development Updates
+
+- Move login styles and provider scripts from inline output to enqueued/external assets by [#807](https://github.com/WordPress/two-factor/pull/807) and [#814](https://github.com/WordPress/two-factor/pull/814).
+- Improve inline docs and static-analysis compatibility (WPCS/phpstan) by [#810](https://github.com/WordPress/two-factor/pull/810), [#815](https://github.com/WordPress/two-factor/pull/815), and [#817](https://github.com/WordPress/two-factor/pull/817).
+- Improve unit test reliability and integrate CI code coverage reporting by [#825](https://github.com/WordPress/two-factor/pull/825), [#841](https://github.com/WordPress/two-factor/pull/841), and [#842](https://github.com/WordPress/two-factor/pull/842).
+- Update readme docs and modernize CI workflow infrastructure by [#835](https://github.com/WordPress/two-factor/pull/835), [#837](https://github.com/WordPress/two-factor/pull/837), [#843](https://github.com/WordPress/two-factor/pull/843), and [#849](https://github.com/WordPress/two-factor/pull/849).
+
+### Dependency Updates
+
+- Bump `qs` from 6.14.1 to 6.14.2 by [#794](https://github.com/WordPress/two-factor/pull/794).
+- Bump `basic-ftp` from 5.0.5 to 5.2.0 by [#816](https://github.com/WordPress/two-factor/pull/816).
+- Apply automatic lint/format updates and associated Composer package refreshes by [#799](https://github.com/WordPress/two-factor/pull/799).
+
 ## [0.15.0] - 2026-02-13
 
 ### Breaking Changes
@@ -60,10 +93,13 @@ All notable changes to this project will be documented in this file, per [the Ke
 - Bump webpack from 5.101.3 to 5.105.0 by @dependabot[bot] in [#780](https://github.com/WordPress/two-factor/pull/780)
 
 ## [0.14.2] - 2025-12-11
+
 ### New Features
+
 - Add filter for rest_api_can_edit_user_and_update_two_factor_options by @gutobenn in #689
 
 ### Development Updates
+
 - Remove Coveralls tooling and add inline coverage report by @kasparsd in #717
 - Update blueprint path to pull from main branch instead of a deleted f… by @georgestephanis in #719
 - Fix blueprint and wporg asset deploys by @kasparsd in #734
@@ -75,6 +111,7 @@ All notable changes to this project will be documented in this file, per [the Ke
 - Mark as tested with the latest WP core version by @kasparsd in #730
 
 ## [0.14.1] - 2025-09-05
+
 - Don't URI encode the TOTP url for display. by @dd32 in #711
 - Removed the duplicate Security.md by @slvignesh05 in #712
 - Fixed linting issues by @sudar in #707
@@ -82,27 +119,34 @@ All notable changes to this project will be documented in this file, per [the Ke
 - Trigger checkbox js change event by @gedeminas in #688
 
 ## [0.14.0] - 2025-07-03
+
 ### Features
+
 - Enable Application Passwords for REST API and XML-RPC authentication (by default) by @joostdekeijzer in #697 and #698. Previously this required two_factor_user_api_login_enable filter to be set to true which is now the default during application password auth. XML-RPC login is still disabled for regular user passwords.
 - Label recommended methods to simplify the configuration by @kasparsd in #676 and #675
 
 ### Documentation
+
 - Add WP.org plugin demo by @kasparsd in #667
 - Document supported versions of WP core and PHP by @jeffpaul in #695
 - Document the release process by @jeffpaul in #684
 
 ### Tooling
+
 - Remove duplicate WP.org screenshots and graphics from SVN trunk by @jeffpaul in #683
 
 ## [0.13.0] - 2025-04-02
+
 - Add two_factor_providers_for_user filter to limit two-factor providers available to each user by @kasparsd in #669
 - Update automated testing to cover PHP 8.4 and default to PHP 8.3 by @BrookeDot in #665
 
 ## [0.12.0] - 2025-02-14
+
 - Simplify the Two Factor settings in user profile by @kasparsd in #654
 - Fix PHP 8.4 Implicitly marking parameter $previous as nullable is deprecated by @BrookeDot in #664
 
 ## [0.11.0] - 2025-01-09
+
 - Remove duplicate two_factor_providers filter calls to allow disabling core providers by @kasparsd in #651
 - Encourage setting up a second recovery method by @kasparsd in #642
 - Focus in code input when totp is checked by @thrijith in #645
@@ -111,6 +155,7 @@ All notable changes to this project will be documented in this file, per [the Ke
 - Enable TOTP method when method is configured by @kasparsd in #643
 
 ## [0.10.0] - 2024-12-02
+
 - Bump minimum WP to 6.3, minimum PHP to 7.2. by @dd32 in #625
 - Rely on just-in-time translation loading by @swissspidy in #608
 - Update/headers by @jeffpaul in #610
@@ -135,10 +180,12 @@ All notable changes to this project will be documented in this file, per [the Ke
 - Bump symfony/process from 5.4.40 to 5.4.46 by @dependabot in #649
 
 ## [0.9.1] - 2024-04-25
+
 - Remove trailing commas in parameters to avoid syntax error with some PHP versions (ex. 7.2.x) by @KZeni in #604
 - Ensure PHP 5.6+ support during CI to avoid breaking changes by @kasparsd in #605
 
 ## [0.9.0] - 2024-04-25
+
 - Users are now asked to re-authenticate with their two-factor before making changes to their two-factor settings #529. This builds on #528 which associates each login session with the two-factor login meta data for improved handling of that session.
 - Fix typo by @pkevan in #551
 - Add a filter to filter the classname used for a provider by @dd32 in #546
@@ -162,15 +209,18 @@ All notable changes to this project will be documented in this file, per [the Ke
 - Bump word-wrap from 1.2.3 to 1.2.4 by @dependabot in #582
 
 ## [0.8.2] - 2023-09-04
+
 - Improved error handling in WP_Two_Factor_Email::generate_code() by ensuring $user_id is a valid WP_User object. Props @apokalyptique. See #560.
 - Fixed a bug that could cause a fatal error when using non-object values in wp_get_current_user() by adding type checks. Props @apokalyptique. See #561.
 - Fixed "Call to a member function is_locked()" fatal by checking if $provider is an object before method access. Props @apokalyptique. See #578.
 - Prevented Call to a member function exists() fatal error by verifying $provider is an object before invoking method calls. Props @apokalyptique. See #552.
 
 ## [0.8.1] - 2023-03-27
+
 - Remove unnecessary comma to fix fatal error on PHP 7.2 #547
 
 ## [0.8.0] - 2023-03-27
+
 - Reduce the login nonce expiration from 60 minutes to 10 minutes by default, and include user ID in the login nonce to make them unique #473.
 - Replace QR generation for TOTP secrets with local Javascript tooling instead of Google Charts API #487 and #495.
 - Fix Backup code download with quotes in translations #494.
@@ -185,6 +235,7 @@ All notable changes to this project will be documented in this file, per [the Ke
 - Standardise on int|WP_User input to the "for user" functions #535.
 
 ## [0.7.3] - 2022-10-17
+
 - Make wp_login_failed action call compatible with the WP core argument count and types. Reported in #471 by @dziudek and fixed in #478 by @dd32.
 - Use hash_equals() for nonce comparison to improve security. Reported in #458 and fixed in #458 by @calvinalkan.
 - Improve compatibility with PHP 8.1 by replacing all instances of FILTER_SANITIZE_STRING usage. Reported and fixed in #428 by @sjinks.
@@ -193,16 +244,19 @@ All notable changes to this project will be documented in this file, per [the Ke
 - Improve TOTP autocomplete behaviour by setting the autocomplete attribute to one-time-code. Reported and fixed in #420 by @squaredpx.
 
 ## [0.7.2] - 2022-09-12
+
 - Security improvement: Store the second factor authentication step nonce hashed to prevent leaking it via database read access #453. Props to @calvinalkan for reporting the issue.
 - Fix: Add wp_specialchars_decode() to escape the HTML entity on the Email Subject line (#412), props @nbwpuk.
 - Fix: Use hash_equals() when comparing the email token (#425), props @Mati02K.
 - Tooling: Introduce @wordpress/env for development tooling and move to GitHub actions for CI (#436).
 
 ## [0.7.1] - 2021-09-07
+
 - Update the login_header() and login_footer() methods to match the WP core (see #407), props @cfaria.
 - Mark as compatible with WordPress 5.8.
 
 ## [0.7.0] - 2020-08-26
+
 - Fix: improve time-based one-time (TOTP) autofill when using password managers like 1Password, see #373. Props @omelhus.
 - Fix: allow spaces in email code input and strip them away before processing, see #379. Props @shay1383.
 - Fix: remove references to Google Authenticator app since there are a lot more TOTP authenticators these days, see #367. Props @r-a-y.
@@ -212,11 +266,13 @@ All notable changes to this project will be documented in this file, per [the Ke
 - Add tooling to run PHPUnit tests locally during development, see #355. Props @kasparsd.
 
 ## [0.6.0] - 2020-05-06
+
 - Security fix: escape the U2F key value when doing the key lookup in database during login. Props @mjangda from WordPress VIP. See #351.
 - New feature: invalidate email tokens 15 minutes after they were generated. Use the two_factor_token_ttl filter to override this time-to-live interval. See #352.
 - Document some of the available filters.
 
 ## [0.5.2] - 2020-04-30
+
 - Bugfix: saving standard user profile fields no longer resets the time-based-password key, see #341.
 - Bugfix: remove spaces around authentication codes before verifying them, see #339 (props @paulschreiber).
 - Bugfix: allow admins to configure FIDO U2F keys for other users, see #349.
@@ -226,53 +282,66 @@ All notable changes to this project will be documented in this file, per [the Ke
 - Update the reference article URL in the readme files to account for domain change, see #332 (props @todeveni).
 
 ## [0.5.1] - 2020-02-05
+
 - Security fix: invalidate the session token used for the first password-based authentication, props @aapost0l.
 - Typo fixes in code comments, props @akkspros.
 
 ## [0.5.0] - 2020-01-11
+
 - Add a compatibility layer for Jetpack Secure Sign On to support longer session cookies, see #276. Props @pyronaur.
 - Fix spelling errors in code comments, see #318. Props @akkspros.
 - Add license file, #313. Props @axelsimon.
 - Bump the supported version of PHP to 5.6 to match the WordPress core.
 
 ## [0.4.8] - 2019-12-26
+
 - Mark as tested with WordPress 5.3.
 - Add a screenshot with email code authentication prompt.
 - Update development tooling versions.
 
 ## [0.4.7] - 2019-05-08
+
 - Introduce a two_factor_totp_title filter to allow TOTP title to be changed, see #294 (props @BrookeDot).
 - Mark as tested with WordPress 5.2.
 
 ## [0.4.6] - 2019-04-26
+
 - Add a unique ID for the two-factor options section, see #286 (props @joshbetz).
 - Add usage instructions and plugin screenshots, fixes #272.
 
 ## [0.4.5] - 2019-04-22
+
 - Add the missing two-factor textdomains, see #281 (props @Sonic853).
 - Fix U2F feature detection in Firefox, see #285.
 
 ## [0.4.4] - 2019-04-15
+
 - Add the closing </div> to match the WP core login form structure, see #274 (props @claytoncollie).
 
 ## [0.4.3] - 2019-04-12
+
 - Bump the actual version in the plugin header. That's what you get for deploying on Fridays.
 
 ## [0.4.2] - 2019-04-12
+
 - Developer tooling update, see #277.
 
 ## [0.4.1] - 2019-04-12
-- Redirect to admin_url() instead of $_SERVER['REQUEST_URI'] if $_REQUEST['redirect_to'] is not set, see #276 (props @joshbetz).
+
+- Redirect to `admin_url()` instead of `$_SERVER['REQUEST_URI']` if `$_REQUEST['redirect_to']` is not set, see #276 (props @joshbetz).
 
 ## [0.4.0] - 2019-03-19
+
 - Disable authentication via REST and XML-RPC endpoints for users with any of the two-factor methods enabled, see #271.
 - Mark as tested with WordPress 5.1.
 
 ## [0.3.0] - 2018-11-06
+
 - Mark as tested with WordPress 5.0.
 - Always post the two-factor login form to wp-login.php which runs all the required hooks for processing. Fixes login issues on WP Engine #257 and when a custom login URL is used #256.
 
 ## [0.2.0] - 2018-10-16
+
 - Add developer tools for deploying to WP.org manually.
 
 [0.15.0]: https://github.com/WordPress/two-factor/compare/0.14.1...0.15.0
