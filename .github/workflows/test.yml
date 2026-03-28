@@ -135,6 +135,16 @@ jobs:
                 npm run env run tests-cli --env-cwd=wp-content/plugins/two-factor -- mkdir -p tests/logs
                 npm run test
 
+            - name: Retrieve coverage report from container
+              if: ${{ matrix.php == '8.3' && matrix.wp == 'latest' }}
+              continue-on-error: true
+              run: |
+                mkdir -p tests/logs
+                docker exec \
+                  $(docker ps --filter "name=tests-wordpress" --format "{{.Names}}" | head -1) \
+                  cat /var/www/html/wp-content/plugins/two-factor/tests/logs/clover.xml \
+                  > tests/logs/clover.xml
+
             - name: Upload code coverage report
               if: ${{ matrix.php == '8.3' && matrix.wp == 'latest' }}
               uses: codecov/codecov-action@671740ac38dd9b0130fbe1cec585b89eea48d3de
