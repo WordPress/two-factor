@@ -123,11 +123,9 @@ jobs:
             - name: Composer install
               run: |
                 rm composer.lock || true # We need to install fresh.
-                # On PHP 8+, the composer.json platform override (php: 7.2.24) causes PHPUnit 8.5 to
-                # be installed. PHPUnit 8.5 explicitly refuses to generate code coverage on PHP 8 with
-                # the message "This version of PHPUnit does not support code coverage on PHP 8". Pass
-                # --ignore-platform-req=php so Composer resolves against the actual PHP runtime and
-                # installs PHPUnit 9.6, which supports coverage on PHP 8.x.
+                # The composer.json platform override (php: 7.2.24) installs PHPUnit 8.5, which does
+                # not support code coverage on PHP 8. Use --ignore-platform-req=php on PHP 8+ so
+                # Composer installs PHPUnit 9.6, which supports coverage on PHP 8.x.
                 if [[ "${WP_ENV_PHP_VERSION}" == 8.* ]]; then
                   npm run composer -- install --ignore-platform-req=php
                 else
@@ -142,29 +140,15 @@ jobs:
             - name: Test
               run: |
                 npm run env run tests-cli --env-cwd=wp-content/plugins/two-factor -- mkdir -p tests/logs
-                # For the coverage matrix cell, set XDEBUG_MODE=coverage explicitly via env var
-                # (Xdebug 3 feature) rather than relying on the ini configuration that wp-env
-                # applies to persistent containers — ephemeral wp-env run containers may not
-                # inherit it. Pass --coverage-clover in addition to what phpunit.xml.dist configures
-                # so the clover output is guaranteed regardless of XML config format differences
-                # between PHPUnit versions.
-                if [[ "${{ matrix.php }}" == "8.3" && "${{ matrix.wp }}" == "latest" ]]; then
-                  # Call wp-env directly (not via npm run) to avoid npm re-splitting the argument
-                  # list. env sets XDEBUG_MODE=coverage and execs composer, which resolves phpunit
-                  # from vendor/bin — the same path used by npm run test.
-                  ./node_modules/.bin/wp-env run tests-cli --env-cwd=wp-content/plugins/two-factor \
-                    -- env XDEBUG_MODE=coverage composer test
-                else
-                  npm run test
-                fi
+                npm run test
 
             - name: Retrieve coverage report from container
               if: ${{ matrix.php == '8.3' && matrix.wp == 'latest' }}
               run: |
                 # PHPUnit writes clover.xml into the Docker volume shared between tests-cli and
-                # tests-wordpress. We use docker cp (not 'docker exec cat > file') because docker cp
-                # is an atomic Docker API call that avoids a shell redirect pre-truncating the
-                # destination — which would zero-out the file before cat can read it.
+                # tests-wordpress. Use docker cp (not 'docker exec cat > file'): docker cp is an
+                # atomic API call that avoids a shell redirect pre-truncating the destination file,
+                # which would zero it out before cat can read it (self-overwrite).
                 CONTAINER=$(docker ps --filter "name=tests-wordpress" --format "{{.Names}}" | head -1)
                 if [ -z "$CONTAINER" ]; then
                   echo "Error: tests-wordpress container not found"
@@ -172,11 +156,6 @@ jobs:
                 fi
                 mkdir -p tests/logs
                 docker cp "$CONTAINER:/var/www/html/wp-content/plugins/two-factor/tests/logs/clover.xml" tests/logs/clover.xml
-                echo "=== xdebug mode in tests-wordpress ==="
-                docker exec "$CONTAINER" php -r "echo ini_get('xdebug.mode') . PHP_EOL;"
-                echo "=== clover.xml size and first 10 lines ==="
-                wc -c tests/logs/clover.xml
-                head -10 tests/logs/clover.xml
                 if [ ! -s tests/logs/clover.xml ]; then
                   echo "Error: clover.xml is empty — coverage was not generated"
                   exit 1
