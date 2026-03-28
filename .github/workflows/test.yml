@@ -66,6 +66,7 @@ jobs:
         name: Test PHP ${{ matrix.php }} ${{ matrix.wp != '' && format( ' (WP {0}) ', matrix.wp ) || '' }}
         runs-on: ubuntu-24.04
         permissions:
+            contents: read
             id-token: write
         strategy:
             matrix:
@@ -130,7 +131,9 @@ jobs:
                 npm run env run cli wp core version
 
             - name: Test
-              run: npm run test
+              run: |
+                mkdir -p tests/logs
+                npm run test
 
             - name: Upload code coverage report
               if: ${{ matrix.php == '8.3' && matrix.wp == 'latest' }}
