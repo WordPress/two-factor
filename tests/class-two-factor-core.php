@@ -645,6 +645,56 @@ class Test_ClassTwoFactorCore extends WP_UnitTestCase {
 	}
 
 	/**
+	 * Test that email resend requests are blocked while rate limited.
+	 *
+	 * @covers Two_Factor_Core::process_provider()
+	 */
+	public function test_process_provider_blocks_email_resend_while_rate_limited() {
+		$user     = $this->get_dummy_user( array( 'Two_Factor_Email' => 'Two_Factor_Email' ) );
+		$provider = Two_Factor_Email::get_instance();
+
+		$provider->generate_token( $user->ID );
+		$original_token = $provider->get_user_token( $user->ID );
+
+		update_user_meta( $user->ID, Two_Factor_Core::USER_FAILED_LOGIN_ATTEMPTS_KEY, 1 );
+		update_user_meta( $user->ID, Two_Factor_Core::USER_RATE_LIMIT_KEY, time() );
+
+		$_REQUEST[ Two_Factor_Email::INPUT_NAME_RESEND_CODE ] = 1;
+
+		$result = Two_Factor_Core::process_provider( $provider, $user, true );
+
+		unset( $_REQUEST[ Two_Factor_Email::INPUT_NAME_RESEND_CODE ] );
+
+		$this->assertWPError( $result );
+		$this->assertSame( 'two_factor_too_fast', $result->get_error_code() );
+		$this->assertFalse( $provider->get_user_token( $user->ID ), 'Token is invalidated when rate limited' );
+	}
+
+	/**
+	 * Test that rate limiting invalidates the email token on validation attempts.
+	 *
+	 * @covers Two_Factor_Core::process_provider()
+	 */
+	public function test_process_provider_invalidates_email_token_when_rate_limited() {
+		$user     = $this->get_dummy_user( array( 'Two_Factor_Email' => 'Two_Factor_Email' ) );
+		$provider = Two_Factor_Email::get_instance();
+
+		$provider->generate_token( $user->ID );
+
+		$this->assertTrue( $provider->user_has_token( $user->ID ), 'Token exists before rate limiting' );
+
+		// Simulate a rate-limited state.
+		update_user_meta( $user->ID, Two_Factor_Core::USER_FAILED_LOGIN_ATTEMPTS_KEY, 3 );
+		update_user_meta( $user->ID, Two_Factor_Core::USER_RATE_LIMIT_KEY, time() );
+
+		$result = Two_Factor_Core::process_provider( $provider, $user, true );
+
+		$this->assertWPError( $result );
+		$this->assertSame( 'two_factor_too_fast', $result->get_error_code() );
+		$this->assertFalse( $provider->user_has_token( $user->ID ), 'Token is invalidated when rate limited' );
+	}
+
+	/**
 	 * Test that the "invalid login attempts have occurred" login notice works as expected.
 	 *
 	 * @covers Two_Factor_Core::maybe_show_last_login_failure_notice()
