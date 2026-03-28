@@ -2132,7 +2132,9 @@ class Two_Factor_Core {
 			self::add_error(
 				new WP_Error(
 					'two_factor_suggest_backup',
-					__( 'To prevent being locked out of your account, consider enabling a backup method like Recovery Codes in case you lose access to your primary authentication method.', 'two-factor' ),
+					isset( $providers['Two_Factor_Backup_Codes'] )
+						? __( 'To prevent being locked out of your account, consider enabling a backup method like Recovery Codes in case you lose access to your primary authentication method.', 'two-factor' )
+						: __( 'To prevent being locked out of your account, consider enabling an additional two-factor method in case you lose access to your primary authentication method.', 'two-factor' ),
 					array(
 						'type' => 'warning',
 					)
