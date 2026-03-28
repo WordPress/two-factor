@@ -136,7 +136,8 @@ jobs:
               if: ${{ matrix.php == '8.3' && matrix.wp == 'latest' }}
               uses: codecov/codecov-action@671740ac38dd9b0130fbe1cec585b89eea48d3de
               with:
-                file: tests/logs/clover.xml
+                use_oidc: true
+                files: tests/logs/clover.xml
                 flags: phpunit
                 fail_ci_if_error: false
 
