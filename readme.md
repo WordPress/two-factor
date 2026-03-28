@@ -1,18 +1,18 @@
 # Two-Factor
+
 ![Two-Factor](https://github.com/WordPress/two-factor/blob/master/.wordpress-org/banner-1544x500.png)
 
 ![Required PHP Version](https://img.shields.io/wordpress/plugin/required-php/two-factor?label=Requires%20PHP) ![Required WordPress Version](https://img.shields.io/wordpress/plugin/wp-version/two-factor?label=Requires%20WordPress) ![WordPress Tested Up To](https://img.shields.io/wordpress/plugin/tested/two-factor?label=WordPress) [![GPL-2.0-or-later License](https://img.shields.io/github/license/WordPress/two-factor.svg)](https://github.com/WordPress/two-factor/blob/trunk/LICENSE.md?label=License)
 
 ![WordPress.org Rating](https://img.shields.io/wordpress/plugin/rating/two-factor?label=WP.org%20Rating) ![WordPress Plugin Downloads](https://img.shields.io/wordpress/plugin/dt/two-factor?label=WP.org%20Downloads) ![WordPress Plugin Active Installs](https://img.shields.io/wordpress/plugin/installs/two-factor?label=WP.org%20Active%20Installs) [![WordPress Playground Demo](https://img.shields.io/wordpress/plugin/v/two-factor?logo=wordpress&logoColor=FFFFFF&label=Live%20Demo&labelColor=3858E9&color=3858E9)](https://playground.wordpress.net/?blueprint-url=https://raw.githubusercontent.com/WordPress/two-factor/master/.wordpress-org/blueprints/blueprint.json)
 
-[![Test](https://github.com/WordPress/two-factor/actions/workflows/test.yml/badge.svg)](https://github.com/WordPress/two-factor/actions/workflows/test.yml) [![Deploy](https://github.com/WordPress/two-factor/actions/workflows/deploy.yml/badge.svg)](https://github.com/WordPress/two-factor/actions/workflows/deploy.yml)
+[![Test](https://github.com/WordPress/two-factor/actions/workflows/test.yml/badge.svg)](https://github.com/WordPress/two-factor/actions/workflows/test.yml) [![Deploy](https://github.com/WordPress/two-factor/actions/workflows/deploy.yml/badge.svg)](https://github.com/WordPress/two-factor/actions/workflows/deploy.yml) [![codecov](https://codecov.io/gh/WordPress/two-factor/graph/badge.svg)](https://codecov.io/gh/WordPress/two-factor)
 
 > Two-Factor plugin for WordPress. [View on WordPress.org →](https://wordpress.org/plugins/two-factor/)
 
 ## Description
 
 The Two-Factor plugin adds an extra layer of security to your WordPress login by requiring users to provide a second form of authentication in addition to their password. This helps protect against unauthorized access even if passwords are compromised.
-
 
 ## Usage
 
@@ -41,13 +41,13 @@ When you're ready, open [a pull request](https://help.github.com/articles/creati
 1. Run `npm test` or `npm run test:watch`.
 
 To generate a code coverage report, be sure to start the testing environment with coverage support enabled:
-    npm run env start -- --xdebug=coverage
+npm run env start -- --xdebug=coverage
 
 To view the code coverage report, you can open a web browser, go to `File > Open file...`, and then select `{path to two-factor}/tests/logs/html/index.html`.
 
 ## Deployments
 
-Deployments [to WP.org plugin repository](https://wordpress.org/plugins/two-factor/) are handled automatically by the GitHub action [.github/workflows/deploy.yml](.github/workflows/deploy.yml). All merges to the `master` branch are committed to the [`trunk` directory](https://plugins.trac.wordpress.org/browser/two-factor/trunk) while all [Git tags](https://github.com/WordPress/two-factor/tags) are pushed as versioned releases [under the `tags` directory](https://plugins.trac.wordpress.org/browser/two-factor/tags).
+Deployments [to WP.org plugin repository](https://wordpress.org/plugins/two-factor/) are handled automatically by the GitHub action [.github/workflows/deploy.yml](.github/workflows/deploy.yml). Versioned releases are deployed from [Git tags](https://github.com/WordPress/two-factor/tags) [under the `tags` directory](https://plugins.trac.wordpress.org/browser/two-factor/tags). See the workflow for current branch/release conditions used for readme and asset updates.
 
 [View release documentation →](RELEASING.md)
 

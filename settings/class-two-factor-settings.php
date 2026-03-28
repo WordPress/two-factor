@@ -72,7 +72,7 @@ class Two_Factor_Settings {
 
 		// Default to all providers enabled when the option has never been saved.
 		$all_provider_keys = array_keys( $provider_instances );
-		$saved_enabled = get_option( 'two_factor_enabled_providers', $all_provider_keys );
+		$saved_enabled     = get_option( 'two_factor_enabled_providers', $all_provider_keys );
 
 		echo '<div class="wrap two-factor-settings">';
 		echo '<h1>' . esc_html__( 'Two-Factor Settings', 'two-factor' ) . '</h1>';
@@ -139,5 +139,4 @@ class Two_Factor_Settings {
 
 		echo '</div>';
 	}
-
 }

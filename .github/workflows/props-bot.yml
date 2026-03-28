@@ -71,7 +71,7 @@ jobs:
 
     steps:
       - name: Gather a list of contributors
-        uses: WordPress/props-bot-action@992186595bc18334988a431c317237c48b7711a5 # v1.0.0
+        uses: WordPress/props-bot-action@635b2c5330167e194cd7b2c8a909991592a5022d # Post-v1.0.0: skips copilot and other bot accounts
         with:
           format: 'git'
 
