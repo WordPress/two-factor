@@ -132,32 +132,45 @@ jobs:
 
             - name: Test
               run: |
+                # Create tests/logs inside the container (uid=1000) so PHPUnit can write coverage
+                # reports to the shared Docker volume. The host runner (uid=1001) cannot create a
+                # writable directory here due to the UID mismatch with the container user.
                 npm run env run tests-cli --env-cwd=wp-content/plugins/two-factor -- mkdir -p tests/logs
                 npm run test
 
             - name: Retrieve coverage report from container
               if: ${{ matrix.php == '8.3' && matrix.wp == 'latest' }}
-              continue-on-error: true
               run: |
+                # PHPUnit writes clover.xml inside the tests-wordpress Docker volume. We use
+                # docker exec (not wp-env run) because wp-env run creates a new ephemeral container
+                # that does not share the named volume state where PHPUnit wrote its output.
+                # The tests-wordpress container shares the volume and is guaranteed to be running.
+                CONTAINER=$(docker ps --filter "name=tests-wordpress" --format "{{.Names}}" | head -1)
+                if [ -z "$CONTAINER" ]; then
+                  echo "Error: tests-wordpress container not found"
+                  exit 1
+                fi
                 mkdir -p tests/logs
-                docker exec \
-                  $(docker ps --filter "name=tests-wordpress" --format "{{.Names}}" | head -1) \
+                docker exec "$CONTAINER" \
                   cat /var/www/html/wp-content/plugins/two-factor/tests/logs/clover.xml \
                   > tests/logs/clover.xml
+                if [ ! -s tests/logs/clover.xml ]; then
+                  echo "Error: clover.xml is empty or was not retrieved"
+                  exit 1
+                fi
+                echo "Coverage report retrieved: $(wc -c < tests/logs/clover.xml) bytes"
 
             - name: Debug coverage report
               if: ${{ matrix.php == '8.3' && matrix.wp == 'latest' }}
               continue-on-error: true
               run: |
-                echo "=== clover.xml file size ==="
-                wc -c tests/logs/clover.xml || echo "File not found"
                 echo "=== clover.xml first 30 lines ==="
-                head -30 tests/logs/clover.xml || echo "Cannot read file"
+                head -30 tests/logs/clover.xml
                 echo "=== xdebug mode in tests-cli ==="
                 npm run env run tests-cli -- php -r "echo xdebug_info();" 2>&1 | grep -i "mode\|coverage" || echo "xdebug info unavailable"
 
             - name: Upload code coverage report
-              if: ${{ matrix.php == '8.3' && matrix.wp == 'latest' }}
+              if: ${{ matrix.php == '8.3' && matrix.wp == 'latest' && hashFiles('tests/logs/clover.xml') != '' }}
               uses: codecov/codecov-action@671740ac38dd9b0130fbe1cec585b89eea48d3de
               with:
                 use_oidc: true
