@@ -149,8 +149,11 @@ jobs:
                 # so the clover output is guaranteed regardless of XML config format differences
                 # between PHPUnit versions.
                 if [[ "${{ matrix.php }}" == "8.3" && "${{ matrix.wp }}" == "latest" ]]; then
-                  npm run env run tests-cli --env-cwd=wp-content/plugins/two-factor -- \
-                    sh -c 'XDEBUG_MODE=coverage vendor/bin/phpunit --coverage-text --coverage-clover tests/logs/clover.xml'
+                  # Call wp-env directly (not via npm run) to avoid npm re-splitting the argument
+                  # list. env sets XDEBUG_MODE=coverage and execs composer, which resolves phpunit
+                  # from vendor/bin — the same path used by npm run test.
+                  ./node_modules/.bin/wp-env run tests-cli --env-cwd=wp-content/plugins/two-factor \
+                    -- env XDEBUG_MODE=coverage composer test
                 else
                   npm run test
                 fi
