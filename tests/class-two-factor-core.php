@@ -654,7 +654,6 @@ class Test_ClassTwoFactorCore extends WP_UnitTestCase {
 		$provider = Two_Factor_Email::get_instance();
 
 		$provider->generate_token( $user->ID );
-		$original_token = $provider->get_user_token( $user->ID );
 
 		update_user_meta( $user->ID, Two_Factor_Core::USER_FAILED_LOGIN_ATTEMPTS_KEY, 1 );
 		update_user_meta( $user->ID, Two_Factor_Core::USER_RATE_LIMIT_KEY, time() );
