@@ -1,11 +1,13 @@
 name: PR Playground Preview
 
 on:
-  pull_request:
-    types: [ 'opened', 'synchronize', 'reopened' ]
+  workflow_run:
+    workflows: ["Test"]  # replace with whatever your main CI workflow is called
+    types:
+      - completed
 
 concurrency:
-  group: ${{ github.workflow }}-${{ github.head_ref }}
+  group: ${{ github.workflow }}-${{ github.event.workflow_run.head_branch }}
   cancel-in-progress: true
 
 permissions: {}
@@ -14,10 +16,28 @@ jobs:
   playground-preview:
     name: Add Playground preview to PR
     runs-on: ubuntu-24.04
+    if: >
+      github.event.workflow_run.event == 'pull_request' &&
+      github.event.workflow_run.conclusion == 'success'
     permissions:
       pull-requests: write
 
     steps:
+      - name: Get PR number
+        id: pr
+        uses: actions/github-script@ed597411d8f924073f98dfc5c65a23a2325f34cd # v8.0.0
+        with:
+          script: |
+            const prs = await github.rest.pulls.list({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              head: `${context.payload.workflow_run.head_repository.owner.login}:${context.payload.workflow_run.head_branch}`,
+              state: 'open',
+            });
+            if (!prs.data.length) throw new Error('No open PR found for this branch');
+            core.setOutput('number', prs.data[0].number);
+            core.setOutput('ref', context.payload.workflow_run.head_branch);
+
       - name: Generate Playground blueprint JSON
         id: blueprint
         run: |
@@ -35,7 +55,7 @@ jobs:
                 pluginZipFile: {
                   resource: 'git:directory',
                   url: 'https://github.com/${{ github.repository }}',
-                  ref: '${{ github.head_ref }}',
+                  ref: '${{ steps.pr.outputs.ref }}',
                   path: '/',
                 },
               },
@@ -53,5 +73,5 @@ jobs:
         with:
           mode: append-to-description
           blueprint: ${{ steps.blueprint.outputs.blueprint }}
-          pr-number: ${{ github.event.pull_request.number }}
+          pr-number: ${{ steps.pr.outputs.number }}
           github-token: ${{ secrets.GITHUB_TOKEN }}
