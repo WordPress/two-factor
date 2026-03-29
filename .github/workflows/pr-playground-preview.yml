@@ -2,7 +2,7 @@ name: PR Playground Preview
 
 on:
   workflow_run:
-    workflows: ["Test"]  # replace with whatever your main CI workflow is called
+    workflows: ["Test"]
     types:
       - completed
 
@@ -20,6 +20,7 @@ jobs:
       github.event.workflow_run.event == 'pull_request' &&
       github.event.workflow_run.conclusion == 'success'
     permissions:
+      contents: read
       pull-requests: write
 
     steps:
@@ -36,42 +37,11 @@ jobs:
             });
             if (!prs.data.length) throw new Error('No open PR found for this branch');
             core.setOutput('number', prs.data[0].number);
-            core.setOutput('ref', context.payload.workflow_run.head_branch);
-
-      - name: Generate Playground blueprint JSON
-        id: blueprint
-        run: |
-          node - <<'NODE' >> "$GITHUB_OUTPUT"
-          const blueprint = {
-            "$schema": "https://playground.wordpress.net/blueprint-schema.json",
-            landingPage: '/wp-admin/profile.php#two-factor-options',
-            preferredVersions: {
-              php: '7.4',
-              wp: 'latest',
-            },
-            steps: [
-              {
-                step: 'installPlugin',
-                pluginZipFile: {
-                  resource: 'git:directory',
-                  url: 'https://github.com/${{ github.repository }}',
-                  ref: '${{ steps.pr.outputs.ref }}',
-                  path: '/',
-                },
-              },
-              {
-                step: 'login',
-                username: 'admin',
-              },
-            ],
-          };
-          console.log(`blueprint=${JSON.stringify(blueprint)}`);
-          NODE
 
       - name: Post Playground preview button
         uses: WordPress/action-wp-playground-pr-preview@c8607529dac8d2bf9a1e8493865fc97cd1c3c87b # v2
         with:
           mode: append-to-description
-          blueprint: ${{ steps.blueprint.outputs.blueprint }}
+          plugin-path: .
           pr-number: ${{ steps.pr.outputs.number }}
           github-token: ${{ secrets.GITHUB_TOKEN }}
