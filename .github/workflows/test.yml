@@ -142,25 +142,6 @@ jobs:
                 npm run env run tests-cli --env-cwd=wp-content/plugins/two-factor -- mkdir -p tests/logs
                 npm run test
 
-            - name: Retrieve coverage report from container
-              if: ${{ matrix.php == '8.3' && matrix.wp == 'latest' }}
-              run: |
-                # PHPUnit writes clover.xml into the Docker volume shared between tests-cli and
-                # tests-wordpress. Use docker cp (not 'docker exec cat > file'): docker cp is an
-                # atomic API call that avoids a shell redirect pre-truncating the destination file,
-                # which would zero it out before cat can read it (self-overwrite).
-                CONTAINER=$(docker ps --filter "name=tests-wordpress" --format "{{.Names}}" | head -1)
-                if [ -z "$CONTAINER" ]; then
-                  echo "Error: tests-wordpress container not found"
-                  exit 1
-                fi
-                mkdir -p tests/logs
-                docker cp "$CONTAINER:/var/www/html/wp-content/plugins/two-factor/tests/logs/clover.xml" tests/logs/clover.xml
-                if [ ! -s tests/logs/clover.xml ]; then
-                  echo "Error: clover.xml is empty — coverage was not generated"
-                  exit 1
-                fi
-
             - name: Upload code coverage report
               if: ${{ matrix.php == '8.3' && matrix.wp == 'latest' && hashFiles('tests/logs/clover.xml') != '' }}
               uses: codecov/codecov-action@671740ac38dd9b0130fbe1cec585b89eea48d3de
