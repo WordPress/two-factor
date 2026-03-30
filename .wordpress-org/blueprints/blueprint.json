@@ -2,19 +2,17 @@
 	"$schema": "https://playground.wordpress.net/blueprint-schema.json",
 	"landingPage": "/wp-admin/profile.php#two-factor-options",
 	"preferredVersions": {
-		"php": "7.4",
+		"php": "8.2",
 		"wp": "latest"
 	},
+	"login": true,
 	"plugins": [
-		{
-			"resource": "wordpress.org/plugins",
-			"slug": "two-factor"
-		}
+		"two-factor"
 	],
 	"steps": [
 		{
-			"step": "login",
-			"username": "admin"
+			"step": "activatePlugin",
+			"pluginPath": "two-factor/two-factor.php"
 		}
 	]
 }
