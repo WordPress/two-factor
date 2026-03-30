@@ -15,16 +15,16 @@ jobs:
     runs-on: ubuntu-24.04
     steps:
       - name: Checkout
-        uses: actions/checkout@v3
+        uses: actions/checkout@1af3b93b6815bc44a9784bd300feb67ff0d1eeb3 # v6.0.0
 
       - name: Setup Node
-        uses: actions/setup-node@v3
+        uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444 # v5.0.0
         with:
           cache: 'npm'
           node-version-file: '.nvmrc'
 
       - name: Setup PHP and Composer
-        uses: shivammathur/setup-php@v2
+        uses: shivammathur/setup-php@accd6127cb78bee3e8082180cb391013d204ef9f # v2.37.0
         with:
           php-version: '5.6'
           tools: composer:v2
@@ -36,7 +36,7 @@ jobs:
         run: npm run build
 
       - name: WordPress.org asset and readme update
-        uses: 10up/action-wordpress-plugin-asset-update@stable
+        uses: 10up/action-wordpress-plugin-asset-update@2480306f6f693672726d08b5917ea114cb2825f7 # v2.2.0
         if: github.ref_name == 'trunk'
         env:
           # Note: this action doesn't support BUILD_DIR so it pushes the raw readme.txt
@@ -46,7 +46,7 @@ jobs:
 
       - name: WordPress.org deploy
         id: deploy
-        uses: 10up/action-wordpress-plugin-deploy@stable
+        uses: 10up/action-wordpress-plugin-deploy@54bd289b8525fd23a5c365ec369185f2966529c2 # v2.3.0
         if: startsWith( github.ref, 'refs/tags/' )
         with:
           generate-zip: true
@@ -57,7 +57,7 @@ jobs:
 
 
       - name: Upload release asset
-        uses: softprops/action-gh-release@v2
+        uses: softprops/action-gh-release@153bb8e04406b158c6c84fc1615b65b24149a1fe # v2.6.1
         if: startsWith( github.ref, 'refs/tags/' )
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

@@ -67,6 +67,8 @@ abstract class Two_Factor_Provider {
 	 * Prints the name of the provider.
 	 *
 	 * @since 0.1-dev
+	 *
+	 * @codeCoverageIgnore
 	 */
 	public function print_label() {
 		echo esc_html( $this->get_label() );

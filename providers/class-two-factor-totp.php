@@ -70,7 +70,7 @@ class Two_Factor_Totp extends Two_Factor_Provider {
 	 * @return int
 	 */
 	private static function time() {
-		return self::$now ?: time();
+		return self::$now ? self::$now : time();
 	}
 
 	/**
@@ -174,6 +174,22 @@ class Two_Factor_Totp extends Two_Factor_Provider {
 			'two-factor-qr-code-generator',
 			plugins_url( $environment_prefix . '/includes/qrcode-generator/qrcode.js', __DIR__ ),
 			array(),
+			TWO_FACTOR_VERSION,
+			true
+		);
+
+		wp_register_script(
+			'two-factor-totp-qrcode',
+			plugins_url( 'js/totp-admin-qrcode.js', __FILE__ ),
+			array( 'two-factor-qr-code-generator' ),
+			TWO_FACTOR_VERSION,
+			true
+		);
+
+		wp_register_script(
+			'two-factor-totp-admin',
+			plugins_url( 'js/totp-admin.js', __FILE__ ),
+			array( 'jquery', 'wp-api-request', 'two-factor-qr-code-generator' ),
 			TWO_FACTOR_VERSION,
 			true
 		);
@@ -332,9 +348,16 @@ class Two_Factor_Totp extends Two_Factor_Provider {
 
 		$key = $this->get_user_totp_key( $user->ID );
 
-		wp_enqueue_script( 'two-factor-qr-code-generator' );
-		wp_enqueue_script( 'wp-api-request' );
-		wp_enqueue_script( 'jquery' );
+		wp_localize_script(
+			'two-factor-totp-admin',
+			'twoFactorTotpAdmin',
+			array(
+				'restPath'        => Two_Factor_Core::REST_NAMESPACE . '/totp',
+				'userId'          => $user->ID,
+				'qrCodeAriaLabel' => __( 'Authenticator App QR Code', 'two-factor' ),
+			)
+		);
+		wp_enqueue_script( 'two-factor-totp-admin' );
 
 		?>
 		<div id="two-factor-totp-options">
@@ -400,80 +423,17 @@ class Two_Factor_Totp extends Two_Factor_Provider {
 					</p>
 				</li>
 			</ol>
-			<script>
-				(function(){
-					var qr_generator = function() {
-						/*
-						* 0 = Automatically select the version, to avoid going over the limit of URL
-						*     length.
-						* L = Least amount of error correction, because it's not needed when scanning
-						*     on a monitor, and it lowers the image size.
-						*/
-						var qr = qrcode( 0, 'L' );
-
-						qr.addData( <?php echo wp_json_encode( $totp_url ); ?> );
-						qr.make();
-
-						document.querySelector( '#two-factor-qr-code a' ).innerHTML = qr.createSvgTag( 5 );
-
-						// For accessibility, markup the SVG with a title and role.
-						var svg = document.querySelector( '#two-factor-qr-code a svg' ),
-							title = document.createElement( 'title' );
-
-						svg.role = 'image';
-						svg.ariaLabel = <?php echo wp_json_encode( __( 'Authenticator App QR Code', 'two-factor' ) ); ?>;
-						title.innerText = svg.ariaLabel;
-						svg.appendChild( title );
-					};
-
-					// Run now if the document is loaded, otherwise on DOMContentLoaded.
-					if ( document.readyState === 'complete' ) {
-						qr_generator();
-					} else {
-						window.addEventListener( 'DOMContentLoaded', qr_generator );
-					}
-				})();
-				(function($){
-					// Focus the auth code input when the checkbox is clicked.
-					document.getElementById('enabled-Two_Factor_Totp').addEventListener('click', function(e) {
-						if ( e.target.checked ) {
-							document.getElementById('two-factor-totp-authcode').focus();
-						}
-					});
-
-					$('.totp-submit').click( function( e ) {
-						e.preventDefault();
-						var key = $('#two-factor-totp-key').val(),
-							code = $('#two-factor-totp-authcode').val();
-
-						wp.apiRequest( {
-							method: 'POST',
-							path: <?php echo wp_json_encode( Two_Factor_Core::REST_NAMESPACE . '/totp' ); ?>,
-							data: {
-								user_id: <?php echo wp_json_encode( $user->ID ); ?>,
-								key: key,
-								code: code,
-								enable_provider: true,
-							}
-						} ).fail( function( response, status ) {
-							var errorMessage = response.responseJSON.message || status,
-								$error = $( '#totp-setup-error' );
-
-							if ( ! $error.length ) {
-								$error = $('<div class="error" id="totp-setup-error"><p></p></div>').insertAfter( $('.totp-submit') );
-							}
-
-							$error.find('p').text( errorMessage );
-
-							$( '#enabled-Two_Factor_Totp' ).prop( 'checked', false ).trigger('change');
-							$('#two-factor-totp-authcode').val('');
-						} ).then( function( response ) {
-							$( '#enabled-Two_Factor_Totp' ).prop( 'checked', true ).trigger('change');
-							$( '#two-factor-totp-options' ).html( response.html );
-						} );
-					} );
-				})(jQuery);
-			</script>
+			<?php
+			wp_localize_script(
+				'two-factor-totp-qrcode',
+				'twoFactorTotpQrcode',
+				array(
+					'totpUrl'     => $totp_url,
+					'qrCodeLabel' => __( 'Authenticator App QR Code', 'two-factor' ),
+				)
+			);
+			wp_enqueue_script( 'two-factor-totp-qrcode' );
+			?>
 		<?php else : ?>
 			<p class="success">
 				<?php esc_html_e( 'An authenticator app is currently configured. You will need to re-scan the QR code on all devices if reset.', 'two-factor' ); ?>
@@ -482,24 +442,6 @@ class Two_Factor_Totp extends Two_Factor_Provider {
 				<button type="button" class="button button-secondary reset-totp-key hide-if-no-js">
 					<?php esc_html_e( 'Reset authenticator app', 'two-factor' ); ?>
 				</button>
-				<script>
-					( function( $ ) {
-						$( '.button.reset-totp-key' ).click( function( e ) {
-							e.preventDefault();
-
-							wp.apiRequest( {
-								method: 'DELETE',
-								path: <?php echo wp_json_encode( Two_Factor_Core::REST_NAMESPACE . '/totp' ); ?>,
-								data: {
-									user_id: <?php echo wp_json_encode( $user->ID ); ?>,
-								}
-							} ).then( function( response ) {
-								$( '#enabled-Two_Factor_Totp' ).prop( 'checked', false );
-								$( '#two-factor-totp-options' ).html( response.html );
-							} );
-						} );
-					} )( jQuery );
-				</script>
 			</p>
 		<?php endif; ?>
 		</div>
@@ -853,16 +795,9 @@ class Two_Factor_Totp extends Two_Factor_Provider {
 		/** This action is documented in providers/class-two-factor-backup-codes.php */
 		do_action( 'two_factor_after_authentication_input', $this );
 		?>
-		<script>
-			setTimeout( function(){
-				var d;
-				try{
-					d = document.getElementById('authcode');
-					d.focus();
-				} catch(e){}
-			}, 200);
-		</script>
 		<?php
+		wp_enqueue_script( 'two-factor-login' );
+
 		submit_button( __( 'Verify', 'two-factor' ) );
 	}
 
@@ -871,18 +806,18 @@ class Two_Factor_Totp extends Two_Factor_Provider {
 	 *
 	 * @since 0.2.0
 	 *
-	 * @param string $string String to be encoded using base32.
+	 * @param string $input String to be encoded using base32.
 	 *
 	 * @return string base32 encoded string without padding.
 	 */
-	public static function base32_encode( $string ) {
-		if ( empty( $string ) ) {
+	public static function base32_encode( $input ) {
+		if ( empty( $input ) ) {
 			return '';
 		}
 
 		$binary_string = '';
 
-		foreach ( str_split( $string ) as $character ) {
+		foreach ( str_split( $input ) as $character ) {
 			$binary_string .= str_pad( base_convert( ord( $character ), 10, 2 ), 8, '0', STR_PAD_LEFT );
 		}
 
