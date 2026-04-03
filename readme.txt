@@ -1,8 +1,8 @@
 === Two Factor ===
-Contributors: georgestephanis, valendesigns, stevenkword, extendwings, sgrant, aaroncampbell, johnbillion, stevegrunwell, netweb, kasparsd, alihusnainarshad, passoniate
+Contributors: georgestephanis, kasparsd, masteradhoc, valendesigns, stevenkword, extendwings, sgrant, aaroncampbell, johnbillion, stevegrunwell, netweb, alihusnainarshad, passoniate
 Tags:         2fa, mfa, totp, authentication, security
 Tested up to: 7.0
-Stable tag:   0.15.0
+Stable tag:   0.16.0
 License:      GPL-2.0-or-later
 License URI:  https://spdx.org/licenses/GPL-2.0-or-later.html
 
@@ -14,7 +14,7 @@ The Two-Factor plugin adds an extra layer of security to your WordPress login by
 
 ## Setup Instructions
 
-**Important**: Each user must individually configure their two-factor authentication settings.  There are no site-wide settings for this plugin.
+**Important**: Each user must individually configure their two-factor authentication settings.
 
 ### For Individual Users
 
@@ -31,7 +31,7 @@ The Two-Factor plugin adds an extra layer of security to your WordPress login by
 
 ### For Site Administrators
 
-- **No global settings**: This plugin operates on a per-user basis only. For more, see [GH#249](https://github.com/WordPress/two-factor/issues/249).
+- **Plugin settings**: The plugin provides a settings page under "Settings → Two-Factor" to configure which providers should be disabled site-wide.
 - **User management**: Administrators can configure 2FA for other users by editing their profiles
 - **Security recommendations**: Encourage users to enable backup methods to prevent account lockouts
 
@@ -100,8 +100,16 @@ Here is a list of action and filter hooks provided by the plugin:
 - `two_factor_rest_api_can_edit_user` filter overrides whether a user’s Two-Factor settings can be edited via the REST API. First argument is the current `$can_edit` boolean, the second argument is the user ID.
 - `two_factor_before_authentication_prompt` action which receives the provider object and fires prior to the prompt shown on the authentication input form.
 - `two_factor_after_authentication_prompt` action which receives the provider object and fires after the prompt shown on the authentication input form.
-- `two_factor_after_authentication_input`action which receives the provider object and fires after the input shown on the authentication input form (if form contains no input, action fires immediately after `two_factor_after_authentication_prompt`).
+- `two_factor_after_authentication_input` action which receives the provider object and fires after the input shown on the authentication input form (if form contains no input, action fires immediately after `two_factor_after_authentication_prompt`).
 - `two_factor_login_backup_links` filters the backup links displayed on the two-factor login form.
+
+== Redirect After the Two-Factor Challenge ==
+
+To redirect users to a specific URL after completing the two-factor challenge, use WordPress Core built-in login_redirect filter. The filter works the same way as in a standard WordPress login flow:
+
+    add_filter( 'login_redirect', function( $redirect_to, $requested_redirect_to, $user ) {
+        return home_url( '/dashboard/' );
+    }, 10, 3 );
 
 == Frequently Asked Questions ==
 
@@ -118,10 +126,6 @@ The best place to report bugs, feature suggestions, or any other (non-security) 
 The plugin contributors and WordPress community take security bugs seriously. We appreciate your efforts to responsibly disclose your findings, and will make every effort to acknowledge your contributions.
 
 To report a security issue, please visit the [WordPress HackerOne](https://hackerone.com/wordpress) program.
-
-= Why doesn't this plugin have site-wide settings? =
-
-This plugin is designed to work on a per-user basis, allowing each user to choose their preferred authentication methods. This approach provides maximum flexibility and security. Site administrators can still configure 2FA for other users by editing their profiles. For more information, see [issue #437](https://github.com/WordPress/two-factor/issues/437).
 
 = What if I lose access to all my authentication methods? =
 
@@ -144,6 +148,25 @@ Yes. For passkeys and hardware security keys, you can install the Two-Factor Pro
 4. Backup codes generation and management - Shows the backup codes interface for generating and managing emergency access codes.
 
 == Changelog ==
+
+= 0.16.0 - 2026-03-27 =
+
+* **Breaking Changes:** Remove legacy FIDO U2F provider support by [#439](https://github.com/WordPress/two-factor/pull/439).
+* **New Features:** Add a dedicated settings page for plugin configuration in wp-admin by [#764](https://github.com/WordPress/two-factor/pull/764).
+* **New Features:** Add a support links filter so consumers can customize contextual recovery/help links by [#615](https://github.com/WordPress/two-factor/pull/615).
+* **New Features:** Refresh backup codes UI styling and behavior by [#804](https://github.com/WordPress/two-factor/pull/804).
+* **Bug Fixes:** Delete stored TOTP secrets when the TOTP provider is disabled by [#802](https://github.com/WordPress/two-factor/pull/802).
+* **Bug Fixes:** Harden provider handling so login/settings checks do not fail open when expected providers disappear by [#586](https://github.com/WordPress/two-factor/pull/586).
+* **Bug Fixes:** Ensure only configured providers are saved and enabled in user settings by [#798](https://github.com/WordPress/two-factor/pull/798).
+* **Bug Fixes:** Improve settings-page accessibility and fix profile settings link behavior by [#828](https://github.com/WordPress/two-factor/pull/828) and [#830](https://github.com/WordPress/two-factor/pull/830).
+* **Bug Fixes:** Resolve PHPCS violations in provider files by [#851](https://github.com/WordPress/two-factor/pull/851).
+* **Development Updates:** Move login styles and provider scripts from inline output to enqueued/external assets by [#807](https://github.com/WordPress/two-factor/pull/807) and [#814](https://github.com/WordPress/two-factor/pull/814).
+* **Development Updates:** Improve inline docs and static-analysis compatibility (WPCS/phpstan) by [#810](https://github.com/WordPress/two-factor/pull/810), [#815](https://github.com/WordPress/two-factor/pull/815), and [#817](https://github.com/WordPress/two-factor/pull/817).
+* **Development Updates:** Improve unit test reliability and integrate CI code coverage reporting by [#825](https://github.com/WordPress/two-factor/pull/825), [#841](https://github.com/WordPress/two-factor/pull/841), and [#842](https://github.com/WordPress/two-factor/pull/842).
+* **Development Updates:** Update readme docs and modernize CI workflow infrastructure by [#835](https://github.com/WordPress/two-factor/pull/835), [#837](https://github.com/WordPress/two-factor/pull/837), [#843](https://github.com/WordPress/two-factor/pull/843), and [#849](https://github.com/WordPress/two-factor/pull/849).
+* **Dependency Updates:** Bump `qs` from 6.14.1 to 6.14.2 by [#794](https://github.com/WordPress/two-factor/pull/794).
+* **Dependency Updates:** Bump `basic-ftp` from 5.0.5 to 5.2.0 by [#816](https://github.com/WordPress/two-factor/pull/816).
+* **Dependency Updates:** Apply automatic lint/format updates and associated Composer package refreshes by [#799](https://github.com/WordPress/two-factor/pull/799).
 
 = 0.15.0 - 2026-02-13 =
 
@@ -232,4 +255,5 @@ Bumps WordPress minimum supported version to 6.3 and PHP minimum to 7.2.
 
 = 0.9.0 =
 Users are now asked to re-authenticate with their two-factor before making changes to their two-factor settings. This associates each login session with the two-factor login meta data for improved handling of that session.
+
 
