@@ -136,6 +136,7 @@ class Two_Factor_Core {
 
 		add_action( 'login_enqueue_scripts', array( __CLASS__, 'login_enqueue_scripts' ), 5 );
 		add_action( 'admin_init', array( __CLASS__, 'trigger_user_settings_action' ) );
+		add_action( 'admin_init', array( __CLASS__, 'add_privacy_policy_content' ) );
 		add_filter( 'two_factor_providers', array( __CLASS__, 'enable_dummy_method_for_debug' ) );
 
 		// Add Settings link to plugin action links.
@@ -2595,6 +2596,53 @@ class Two_Factor_Core {
 		}
 
 		return $session;
+	}
+
+	/**
+	 * Adds suggested privacy policy text for the plugin.
+	 *
+	 * @since [version]
+	 */
+	public static function add_privacy_policy_content() {
+		if ( ! function_exists( 'wp_add_privacy_policy_content' ) ) {
+			return;
+		}
+
+		$content =
+			'<p class="privacy-policy-tutorial">'
+			. __( 'The Two Factor plugin stores authentication data for your account on this website to verify your identity at login. No data is transmitted to third parties. The suggested text below covers what is stored, why, and for how long.', 'two-factor' )
+			. '</p>'
+
+			. '<h3>' . __( 'Two-factor authentication data', 'two-factor' ) . '</h3>'
+			. '<p>'
+			. __( 'To protect your account we store the following personal data:', 'two-factor' )
+			. '</p>'
+			. '<ul>'
+			. '<li>' . __( '<strong>TOTP secret key</strong> – a unique cryptographic secret generated when you set up an authenticator app. It is stored encrypted in your user profile.', 'two-factor' ) . '</li>'
+			. '<li>' . __( '<strong>Backup codes</strong> – a set of one-time-use codes you can store offline. Hashed copies are kept in your user profile until they are used or regenerated.', 'two-factor' ) . '</li>'
+			. '<li>' . __( '<strong>Email address</strong> – your account email is used to send a one-time passcode when the email provider is active. The code itself is not stored after the login attempt concludes.', 'two-factor' ) . '</li>'
+			. '<li>' . __( '<strong>Enabled providers list</strong> – a record of which two-factor methods you have activated (e.g. TOTP, email, backup codes) is stored in your user profile.', 'two-factor' ) . '</li>'
+			. '</ul>'
+
+			. '<h3>' . __( 'Who we share your data with', 'two-factor' ) . '</h3>'
+			. '<p>'
+			. __( 'Two-factor authentication data is never shared with or transmitted to any third party. All data remains on this website.', 'two-factor' )
+			. '</p>'
+
+			. '<h3>' . __( 'How long we retain your data', 'two-factor' ) . '</h3>'
+			. '<p>'
+			. __( 'Authentication data (secret keys, backup codes, provider settings) is retained for as long as your user account exists. It is deleted automatically when your account is removed. You can also remove individual two-factor methods at any time from your profile page, which immediately deletes the associated data.', 'two-factor' )
+			. '</p>'
+
+			. '<h3>' . __( 'What rights you have over your data', 'two-factor' ) . '</h3>'
+			. '<p>'
+			. __( 'If you have an account on this site you can request an export of the personal data we hold about you, including all two-factor authentication data. You can also request that we erase any personal data we hold about you. This does not include data we are obliged to keep for administrative, legal, or security purposes.', 'two-factor' )
+			. '</p>';
+
+		wp_add_privacy_policy_content(
+			'Two Factor',
+			wp_kses_post( wpautop( $content, false ) )
+		);
 	}
 }
 
