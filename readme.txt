@@ -12,7 +12,7 @@ Enable Two-Factor Authentication (2FA) using time-based one-time passwords (TOTP
 
 The Two-Factor plugin adds an extra layer of security to your WordPress login by requiring users to provide a second form of authentication in addition to their password.  This helps protect against unauthorized access even if passwords are compromised.
 
-= Setup Instructions =
+### Setup Instructions
 
 **Important**: Each user must individually configure their two-factor authentication settings.
 
@@ -35,7 +35,7 @@ The Two-Factor plugin adds an extra layer of security to your WordPress login by
 - **User management**: Administrators can configure 2FA for other users by editing their profiles
 - **Security recommendations**: Encourage users to enable backup methods to prevent account lockouts
 
-= Available Authentication Methods =
+### Available Authentication Methods
 
 **Authenticator App (TOTP) - Recommended**
 - **Security**: High - Time-based one-time passwords
@@ -64,7 +64,7 @@ The Two-Factor plugin adds an extra layer of security to your WordPress login by
 - **Purpose**: Testing and development only
 - **Best for**: Developers testing the plugin
 
-= Important Notes =
+### Important Notes
 
 **HTTPS Requirement**
 - All methods work on both HTTP and HTTPS sites
@@ -85,7 +85,7 @@ For more information about two-factor authentication in WordPress, see the [Word
 
 For more history, see [this post](https://georgestephanis.wordpress.com/2013/08/14/two-cents-on-two-factor/).
 
-= Actions & Filters =
+### Actions & Filters
 
 Here is a list of action and filter hooks provided by the plugin:
 
@@ -103,7 +103,7 @@ Here is a list of action and filter hooks provided by the plugin:
 - `two_factor_after_authentication_input` action which receives the provider object and fires after the input shown on the authentication input form (if form contains no input, action fires immediately after `two_factor_after_authentication_prompt`).
 - `two_factor_login_backup_links` filters the backup links displayed on the two-factor login form.
 
-= Redirect After the Two-Factor Challenge =
+### Redirect After the Two-Factor Challenge
 
 To redirect users to a specific URL after completing the two-factor challenge, use WordPress Core built-in login_redirect filter. The filter works the same way as in a standard WordPress login flow:
 
