@@ -425,7 +425,7 @@ class Two_Factor_Core {
 	/**
 	 * Attach Two-Factor profile errors to WordPress core profile update errors.
 	 *
-	 * @since NEXT
+	 * @since 0.16.0
 	 *
 	 * @param WP_Error $errors WP_Error object passed by core.
 	 *
@@ -2601,7 +2601,7 @@ class Two_Factor_Core {
 	/**
 	 * Adds suggested privacy policy text for the plugin.
 	 *
-	 * @since [version]
+	 * @since 0.17.0
 	 */
 	public static function add_privacy_policy_content() {
 		if ( ! function_exists( 'wp_add_privacy_policy_content' ) ) {
