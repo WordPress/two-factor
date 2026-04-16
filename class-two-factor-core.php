@@ -2244,7 +2244,13 @@ class Two_Factor_Core {
 
 		?>
 		<p>
-			<?php esc_html_e( 'Configure a primary two-factor method along with a backup method, such as Recovery Codes, to avoid being locked out if you lose access to your primary method. Methods marked as recommended are more secure and easier to use.', 'two-factor' ); ?>
+			<?php
+			echo esc_html(
+				isset( $providers['Two_Factor_Backup_Codes'] )
+					? __( 'Configure a primary two-factor method along with a backup method, such as Recovery Codes, to avoid being locked out if you lose access to your primary method. Methods marked as recommended are more secure and easier to use.', 'two-factor' )
+					: __( 'Configure a primary two-factor method along with an additional two-factor method to avoid being locked out if you lose access to your primary method. Methods marked as recommended are more secure and easier to use.', 'two-factor' )
+			);
+			?>
 		</p>
 
 		<?php if ( function_exists( 'wp_is_application_passwords_available_for_user' ) && wp_is_application_passwords_available_for_user( $user ) ) : ?>
