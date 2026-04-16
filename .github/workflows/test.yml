@@ -80,14 +80,17 @@ jobs:
                 wp:
                   - latest
                   - trunk
-                  - '6.8'
+                  - '6.9'
                 exclude:
                   - php: '7.3'
                     wp: trunk
                   - php: '7.2'
                     wp: trunk
-                  - php: '8.5'
-                    wp: '6.8'
+                  - php: '7.3'
+                    wp: latest
+                  - php: '7.2'
+                    wp: latest
+
         env:
             WP_ENV_PHP_VERSION: ${{ matrix.php }}
             WP_ENV_CORE: ${{ matrix.wp == 'trunk' && 'WordPress/WordPress' || format( 'https://wordpress.org/wordpress-{0}.zip', matrix.wp ) }}
@@ -111,11 +114,11 @@ jobs:
               run: npm install
 
             - name: Start the Docker testing environment
-              uses: nick-fields/retry@ce71cc2ab81d554ebbe88c79ab5975992d79ba08 # v3.0.2
+              uses: nick-fields/retry@ad984534de44a9489a53aefd81eb77f87c70dc60 # v4.0.0
               with:
                 timeout_minutes: 10
                 max_attempts: 3
-                command: npm run env start
+                command: npm run env start -- --xdebug=coverage
 
             - name: Composer install
               run: |
@@ -129,6 +132,14 @@ jobs:
 
             - name: Test
               run: npm run test
+
+            - name: Upload code coverage report
+              if: ${{ matrix.php == '8.3' && matrix.wp == 'latest' }}
+              uses: codecov/codecov-action@671740ac38dd9b0130fbe1cec585b89eea48d3de
+              with:
+                file: tests/logs/clover.xml
+                flags: phpunit
+                fail_ci_if_error: false
 
     build:
         name: Build

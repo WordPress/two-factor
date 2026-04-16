@@ -1,6 +1,6 @@
 # Release Process
 
-The following content can be copied and pasted into a release issue or PR to help provide a checklist of tasks when releasing this project.  When utilizing this template, ensure you do the following.  When pasting this content, ensure to update any `X.Y.Z` nomenclature to the release version being prepared. The person doing the release needs to be [added to the plugin committer list on wp.org](https://wordpress.org/plugins/two-factor/advanced/) (note that this is different from the contributor list), so that they get the release confirmation email, or someone who's already a committer needs to be available to confirm.
+The following content can be copied and pasted into a release issue or PR to help provide a checklist of tasks when releasing this project. When utilizing this template, ensure you do the following. When pasting this content, ensure to update any `X.Y.Z` nomenclature to the release version being prepared. The person doing the release needs to be [added to the plugin committer list on wp.org](https://wordpress.org/plugins/two-factor/advanced/) (note that this is different from the contributor list), so that they get the release confirmation email, or someone who's already a committer needs to be available to confirm.
 
 ```
 ## Release instructions
@@ -18,6 +18,6 @@ The following content can be copied and pasted into a release issue or PR to hel
 - [ ] SVN: Wait for the [GitHub Action: Deploy](https://github.com/WordPress/two-factor/actions/workflows/deploy.yml) to finish deploying to the WordPress.org repository.
 - [ ] Release confirmation: Someone with committer access on WP.org needs to confirm the release at https://wordpress.org/plugins/two-factor/advanced/.  If all goes well, users with SVN commit access for that plugin will receive an emailed diff of changes.
 - [ ] Check WordPress.org: Ensure that the changes are live on https://wordpress.org/plugins/two-factor/. This may take a few minutes.
-- [ ] Close the milestone: Edit the [milestone](https://github.com/10up/simple-local-avatars/milestone/##) with the release date (in the `Due date (optional)` field) and link to the GitHub release (in the `Description` field), then close the milestone.
+- [ ] Close the milestone: Edit the [milestone](https://github.com/WordPress/two-factor/milestone/##) with the release date (in the `Due date (optional)` field) and link to the GitHub release (in the `Description` field), then close the milestone.
 - [ ] Punt incomplete items: If any open issues or PRs which were milestoned for `X.Y.Z` do not make it into the release, update their milestone to `X.Y.Z+1`, `X.Y+1.0`, `X+1.0.0` or `Future Release`.`
 ```

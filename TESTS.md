@@ -59,7 +59,7 @@ The largest test file. Covers the full authentication lifecycle managed by `Two_
 - Rate limiting (`get_user_time_delay`, `is_user_rate_limited`)
 - Session management: two-factor factored vs. non-factored sessions, session destruction on 2FA enable/disable, revalidation
 - Password reset flow (compromise detection, email notifications, reset notices)
-- REST API permission callbacks (`rest_api_can_edit_user`)
+- REST API permission callbacks (`rest_api_can_edit_user_and_update_two_factor_options`)
 - User settings actions (`trigger_user_settings_action`, `current_user_can_update_two_factor_options`)
 - Uninstall cleanup
 - Filter hooks (`two_factor_providers`, `two_factor_primary_provider_for_user`, `two_factor_user_api_login_enable`)
@@ -126,7 +126,7 @@ Tests `Two_Factor_Backup_Codes`:
 - `is_available_for_user` (no codes vs. codes generated)
 - User options UI output
 - Code deletion
-- `two_factor_backup_codes_count` filter for customizing code length
+- `two_factor_backup_code_length` filter for customizing code length
 
 ### Backup Codes REST API — `tests/providers/class-two-factor-backup-codes-rest-api.php`
 
@@ -157,4 +157,4 @@ Tests `Two_Factor_Dummy_Secure` (a fixture that always _fails_ authentication, u
 ## Test Helpers
 
 - **`tests/bootstrap.php`** — Locates the WordPress test library (via `WP_TESTS_DIR` env var, relative path, or `/tmp/wordpress-tests-lib`), loads the plugin via `muplugins_loaded`, then boots the WP test environment.
-- **`tests/class-secure-dummy.php`** — Defines `Two_Factor_Dummy_Secure`, a test-only provider class that spoofs the key of `Two_Factor_Dummy` but always fails `validate_authentication`. Used by `Tests_Two_Factor_Dummy_Secure` and some core tests.
+- **`tests/class-two-factor-dummy-secure.php`** — Defines `Two_Factor_Dummy_Secure`, a test-only provider class that spoofs the key of `Two_Factor_Dummy` but always fails `validate_authentication`. Used by `Tests_Two_Factor_Dummy_Secure` and some core tests.

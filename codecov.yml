@@ -1,0 +1,36 @@
+# Overall settings for PR integration via codecov.io
+# See https://docs.codecov.com/docs/codecovyml-reference
+
+# Separate PR statuses for project-level and patch-level coverage
+# See https://docs.codecov.com/docs/commit-status
+coverage:
+  status:
+    # Project-level coverage
+    project:
+      default:
+        base: auto
+        # Disable once code base is more mature.
+        informational: true
+        only_pulls: true
+        target: auto
+        threshold: 5%
+
+    # Patch-level coverage (how well is the PR tested)
+    patch:
+      default:
+        base: auto
+        informational: true
+        only_pulls: true
+        target: auto
+        threshold: 50%
+
+# Pull request comments
+# See https://docs.codecov.com/docs/pull-request-comments
+comment: false
+
+# See https://docs.codecov.com/docs/ignoring-paths
+ignore:
+- tests
+- vendor
+- node_modules
+- dist
