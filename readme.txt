@@ -1,7 +1,7 @@
 === Two Factor ===
 Contributors: georgestephanis, kasparsd, masteradhoc, valendesigns, stevenkword, extendwings, sgrant, aaroncampbell, johnbillion, stevegrunwell, netweb, alihusnainarshad, passoniate
 Tags:         2fa, mfa, totp, authentication, security
-Tested up to: 6.9
+Tested up to: 7.0
 Stable tag:   0.16.0
 License:      GPL-2.0-or-later
 License URI:  https://spdx.org/licenses/GPL-2.0-or-later.html
