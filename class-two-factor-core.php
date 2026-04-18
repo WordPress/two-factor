@@ -2618,7 +2618,7 @@ class Two_Factor_Core {
 			. __( 'To protect your account we store the following personal data:', 'two-factor' )
 			. '</p>'
 			. '<ul>'
-			. '<li>' . __( '<strong>TOTP secret key</strong> – a unique cryptographic secret generated when you set up an authenticator app. It is stored encrypted in your user profile.', 'two-factor' ) . '</li>'
+			. '<li>' . __( '<strong>TOTP secret key</strong> – a unique cryptographic secret generated when you set up an authenticator app. It is stored in your user profile.', 'two-factor' ) . '</li>'
 			. '<li>' . __( '<strong>Backup codes</strong> – a set of one-time-use codes you can store offline. Hashed copies are kept in your user profile until they are used or regenerated.', 'two-factor' ) . '</li>'
 			. '<li>' . __( '<strong>Email address</strong> – your account email is used to send a one-time passcode when the email provider is active. The code itself is not stored after the login attempt concludes.', 'two-factor' ) . '</li>'
 			. '<li>' . __( '<strong>Enabled providers list</strong> – a record of which two-factor methods you have activated (e.g. TOTP, email, backup codes) is stored in your user profile.', 'two-factor' ) . '</li>'
@@ -2631,12 +2631,7 @@ class Two_Factor_Core {
 
 			. '<h3>' . __( 'How long we retain your data', 'two-factor' ) . '</h3>'
 			. '<p>'
-			. __( 'Authentication data (secret keys, backup codes, provider settings) is retained for as long as your user account exists. It is deleted automatically when your account is removed. You can also remove individual two-factor methods at any time from your profile page, which immediately deletes the associated data.', 'two-factor' )
-			. '</p>'
-
-			. '<h3>' . __( 'What rights you have over your data', 'two-factor' ) . '</h3>'
-			. '<p>'
-			. __( 'If you have an account on this site you can request an export of the personal data we hold about you, including all two-factor authentication data. You can also request that we erase any personal data we hold about you. This does not include data we are obliged to keep for administrative, legal, or security purposes.', 'two-factor' )
+			. __( 'Authentication data (secret keys, backup codes, provider settings) is retained for as long as your user account exists. It is deleted automatically when your account is removed.', 'two-factor' )
 			. '</p>';
 
 		wp_add_privacy_policy_content(
@@ -2645,4 +2640,3 @@ class Two_Factor_Core {
 		);
 	}
 }
-
