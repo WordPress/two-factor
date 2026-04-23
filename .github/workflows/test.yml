@@ -65,6 +65,9 @@ jobs:
     test-php:
         name: Test PHP ${{ matrix.php }} ${{ matrix.wp != '' && format( ' (WP {0}) ', matrix.wp ) || '' }}
         runs-on: ubuntu-24.04
+        permissions:
+            contents: read
+            id-token: write
         strategy:
             matrix:
                 php:
@@ -123,7 +126,14 @@ jobs:
             - name: Composer install
               run: |
                 rm composer.lock || true # We need to install fresh.
-                npm run composer install
+                # The composer.json platform override (php: 7.2.24) installs PHPUnit 8.5, which does
+                # not support code coverage on PHP 8. Use --ignore-platform-req=php on PHP 8+ so
+                # Composer installs PHPUnit 9.6, which supports coverage on PHP 8.x.
+                if [[ "${WP_ENV_PHP_VERSION}" == 8.* ]]; then
+                  npm run composer -- install --ignore-platform-req=php
+                else
+                  npm run composer install
+                fi
 
             - name: Versions
               run: |
@@ -131,13 +141,16 @@ jobs:
                 npm run env run cli wp core version
 
             - name: Test
-              run: npm run test
+              run: |
+                npm run env run tests-cli --env-cwd=wp-content/plugins/two-factor -- mkdir -p tests/logs
+                npm run test
 
             - name: Upload code coverage report
-              if: ${{ matrix.php == '8.3' && matrix.wp == 'latest' }}
+              if: ${{ matrix.php == '8.3' && matrix.wp == 'latest' && hashFiles('tests/logs/clover.xml') != '' }}
               uses: codecov/codecov-action@671740ac38dd9b0130fbe1cec585b89eea48d3de
               with:
-                file: tests/logs/clover.xml
+                use_oidc: true
+                files: tests/logs/clover.xml
                 flags: phpunit
                 fail_ci_if_error: false
 
