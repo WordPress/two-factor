@@ -844,6 +844,42 @@ class Test_ClassTwoFactorCore extends WP_UnitTestCase {
 	}
 
 	/**
+	 * Test no reset notice when _wpnonce is present but invalid.
+	 *
+	 * @covers Two_Factor_Core::maybe_show_reset_password_notice()
+	 */
+	public function test_no_reset_notice_when_wpnonce_invalid() {
+		$user              = self::factory()->user->create_and_get();
+		$errors            = new WP_Error( 'incorrect_password', 'Incorrect password' );
+		$_POST['log']      = $user->user_login;
+		$_POST['_wpnonce'] = 'invalid-nonce';
+
+		update_user_meta( $user->ID, Two_Factor_Core::USER_PASSWORD_WAS_RESET_KEY, true );
+		Two_Factor_Core::maybe_show_reset_password_notice( $errors );
+		$this->assertCount( 1, $errors->get_error_codes() );
+		$this->assertSame( 'incorrect_password', $errors->get_error_code() );
+		unset( $_POST['_wpnonce'] );
+	}
+
+	/**
+	 * Test reset notice when _wpnonce is present and valid for log-in.
+	 *
+	 * @covers Two_Factor_Core::maybe_show_reset_password_notice()
+	 */
+	public function test_reset_notice_when_wpnonce_valid() {
+		$user              = self::factory()->user->create_and_get();
+		$errors            = new WP_Error( 'incorrect_password', 'Incorrect password' );
+		$_POST['log']      = $user->user_login;
+		$_POST['_wpnonce'] = wp_create_nonce( 'log-in' );
+
+		update_user_meta( $user->ID, Two_Factor_Core::USER_PASSWORD_WAS_RESET_KEY, true );
+		Two_Factor_Core::maybe_show_reset_password_notice( $errors );
+		$this->assertCount( 1, $errors->get_error_codes() );
+		$this->assertSame( 'two_factor_password_reset', $errors->get_error_code() );
+		unset( $_POST['_wpnonce'] );
+	}
+
+	/**
 	 * Test clear password reset notice.
 	 *
 	 * @covers Two_Factor_Core::clear_password_reset_notice()
