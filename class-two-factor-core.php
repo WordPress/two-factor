@@ -1252,8 +1252,6 @@ class Two_Factor_Core {
 			$params = array();
 		}
 
-		$params = urlencode_deep( $params );
-
 		// Use WordPress's own wp_login_url() so that plugins like WPML which
 		// hook the `login_url` filter can translate or rewrite the URL correctly.
 		// wp_login_url() applies the `login_url` filter, giving multilingual
