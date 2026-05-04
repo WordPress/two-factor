@@ -986,7 +986,7 @@ class Two_Factor_Core {
 
 		$redirect_to = isset( $_REQUEST['redirect_to'] )
 			? wp_unslash( $_REQUEST['redirect_to'] )
-			: apply_filters( 'login_redirect', admin_url(), '', null );
+			: apply_filters( 'login_redirect', admin_url(), '', $user );
 
 		self::login_html( $user, $login_nonce['key'], $redirect_to );
 	}
@@ -1256,9 +1256,9 @@ class Two_Factor_Core {
 
 		// Use WordPress's own wp_login_url() so that plugins like WPML which
 		// hook the `login_url` filter can translate or rewrite the URL correctly.
-		// wp_login_url() calls site_url( 'wp-login.php', $scheme ) internally and
-		// applies the `login_url` filter — giving multilingual plugins a chance to
-		// redirect to a translated login page.
+		// wp_login_url() applies the `login_url` filter, giving multilingual
+		// plugins a chance to redirect to a translated login page. Any requested
+		// scheme is applied below with set_url_scheme().
 		$action = isset( $params['action'] ) ? $params['action'] : '';
 		$url    = wp_login_url( '', false );
 
