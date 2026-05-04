@@ -1263,8 +1263,8 @@ class Two_Factor_Core {
 		// Re-apply the scheme since wp_login_url() doesn't expose it as a parameter.
 		$url = set_url_scheme( $url, $scheme );
 
-		// Compat: WordPress core passes action directly in the path for certain actions
-		// (e.g. wp-login.php?action=validate_2fa). Preserve that behaviour.
+		// Compat: WordPress core passes action as a query argument on the login URL
+		// for certain actions (e.g. wp-login.php?action=validate_2fa). Preserve that behaviour.
 		if ( $action ) {
 			$url = add_query_arg( 'action', $action, $url );
 		}
