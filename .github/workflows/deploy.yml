@@ -17,6 +17,7 @@ jobs:
   deploy:
     name: Deploy to WordPress.org
     runs-on: ubuntu-24.04
+    timeout-minutes: 10
     permissions:
       contents: write # Required to upload assets to the GitHub release.
     steps:
