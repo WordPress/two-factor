@@ -695,18 +695,44 @@ class Two_Factor_Core {
 		 * Possible enhancement: add a filter to change the fallback method?
 		 */
 		if ( empty( $enabled_providers ) && $user_providers_raw ) {
-			if ( isset( $providers['Two_Factor_Email'] ) ) {
-				// Force Emailed codes to 'on'.
-				$enabled_providers[] = 'Two_Factor_Email';
-			} else {
-				return new WP_Error(
-					'no_available_2fa_methods',
-					__( 'Error: You have Two Factor method(s) enabled, but the provider(s) no longer exist. Please contact a site administrator for assistance.', 'two-factor' ),
-					array(
-						'user_providers_raw'  => $user_providers_raw,
-						'available_providers' => array_keys( $providers ),
-					)
-				);
+			// Determine whether the filter intentionally cleared the list, or
+			// whether the providers are genuinely missing/removed. Only apply
+			// the fallback filter in the former case — if providers no longer
+			// exist, the fail-safe always applies to prevent failing open.
+			$unfiltered = array_intersect( (array) $user_providers_raw, array_keys( $providers ) );
+
+			/**
+			 * Filters whether the email provider fallback is applied when a user's
+			 * enabled provider list resolves to empty but they have providers configured
+			 * in user meta. Return false to disable the fallback and allow an empty
+			 * provider list to pass through — for example, to bypass two-factor for
+			 * trusted IP addresses.
+			 *
+			 * This filter only runs when the configured providers still exist. If
+			 * providers are genuinely missing or removed, the fail-safe always applies
+			 * regardless of this filter.
+			 *
+			 * @since 0.17.0
+			 *
+			 * @param bool $apply_fallback Whether to apply the email fallback. Default true.
+			 * @param int  $user_id        The user ID.
+			 */
+			$apply_fallback = empty( $unfiltered ) || apply_filters( 'two_factor_email_fallback_enabled', true, $user->ID );
+
+			if ( $apply_fallback ) {
+				if ( isset( $providers['Two_Factor_Email'] ) ) {
+					// Force Emailed codes to 'on'.
+					$enabled_providers[] = 'Two_Factor_Email';
+				} else {
+					return new WP_Error(
+						'no_available_2fa_methods',
+						__( 'Error: You have Two Factor method(s) enabled, but the provider(s) no longer exist. Please contact a site administrator for assistance.', 'two-factor' ),
+						array(
+							'user_providers_raw'  => $user_providers_raw,
+							'available_providers' => array_keys( $providers ),
+						)
+					);
+				}
 			}
 		}
 
