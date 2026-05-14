@@ -9,10 +9,17 @@ concurrency:
     group: ${{ github.workflow }}-${{ github.event_name == 'pull_request' && github.head_ref || github.sha }}
     cancel-in-progress: true
 
+# Disable permissions for all available scopes by default.
+# Any needed permissions should be configured at the job level.
+permissions: {}
+
 jobs:
     lint-js-css:
         name: Lint JS & CSS
         runs-on: ubuntu-24.04
+        timeout-minutes: 20
+        permissions:
+          contents: read # Required to clone the repo.
         steps:
             - name: Checkout
               uses: actions/checkout@1af3b93b6815bc44a9784bd300feb67ff0d1eeb3 # v6.0.0
@@ -35,6 +42,9 @@ jobs:
     lint-php-and-compatibility:
         name: Lint PHP & PHP Compatibility checks.
         runs-on: ubuntu-24.04
+        timeout-minutes: 20
+        permissions:
+          contents: read # Required to clone the repo.
         steps:
             - name: Checkout
               uses: actions/checkout@1af3b93b6815bc44a9784bd300feb67ff0d1eeb3 # v6.0.0
@@ -65,8 +75,9 @@ jobs:
     test-php:
         name: Test PHP ${{ matrix.php }} ${{ matrix.wp != '' && format( ' (WP {0}) ', matrix.wp ) || '' }}
         runs-on: ubuntu-24.04
+        timeout-minutes: 20
         permissions:
-            contents: read
+            contents: read # Required to clone the repo.
             id-token: write
         strategy:
             matrix:
@@ -83,14 +94,17 @@ jobs:
                 wp:
                   - latest
                   - trunk
-                  - '6.8'
+                  - '6.9'
                 exclude:
                   - php: '7.3'
                     wp: trunk
                   - php: '7.2'
                     wp: trunk
-                  - php: '8.5'
-                    wp: '6.8'
+                  - php: '7.3'
+                    wp: latest
+                  - php: '7.2'
+                    wp: latest
+
         env:
             WP_ENV_PHP_VERSION: ${{ matrix.php }}
             WP_ENV_CORE: ${{ matrix.wp == 'trunk' && 'WordPress/WordPress' || format( 'https://wordpress.org/wordpress-{0}.zip', matrix.wp ) }}
@@ -154,6 +168,9 @@ jobs:
     build:
         name: Build
         runs-on: ubuntu-24.04
+        timeout-minutes: 20
+        permissions:
+          contents: read # Required to clone the repo.
         steps:
             - name: Checkout
               uses: actions/checkout@1af3b93b6815bc44a9784bd300feb67ff0d1eeb3 # v6.0.0
