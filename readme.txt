@@ -96,6 +96,8 @@ Here is a list of action and filter hooks provided by the plugin:
 - `two_factor_user_api_login_enable` filter restricts authentication for REST API and XML-RPC to application passwords only. Provides the user ID as the second argument.
 - `two_factor_email_token_ttl` filter overrides the time interval in seconds that an email token is considered after generation. Accepts the time in seconds as the first argument and the ID of the `WP_User` object being authenticated.
 - `two_factor_email_token_length` filter overrides the default 8 character count for email tokens.
+- `two_factor_email_token_subject` filter overrides the subject of messages sent by the email provider. Accepts the login token as the second argument.
+- `two_factor_email_token_message` filter overrides the body of messages sent by the email provider. Accepts the message text as the first argument, the login token as the second argument, and the user ID as the third argument.
 - `two_factor_backup_code_length` filter overrides the default 8 character count for backup codes. Provides the `WP_User` of the associated user as the second argument.
 - `two_factor_rest_api_can_edit_user` filter overrides whether a user’s Two-Factor settings can be edited via the REST API. First argument is the current `$can_edit` boolean, the second argument is the user ID.
 - `two_factor_before_authentication_prompt` action which receives the provider object and fires prior to the prompt shown on the authentication input form.
@@ -140,15 +142,15 @@ The plugin previously supported FIDO U2F, which was a predecessor to WebAuthn. T
 Yes. For passkeys and hardware security keys, you can install the [Two-Factor Provider: WebAuthn plugin](https://wordpress.org/plugins/two-factor-provider-webauthn/). It integrates directly with Two-Factor and adds WebAuthn-based authentication as an additional two-factor option for users.
 
 = Does this plugin work on WordPress Multisite? =
- 
+
 Yes. The Two-Factor plugin is compatible with WordPress Multisite. Each user configures their own 2FA settings via their profile, and because authentication codes are stored in WordPress user meta, the configuration is tied to the user account and valid across all sites in the network. However, there are no network-wide settings — a super admin cannot enforce or configure 2FA globally from the Network Admin dashboard. To manage 2FA for a specific user, edit their profile on any site where they have an account.
- 
+
 = How do I disable 2FA for a user who is locked out? =
- 
+
 As an administrator, go to **Users → All Users** in the WordPress admin, click **Edit** on the affected user's profile, scroll down to the **Two-Factor Options** section, and uncheck all enabled methods, then click **Update User**. This will remove 2FA for that user, allowing them to log in with their password alone. You can also do this via WP-CLI with `wp user meta delete <user_id> _two_factor_enabled_providers`. Once they're back in, encourage them to re-enable 2FA and generate fresh backup codes.
- 
+
 = Can I require 2FA for all users or specific roles? =
- 
+
 Not through the plugin's interface — there are no built-in enforcement settings. However, developers can use the `two_factor_providers_for_user` filter to control which providers are available per user or role, and combine it with custom logic to redirect users who haven't set up 2FA. Native enforcement support is a known and tracked feature request — follow the discussion at [GitHub issue #255](https://github.com/WordPress/two-factor/issues/255).
 
 
