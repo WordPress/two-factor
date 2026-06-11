@@ -29,6 +29,15 @@ class Two_Factor_Core {
 	const ENABLED_PROVIDERS_USER_META_KEY = '_two_factor_enabled_providers';
 
 	/**
+	 * The site-wide enabled providers option key.
+	 *
+	 * @since 0.16.1
+	 *
+	 * @type string
+	 */
+	const ENABLED_PROVIDERS_OPTION_KEY = 'two_factor_enabled_providers';
+
+	/**
 	 * The user meta nonce key.
 	 *
 	 * @type string
@@ -189,7 +198,10 @@ class Two_Factor_Core {
 			self::USER_PASSWORD_WAS_RESET_KEY,
 		);
 
-		$option_keys = array();
+		// Keep this updated as plugin-level options are added or removed.
+		$option_keys = array(
+			self::ENABLED_PROVIDERS_OPTION_KEY,
+		);
 
 		$providers = self::get_default_providers();
 
