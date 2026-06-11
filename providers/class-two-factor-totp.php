@@ -796,8 +796,6 @@ class Two_Factor_Totp extends Two_Factor_Provider {
 		do_action( 'two_factor_after_authentication_input', $this );
 		?>
 		<?php
-		wp_enqueue_script( 'two-factor-login' );
-
 		submit_button( __( 'Verify', 'two-factor' ) );
 	}
 
