@@ -488,7 +488,13 @@ class Two_Factor_CLI_Command extends WP_CLI_Command {
 
 		$count    = (int) WP_CLI\Utils\get_flag_value( $assoc_args, 'count', Two_Factor_Backup_Codes::NUMBER_OF_CODES );
 		$provider = Two_Factor_Backup_Codes::get_instance();
-		$codes    = $provider->generate_codes( $user, array( 'number' => $count, 'method' => 'replace' ) );
+		$codes    = $provider->generate_codes(
+			$user,
+			array(
+				'number' => $count,
+				'method' => 'replace',
+			) 
+		);
 
 		WP_CLI::log(
 			sprintf(
