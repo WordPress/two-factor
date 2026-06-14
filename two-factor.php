@@ -59,7 +59,7 @@ $two_factor_compat = new Two_Factor_Compat();
 Two_Factor_Core::add_hooks( $two_factor_compat );
 
 if ( defined( 'WP_CLI' ) && WP_CLI ) {
-	require_once TWO_FACTOR_DIR . 'cli/class-two-factor-cli-command.php';
+	require_once TWO_FACTOR_DIR . 'CLI/class-two-factor-cli-command.php';
 	WP_CLI::add_command( 'two-factor', 'Two_Factor_CLI_Command' );
 }
 
