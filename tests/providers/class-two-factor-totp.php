@@ -444,4 +444,55 @@ class Tests_Two_Factor_Totp extends WP_UnitTestCase {
 			$this->assertTrue( $provider::is_valid_authcode( $token, substr( $vector[2], 2 ), $hash ) );
 		}
 	}
+
+	/**
+	 * Helper to call the protected static pad_secret() method via reflection.
+	 *
+	 * @param string $secret The secret to pad.
+	 * @param int    $length The desired padded length.
+	 * @return string
+	 */
+	private function call_pad_secret( $secret, $length ) {
+		$method = new ReflectionMethod( 'Two_Factor_Totp', 'pad_secret' );
+		$method->setAccessible( true );
+		return $method->invoke( null, $secret, $length );
+	}
+
+	/**
+	 * Verify pad_secret() pads the secret to the specified length by repeating itself.
+	 *
+	 * @covers Two_Factor_Totp::pad_secret
+	 */
+	public function test_pad_secret_pads_to_length() {
+		$this->assertSame( 'ABABAB', $this->call_pad_secret( 'AB', 6 ) );
+	}
+
+	/**
+	 * Verify pad_secret() returns the secret unchanged when it already equals the target length.
+	 *
+	 * @covers Two_Factor_Totp::pad_secret
+	 */
+	public function test_pad_secret_exact_length() {
+		$this->assertSame( 'ABCDEF', $this->call_pad_secret( 'ABCDEF', 6 ) );
+	}
+
+	/**
+	 * Verify pad_secret() throws InvalidArgumentException for an empty secret.
+	 *
+	 * @covers Two_Factor_Totp::pad_secret
+	 */
+	public function test_pad_secret_empty_throws_exception() {
+		$this->expectException( InvalidArgumentException::class );
+		$this->call_pad_secret( '', 6 );
+	}
+
+	/**
+	 * Verify pad_secret() throws InvalidArgumentException when length is zero.
+	 *
+	 * @covers Two_Factor_Totp::pad_secret
+	 */
+	public function test_pad_secret_zero_length_throws_exception() {
+		$this->expectException( InvalidArgumentException::class );
+		$this->call_pad_secret( 'ABC', 0 );
+	}
 }

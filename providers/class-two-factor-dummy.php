@@ -43,10 +43,19 @@ class Two_Factor_Dummy extends Two_Factor_Provider {
 	public function authentication_page( $user ) {
 		require_once ABSPATH . '/wp-admin/includes/template.php';
 		?>
-		<?php do_action( 'two_factor_before_authentication_prompt', $this ); ?>
+		<?php
+		/** This action is documented in providers/class-two-factor-backup-codes.php */
+		do_action( 'two_factor_before_authentication_prompt', $this );
+		?>
 		<p><?php esc_html_e( 'Are you really you?', 'two-factor' ); ?></p>
-		<?php do_action( 'two_factor_after_authentication_prompt', $this ); ?>
-		<?php do_action( 'two_factor_after_authentication_input', $this ); ?>
+		<?php
+		/** This action is documented in providers/class-two-factor-backup-codes.php */
+		do_action( 'two_factor_after_authentication_prompt', $this );
+		?>
+		<?php
+		/** This action is documented in providers/class-two-factor-backup-codes.php */
+		do_action( 'two_factor_after_authentication_input', $this );
+		?>
 		<?php
 		submit_button( __( 'Yup.', 'two-factor' ) );
 	}
