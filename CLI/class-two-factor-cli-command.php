@@ -19,25 +19,20 @@ class Two_Factor_CLI_Command extends WP_CLI_Command {
 	/**
 	 * Resolve a user from an ID, login, or email address.
 	 *
-	 * ID is tried first when the identifier is numeric, then login, then email.
+	 * Resolution order is ID, then login, then email.
 	 *
 	 * @param string $identifier User ID, login, or email.
 	 * @return WP_User|false WP_User on success, false if not found.
 	 */
 	private function resolve_user( $identifier ) {
-		if ( ctype_digit( (string) $identifier ) ) {
-			$user = get_user_by( 'id', (int) $identifier );
+		foreach ( array( 'id', 'login', 'email' ) as $field ) {
+			$user = get_user_by( $field, $identifier );
 			if ( $user ) {
 				return $user;
 			}
 		}
 
-		$user = get_user_by( 'login', $identifier );
-		if ( $user ) {
-			return $user;
-		}
-
-		return get_user_by( 'email', $identifier );
+		return false;
 	}
 
 	/**
@@ -375,18 +370,19 @@ class Two_Factor_CLI_Command extends WP_CLI_Command {
 			WP_CLI::error( __( 'Usage: wp two-factor enable <user> <provider>', 'two-factor' ) );
 		}
 
-		$user = $this->resolve_user( $args[0] );
+		$user_identifier = $args[0];
+		$provider        = $args[1];
+
+		$user = $this->resolve_user( $user_identifier );
 		if ( ! $user ) {
 			WP_CLI::error(
 				sprintf(
 					/* translators: %s: user identifier */
 					__( 'User not found: %s', 'two-factor' ),
-					$args[0]
+					$user_identifier
 				)
 			);
 		}
-
-		$provider = $args[1];
 
 		// TOTP requires a pre-shared secret that cannot be set up from the CLI alone.
 		if ( 'Two_Factor_Totp' === $provider ) {
@@ -455,7 +451,7 @@ class Two_Factor_CLI_Command extends WP_CLI_Command {
 	 * @param array $assoc_args Associative arguments.
 	 */
 	public function backup_codes( $args, $assoc_args ) {
-		$action = array_shift( $args );
+		$action = isset( $args[0] ) ? $args[0] : '';
 
 		if ( 'generate' !== $action ) {
 			WP_CLI::error(
@@ -467,17 +463,19 @@ class Two_Factor_CLI_Command extends WP_CLI_Command {
 			);
 		}
 
-		if ( empty( $args ) ) {
+		if ( ! isset( $args[1] ) ) {
 			WP_CLI::error( __( 'Usage: wp two-factor backup-codes generate <user> [--count=<n>]', 'two-factor' ) );
 		}
 
-		$user = $this->resolve_user( $args[0] );
+		$user_identifier = $args[1];
+
+		$user = $this->resolve_user( $user_identifier );
 		if ( ! $user ) {
 			WP_CLI::error(
 				sprintf(
 					/* translators: %s: user identifier */
 					__( 'User not found: %s', 'two-factor' ),
-					$args[0]
+					$user_identifier
 				)
 			);
 		}
@@ -486,14 +484,13 @@ class Two_Factor_CLI_Command extends WP_CLI_Command {
 			WP_CLI::error( __( 'The Two_Factor_Backup_Codes provider is not available.', 'two-factor' ) );
 		}
 
-		$count    = (int) WP_CLI\Utils\get_flag_value( $assoc_args, 'count', Two_Factor_Backup_Codes::NUMBER_OF_CODES );
-		$provider = Two_Factor_Backup_Codes::get_instance();
-		$codes    = $provider->generate_codes(
+		$count = (int) WP_CLI\Utils\get_flag_value( $assoc_args, 'count', Two_Factor_Backup_Codes::NUMBER_OF_CODES );
+		$codes = Two_Factor_Backup_Codes::get_instance()->generate_codes(
 			$user,
 			array(
 				'number' => $count,
 				'method' => 'replace',
-			) 
+			)
 		);
 
 		WP_CLI::log(
@@ -532,13 +529,15 @@ class Two_Factor_CLI_Command extends WP_CLI_Command {
 	 * @param array $assoc_args Associative arguments.
 	 */
 	public function unlock( $args, $assoc_args ) {
-		$user = $this->resolve_user( $args[0] );
+		$user_identifier = $args[0];
+
+		$user = $this->resolve_user( $user_identifier );
 		if ( ! $user ) {
 			WP_CLI::error(
 				sprintf(
 					/* translators: %s: user identifier */
 					__( 'User not found: %s', 'two-factor' ),
-					$args[0]
+					$user_identifier
 				)
 			);
 		}
