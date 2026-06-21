@@ -1891,6 +1891,28 @@ class Test_ClassTwoFactorCore extends WP_UnitTestCase {
 	}
 
 	/**
+	 * Plugin uninstall removes the site-wide enabled providers option.
+	 *
+	 * @covers Two_Factor_Core::uninstall
+	 */
+	public function test_uninstall_removes_enabled_providers_option() {
+		update_option( Two_Factor_Core::ENABLED_PROVIDERS_OPTION_KEY, array( 'Two_Factor_Email' ) );
+
+		$this->assertSame(
+			array( 'Two_Factor_Email' ),
+			get_option( Two_Factor_Core::ENABLED_PROVIDERS_OPTION_KEY ),
+			'Enabled providers option was set'
+		);
+
+		Two_Factor_Core::uninstall();
+
+		$this->assertFalse(
+			get_option( Two_Factor_Core::ENABLED_PROVIDERS_OPTION_KEY ),
+			'Enabled providers option was deleted during uninstall'
+		);
+	}
+
+	/**
 	 * Test delete_login_nonce removes the nonce.
 	 *
 	 * @covers Two_Factor_Core::delete_login_nonce
