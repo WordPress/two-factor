@@ -984,7 +984,9 @@ class Two_Factor_Core {
 			wp_die( esc_html__( 'Failed to create a login nonce.', 'two-factor' ) );
 		}
 
-		$redirect_to = isset( $_REQUEST['redirect_to'] ) ? $_REQUEST['redirect_to'] : admin_url();
+		$redirect_to = isset( $_REQUEST['redirect_to'] )
+			? wp_unslash( $_REQUEST['redirect_to'] )
+			: apply_filters( 'login_redirect', admin_url(), '', $user );
 
 		self::login_html( $user, $login_nonce['key'], $redirect_to );
 	}
@@ -1250,13 +1252,21 @@ class Two_Factor_Core {
 			$params = array();
 		}
 
-		$params = urlencode_deep( $params );
+		// Use WordPress's own wp_login_url() so that plugins like WPML which
+		// hook the `login_url` filter can translate or rewrite the URL correctly.
+		// wp_login_url() applies the `login_url` filter, giving multilingual
+		// plugins a chance to redirect to a translated login page. Any requested
+		// scheme is applied below with set_url_scheme().
+		$action = isset( $params['action'] ) ? $params['action'] : '';
+		$url    = wp_login_url( '', false );
 
-		// Compat: Match WordPress's usage of `site_url( wp-login.php )` by always passing the action if known.
-		if ( isset( $params['action'] ) ) {
-			$url = site_url( 'wp-login.php?action=' . $params['action'], $scheme );
-		} else {
-			$url = site_url( 'wp-login.php', $scheme );
+		// Re-apply the scheme since wp_login_url() doesn't expose it as a parameter.
+		$url = set_url_scheme( $url, $scheme );
+
+		// Compat: WordPress core passes action as a query argument on the login URL
+		// for certain actions (e.g. wp-login.php?action=validate_2fa). Preserve that behaviour.
+		if ( $action ) {
+			$url = add_query_arg( 'action', $action, $url );
 		}
 
 		if ( $params ) {
