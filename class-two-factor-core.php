@@ -155,14 +155,6 @@ class Two_Factor_Core {
 		$environment_prefix = file_exists( TWO_FACTOR_DIR . '/dist' ) ? '/dist' : '';
 
 		wp_register_script(
-			'two-factor-login',
-			plugins_url( $environment_prefix . '/providers/js/two-factor-login.js', __FILE__ ),
-			array(),
-			TWO_FACTOR_VERSION,
-			true
-		);
-
-		wp_register_script(
 			'two-factor-login-authcode',
 			plugins_url( $environment_prefix . '/providers/js/two-factor-login-authcode.js', __FILE__ ),
 			array(),
@@ -1127,7 +1119,7 @@ class Two_Factor_Core {
 		}
 		?>
 
-		<form name="validate_2fa_form" id="loginform" action="<?php echo esc_url( self::login_url( array( 'action' => $action ), 'login_post' ) ); ?>" method="post" autocomplete="off">
+		<form name="validate_2fa_form" id="loginform" action="<?php echo esc_url( self::login_url( array( 'action' => $action ), 'login_post' ) ); ?>" method="post">
 				<input type="hidden" name="provider"      id="provider"      value="<?php echo esc_attr( $provider_key ); ?>" />
 				<input type="hidden" name="wp-auth-id"    id="wp-auth-id"    value="<?php echo esc_attr( $user->ID ); ?>" />
 				<input type="hidden" name="wp-auth-nonce" id="wp-auth-nonce" value="<?php echo esc_attr( $login_nonce ); ?>" />
