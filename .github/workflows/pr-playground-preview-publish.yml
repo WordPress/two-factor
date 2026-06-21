@@ -1,0 +1,42 @@
+name: PR Playground Preview Publish
+
+on:
+  workflow_run:
+    workflows:
+      - PR Playground Preview Build
+    types:
+      - completed
+
+permissions:
+  actions: read
+  contents: write
+  pull-requests: write
+
+jobs:
+  publish:
+    permissions:
+      actions: read
+      contents: write
+      pull-requests: write
+    uses: WordPress/action-wp-playground-pr-preview/.github/workflows/preview-publish.yml@v3
+    with:
+      blueprint: |
+        {
+          "$schema": "https://playground.wordpress.net/blueprint-schema.json",
+          "landingPage": "/wp-admin/options-general.php?page=two-factor-settings",
+          "steps": [
+            {
+              "step": "login",
+              "username": "admin",
+              "password": "password"
+            },
+            {
+              "step": "installPlugin",
+              "pluginZipFile": {
+                "resource": "url",
+                "url": "{{ARTIFACT_URL:two-factor}}"
+              },
+              "options": { "activate": true }
+            }
+          ]
+        }

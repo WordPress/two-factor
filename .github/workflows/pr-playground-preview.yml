@@ -1,0 +1,26 @@
+name: PR Playground Preview Build
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened, edited]
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    permissions:
+      contents: read
+    uses: WordPress/action-wp-playground-pr-preview/.github/workflows/preview-build.yml@v3
+    with:
+      artifacts: two-factor=build/two-factor.zip
+      node-version: '20'
+      php-version: '8.3'
+      build-command: |
+        set -euo pipefail
+        npm ci
+        rm -rf build
+        npm run build
+        mkdir -p build/two-factor
+        rsync -a --delete dist/ build/two-factor/
+        ( cd build && zip -qr two-factor.zip two-factor )
