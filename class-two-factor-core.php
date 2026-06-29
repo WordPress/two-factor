@@ -31,7 +31,7 @@ class Two_Factor_Core {
 	/**
 	 * The site-wide enabled providers option key.
 	 *
-	 * @since 0.16.1
+	 * @since 0.17.0
 	 *
 	 * @type string
 	 */
