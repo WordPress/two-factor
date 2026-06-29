@@ -1304,7 +1304,7 @@ class Two_Factor_Core {
 		try {
 			$login_nonce['key'] = bin2hex( random_bytes( 32 ) );
 		} catch ( Exception $ex ) {
-			$login_nonce['key'] = wp_hash( $user_id . wp_rand() . microtime(), 'nonce' );
+			return false;
 		}
 
 		// Store the nonce hashed to avoid leaking it via database access.
