@@ -1805,8 +1805,8 @@ class Two_Factor_Core {
 	 * @since 0.9.0
 	 *
 	 * @param object|null $provider        The Two Factor Provider.
-	 * @param WP_User    $user            The user being authenticated.
-	 * @param bool       $is_post_request Whether the request is a POST request.
+	 * @param WP_User     $user            The user being authenticated.
+	 * @param bool        $is_post_request Whether the request is a POST request.
 	 * @return false|WP_Error|true WP_Error when an error occurs, true when the user is authenticated, false if no action occurred.
 	 */
 	public static function process_provider( $provider, $user, $is_post_request ) {
