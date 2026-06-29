@@ -1121,22 +1121,22 @@ class Two_Factor_Core {
 		login_header();
 
 		if ( ! empty( $error_msg ) ) {
-			echo '<div id="login_error"><strong>' . esc_html( $error_msg ) . '</strong><br /></div>';
+			echo '<div id="login_error"><strong>' . esc_html( $error_msg ) . '</strong><br></div>';
 		} elseif ( 'validate_2fa' === $action ) {
 			self::maybe_show_last_login_failure_notice( $user );
 		}
 		?>
 
 		<form name="validate_2fa_form" id="loginform" action="<?php echo esc_url( self::login_url( array( 'action' => $action ), 'login_post' ) ); ?>" method="post" autocomplete="off">
-				<input type="hidden" name="provider"      id="provider"      value="<?php echo esc_attr( $provider_key ); ?>" />
-				<input type="hidden" name="wp-auth-id"    id="wp-auth-id"    value="<?php echo esc_attr( $user->ID ); ?>" />
-				<input type="hidden" name="wp-auth-nonce" id="wp-auth-nonce" value="<?php echo esc_attr( $login_nonce ); ?>" />
+				<input type="hidden" name="provider"      id="provider"      value="<?php echo esc_attr( $provider_key ); ?>">
+				<input type="hidden" name="wp-auth-id"    id="wp-auth-id"    value="<?php echo esc_attr( $user->ID ); ?>">
+				<input type="hidden" name="wp-auth-nonce" id="wp-auth-nonce" value="<?php echo esc_attr( $login_nonce ); ?>">
 				<?php if ( $interim_login ) { ?>
-					<input type="hidden" name="interim-login" value="1" />
+					<input type="hidden" name="interim-login" value="1">
 				<?php } else { ?>
-					<input type="hidden" name="redirect_to" value="<?php echo esc_attr( $redirect_to ); ?>" />
+					<input type="hidden" name="redirect_to" value="<?php echo esc_attr( $redirect_to ); ?>">
 				<?php } ?>
-				<input type="hidden" name="rememberme"    id="rememberme"    value="<?php echo esc_attr( $rememberme ); ?>" />
+				<input type="hidden" name="rememberme"    id="rememberme"    value="<?php echo esc_attr( $rememberme ); ?>">
 
 				<?php $provider->authentication_page( $user ); ?>
 		</form>
@@ -1197,34 +1197,7 @@ class Two_Factor_Core {
 			</div>
 		<?php endif; ?>
 
-		<style>
-			/* @todo: migrate to an external stylesheet. */
-			.backup-methods-wrap {
-				margin-top: 16px;
-				padding: 0 24px;
-			}
-			.backup-methods-wrap a {
-				text-decoration: none;
-			}
-			.backup-methods-wrap ul {
-				list-style-position: inside;
-			}
-			/* Prevent Jetpack from hiding our controls, see https://github.com/Automattic/jetpack/issues/3747 */
-			.jetpack-sso-form-display #loginform > p,
-			.jetpack-sso-form-display #loginform > div {
-				display: block;
-			}
-			#login form p.two-factor-prompt {
-				margin-bottom: 1em;
-			}
-			.input.authcode {
-				letter-spacing: .3em;
-			}
-			.input.authcode::placeholder {
-				opacity: 0.5;
-			}
-		</style>
-		<?php wp_enqueue_script( 'two-factor-login-authcode' ); ?>
+<?php wp_enqueue_script( 'two-factor-login-authcode' ); ?>
 		<?php
 		if ( ! function_exists( 'login_footer' ) ) {
 			require_once TWO_FACTOR_DIR . 'includes/function.login-footer.php';
@@ -2151,7 +2124,7 @@ class Two_Factor_Core {
 
 		<?php self::render_errors( $generic_errors ); ?>
 
-		<fieldset id="two-factor-options" <?php echo $show_2fa_options ? '' : 'disabled="disabled"'; ?>>
+		<fieldset id="two-factor-options" <?php echo $show_2fa_options ? '' : 'disabled'; ?>>
 		<legend class="screen-reader-text"><?php esc_html_e( 'Two-Factor Options', 'two-factor' ); ?></legend>
 		<?php
 		if ( $providers ) {
@@ -2256,7 +2229,7 @@ class Two_Factor_Core {
 		<?php endif; // Application passwords are supported. ?>
 
 		<?php wp_nonce_field( 'user_two_factor_options', '_nonce_user_two_factor_options', false ); ?>
-		<input type="hidden" name="<?php echo esc_attr( self::ENABLED_PROVIDERS_USER_META_KEY ); ?>[]" value="<?php /* Dummy input so $_POST value is passed when no providers are enabled. */ ?>" />
+		<input type="hidden" name="<?php echo esc_attr( self::ENABLED_PROVIDERS_USER_META_KEY ); ?>[]" value="<?php /* Dummy input so $_POST value is passed when no providers are enabled. */ ?>">
 
 		<table class="form-table two-factor-methods-table" role="presentation">
 			<tbody>
@@ -2266,7 +2239,7 @@ class Two_Factor_Core {
 					<td>
 						<?php self::render_errors( self::get_provider_errors( $provider_key ) ); ?>
 						<label class="two-factor-method-label">
-							<input id="enabled-<?php echo esc_attr( $provider_key ); ?>" type="checkbox" name="<?php echo esc_attr( self::ENABLED_PROVIDERS_USER_META_KEY ); ?>[]" value="<?php echo esc_attr( $provider_key ); ?>" <?php checked( isset( $available_providers[ $provider_key ] ) ); ?> />
+							<input id="enabled-<?php echo esc_attr( $provider_key ); ?>" type="checkbox" name="<?php echo esc_attr( self::ENABLED_PROVIDERS_USER_META_KEY ); ?>[]" value="<?php echo esc_attr( $provider_key ); ?>" <?php checked( isset( $available_providers[ $provider_key ] ) ); ?>>
 							<?php /* translators: %s: authentication method name. */ ?>
 							<strong><?php echo esc_html( sprintf( __( 'Enable %s', 'two-factor' ), $object->get_label() ) ); ?></strong>
 							<?php if ( in_array( $provider_key, $recommended_provider_keys, true ) ) : ?>
@@ -2291,7 +2264,7 @@ class Two_Factor_Core {
 			<?php endforeach; ?>
 			</tbody>
 		</table>
-		<hr />
+		<hr>
 		<table class="form-table two-factor-primary-method-table" role="presentation">
 			<tbody>
 				<tr>

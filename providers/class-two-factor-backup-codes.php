@@ -215,8 +215,8 @@ class Two_Factor_Backup_Codes extends Two_Factor_Provider {
 			</div>
 			<p class="description"><?php esc_html_e( 'Write these down! Once you navigate away from this page, you will not be able to view these codes again.', 'two-factor' ); ?></p>
 			<p>
-				<a class="button button-two-factor-backup-codes-copy button-secondary hide-if-no-js" href="javascript:void(0);" id="two-factor-backup-codes-copy-link"><?php esc_html_e( 'Copy Codes', 'two-factor' ); ?></a>
-				<a class="button button-two-factor-backup-codes-download button-secondary hide-if-no-js" href="javascript:void(0);" id="two-factor-backup-codes-download-link" download="two-factor-backup-codes.txt"><?php esc_html_e( 'Download Codes', 'two-factor' ); ?></a>
+				<button type="button" class="button button-two-factor-backup-codes-copy button-secondary hide-if-no-js" id="two-factor-backup-codes-copy-link"><?php esc_html_e( 'Copy Codes', 'two-factor' ); ?></button>
+				<a class="button button-two-factor-backup-codes-download button-secondary hide-if-no-js" href="#" id="two-factor-backup-codes-download-link" download="two-factor-backup-codes.txt"><?php esc_html_e( 'Download Codes', 'two-factor' ); ?></a>
 			</p>
 		</div>
 		<?php
@@ -391,7 +391,7 @@ class Two_Factor_Backup_Codes extends Two_Factor_Provider {
 		?>
 		<p>
 			<label for="authcode"><?php esc_html_e( 'Recovery Code:', 'two-factor' ); ?></label>
-			<input type="text" inputmode="numeric" name="two-factor-backup-code" id="authcode" class="input authcode" value="" size="20" pattern="[0-9 ]*" placeholder="<?php echo esc_attr( $code_placeholder ); ?>" data-digits="<?php echo esc_attr( $code_length ); ?>" />
+			<input type="text" inputmode="numeric" name="two-factor-backup-code" id="authcode" class="input authcode" value="" size="20" pattern="[0-9 ]*" placeholder="<?php echo esc_attr( $code_placeholder ); ?>" data-digits="<?php echo esc_attr( $code_length ); ?>">
 		</p>
 		<?php
 		/**
