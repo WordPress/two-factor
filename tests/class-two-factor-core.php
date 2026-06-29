@@ -160,6 +160,30 @@ class Test_ClassTwoFactorCore extends WP_UnitTestCase {
 	}
 
 	/**
+	 * Reset stored profile errors between tests.
+	 */
+	private function reset_profile_errors() {
+		$reflection = new ReflectionClass( Two_Factor_Core::class );
+		$prop       = $reflection->getProperty( 'profile_errors' );
+		$prop->setAccessible( true );
+		$prop->setValue( null, array() );
+	}
+
+	/**
+	 * Render the user two-factor settings UI and return the markup.
+	 *
+	 * @param WP_User $user User instance.
+	 * @return string
+	 */
+	private function render_user_two_factor_options( WP_User $user ) {
+		$this->reset_profile_errors();
+
+		ob_start();
+		Two_Factor_Core::user_two_factor_options( $user );
+		return ob_get_clean();
+	}
+
+	/**
 	 * Verify adding hooks.
 	 *
 	 * @covers Two_Factor_Core::add_hooks
@@ -2155,6 +2179,71 @@ class Test_ClassTwoFactorCore extends WP_UnitTestCase {
 		$this->assertIsArray( $providers, 'Returns an array of providers' );
 		$this->assertArrayHasKey( 'Two_Factor_Email', $providers, 'Email provider is supported by default' );
 		$this->assertArrayHasKey( 'Two_Factor_Totp', $providers, 'TOTP provider is supported by default' );
+	}
+
+	/**
+	 * Test user_two_factor_options output when backup codes are available.
+	 *
+	 * @covers Two_Factor_Core::user_two_factor_options
+	 */
+	public function test_user_two_factor_options_mentions_recovery_codes_when_backup_codes_are_available() {
+		$user = self::factory()->user->create_and_get();
+
+		Two_Factor_Core::enable_provider_for_user( $user->ID, 'Two_Factor_Email' );
+
+		try {
+			$output = $this->render_user_two_factor_options( $user );
+
+			$this->assertStringContainsString(
+				'consider enabling a backup method like Recovery Codes',
+				$output
+			);
+			$this->assertStringContainsString(
+				'Configure a primary two-factor method along with a backup method, such as Recovery Codes',
+				$output
+			);
+			$this->assertStringNotContainsString(
+				'consider enabling an additional two-factor method',
+				$output
+			);
+		} finally {
+			$this->reset_profile_errors();
+		}
+	}
+
+	/**
+	 * Test user_two_factor_options output when backup codes are filtered out.
+	 *
+	 * @covers Two_Factor_Core::user_two_factor_options
+	 */
+	public function test_user_two_factor_options_uses_generic_wording_when_backup_codes_are_filtered_out() {
+		$filter = static function ( $providers ) {
+			unset( $providers['Two_Factor_Backup_Codes'] );
+			return $providers;
+		};
+
+		add_filter( 'two_factor_providers', $filter );
+
+		try {
+			$user = self::factory()->user->create_and_get();
+
+			Two_Factor_Core::enable_provider_for_user( $user->ID, 'Two_Factor_Email' );
+
+			$output = $this->render_user_two_factor_options( $user );
+
+			$this->assertStringContainsString(
+				'consider enabling an additional two-factor method',
+				$output
+			);
+			$this->assertStringContainsString(
+				'Configure a primary two-factor method along with an additional two-factor method',
+				$output
+			);
+			$this->assertStringNotContainsString( 'Recovery Codes', $output );
+		} finally {
+			remove_filter( 'two_factor_providers', $filter );
+			$this->reset_profile_errors();
+		}
 	}
 
 	/**

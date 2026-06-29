@@ -2128,7 +2128,9 @@ class Two_Factor_Core {
 			self::add_error(
 				new WP_Error(
 					'two_factor_suggest_backup',
-					__( 'To prevent being locked out of your account, consider enabling a backup method like Recovery Codes in case you lose access to your primary authentication method.', 'two-factor' ),
+					isset( $providers['Two_Factor_Backup_Codes'] )
+						? __( 'To prevent being locked out of your account, consider enabling a backup method like Recovery Codes in case you lose access to your primary authentication method.', 'two-factor' )
+						: __( 'To prevent being locked out of your account, consider enabling an additional two-factor method in case you lose access to your primary authentication method.', 'two-factor' ),
 					array(
 						'type' => 'warning',
 					)
@@ -2238,7 +2240,13 @@ class Two_Factor_Core {
 
 		?>
 		<p>
-			<?php esc_html_e( 'Configure a primary two-factor method along with a backup method, such as Recovery Codes, to avoid being locked out if you lose access to your primary method. Methods marked as recommended are more secure and easier to use.', 'two-factor' ); ?>
+			<?php
+			echo esc_html(
+				isset( $providers['Two_Factor_Backup_Codes'] )
+					? __( 'Configure a primary two-factor method along with a backup method, such as Recovery Codes, to avoid being locked out if you lose access to your primary method. Methods marked as recommended are more secure and easier to use.', 'two-factor' )
+					: __( 'Configure a primary two-factor method along with an additional two-factor method to avoid being locked out if you lose access to your primary method. Methods marked as recommended are more secure and easier to use.', 'two-factor' )
+			);
+			?>
 		</p>
 
 		<?php if ( function_exists( 'wp_is_application_passwords_available_for_user' ) && wp_is_application_passwords_available_for_user( $user ) ) : ?>
