@@ -78,6 +78,34 @@ class Two_Factor_Core {
 	const REST_NAMESPACE = 'two-factor/1.0';
 
 	/**
+	 * User meta key for the recovery token hash.
+	 *
+	 * @var string
+	 */
+	const RECOVERY_TOKEN_META_KEY = '_two_factor_recovery_token';
+
+	/**
+	 * User meta key for the recovery token timestamp.
+	 *
+	 * @var string
+	 */
+	const RECOVERY_TOKEN_TIMESTAMP_META_KEY = '_two_factor_recovery_token_timestamp';
+
+	/**
+	 * User meta key for the time the recovery request was confirmed.
+	 *
+	 * @var string
+	 */
+	const RECOVERY_REQUEST_TIME_META_KEY = '_two_factor_recovery_request_time';
+
+	/**
+	 * User meta key for the recovery cancel token hash.
+	 *
+	 * @var string
+	 */
+	const RECOVERY_CANCEL_TOKEN_META_KEY = '_two_factor_recovery_cancel_token';
+
+	/**
 	 * Keep track of all the password-based authentication sessions that
 	 * need to invalidated before the second factor authentication.
 	 *
@@ -107,6 +135,10 @@ class Two_Factor_Core {
 		add_action( 'after_password_reset', array( __CLASS__, 'clear_password_reset_notice' ) );
 		add_action( 'login_form_validate_2fa', array( __CLASS__, 'login_form_validate_2fa' ) );
 		add_action( 'login_form_revalidate_2fa', array( __CLASS__, 'login_form_revalidate_2fa' ) );
+		add_action( 'login_form_lost_2fa', array( __CLASS__, 'login_form_lost_2fa' ) );
+		add_action( 'login_form_confirm_2fa_recovery', array( __CLASS__, 'login_form_confirm_2fa_recovery' ) );
+		add_action( 'login_form_complete_2fa_recovery', array( __CLASS__, 'login_form_complete_2fa_recovery' ) );
+		add_action( 'login_form_cancel_2fa_recovery', array( __CLASS__, 'login_form_cancel_2fa_recovery' ) );
 
 		add_action( 'show_user_profile', array( __CLASS__, 'user_two_factor_options' ) );
 		add_action( 'edit_user_profile', array( __CLASS__, 'user_two_factor_options' ) );
@@ -187,6 +219,10 @@ class Two_Factor_Core {
 			self::USER_RATE_LIMIT_KEY,
 			self::USER_FAILED_LOGIN_ATTEMPTS_KEY,
 			self::USER_PASSWORD_WAS_RESET_KEY,
+			self::RECOVERY_TOKEN_META_KEY,
+			self::RECOVERY_TOKEN_TIMESTAMP_META_KEY,
+			self::RECOVERY_REQUEST_TIME_META_KEY,
+			self::RECOVERY_CANCEL_TOKEN_META_KEY,
 		);
 
 		$option_keys = array();
@@ -1197,6 +1233,12 @@ class Two_Factor_Core {
 			</div>
 		<?php endif; ?>
 
+		<?php
+		if ( ! self::is_recovery_disabled() && 'validate_2fa' === $action ) {
+			self::maybe_show_recovery_options( $user, $login_nonce, $redirect_to );
+		}
+		?>
+
 		<style>
 			/* @todo: migrate to an external stylesheet. */
 			.backup-methods-wrap {
@@ -1208,6 +1250,13 @@ class Two_Factor_Core {
 			}
 			.backup-methods-wrap ul {
 				list-style-position: inside;
+			}
+			.recovery-methods-wrap {
+				margin-top: 16px;
+				padding: 0 24px;
+			}
+			.recovery-methods-wrap a {
+				text-decoration: none;
 			}
 			/* Prevent Jetpack from hiding our controls, see https://github.com/Automattic/jetpack/issues/3747 */
 			.jetpack-sso-form-display #loginform > p,
@@ -1658,6 +1707,9 @@ class Two_Factor_Core {
 		 */
 		do_action( 'two_factor_user_authenticated', $user, $provider );
 
+		// Cancel any pending recovery request on successful two-factor login.
+		self::cancel_pending_recovery( $user->ID );
+
 		remove_filter( 'attach_session_information', $session_information_callback );
 
 		// Must be global because that's how login_header() uses it.
@@ -1692,6 +1744,190 @@ class Two_Factor_Core {
 		exit;
 	}
 
+	/**
+	 * Handle the lost 2FA device form.
+	 *
+	 * @since 0.16.0
+	 */
+	public static function login_form_lost_2fa() {
+		if ( self::is_recovery_disabled() ) {
+			return;
+		}
+
+		$wp_auth_id  = ! empty( $_REQUEST['wp-auth-id'] ) ? absint( $_REQUEST['wp-auth-id'] ) : 0;
+		$nonce       = ! empty( $_REQUEST['wp-auth-nonce'] ) ? wp_unslash( $_REQUEST['wp-auth-nonce'] ) : '';
+		$redirect_to = ! empty( $_REQUEST['redirect_to'] ) ? wp_unslash( $_REQUEST['redirect_to'] ) : admin_url();
+		$user        = get_user_by( 'id', $wp_auth_id );
+		$is_post     = ( 'POST' === strtoupper( $_SERVER['REQUEST_METHOD'] ) );
+
+		if ( ! $wp_auth_id || ! $nonce || ! $user || ! self::is_user_using_two_factor( $user->ID ) ) {
+			wp_safe_redirect( home_url() );
+			exit;
+		}
+
+		if ( ! self::verify_login_nonce( $user->ID, $nonce ) ) {
+			wp_safe_redirect( home_url() );
+			exit;
+		}
+
+		if ( $is_post && ! wp_verify_nonce( sanitize_text_field( wp_unslash( $_REQUEST['two_factor_recovery_nonce'] ?? '' ) ), 'two_factor_lost_2fa_' . $user->ID ) ) {
+			self::render_lost_2fa_form( $user, $nonce, $redirect_to, __( 'Invalid request.', 'two-factor' ) );
+			exit;
+		}
+
+		if ( ! $is_post ) {
+			self::render_lost_2fa_form( $user, $nonce, $redirect_to );
+			exit;
+		}
+
+		if ( self::is_user_rate_limited_for_recovery( $user ) ) {
+			self::render_lost_2fa_form( $user, $nonce, $redirect_to, __( 'A recovery request was recently sent. Please wait before trying again.', 'two-factor' ) );
+			exit;
+		}
+
+		if ( self::has_user_pending_recovery( $user->ID ) ) {
+			self::render_lost_2fa_form( $user, $nonce, $redirect_to, __( 'You already have a pending recovery request. Check your email or cancel the existing request first.', 'two-factor' ) );
+			exit;
+		}
+
+		$token = self::generate_recovery_token( $user->ID );
+		if ( ! $token ) {
+			self::render_lost_2fa_form( $user, $nonce, $redirect_to, __( 'Failed to create recovery token.', 'two-factor' ) );
+			exit;
+		}
+
+		self::send_recovery_confirmation_email( $user, $token );
+		self::render_recovery_message( __( 'Check your email for a link to confirm the recovery request.', 'two-factor' ) );
+		exit;
+	}
+
+	/**
+	 * Handle the confirm 2FA recovery link.
+	 *
+	 * @since 0.16.0
+	 */
+	public static function login_form_confirm_2fa_recovery() {
+		if ( self::is_recovery_disabled() ) {
+			return;
+		}
+
+		$wp_auth_id = ! empty( $_REQUEST['wp-auth-id'] ) ? absint( $_REQUEST['wp-auth-id'] ) : 0;
+		$token      = ! empty( $_REQUEST['two-factor-token'] ) ? wp_unslash( $_REQUEST['two-factor-token'] ) : '';
+		$user       = get_user_by( 'id', $wp_auth_id );
+
+		if ( ! $wp_auth_id || ! $token || ! $user || ! self::is_user_using_two_factor( $user->ID ) ) {
+			wp_safe_redirect( home_url() );
+			exit;
+		}
+
+		if ( ! self::validate_recovery_token( $user->ID, $token ) ) {
+			self::render_recovery_message( '', __( 'The recovery link is invalid or has expired.', 'two-factor' ) );
+			exit;
+		}
+
+		$cancel_token = self::generate_cancel_token( $user->ID );
+		$email_sent   = self::send_recovery_cancel_email( $user, $cancel_token );
+
+		if ( ! $email_sent ) {
+			self::clear_recovery_meta( $user->ID );
+			self::render_recovery_message( '', __( 'Failed to send cancellation email. Please try again.', 'two-factor' ) );
+			exit;
+		}
+
+		update_user_meta( $user->ID, self::RECOVERY_REQUEST_TIME_META_KEY, time() );
+
+		self::render_recovery_message( __( 'Recovery confirmed. Two-factor authentication will be disabled after the waiting period. Check your email for the cancellation link.', 'two-factor' ) );
+		exit;
+	}
+
+	/**
+	 * Handle the complete 2FA recovery form.
+	 *
+	 * @since 0.16.0
+	 */
+	public static function login_form_complete_2fa_recovery() {
+		if ( self::is_recovery_disabled() ) {
+			return;
+		}
+
+		$wp_auth_id  = ! empty( $_REQUEST['wp-auth-id'] ) ? absint( $_REQUEST['wp-auth-id'] ) : 0;
+		$nonce       = ! empty( $_REQUEST['wp-auth-nonce'] ) ? wp_unslash( $_REQUEST['wp-auth-nonce'] ) : '';
+		$redirect_to = ! empty( $_REQUEST['redirect_to'] ) ? wp_unslash( $_REQUEST['redirect_to'] ) : admin_url();
+		$user        = get_user_by( 'id', $wp_auth_id );
+		$is_post     = ( 'POST' === strtoupper( $_SERVER['REQUEST_METHOD'] ) );
+
+		if ( ! $wp_auth_id || ! $nonce || ! $user ) {
+			wp_safe_redirect( home_url() );
+			exit;
+		}
+
+		if ( ! self::verify_login_nonce( $user->ID, $nonce ) ) {
+			wp_safe_redirect( home_url() );
+			exit;
+		}
+
+		if ( ! $is_post || ! wp_verify_nonce( sanitize_text_field( wp_unslash( $_REQUEST['two_factor_recovery_nonce'] ?? '' ) ), 'two_factor_complete_recovery_' . $user->ID ) ) {
+			self::render_recovery_message( '', __( 'Invalid request.', 'two-factor' ) );
+			exit;
+		}
+
+		if ( ! self::has_user_pending_recovery( $user->ID ) || ! self::can_user_complete_recovery( $user->ID ) ) {
+			self::render_recovery_message( '', __( 'Recovery is not ready to complete.', 'two-factor' ) );
+			exit;
+		}
+
+		self::disable_all_providers_for_user( $user->ID );
+		self::clear_recovery_meta( $user->ID );
+		delete_user_meta( $user->ID, self::USER_RATE_LIMIT_KEY );
+		delete_user_meta( $user->ID, self::USER_FAILED_LOGIN_ATTEMPTS_KEY );
+
+		remove_filter( 'send_auth_cookies', '__return_false', PHP_INT_MAX );
+		wp_set_auth_cookie( $user->ID, false );
+
+		self::render_recovery_message( __( 'Two-factor authentication has been disabled. Set up a new method from your profile.', 'two-factor' ) );
+		exit;
+	}
+
+	/**
+	 * Handle the cancel 2FA recovery link.
+	 *
+	 * @since 0.16.0
+	 */
+	public static function login_form_cancel_2fa_recovery() {
+		if ( self::is_recovery_disabled() ) {
+			return;
+		}
+
+		$wp_auth_id = ! empty( $_REQUEST['wp-auth-id'] ) ? absint( $_REQUEST['wp-auth-id'] ) : 0;
+		$token      = ! empty( $_REQUEST['two-factor-token'] ) ? wp_unslash( $_REQUEST['two-factor-token'] ) : '';
+		$user       = get_user_by( 'id', $wp_auth_id );
+
+		if ( ! $wp_auth_id || ! $token || ! $user ) {
+			wp_safe_redirect( home_url() );
+			exit;
+		}
+
+		if ( ! self::validate_cancel_token( $user->ID, $token ) ) {
+			self::render_recovery_message( '', __( 'The cancellation link is invalid or has expired.', 'two-factor' ) );
+			exit;
+		}
+
+		self::render_recovery_message( __( 'Two-factor recovery has been cancelled.', 'two-factor' ) );
+		exit;
+	}
+
+	/**
+	 * Disable all two-factor providers for a user.
+	 *
+	 * @since 0.16.0
+	 *
+	 * @param int $user_id User ID.
+	 * @return void
+	 */
+	public static function disable_all_providers_for_user( $user_id ) {
+		delete_user_meta( $user_id, self::ENABLED_PROVIDERS_USER_META_KEY );
+		delete_user_meta( $user_id, self::PROVIDER_USER_META_KEY );
+	}
 
 	/**
 	 * Display the "Revalidate Two Factor" page.
@@ -2031,6 +2267,601 @@ class Two_Factor_Core {
 
 		login_header( __( 'Password Reset', 'two-factor' ), '', $error );
 		login_footer();
+	}
+
+	/**
+	 * Check if the self-service recovery feature is disabled.
+	 *
+	 * @since 0.16.0
+	 *
+	 * @return bool
+	 */
+	public static function is_recovery_disabled() {
+		return defined( 'TWO_FACTOR_DISABLE_RECOVERY' ) && TWO_FACTOR_DISABLE_RECOVERY;
+	}
+
+	/**
+	 * Render recovery options on the two-factor login form.
+	 *
+	 * @since 0.16.0
+	 *
+	 * @param WP_User $user        The user.
+	 * @param string  $login_nonce The login nonce.
+	 * @param string  $redirect_to The redirect URL.
+	 * @return void
+	 */
+	public static function maybe_show_recovery_options( $user, $login_nonce, $redirect_to ) {
+		if ( ! $user ) {
+			return;
+		}
+
+		if ( self::has_user_pending_recovery( $user->ID ) ) {
+			self::render_recovery_status( $user, $login_nonce, $redirect_to );
+			return;
+		}
+
+		$link_args = array(
+			'action'        => 'lost_2fa',
+			'wp-auth-id'    => $user->ID,
+			'wp-auth-nonce' => $login_nonce,
+		);
+
+		$link_url = self::login_url( $link_args );
+		?>
+		<div class="recovery-methods-wrap">
+			<p>
+				<a href="<?php echo esc_url( $link_url ); ?>">
+					<?php esc_html_e( 'Lost your two-factor device?', 'two-factor' ); ?>
+				</a>
+			</p>
+		</div>
+		<?php
+	}
+
+	/**
+	 * Render recovery status during the wait period.
+	 *
+	 * @since 0.16.0
+	 *
+	 * @param WP_User $user        The user.
+	 * @param string  $login_nonce The login nonce.
+	 * @param string  $redirect_to The redirect URL.
+	 * @return void
+	 */
+	public static function render_recovery_status( $user, $login_nonce, $redirect_to ) {
+		$request_time = (int) get_user_meta( $user->ID, self::RECOVERY_REQUEST_TIME_META_KEY, true );
+		$delay        = self::get_recovery_delay_seconds();
+		$remaining    = max( 0, $request_time + $delay - time() );
+		?>
+		<div class="recovery-methods-wrap">
+			<?php if ( $remaining > 0 ) : ?>
+				<p class="message">
+					<?php
+					printf(
+						/* translators: %s: human-readable time remaining */
+						esc_html__( 'Two-factor recovery pending. You can complete it in %s.', 'two-factor' ),
+						esc_html( human_time_diff( time() + $remaining ) )
+					);
+					?>
+				</p>
+			<?php else : ?>
+				<p>
+					<?php esc_html_e( 'Two-factor recovery is ready to complete.', 'two-factor' ); ?>
+				</p>
+				<form name="complete_recovery_form" id="complete-recovery-form" action="<?php echo esc_url( self::login_url( array( 'action' => 'complete_2fa_recovery' ), 'login_post' ) ); ?>" method="post" autocomplete="off">
+					<input type="hidden" name="wp-auth-id"    id="complete-wp-auth-id"    value="<?php echo esc_attr( $user->ID ); ?>" />
+					<input type="hidden" name="wp-auth-nonce" id="complete-wp-auth-nonce" value="<?php echo esc_attr( $login_nonce ); ?>" />
+					<input type="hidden" name="redirect_to" value="<?php echo esc_attr( $redirect_to ); ?>" />
+					<?php wp_nonce_field( 'two_factor_complete_recovery_' . $user->ID, 'two_factor_recovery_nonce' ); ?>
+					<?php submit_button( __( 'Complete Recovery', 'two-factor' ) ); ?>
+				</form>
+			<?php endif; ?>
+		</div>
+		<?php
+	}
+
+	/**
+	 * Render the lost two-factor device form.
+	 *
+	 * @since 0.16.0
+	 *
+	 * @param WP_User $user        The user.
+	 * @param string  $login_nonce The login nonce.
+	 * @param string  $redirect_to The redirect URL.
+	 * @param string  $error_msg   Optional error message.
+	 * @return void
+	 */
+	public static function render_lost_2fa_form( $user, $login_nonce, $redirect_to, $error_msg = '' ) {
+		if ( ! function_exists( 'login_header' ) ) {
+			require_once TWO_FACTOR_DIR . 'includes/function.login-header.php';
+		}
+
+		add_filter( 'login_display_language_dropdown', '__return_false' );
+		wp_enqueue_style( 'user-edit-2fa', plugins_url( 'user-edit.css', __FILE__ ), array(), TWO_FACTOR_VERSION );
+
+		login_header();
+
+		$back_url = self::login_url(
+			array(
+				'action'        => 'validate_2fa',
+				'wp-auth-id'    => $user->ID,
+				'wp-auth-nonce' => $login_nonce,
+			)
+		);
+
+		if ( ! empty( $error_msg ) ) {
+			echo '<div id="login_error"><strong>' . esc_html( $error_msg ) . '</strong><br /></div>';
+		}
+		?>
+		<form name="lost_2fa_form" id="loginform" action="<?php echo esc_url( self::login_url( array( 'action' => 'lost_2fa' ), 'login_post' ) ); ?>" method="post" autocomplete="off">
+			<p class="two-factor-prompt">
+				<?php esc_html_e( 'A confirmation link will be sent to your email address. Clicking it starts a delayed recovery process.', 'two-factor' ); ?>
+			</p>
+			<input type="hidden" name="wp-auth-id"    id="wp-auth-id"    value="<?php echo esc_attr( $user->ID ); ?>" />
+			<input type="hidden" name="wp-auth-nonce" id="wp-auth-nonce" value="<?php echo esc_attr( $login_nonce ); ?>" />
+			<input type="hidden" name="redirect_to" value="<?php echo esc_attr( $redirect_to ); ?>" />
+			<?php wp_nonce_field( 'two_factor_lost_2fa_' . $user->ID, 'two_factor_recovery_nonce' ); ?>
+			<?php submit_button( __( 'Send Recovery Email', 'two-factor' ) ); ?>
+			<p>
+				<a href="<?php echo esc_url( $back_url ); ?>">
+					<?php esc_html_e( 'Back to two-factor login', 'two-factor' ); ?>
+				</a>
+			</p>
+		</form>
+		<?php
+		if ( ! function_exists( 'login_footer' ) ) {
+			require_once TWO_FACTOR_DIR . 'includes/function.login-footer.php';
+		}
+
+		login_footer();
+	}
+
+	/**
+	 * Render the recovery success message.
+	 *
+	 * @since 0.16.0
+	 *
+	 * @param string $message The message text.
+	 * @param string $error_msg Optional error message.
+	 * @return void
+	 */
+	public static function render_recovery_message( $message, $error_msg = '' ) {
+		if ( ! function_exists( 'login_header' ) ) {
+			require_once TWO_FACTOR_DIR . 'includes/function.login-header.php';
+		}
+
+		add_filter( 'login_display_language_dropdown', '__return_false' );
+		wp_enqueue_style( 'user-edit-2fa', plugins_url( 'user-edit.css', __FILE__ ), array(), TWO_FACTOR_VERSION );
+
+		login_header();
+
+		if ( ! empty( $error_msg ) ) {
+			echo '<div id="login_error"><strong>' . esc_html( $error_msg ) . '</strong><br /></div>';
+		} else {
+			echo '<p class="message">' . esc_html( $message ) . '</p>';
+		}
+		?>
+		<p>
+			<a href="<?php echo esc_url( wp_login_url() ); ?>">
+				<?php esc_html_e( 'Back to login', 'two-factor' ); ?>
+			</a>
+		</p>
+		<?php
+		if ( ! function_exists( 'login_footer' ) ) {
+			require_once TWO_FACTOR_DIR . 'includes/function.login-footer.php';
+		}
+
+		login_footer();
+	}
+
+	/**
+	 * Get the delay period before a recovery request can be completed.
+	 *
+	 * @since 0.16.0
+	 *
+	 * @return int Delay in seconds.
+	 */
+	public static function get_recovery_delay_seconds() {
+		/**
+		 * Filter the recovery delay period in hours.
+		 *
+		 * @since 0.16.0
+		 *
+		 * @param int $delay_hours Delay period in hours. Default 24.
+		 */
+		$delay_hours = (int) apply_filters( 'two_factor_recovery_delay_hours', 24 );
+
+		if ( $delay_hours < 1 ) {
+			$delay_hours = 1;
+		}
+
+		return $delay_hours * HOUR_IN_SECONDS;
+	}
+
+	/**
+	 * Get the rate limit between recovery requests.
+	 *
+	 * @since 0.16.0
+	 *
+	 * @return int Rate limit in seconds.
+	 */
+	public static function get_recovery_rate_limit_seconds() {
+		/**
+		 * Filter the rate limit between recovery requests in seconds.
+		 *
+		 * @since 0.16.0
+		 *
+		 * @param int $rate_limit_seconds Rate limit in seconds. Default 12 hours.
+		 */
+		$rate_limit_seconds = (int) apply_filters( 'two_factor_recovery_rate_limit_seconds', 12 * HOUR_IN_SECONDS );
+
+		if ( $rate_limit_seconds < 1 ) {
+			$rate_limit_seconds = 1;
+		}
+
+		return $rate_limit_seconds;
+	}
+
+	/**
+	 * Generate a recovery token and store the hash.
+	 *
+	 * @since 0.16.0
+	 *
+	 * @param int $user_id User ID.
+	 * @return string|false Token on success, false on failure.
+	 */
+	public static function generate_recovery_token( $user_id ) {
+		$user_id = (int) $user_id;
+		if ( ! $user_id ) {
+			return false;
+		}
+
+		try {
+			$token = bin2hex( random_bytes( 32 ) );
+		} catch ( Exception $ex ) {
+			$token = wp_hash( $user_id . wp_rand() . microtime(), 'nonce' );
+		}
+
+		update_user_meta( $user_id, self::RECOVERY_TOKEN_TIMESTAMP_META_KEY, time() );
+		update_user_meta( $user_id, self::RECOVERY_TOKEN_META_KEY, wp_hash( $token ) );
+
+		return $token;
+	}
+
+	/**
+	 * Validate a recovery token.
+	 *
+	 * @since 0.16.0
+	 *
+	 * @param int    $user_id User ID.
+	 * @param string $token   Token to validate.
+	 * @return bool
+	 */
+	public static function validate_recovery_token( $user_id, $token ) {
+		$user_id = (int) $user_id;
+		if ( ! $user_id || ! $token || ! is_string( $token ) ) {
+			return false;
+		}
+
+		$hashed_token = get_user_meta( $user_id, self::RECOVERY_TOKEN_META_KEY, true );
+		if ( empty( $hashed_token ) || ! is_string( $hashed_token ) ) {
+			return false;
+		}
+
+		$timestamp = (int) get_user_meta( $user_id, self::RECOVERY_TOKEN_TIMESTAMP_META_KEY, true );
+		if ( ! $timestamp || time() > $timestamp + DAY_IN_SECONDS ) {
+			self::clear_recovery_meta( $user_id );
+			return false;
+		}
+
+		if ( ! hash_equals( $hashed_token, wp_hash( $token ) ) ) {
+			return false;
+		}
+
+		self::clear_recovery_token_meta( $user_id );
+
+		return true;
+	}
+
+	/**
+	 * Generate a recovery cancel token and store the hash.
+	 *
+	 * @since 0.16.0
+	 *
+	 * @param int $user_id User ID.
+	 * @return string|false Token on success, false on failure.
+	 */
+	public static function generate_cancel_token( $user_id ) {
+		$user_id = (int) $user_id;
+		if ( ! $user_id ) {
+			return false;
+		}
+
+		try {
+			$token = bin2hex( random_bytes( 32 ) );
+		} catch ( Exception $ex ) {
+			$token = wp_hash( $user_id . wp_rand() . microtime(), 'nonce' );
+		}
+
+		update_user_meta( $user_id, self::RECOVERY_CANCEL_TOKEN_META_KEY, wp_hash( $token ) );
+
+		return $token;
+	}
+
+	/**
+	 * Validate a recovery cancel token.
+	 *
+	 * @since 0.16.0
+	 *
+	 * @param int    $user_id User ID.
+	 * @param string $token   Token to validate.
+	 * @return bool
+	 */
+	public static function validate_cancel_token( $user_id, $token ) {
+		$user_id = (int) $user_id;
+		if ( ! $user_id || ! $token || ! is_string( $token ) ) {
+			return false;
+		}
+
+		$hashed_token = get_user_meta( $user_id, self::RECOVERY_CANCEL_TOKEN_META_KEY, true );
+		if ( empty( $hashed_token ) || ! is_string( $hashed_token ) ) {
+			return false;
+		}
+
+		if ( ! hash_equals( $hashed_token, wp_hash( $token ) ) ) {
+			return false;
+		}
+
+		self::clear_recovery_meta( $user_id );
+
+		return true;
+	}
+
+	/**
+	 * Clear recovery token meta.
+	 *
+	 * @since 0.16.0
+	 *
+	 * @param int $user_id User ID.
+	 * @return void
+	 */
+	public static function clear_recovery_token_meta( $user_id ) {
+		delete_user_meta( $user_id, self::RECOVERY_TOKEN_META_KEY );
+		delete_user_meta( $user_id, self::RECOVERY_TOKEN_TIMESTAMP_META_KEY );
+	}
+
+	/**
+	 * Clear all recovery-related meta.
+	 *
+	 * @since 0.16.0
+	 *
+	 * @param int $user_id User ID.
+	 * @return void
+	 */
+	public static function clear_recovery_meta( $user_id ) {
+		delete_user_meta( $user_id, self::RECOVERY_TOKEN_META_KEY );
+		delete_user_meta( $user_id, self::RECOVERY_TOKEN_TIMESTAMP_META_KEY );
+		delete_user_meta( $user_id, self::RECOVERY_REQUEST_TIME_META_KEY );
+		delete_user_meta( $user_id, self::RECOVERY_CANCEL_TOKEN_META_KEY );
+	}
+
+	/**
+	 * Check if the user has a pending recovery request.
+	 *
+	 * @since 0.16.0
+	 *
+	 * @param int $user_id User ID.
+	 * @return bool
+	 */
+	public static function has_user_pending_recovery( $user_id ) {
+		$request_time = (int) get_user_meta( $user_id, self::RECOVERY_REQUEST_TIME_META_KEY, true );
+
+		return $request_time > 0;
+	}
+
+	/**
+	 * Check if the recovery request delay has elapsed.
+	 *
+	 * @since 0.16.0
+	 *
+	 * @param int $user_id User ID.
+	 * @return bool
+	 */
+	public static function can_user_complete_recovery( $user_id ) {
+		if ( ! self::has_user_pending_recovery( $user_id ) ) {
+			return false;
+		}
+
+		$request_time = (int) get_user_meta( $user_id, self::RECOVERY_REQUEST_TIME_META_KEY, true );
+
+		return time() >= $request_time + self::get_recovery_delay_seconds();
+	}
+
+	/**
+	 * Check if the user is rate-limited for recovery requests.
+	 *
+	 * @since 0.16.0
+	 *
+	 * @param WP_User $user User object.
+	 * @return bool
+	 */
+	public static function is_user_rate_limited_for_recovery( $user ) {
+		$last_request = (int) get_user_meta( $user->ID, self::RECOVERY_TOKEN_TIMESTAMP_META_KEY, true );
+
+		// If no recovery token exists, the user may only have a confirmed request.
+		if ( ! $last_request ) {
+			$last_request = (int) get_user_meta( $user->ID, self::RECOVERY_REQUEST_TIME_META_KEY, true );
+		}
+
+		if ( ! $last_request ) {
+			return false;
+		}
+
+		return time() < $last_request + self::get_recovery_rate_limit_seconds();
+	}
+
+	/**
+	 * Cancel a pending recovery request.
+	 *
+	 * @since 0.16.0
+	 *
+	 * @param int $user_id User ID.
+	 * @return void
+	 */
+	public static function cancel_pending_recovery( $user_id ) {
+		self::clear_recovery_meta( $user_id );
+	}
+
+	/**
+	 * Build a recovery action URL.
+	 *
+	 * @since 0.16.0
+	 *
+	 * @param int    $user_id User ID.
+	 * @param string $action  Recovery action.
+	 * @param string $token   Recovery token.
+	 * @return string
+	 */
+	public static function get_recovery_url( $user_id, $action, $token ) {
+		return self::login_url(
+			array(
+				'action'           => $action,
+				'wp-auth-id'       => $user_id,
+				'two-factor-token' => $token,
+			)
+		);
+	}
+
+	/**
+	 * Send the recovery confirmation email.
+	 *
+	 * @since 0.16.0
+	 *
+	 * @param WP_User $user  User object.
+	 * @param string  $token Recovery token.
+	 * @return bool
+	 */
+	public static function send_recovery_confirmation_email( $user, $token ) {
+		$subject = wp_strip_all_tags(
+			sprintf(
+				/* translators: %s: site name */
+				__( '[%s] Confirm two-factor recovery request', 'two-factor' ),
+				wp_specialchars_decode( get_option( 'blogname' ), ENT_QUOTES )
+			)
+		);
+
+		$message = sprintf(
+			/* translators: 1: username, 2: site URL, 3: confirmation URL, 4: IP address */
+			__(
+				'Hello %1$s,
+
+A request has been made to disable two-factor authentication on your account at %2$s.
+
+If you made this request, click the link below to confirm it and begin the recovery process:
+
+%3$s
+
+This link will expire in 24 hours. If you did not make this request, log in with your two-factor device and the request will be cancelled.
+
+IP address: %4$s',
+				'two-factor'
+			),
+			esc_html( $user->user_login ),
+			home_url(),
+			esc_url( self::get_recovery_url( $user->ID, 'confirm_2fa_recovery', $token ) ),
+			self::get_client_ip()
+		);
+		$message = str_replace( "\t", '', $message );
+
+		/**
+		 * Filters the recovery confirmation email message.
+		 *
+		 * @since 0.16.0
+		 *
+		 * @param string  $message The email message.
+		 * @param WP_User $user    The user.
+		 * @param string  $token   The recovery token.
+		 */
+		$message = apply_filters( 'two_factor_recovery_confirmation_email_message', $message, $user, $token );
+
+		return wp_mail( $user->user_email, $subject, $message );
+	}
+
+	/**
+	 * Send the recovery cancel email.
+	 *
+	 * @since 0.16.0
+	 *
+	 * @param WP_User $user  User object.
+	 * @param string  $token Cancel token.
+	 * @return bool
+	 */
+	public static function send_recovery_cancel_email( $user, $token ) {
+		$delay_hours = self::get_recovery_delay_seconds() / HOUR_IN_SECONDS;
+
+		$subject = wp_strip_all_tags(
+			sprintf(
+				/* translators: %s: site name */
+				__( '[%s] Cancel two-factor recovery request', 'two-factor' ),
+				wp_specialchars_decode( get_option( 'blogname' ), ENT_QUOTES )
+			)
+		);
+
+		$message = sprintf(
+			/* translators: 1: username, 2: site URL, 3: delay hours, 4: cancel URL */
+			__(
+				'Hello %1$s,
+
+You requested to disable two-factor authentication on your account at %2$s. Two-factor authentication will be disabled in %3$d hours.
+
+If this was a mistake, click the link below to cancel the recovery:
+
+%4$s
+
+If you still want to disable two-factor authentication, wait %3$d hours and then sign in with your password to complete recovery.',
+				'two-factor'
+			),
+			esc_html( $user->user_login ),
+			home_url(),
+			$delay_hours,
+			esc_url( self::get_recovery_url( $user->ID, 'cancel_2fa_recovery', $token ) )
+		);
+		$message = str_replace( "\t", '', $message );
+
+		/**
+		 * Filters the recovery cancel email message.
+		 *
+		 * @since 0.16.0
+		 *
+		 * @param string  $message The email message.
+		 * @param WP_User $user    The user.
+		 * @param string  $token   The cancel token.
+		 */
+		$message = apply_filters( 'two_factor_recovery_cancel_email_message', $message, $user, $token );
+
+		return wp_mail( $user->user_email, $subject, $message );
+	}
+
+	/**
+	 * Get the client IP address.
+	 *
+	 * @since 0.16.0
+	 *
+	 * @return string
+	 */
+	public static function get_client_ip() {
+		// phpcs:disable WordPress.Security.ValidatedSanitizedInput.InputNotSanitized, WordPressVIPMinimum.Variables.ServerVariables.UserControlledHeaders, WordPressVIPMinimum.Variables.RestrictedVariables.cache_constraints___SERVER__REMOTE_ADDR__
+		if ( ! empty( $_SERVER['HTTP_CLIENT_IP'] ) ) {
+			return sanitize_text_field( wp_unslash( $_SERVER['HTTP_CLIENT_IP'] ) );
+		} elseif ( ! empty( $_SERVER['HTTP_X_FORWARDED_FOR'] ) ) {
+			$forwarded_ips = array_map( 'trim', explode( ',', sanitize_text_field( wp_unslash( $_SERVER['HTTP_X_FORWARDED_FOR'] ) ) ) );
+			return $forwarded_ips[0] ?? '';
+		} elseif ( ! empty( $_SERVER['REMOTE_ADDR'] ) ) {
+			return sanitize_text_field( wp_unslash( $_SERVER['REMOTE_ADDR'] ) );
+		}
+		// phpcs:enable WordPress.Security.ValidatedSanitizedInput.InputNotSanitized, WordPressVIPMinimum.Variables.ServerVariables.UserControlledHeaders, WordPressVIPMinimum.Variables.RestrictedVariables.cache_constraints___SERVER__REMOTE_ADDR__
+
+		return '';
 	}
 
 	/**
