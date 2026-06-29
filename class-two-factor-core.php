@@ -2620,7 +2620,7 @@ class Two_Factor_Core {
 			. '<ul>'
 			. '<li>' . __( '<strong>TOTP secret key</strong> – a unique cryptographic secret generated when you set up an authenticator app. It is stored in your user profile.', 'two-factor' ) . '</li>'
 			. '<li>' . __( '<strong>Backup codes</strong> – a set of one-time-use codes you can store offline. Hashed copies are kept in your user profile until they are used or regenerated.', 'two-factor' ) . '</li>'
-			. '<li>' . __( '<strong>Email address</strong> – your account email is used to send a one-time passcode when the email provider is active. The code itself is not stored after the login attempt concludes.', 'two-factor' ) . '</li>'
+			. '<li>' . __( '<strong>Email provider verification data</strong> – when the email provider is enabled, the plugin uses the email address already stored in your WordPress account to send a one-time login code. To validate the code, a hashed token and a timestamp are stored temporarily in your user profile metadata. The code itself is not stored.', 'two-factor' ) . '</li>'
 			. '<li>' . __( '<strong>Enabled providers list</strong> – a record of which two-factor methods you have activated (e.g. TOTP, email, backup codes) is stored in your user profile.', 'two-factor' ) . '</li>'
 			. '</ul>'
 
