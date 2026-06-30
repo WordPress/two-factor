@@ -77,6 +77,10 @@ function two_factor_register_admin_hooks() {
 	/* Enforcement filters: restrict providers based on saved enabled-providers option. */
 	add_filter( 'two_factor_providers', 'two_factor_filter_enabled_providers' );
 	add_filter( 'two_factor_enabled_providers_for_user', 'two_factor_filter_enabled_providers_for_user', 10, 2 );
+
+	/* Per-user wp-config bypass (emergency, operator-only lever). */
+	add_filter( 'two_factor_primary_provider_for_user', 'two_factor_bypass_primary_provider_for_user', 10, 2 );
+	add_action( 'admin_notices', 'two_factor_bypass_admin_notice' );
 }
 
 add_action( 'init', 'two_factor_register_admin_hooks' );
@@ -187,4 +191,86 @@ function two_factor_filter_enabled_providers_for_user( $enabled, $user_id ) {
 	}
 
 	return array_values( array_intersect( (array) $enabled, $site_enabled ) );
+}
+
+
+/**
+ * Bypass the two-factor login challenge for users named in the
+ * TWO_FACTOR_DISABLE_FOR_USER wp-config constant.
+ *
+ * This is an emergency, operator-only lever for recovering a locked-out account.
+ * It lives in wp-config.php (filesystem access only — the same trust level as
+ * shell/DB access) and targets one or more *named* users. There is deliberately
+ * no site-wide kill-switch: disabling 2FA for everyone because one person is
+ * locked out throws away the protection of every other account. See
+ * account-recovery-future-improvements.md, item B.
+ *
+ * The constant accepts a single identifier, a comma-separated list, or an array;
+ * each identifier may be a user ID, login, or email. Returning null makes
+ * Two_Factor_Core::is_user_using_two_factor() report false (so wp_login() lets
+ * the user through), and runs after the core fail-closed logic so it does not
+ * trip the fallback that would otherwise force-enable emailed codes.
+ *
+ * @since 0.17.0
+ *
+ * @param string|null $provider The provider key core resolved for the user.
+ * @param int         $user_id  ID of the user being evaluated.
+ * @return string|null The original provider, or null to bypass the challenge.
+ */
+function two_factor_bypass_primary_provider_for_user( $provider, $user_id ) {
+	if ( ! defined( 'TWO_FACTOR_DISABLE_FOR_USER' ) || empty( TWO_FACTOR_DISABLE_FOR_USER ) ) {
+		return $provider;
+	}
+
+	$user = get_userdata( $user_id );
+	if ( ! $user ) {
+		return $provider;
+	}
+
+	// Match the user being evaluated against the configured identifiers
+	// (ID, login, or email), accepting either a CSV string or an array.
+	$identifiers = array_map( 'trim', explode( ',', implode( ',', (array) TWO_FACTOR_DISABLE_FOR_USER ) ) );
+	$user_keys   = array( (string) $user->ID, $user->user_login, $user->user_email );
+
+	if ( array_intersect( $user_keys, $identifiers ) ) {
+		return null;
+	}
+
+	return $provider;
+}
+
+
+/**
+ * Warn administrators when the per-user two-factor bypass constant is set.
+ *
+ * A bypass left in place silently weakens the site, so surface it on every admin
+ * screen. The configured value is shown so a typo is easy to spot.
+ *
+ * @since 0.17.0
+ */
+function two_factor_bypass_admin_notice() {
+	if ( ! current_user_can( 'manage_options' ) ) {
+		return;
+	}
+
+	if ( ! defined( 'TWO_FACTOR_DISABLE_FOR_USER' ) || empty( TWO_FACTOR_DISABLE_FOR_USER ) ) {
+		return;
+	}
+
+	$configured = implode( ', ', (array) TWO_FACTOR_DISABLE_FOR_USER );
+	?>
+	<div class="notice notice-warning">
+		<p>
+			<?php
+			echo esc_html(
+				sprintf(
+					/* translators: %s: configured value of the TWO_FACTOR_DISABLE_FOR_USER constant */
+					__( 'Two-Factor is bypassed via wp-config (TWO_FACTOR_DISABLE_FOR_USER = %s). Remove the constant once account recovery is complete.', 'two-factor' ),
+					$configured
+				)
+			);
+			?>
+		</p>
+	</div>
+	<?php
 }
