@@ -188,3 +188,104 @@ function two_factor_filter_enabled_providers_for_user( $enabled, $user_id ) {
 
 	return array_values( array_intersect( (array) $enabled, $site_enabled ) );
 }
+
+/**
+ * Enforce Two-Factor for users in roles that require it.
+ *
+ * Runs after the site-enabled filter (priority 20). If a user belongs to an
+ * enforced role but has no providers configured, the Email provider is injected
+ * so they are prompted to authenticate on their next login.
+ *
+ * Enforcement only activates when the Email provider is site-enabled. Other
+ * providers (e.g. TOTP) require per-user setup before they can authenticate,
+ * so injecting them without prior configuration would silently fail open.
+ *
+ * @since 0.16
+ *
+ * @param array $enabled  Currently enabled provider classnames for the user.
+ * @param int   $user_id  The user ID.
+ * @return array
+ */
+function two_factor_enforce_for_user( $enabled, $user_id ) {
+	// User already has at least one provider — nothing to enforce.
+	if ( ! empty( $enabled ) ) {
+		return $enabled;
+	}
+
+	$enforced_roles = (array) get_option( 'two_factor_enforced_roles', array() );
+	if ( empty( $enforced_roles ) ) {
+		return $enabled;
+	}
+
+	$user = get_userdata( $user_id );
+	if ( ! $user ) {
+		return $enabled;
+	}
+
+	// Check whether the user has at least one enforced role.
+	if ( empty( array_intersect( (array) $user->roles, $enforced_roles ) ) ) {
+		return $enabled;
+	}
+
+	// Only enforce via Email. Other providers require prior user setup and
+	// cannot be injected without risking a silent fail-open.
+	$site_enabled = two_factor_get_enabled_providers_option();
+	if ( null !== $site_enabled && ! in_array( 'Two_Factor_Email', $site_enabled, true ) ) {
+		// Email is disabled site-wide — cannot enforce safely. The settings
+		// page will display a warning to the administrator.
+		return $enabled;
+	}
+
+	return array( 'Two_Factor_Email' );
+}
+add_filter( 'two_factor_enabled_providers_for_user', 'two_factor_enforce_for_user', 20, 2 );
+
+/**
+ * Auto-configure email verification for new users in enforced roles.
+ *
+ * Fires immediately after a new user account is created so that enforced
+ * users are required to verify via email on their very first login.
+ *
+ * @since 0.16
+ *
+ * @param int $user_id The newly registered user ID.
+ * @return void
+ */
+function two_factor_force_on_user_register( $user_id ) {
+	$enforced_roles = (array) get_option( 'two_factor_enforced_roles', array() );
+	if ( empty( $enforced_roles ) ) {
+		return;
+	}
+
+	$user = get_userdata( $user_id );
+	if ( ! $user ) {
+		return;
+	}
+
+	if ( empty( array_intersect( (array) $user->roles, $enforced_roles ) ) ) {
+		return;
+	}
+
+	// Do not overwrite a configuration that already exists.
+	$existing = get_user_meta( $user_id, Two_Factor_Core::ENABLED_PROVIDERS_USER_META_KEY, true );
+	if ( ! empty( $existing ) ) {
+		return;
+	}
+
+	// Only enrol via Email — same constraint as the runtime enforcement filter.
+	$site_enabled = two_factor_get_enabled_providers_option();
+	if ( null !== $site_enabled && ! in_array( 'Two_Factor_Email', $site_enabled, true ) ) {
+		// Email is disabled site-wide; skip auto-enrolment.
+		return;
+	}
+
+	// Ensure the Email provider is actually registered/supported for this user.
+	$supported_providers = Two_Factor_Core::get_supported_providers_for_user( $user );
+	if ( empty( $supported_providers ) || ! isset( $supported_providers['Two_Factor_Email'] ) ) {
+		// Email provider is not supported for this user; skip auto-enrolment.
+		return;
+	}
+	update_user_meta( $user_id, Two_Factor_Core::ENABLED_PROVIDERS_USER_META_KEY, array( 'Two_Factor_Email' ) );
+	update_user_meta( $user_id, Two_Factor_Core::PROVIDER_USER_META_KEY, 'Two_Factor_Email' );
+}
+add_action( 'user_register', 'two_factor_force_on_user_register', 10, 1 );
