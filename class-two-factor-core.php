@@ -38,6 +38,24 @@ class Two_Factor_Core {
 	const ENABLED_PROVIDERS_OPTION_KEY = 'two_factor_enabled_providers';
 
 	/**
+	 * The network-wide enabled providers option key.
+	 *
+	 * @since 0.17.0
+	 *
+	 * @type string
+	 */
+	const ENABLED_PROVIDERS_NETWORK_OPTION_KEY = 'two_factor_network_enabled_providers';
+
+	/**
+	 * The network option key that controls whether subsites can override provider settings.
+	 *
+	 * @since 0.17.0
+	 *
+	 * @type string
+	 */
+	const NETWORK_ALLOW_SITE_OVERRIDE_OPTION_KEY = 'two_factor_network_allow_site_override';
+
+	/**
 	 * The user meta nonce key.
 	 *
 	 * @type string
@@ -203,6 +221,12 @@ class Two_Factor_Core {
 			self::ENABLED_PROVIDERS_OPTION_KEY,
 		);
 
+		// Network options are stored in sitemeta on Multisite and in wp_options on single-site.
+		$network_option_keys = array(
+			self::ENABLED_PROVIDERS_NETWORK_OPTION_KEY,
+			self::NETWORK_ALLOW_SITE_OVERRIDE_OPTION_KEY,
+		);
+
 		$providers = self::get_default_providers();
 
 		/** This filter is documented in the get_providers() method */
@@ -241,6 +265,12 @@ class Two_Factor_Core {
 		if ( ! empty( $option_keys ) ) {
 			foreach ( $option_keys as $option_key ) {
 				delete_option( $option_key );
+			}
+		}
+
+		if ( ! empty( $network_option_keys ) ) {
+			foreach ( $network_option_keys as $option_key ) {
+				delete_site_option( $option_key );
 			}
 		}
 
@@ -1186,7 +1216,7 @@ class Two_Factor_Core {
 
 			foreach ( $backup_providers as $backup_provider_key => $backup_provider ) {
 				$backup_link_args['provider'] = $backup_provider_key;
-				$links[] = array(
+				$links[]                      = array(
 					'url'   => self::login_url( $backup_link_args ),
 					'label' => $backup_provider->get_alternative_provider_label(),
 				);
