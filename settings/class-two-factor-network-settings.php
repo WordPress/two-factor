@@ -57,10 +57,14 @@ class Two_Factor_Network_Settings {
 				)
 			);
 
-			update_site_option( Two_Factor_Core::ENABLED_PROVIDERS_NETWORK_OPTION_KEY, $enabled );
-			update_site_option( Two_Factor_Core::NETWORK_ALLOW_SITE_OVERRIDE_OPTION_KEY, ! empty( $_POST['two_factor_network_allow_site_override'] ) ? 1 : 0 );
+			if ( empty( $enabled ) ) {
+				echo '<div class="notice notice-error inline"><p>' . esc_html__( 'At least one provider must be enabled at the network level. No changes were saved.', 'two-factor' ) . '</p></div>';
+			} else {
+				update_site_option( Two_Factor_Core::ENABLED_PROVIDERS_NETWORK_OPTION_KEY, $enabled );
+				update_site_option( Two_Factor_Core::NETWORK_ALLOW_SITE_OVERRIDE_OPTION_KEY, ! empty( $_POST['two_factor_network_allow_site_override'] ) ? 1 : 0 );
 
-			echo '<div class="updated"><p>' . esc_html__( 'Settings saved.', 'two-factor' ) . '</p></div>';
+				echo '<div class="updated"><p>' . esc_html__( 'Settings saved.', 'two-factor' ) . '</p></div>';
+			}
 		}
 
 		// Default to all providers enabled when the option has never been saved.

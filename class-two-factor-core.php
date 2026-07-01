@@ -167,6 +167,7 @@ class Two_Factor_Core {
 
 		// Add Settings link to plugin action links.
 		add_filter( 'plugin_action_links_' . plugin_basename( TWO_FACTOR_DIR . 'two-factor.php' ), array( __CLASS__, 'add_settings_action_link' ) );
+		add_filter( 'network_admin_plugin_action_links', array( __CLASS__, 'add_network_settings_action_link' ), 10, 4 );
 
 		$compat->init();
 	}
@@ -428,7 +429,11 @@ class Two_Factor_Core {
 	 * @return string[] Modified array with the User Settings link added.
 	 */
 	public static function add_settings_action_link( $links ) {
-		$plugin_settings_url  = admin_url( 'options-general.php?page=two-factor-settings' );
+		if ( two_factor_is_network_mode() && current_user_can( 'manage_network_options' ) ) {
+			$plugin_settings_url = network_admin_url( 'settings.php?page=two-factor-network-settings' );
+		} else {
+			$plugin_settings_url = admin_url( 'options-general.php?page=two-factor-settings' );
+		}
 		$plugin_settings_link = sprintf(
 			'<a href="%s">%s</a>',
 			esc_url( $plugin_settings_url ),
@@ -450,6 +455,38 @@ class Two_Factor_Core {
 		}
 
 		return $links;
+	}
+
+	/**
+	 * Add Network Settings link to plugin action links on the Network Admin plugins screen.
+	 *
+	 * @since 0.17.0
+	 *
+	 * @param string[] $actions     An array of plugin action links.
+	 * @param string   $plugin_file Path to the plugin file relative to the plugins directory.
+	 * @param array    $plugin_data An array of plugin data. Unused.
+	 * @param string   $context     The plugin context status. Unused.
+	 * @return string[] Modified array with the Network Settings link added.
+	 */
+	public static function add_network_settings_action_link( $actions, $plugin_file, $plugin_data, $context ) { // phpcs:ignore Generic.CodeAnalysis.UnusedFunctionParameter.FoundAfterLastUsed,VariableAnalysis.CodeAnalysis.VariableAnalysis.UnusedVariable
+		if ( plugin_basename( TWO_FACTOR_DIR . 'two-factor.php' ) !== $plugin_file ) {
+			return $actions;
+		}
+
+		if ( ! two_factor_is_network_mode() || ! current_user_can( 'manage_network_options' ) ) {
+			return $actions;
+		}
+
+		$network_settings_url = network_admin_url( 'settings.php?page=two-factor-network-settings' );
+		$settings_link        = sprintf(
+			'<a href="%s">%s</a>',
+			esc_url( $network_settings_url ),
+			esc_html__( 'Plugin Settings', 'two-factor' )
+		);
+
+		array_unshift( $actions, $settings_link );
+
+		return $actions;
 	}
 
 	/**

@@ -29,6 +29,8 @@ class Tests_Two_Factor_Network_Settings extends WP_UnitTestCase {
 
 		$this->admin_user_id = self::factory()->user->create( array( 'role' => 'administrator' ) );
 		wp_set_current_user( $this->admin_user_id );
+
+		add_filter( 'map_meta_cap', array( $this, 'filter_map_meta_cap' ), 10, 4 );
 	}
 
 	/**
@@ -36,6 +38,8 @@ class Tests_Two_Factor_Network_Settings extends WP_UnitTestCase {
 	 */
 	public function tearDown(): void {
 		parent::tearDown();
+
+		remove_filter( 'map_meta_cap', array( $this, 'filter_map_meta_cap' ), 10 );
 
 		wp_set_current_user( 0 );
 
@@ -45,6 +49,22 @@ class Tests_Two_Factor_Network_Settings extends WP_UnitTestCase {
 		delete_option( Two_Factor_Core::ENABLED_PROVIDERS_OPTION_KEY );
 		delete_site_option( Two_Factor_Core::ENABLED_PROVIDERS_NETWORK_OPTION_KEY );
 		delete_site_option( Two_Factor_Core::NETWORK_ALLOW_SITE_OVERRIDE_OPTION_KEY );
+	}
+
+	/**
+	 * Map manage_network_options to manage_options for the test admin in single-site.
+	 *
+	 * @param string[] $caps    Primitive caps required.
+	 * @param string   $cap     Capability being checked.
+	 * @param int      $user_id User ID.
+	 * @param array    $args    Extra args.
+	 * @return string[] Modified caps.
+	 */
+	public function filter_map_meta_cap( $caps, $cap, $user_id, $args ) { // phpcs:ignore Generic.CodeAnalysis.UnusedFunctionParameter.FoundAfterLastUsed
+		if ( 'manage_network_options' === $cap && $user_id === $this->admin_user_id ) {
+			return array( 'manage_options' );
+		}
+		return $caps;
 	}
 
 	/**
@@ -271,5 +291,66 @@ class Tests_Two_Factor_Network_Settings extends WP_UnitTestCase {
 		$this->assertStringContainsString( 'Choose which Two-Factor providers are available on this site.', $output );
 		$this->assertStringContainsString( 'name="two_factor_settings_submit"', $output );
 		$this->assertStringNotContainsString( 'disabled="disabled"', $output );
+	}
+
+	/**
+	 * Plugin Settings link points to the network settings page for network admins.
+	 *
+	 * @covers Two_Factor_Core::add_settings_action_link
+	 */
+	public function test_settings_action_link_points_to_network_settings_for_network_admin() {
+		add_filter( 'two_factor_network_mode', '__return_true' );
+
+		$links = Two_Factor_Core::add_settings_action_link( array() );
+
+		$this->assertStringContainsString( 'settings.php?page=two-factor-network-settings', $links[0] );
+		$this->assertStringNotContainsString( 'options-general.php?page=two-factor-settings', $links[0] );
+	}
+
+	/**
+	 * Plugin Settings link points to the site settings page for non-network admins.
+	 *
+	 * @covers Two_Factor_Core::add_settings_action_link
+	 */
+	public function test_settings_action_link_points_to_site_settings_for_non_network_admin() {
+		add_filter( 'two_factor_network_mode', '__return_true' );
+		remove_filter( 'map_meta_cap', array( $this, 'filter_map_meta_cap' ), 10 );
+
+		$links = Two_Factor_Core::add_settings_action_link( array() );
+
+		add_filter( 'map_meta_cap', array( $this, 'filter_map_meta_cap' ), 10, 4 );
+
+		$this->assertStringContainsString( 'options-general.php?page=two-factor-settings', $links[0] );
+		$this->assertStringNotContainsString( 'settings.php?page=two-factor-network-settings', $links[0] );
+	}
+
+	/**
+	 * Empty network provider list is rejected and the existing option is preserved.
+	 *
+	 * @covers Two_Factor_Network_Settings::render_settings_page
+	 */
+	public function test_network_settings_empty_provider_list_not_saved() {
+		get_userdata( $this->admin_user_id )->add_cap( 'manage_network_options', true );
+
+		add_filter( 'two_factor_network_mode', '__return_true' );
+		update_site_option( Two_Factor_Core::ENABLED_PROVIDERS_NETWORK_OPTION_KEY, array( 'Two_Factor_Email' ) );
+		update_site_option( Two_Factor_Core::NETWORK_ALLOW_SITE_OVERRIDE_OPTION_KEY, 0 );
+
+		$_POST['two_factor_network_settings_submit']   = '1';
+		$_POST['two_factor_network_settings_nonce']    = wp_create_nonce( 'two_factor_save_network_settings' );
+		$_REQUEST['two_factor_network_settings_nonce'] = $_POST['two_factor_network_settings_nonce'];
+
+		ob_start();
+		Two_Factor_Network_Settings::render_settings_page();
+		$output = ob_get_clean();
+
+		unset( $_POST['two_factor_network_settings_submit'], $_POST['two_factor_network_settings_nonce'], $_REQUEST['two_factor_network_settings_nonce'] );
+
+		$this->assertSame(
+			array( 'Two_Factor_Email' ),
+			get_site_option( Two_Factor_Core::ENABLED_PROVIDERS_NETWORK_OPTION_KEY ),
+			'Network provider list must not be changed when saving an empty list.'
+		);
+		$this->assertStringContainsString( 'At least one provider must be enabled at the network level.', $output );
 	}
 }
