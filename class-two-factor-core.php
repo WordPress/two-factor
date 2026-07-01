@@ -38,6 +38,24 @@ class Two_Factor_Core {
 	const ENABLED_PROVIDERS_OPTION_KEY = 'two_factor_enabled_providers';
 
 	/**
+	 * The network-wide enabled providers option key.
+	 *
+	 * @since 0.17.0
+	 *
+	 * @type string
+	 */
+	const ENABLED_PROVIDERS_NETWORK_OPTION_KEY = 'two_factor_network_enabled_providers';
+
+	/**
+	 * The network option key that controls whether subsites can override provider settings.
+	 *
+	 * @since 0.17.0
+	 *
+	 * @type string
+	 */
+	const NETWORK_ALLOW_SITE_OVERRIDE_OPTION_KEY = 'two_factor_network_allow_site_override';
+
+	/**
 	 * The user meta nonce key.
 	 *
 	 * @type string
@@ -149,6 +167,7 @@ class Two_Factor_Core {
 
 		// Add Settings link to plugin action links.
 		add_filter( 'plugin_action_links_' . plugin_basename( TWO_FACTOR_DIR . 'two-factor.php' ), array( __CLASS__, 'add_settings_action_link' ) );
+		add_filter( 'network_admin_plugin_action_links', array( __CLASS__, 'add_network_settings_action_link' ), 10, 4 );
 
 		$compat->init();
 	}
@@ -203,6 +222,12 @@ class Two_Factor_Core {
 			self::ENABLED_PROVIDERS_OPTION_KEY,
 		);
 
+		// Network options are stored in sitemeta on Multisite and in wp_options on single-site.
+		$network_option_keys = array(
+			self::ENABLED_PROVIDERS_NETWORK_OPTION_KEY,
+			self::NETWORK_ALLOW_SITE_OVERRIDE_OPTION_KEY,
+		);
+
 		$providers = self::get_default_providers();
 
 		/** This filter is documented in the get_providers() method */
@@ -241,6 +266,12 @@ class Two_Factor_Core {
 		if ( ! empty( $option_keys ) ) {
 			foreach ( $option_keys as $option_key ) {
 				delete_option( $option_key );
+			}
+		}
+
+		if ( ! empty( $network_option_keys ) ) {
+			foreach ( $network_option_keys as $option_key ) {
+				delete_site_option( $option_key );
 			}
 		}
 
@@ -398,7 +429,11 @@ class Two_Factor_Core {
 	 * @return string[] Modified array with the User Settings link added.
 	 */
 	public static function add_settings_action_link( $links ) {
-		$plugin_settings_url  = admin_url( 'options-general.php?page=two-factor-settings' );
+		if ( two_factor_is_network_mode() && current_user_can( 'manage_network_options' ) ) {
+			$plugin_settings_url = network_admin_url( 'settings.php?page=two-factor-network-settings' );
+		} else {
+			$plugin_settings_url = admin_url( 'options-general.php?page=two-factor-settings' );
+		}
 		$plugin_settings_link = sprintf(
 			'<a href="%s">%s</a>',
 			esc_url( $plugin_settings_url ),
@@ -420,6 +455,38 @@ class Two_Factor_Core {
 		}
 
 		return $links;
+	}
+
+	/**
+	 * Add Network Settings link to plugin action links on the Network Admin plugins screen.
+	 *
+	 * @since 0.17.0
+	 *
+	 * @param string[] $actions     An array of plugin action links.
+	 * @param string   $plugin_file Path to the plugin file relative to the plugins directory.
+	 * @param array    $plugin_data An array of plugin data. Unused.
+	 * @param string   $context     The plugin context status. Unused.
+	 * @return string[] Modified array with the Network Settings link added.
+	 */
+	public static function add_network_settings_action_link( $actions, $plugin_file, $plugin_data, $context ) { // phpcs:ignore Generic.CodeAnalysis.UnusedFunctionParameter.FoundAfterLastUsed,VariableAnalysis.CodeAnalysis.VariableAnalysis.UnusedVariable
+		if ( plugin_basename( TWO_FACTOR_DIR . 'two-factor.php' ) !== $plugin_file ) {
+			return $actions;
+		}
+
+		if ( ! two_factor_is_network_mode() || ! current_user_can( 'manage_network_options' ) ) {
+			return $actions;
+		}
+
+		$network_settings_url = network_admin_url( 'settings.php?page=two-factor-network-settings' );
+		$settings_link        = sprintf(
+			'<a href="%s">%s</a>',
+			esc_url( $network_settings_url ),
+			esc_html__( 'Plugin Settings', 'two-factor' )
+		);
+
+		array_unshift( $actions, $settings_link );
+
+		return $actions;
 	}
 
 	/**
@@ -1186,7 +1253,7 @@ class Two_Factor_Core {
 
 			foreach ( $backup_providers as $backup_provider_key => $backup_provider ) {
 				$backup_link_args['provider'] = $backup_provider_key;
-				$links[] = array(
+				$links[]                      = array(
 					'url'   => self::login_url( $backup_link_args ),
 					'label' => $backup_provider->get_alternative_provider_label(),
 				);

@@ -51,8 +51,9 @@ require_once TWO_FACTOR_DIR . 'class-two-factor-core.php';
  */
 require_once TWO_FACTOR_DIR . 'class-two-factor-compat.php';
 
-// Load settings UI class so the settings page can be rendered.
+// Load settings UI classes so the settings pages can be rendered.
 require_once TWO_FACTOR_DIR . 'settings/class-two-factor-settings.php';
+require_once TWO_FACTOR_DIR . 'settings/class-two-factor-network-settings.php';
 
 $two_factor_compat = new Two_Factor_Compat();
 
@@ -69,6 +70,10 @@ register_uninstall_hook( __FILE__, array( Two_Factor_Core::class, 'uninstall' ) 
 function two_factor_register_admin_hooks() {
 	if ( is_admin() ) {
 		add_action( 'admin_menu', 'two_factor_add_settings_page' );
+	}
+
+	if ( two_factor_is_network_mode() ) {
+		add_action( 'network_admin_menu', 'two_factor_add_network_settings_page' );
 	}
 
 	// Load settings page assets when in admin.
@@ -98,6 +103,23 @@ function two_factor_add_settings_page() {
 
 
 /**
+ * Add the Two Factor network settings page under Network Admin Settings.
+ *
+ * @since 0.17.0
+ */
+function two_factor_add_network_settings_page() {
+	add_submenu_page(
+		'settings.php',
+		__( 'Two-Factor Settings', 'two-factor' ),
+		__( 'Two-Factor', 'two-factor' ),
+		'manage_network_options',
+		'two-factor-network-settings',
+		'two_factor_render_network_settings_page'
+	);
+}
+
+
+/**
  * Render the settings page via the settings class if available.
  *
  * @since 0.16
@@ -120,6 +142,54 @@ function two_factor_render_settings_page() {
 
 
 /**
+ * Render the network settings page via the network settings class if available.
+ *
+ * @since 0.17.0
+ */
+function two_factor_render_network_settings_page() {
+	if ( ! current_user_can( 'manage_network_options' ) ) {
+		return;
+	}
+
+	if ( class_exists( 'Two_Factor_Network_Settings' ) && is_callable( array( 'Two_Factor_Network_Settings', 'render_settings_page' ) ) ) {
+		Two_Factor_Network_Settings::render_settings_page();
+		return;
+	}
+
+	// Fallback: no UI available.
+	echo '<div class="wrap"><h1>' . esc_html__( 'Two-Factor Network Settings', 'two-factor' ) . '</h1>';
+	echo '<p>' . esc_html__( 'Settings not available.', 'two-factor' ) . '</p></div>';
+}
+
+
+/**
+ * Determine whether the plugin is running in network-activated mode on Multisite.
+ *
+ * @since 0.17.0
+ *
+ * @return bool
+ */
+function two_factor_is_network_mode() {
+	$network_mode = false;
+	if ( is_multisite() ) {
+		if ( ! function_exists( 'is_plugin_active_for_network' ) ) {
+			require_once ABSPATH . 'wp-admin/includes/plugin.php';
+		}
+		$network_mode = is_plugin_active_for_network( plugin_basename( TWO_FACTOR_DIR . 'two-factor.php' ) );
+	}
+
+	/**
+	 * Filter whether the plugin is running in network-activated mode.
+	 *
+	 * @since 0.17.0
+	 *
+	 * @param bool $network_mode Whether the plugin is network-activated.
+	 */
+	return (bool) apply_filters( 'two_factor_network_mode', $network_mode );
+}
+
+
+/**
  * Helper: retrieve the site-enabled providers option.
  * Returns null when the option has never been saved (meaning all providers are allowed).
  * Returns an array (possibly empty) when the admin has explicitly saved a selection.
@@ -128,7 +198,7 @@ function two_factor_render_settings_page() {
  *
  * @return array|null
  */
-function two_factor_get_enabled_providers_option() {
+function two_factor_get_site_enabled_providers_option() {
 	$enabled = get_option( Two_Factor_Core::ENABLED_PROVIDERS_OPTION_KEY, null );
 	if ( null === $enabled ) {
 		return null; // Never saved — allow everything.
@@ -138,29 +208,69 @@ function two_factor_get_enabled_providers_option() {
 
 
 /**
- * Filter the registered providers to only those in the site-enabled list.
+ * Helper: retrieve the effective enabled providers list for the current context.
+ *
+ * In network-activated mode, the network option wins unless subsites are allowed
+ * to override. If override is allowed and the subsite has saved a list, the
+ * effective list is the intersection of the network and site lists (subsite can
+ * only narrow, never expand).
+ *
+ * @since 0.17.0
+ *
+ * @return array|null Array of allowed provider classnames, or null when no option has been saved.
+ */
+function two_factor_get_enabled_providers_option() {
+	$site_enabled = two_factor_get_site_enabled_providers_option();
+
+	if ( ! two_factor_is_network_mode() ) {
+		return $site_enabled;
+	}
+
+	$network_enabled = get_site_option( Two_Factor_Core::ENABLED_PROVIDERS_NETWORK_OPTION_KEY, null );
+	if ( null === $network_enabled ) {
+		return $site_enabled;
+	}
+
+	$network_enabled = is_array( $network_enabled ) ? $network_enabled : array();
+	$override        = (bool) get_site_option( Two_Factor_Core::NETWORK_ALLOW_SITE_OVERRIDE_OPTION_KEY, false );
+
+	if ( ! $override ) {
+		return $network_enabled;
+	}
+
+	if ( null === $site_enabled ) {
+		return $network_enabled;
+	}
+
+	return array_values( array_intersect( $network_enabled, $site_enabled ) );
+}
+
+
+/**
+ * Filter the registered providers to only those in the effective enabled list.
  * This filter receives providers in core format: classname => path.
  *
  * @since 0.16
- * 
+ *
  * @param array $providers Registered providers in classname => path format.
  * @return array Filtered list of enabled providers.
  */
 function two_factor_filter_enabled_providers( $providers ) {
-	$site_enabled = two_factor_get_enabled_providers_option();
+	$enabled = two_factor_get_enabled_providers_option();
 
 	// null means the option was never saved — allow all providers.
-	if ( null === $site_enabled ) {
+	if ( null === $enabled ) {
 		return $providers;
 	}
 
-	// On the settings page itself, show all providers so admins can change the selection.
-	if ( is_admin() && isset( $_GET['page'] ) && 'two-factor-settings' === $_GET['page'] ) {
+	// On the settings pages, show all providers so admins can change the selection.
+	// phpcs:ignore WordPress.Security.NonceVerification.Recommended
+	if ( is_admin() && isset( $_GET['page'] ) && in_array( $_GET['page'], array( 'two-factor-settings', 'two-factor-network-settings' ), true ) ) {
 		return $providers;
 	}
 
 	foreach ( $providers as $key => $path ) {
-		if ( ! in_array( $key, $site_enabled, true ) ) {
+		if ( ! in_array( $key, $enabled, true ) ) {
 			unset( $providers[ $key ] );
 		}
 	}
@@ -170,21 +280,21 @@ function two_factor_filter_enabled_providers( $providers ) {
 
 
 /**
- * Filter enabled providers for a user (classnames array) to enforce the site-enabled list.
+ * Filter enabled providers for a user (classnames array) to enforce the effective enabled list.
  *
  * @since 0.16
  *
- * @param array $enabled  Enabled provider classnames for the user.
- * @param int   $user_id  ID of the user being filtered.
- * @return array Filtered list of provider classnames allowed by the site.
+ * @param array $enabled   Enabled provider classnames for the user.
+ * @param int   $user_id  ID of the user being filtered. Unused, but required by the filter signature.
+ * @return array Filtered list of provider classnames allowed by the site or network.
  */
-function two_factor_filter_enabled_providers_for_user( $enabled, $user_id ) {
-	$site_enabled = two_factor_get_enabled_providers_option();
+function two_factor_filter_enabled_providers_for_user( $enabled, $user_id ) { // phpcs:ignore Generic.CodeAnalysis.UnusedFunctionParameter.FoundAfterLastUsed
+	$allowed = two_factor_get_enabled_providers_option();
 
 	// null means the option was never saved — allow all.
-	if ( null === $site_enabled ) {
+	if ( null === $allowed ) {
 		return $enabled;
 	}
 
-	return array_values( array_intersect( (array) $enabled, $site_enabled ) );
+	return array_values( array_intersect( (array) $enabled, $allowed ) );
 }
