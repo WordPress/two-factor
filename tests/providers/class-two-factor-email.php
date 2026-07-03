@@ -496,6 +496,48 @@ class Tests_Two_Factor_Email extends WP_UnitTestCase {
 	}
 
 	/**
+	 * Verify that a rate-limited POST does not trigger a new email when login_html()
+	 * re-renders the form via authentication_page().
+	 *
+	 * process_provider() blocks the attempt and returns WP_Error; login_html() then
+	 * calls authentication_page() to redisplay the form. If the token were deleted by
+	 * the rate-limit gate, authentication_page() would see no token and send a new email
+	 * on every blocked submission — recreating the flooding vector the rate-limit prevents.
+	 *
+	 * @covers Two_Factor_Email::authentication_page
+	 * @covers Two_Factor_Core::process_provider
+	 */
+	public function test_authentication_page_does_not_send_email_when_rate_limited() {
+		$user = self::factory()->user->create_and_get();
+		Two_Factor_Core::enable_provider_for_user( $user->ID, 'Two_Factor_Email' );
+
+		// Generate an initial token (simulates the user already having a code).
+		$this->provider->generate_token( $user->ID );
+		$this->assertTrue( $this->provider->user_has_token( $user->ID ) );
+
+		// Force the rate-limited state.
+		update_user_meta( $user->ID, Two_Factor_Core::USER_FAILED_LOGIN_ATTEMPTS_KEY, 3 );
+		update_user_meta( $user->ID, Two_Factor_Core::USER_RATE_LIMIT_KEY, time() );
+
+		// Step 1: process_provider() blocks the POST (as in login_form_validate_2fa).
+		$result = Two_Factor_Core::process_provider( $this->provider, $user, true );
+		$this->assertWPError( $result );
+		$this->assertSame( 'two_factor_too_fast', $result->get_error_code() );
+
+		// Step 2: login_html() calls authentication_page() to re-render the form.
+		$emails_before = count( self::$mockmailer->mock_sent );
+		ob_start();
+		$this->provider->authentication_page( $user );
+		ob_get_clean();
+
+		$this->assertCount(
+			$emails_before,
+			self::$mockmailer->mock_sent,
+			'No new email must be sent when re-rendering the form after a rate-limited POST'
+		);
+	}
+
+	/**
 	 * Verify user_options outputs the user's email address.
 	 *
 	 * @covers Two_Factor_Email::user_options

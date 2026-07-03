@@ -818,11 +818,11 @@ class Test_ClassTwoFactorCore extends WP_UnitTestCase {
 
 		$this->assertWPError( $result );
 		$this->assertSame( 'two_factor_too_fast', $result->get_error_code() );
-		$this->assertFalse( $provider->user_has_token( $user->ID ), 'Token is invalidated when rate limited' );
+		$this->assertTrue( $provider->user_has_token( $user->ID ), 'Token is preserved when rate limited to avoid triggering re-send on form re-render' );
 	}
 
 	/**
-	 * Test that switching providers while rate-limited invalidates email token.
+	 * Test that switching providers while rate-limited preserves the email token.
 	 *
 	 * If a user fails on TOTP triggering rate limiting, then switches back
 	 * to email, the rate-limit gate should invalidate the email token.
@@ -846,7 +846,7 @@ class Test_ClassTwoFactorCore extends WP_UnitTestCase {
 
 		$this->assertWPError( $result );
 		$this->assertSame( 'two_factor_too_fast', $result->get_error_code() );
-		$this->assertFalse( $email_provider->user_has_token( $user->ID ), 'Email token is invalidated when rate-limited via another provider' );
+		$this->assertTrue( $email_provider->user_has_token( $user->ID ), 'Email token is preserved when rate-limited via another provider' );
 	}
 
 	/**
@@ -898,7 +898,7 @@ class Test_ClassTwoFactorCore extends WP_UnitTestCase {
 
 		$this->assertWPError( $result );
 		$this->assertSame( 'two_factor_too_fast', $result->get_error_code() );
-		$this->assertFalse( $provider->user_has_token( $user->ID ), 'Token is invalidated during rate-limited revalidation' );
+		$this->assertTrue( $provider->user_has_token( $user->ID ), 'Token is preserved during rate-limited revalidation' );
 	}
 
 	/**
