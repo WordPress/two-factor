@@ -794,7 +794,7 @@ class Test_ClassTwoFactorCore extends WP_UnitTestCase {
 
 		$this->assertWPError( $result );
 		$this->assertSame( 'two_factor_too_fast', $result->get_error_code() );
-		$this->assertFalse( $provider->get_user_token( $user->ID ), 'Token is invalidated when rate limited' );
+		$this->assertTrue( $provider->user_has_token( $user->ID ), 'Token is preserved when resend is blocked, to prevent auto-send on form re-render' );
 	}
 
 	/**
