@@ -129,7 +129,7 @@ function two_factor_render_settings_page() {
  * @return array|null
  */
 function two_factor_get_enabled_providers_option() {
-	$enabled = get_option( 'two_factor_enabled_providers', null );
+	$enabled = get_option( Two_Factor_Core::ENABLED_PROVIDERS_OPTION_KEY, null );
 	if ( null === $enabled ) {
 		return null; // Never saved — allow everything.
 	}
