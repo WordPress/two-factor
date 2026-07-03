@@ -1022,10 +1022,10 @@ class Two_Factor_Core {
 			echo '<div id="login_notice" class="message"><strong>';
 			printf(
 				esc_html(
-					/* translators: 1: number of failed login attempts, 2: time since last failed attempt */
+					/* translators: 1: number of failed verification code attempts, 2: human-readable time since the last attempt, e.g. "5 minutes" */
 					_n(
-						'WARNING: Your account has attempted to login %1$s time without providing a valid two factor token. The last failed login occurred %2$s ago. If this wasn\'t you, you should reset your password.',
-						'WARNING: Your account has attempted to login %1$s times without providing a valid two factor token. The last failed login occurred %2$s ago. If this wasn\'t you, you should reset your password.',
+						'%1$s failed verification code attempt on this account. The last attempt was %2$s ago. If you did not make this attempt, review your account security after logging in.',
+						'%1$s failed verification code attempts on this account. The last attempt was %2$s ago. If you did not make these attempts, review your account security after logging in.',
 						$failed_login_count,
 						'two-factor'
 					)

@@ -797,8 +797,7 @@ class Test_ClassTwoFactorCore extends WP_UnitTestCase {
 
 		$this->assertNotEmpty( $contents );
 		$this->assertStringNotContainsString( '1 times', $contents );
-		$this->assertStringContainsString( 'attempted to login', $contents );
-		$this->assertStringContainsString( 'without providing a valid two factor token', $contents );
+		$this->assertStringContainsString( 'failed verification code attempt', $contents );
 
 		// 5 failed login attempts 5 hours ago - User should be informed.
 		$five_hours_ago = time() - 5 * HOUR_IN_SECONDS;
@@ -809,8 +808,29 @@ class Test_ClassTwoFactorCore extends WP_UnitTestCase {
 		$contents = ob_get_clean();
 
 		$this->assertNotEmpty( $contents );
-		$this->assertStringContainsString( '5 times', $contents );
+		$this->assertStringContainsString( 'failed verification code attempts', $contents );
 		$this->assertStringContainsString( human_time_diff( $five_hours_ago ), $contents );
+	}
+
+	/**
+	 * Test that the login failure notice uses calm, informational language.
+	 *
+	 * @covers Two_Factor_Core::maybe_show_last_login_failure_notice()
+	 */
+	public function test_login_failure_notice_language_is_calm_and_informational() {
+		$user = $this->get_dummy_user();
+		update_user_meta( $user->ID, Two_Factor_Core::USER_FAILED_LOGIN_ATTEMPTS_KEY, 3 );
+		update_user_meta( $user->ID, Two_Factor_Core::USER_RATE_LIMIT_KEY, time() - 60 );
+
+		ob_start();
+		Two_Factor_Core::maybe_show_last_login_failure_notice( $user );
+		$contents = ob_get_clean();
+
+		$this->assertStringNotContainsString( 'WARNING', $contents );
+		$this->assertStringNotContainsString( "wasn't you", $contents );
+		$this->assertStringNotContainsString( 'reset your password', $contents );
+		$this->assertStringContainsString( 'failed verification code', $contents );
+		$this->assertStringContainsString( 'review your account security', $contents );
 	}
 
 	/**
