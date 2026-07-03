@@ -496,6 +496,56 @@ class Tests_Two_Factor_Email extends WP_UnitTestCase {
 	}
 
 	/**
+	 * Verify the Resend Code button is hidden when the user is rate-limited.
+	 *
+	 * Showing an interactive resend button during a lockout misleads the user
+	 * into thinking it will work.
+	 *
+	 * @covers Two_Factor_Email::authentication_page
+	 */
+	public function test_authentication_page_hides_resend_button_when_rate_limited() {
+		$user = self::factory()->user->create_and_get();
+		$this->provider->generate_token( $user->ID );
+
+		update_user_meta( $user->ID, Two_Factor_Core::USER_FAILED_LOGIN_ATTEMPTS_KEY, 3 );
+		update_user_meta( $user->ID, Two_Factor_Core::USER_RATE_LIMIT_KEY, time() );
+
+		ob_start();
+		$this->provider->authentication_page( $user );
+		$output = ob_get_clean();
+
+		$this->assertStringNotContainsString(
+			Two_Factor_Email::INPUT_NAME_RESEND_CODE,
+			$output,
+			'Resend Code button must not be rendered while the user is rate-limited'
+		);
+	}
+
+	/**
+	 * Verify no email is sent when authentication_page() is called while rate-limited and no token exists.
+	 *
+	 * @covers Two_Factor_Email::authentication_page
+	 */
+	public function test_authentication_page_does_not_send_email_when_rate_limited_and_no_token() {
+		$user = self::factory()->user->create_and_get();
+
+		update_user_meta( $user->ID, Two_Factor_Core::USER_FAILED_LOGIN_ATTEMPTS_KEY, 3 );
+		update_user_meta( $user->ID, Two_Factor_Core::USER_RATE_LIMIT_KEY, time() );
+		$this->assertFalse( $this->provider->user_has_token( $user->ID ) );
+
+		$emails_before = count( self::$mockmailer->mock_sent );
+		ob_start();
+		$this->provider->authentication_page( $user );
+		ob_get_clean();
+
+		$this->assertCount(
+			$emails_before,
+			self::$mockmailer->mock_sent,
+			'No email must be sent when authentication_page() is called while rate-limited'
+		);
+	}
+
+	/**
 	 * Verify user_options outputs the user's email address.
 	 *
 	 * @covers Two_Factor_Email::user_options
