@@ -77,8 +77,7 @@ jobs:
         runs-on: ubuntu-24.04
         timeout-minutes: 20
         permissions:
-            contents: read # Required to clone the repo.
-            id-token: write
+          contents: read # Required to clone the repo.
         strategy:
             matrix:
                 php:
@@ -137,10 +136,11 @@ jobs:
             - name: Composer install
               run: |
                 rm composer.lock || true # We need to install fresh.
-                # The composer.json platform override (php: 7.2.24) installs PHPUnit 8.5, which does
-                # not support code coverage on PHP 8. Use --ignore-platform-req=php on PHP 8+ so
-                # Composer installs PHPUnit 9.6, which supports coverage on PHP 8.x.
-                if [[ "${WP_ENV_PHP_VERSION}" == 8.* ]]; then
+                # The composer.json platform override (php: 7.2.24) installs PHPUnit 8.5, which
+                # cannot generate code coverage on PHP 8. For the coverage build only, bypass the
+                # platform check so Composer installs PHPUnit 9.6. All other matrix jobs keep the
+                # default dependency set.
+                if [[ "${{ matrix.php }}" == "8.3" && "${{ matrix.wp }}" == "latest" ]]; then
                   npm run composer -- install --ignore-platform-req=php
                 else
                   npm run composer install
@@ -156,8 +156,39 @@ jobs:
                 npm run env run tests-cli --env-cwd=wp-content/plugins/two-factor -- mkdir -p tests/logs
                 npm run test
 
+            - name: Upload coverage report artifact
+              if: ${{ matrix.php == '8.3' && matrix.wp == 'latest' }}
+              uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+              with:
+                name: coverage-report
+                path: tests/logs/clover.xml
+                if-no-files-found: error # Coverage silently going missing is the bug this is meant to fix.
+
+    # Uploading to Codecov without a CODECOV_TOKEN requires OIDC (`id-token: write`).
+    # That permission is kept out of the test jobs, which run npm/Composer dependencies
+    # and the test suite; this job only runs the pinned actions below. The Codecov badge
+    # reflects the default branch, so uploading on pushes is sufficient and no PR-triggered
+    # run ever holds the permission.
+    coverage:
+        name: Upload code coverage
+        runs-on: ubuntu-24.04
+        timeout-minutes: 10
+        needs: test-php
+        if: ${{ github.event_name == 'push' }}
+        permissions:
+          contents: read # Required to clone the repo, which Codecov uses to attribute the report.
+          id-token: write # Required for tokenless (OIDC) upload to Codecov.
+        steps:
+            - name: Checkout
+              uses: actions/checkout@1af3b93b6815bc44a9784bd300feb67ff0d1eeb3 # v6.0.0
+
+            - name: Download coverage report artifact
+              uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+              with:
+                name: coverage-report
+                path: tests/logs
+
             - name: Upload code coverage report
-              if: ${{ matrix.php == '8.3' && matrix.wp == 'latest' && hashFiles('tests/logs/clover.xml') != '' }}
               uses: codecov/codecov-action@671740ac38dd9b0130fbe1cec585b89eea48d3de
               with:
                 use_oidc: true
