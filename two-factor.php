@@ -27,7 +27,7 @@ if ( ! defined( 'TWO_FACTOR_DIR' ) ) {
 }
 
 if ( ! defined( 'TWO_FACTOR_VERSION' ) ) {
-	define( 'TWO_FACTOR_VERSION', '0.15.0' );
+	define( 'TWO_FACTOR_VERSION', '0.16.0' );
 }
 
 if ( ! defined( 'ABSPATH' ) ) {

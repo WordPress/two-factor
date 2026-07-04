@@ -340,7 +340,7 @@ class Two_Factor_Email extends Two_Factor_Provider {
 	 * @param WP_User|false $user WP_User object of the logged-in user.
 	 */
 	public function authentication_page( $user ) {
-		if ( ! $user ) {
+		if ( ! ( $user instanceof WP_User ) ) {
 			return;
 		}
 
@@ -388,7 +388,7 @@ class Two_Factor_Email extends Two_Factor_Provider {
 	 * @return boolean
 	 */
 	public function pre_process_authentication( $user ) {
-		if ( ! $user ) {
+		if ( ! ( $user instanceof WP_User ) ) {
 			return false;
 		}
 
@@ -409,7 +409,7 @@ class Two_Factor_Email extends Two_Factor_Provider {
 	 * @return boolean
 	 */
 	public function validate_authentication( $user ) {
-		if ( ! $user ) {
+		if ( ! ( $user instanceof WP_User ) ) {
 			return false;
 		}
 
