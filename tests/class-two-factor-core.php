@@ -2769,4 +2769,65 @@ class Test_ClassTwoFactorCore extends WP_UnitTestCase {
 
 		$this->assertFalse( $exception, 'Expected no redirect for a recent session.' );
 	}
+
+	/**
+	 * @covers Two_Factor_Core::print_custom_post_fields
+	 */
+	public function test_print_custom_post_fields_includes_custom_fields() {
+		$original_post = $_POST;
+		$_POST         = array(
+			'custom_field_1' => 'value1',
+			'custom_array'   => array(
+				'key1' => 'val1',
+				'key2' => 'val2',
+			),
+		);
+
+		$method = new ReflectionMethod( 'Two_Factor_Core', 'print_custom_post_fields' );
+		$method->setAccessible( true );
+
+		ob_start();
+		$method->invoke( null );
+		$output = ob_get_clean();
+
+		$_POST = $original_post;
+
+		$this->assertStringContainsString( '<input type="hidden" name="custom_field_1" value="value1" />', $output );
+		$this->assertStringContainsString( '<input type="hidden" name="custom_array[key1]" value="val1" />', $output );
+		$this->assertStringContainsString( '<input type="hidden" name="custom_array[key2]" value="val2" />', $output );
+	}
+
+	/**
+	 * @covers Two_Factor_Core::print_custom_post_fields
+	 */
+	public function test_print_custom_post_fields_excludes_blocked_fields() {
+		$original_post = $_POST;
+		$_POST         = array(
+			'pwd'        => 'my_secret_password',
+			'password'   => 'my_other_password',
+			'log'        => 'admin',
+			'user_pass'  => 'secret',
+			'rememberme' => '1',
+			'custom_ok'  => 'allowed',
+		);
+
+		$method = new ReflectionMethod( 'Two_Factor_Core', 'print_custom_post_fields' );
+		$method->setAccessible( true );
+
+		ob_start();
+		$method->invoke( null );
+		$output = ob_get_clean();
+
+		$_POST = $original_post;
+
+		$this->assertStringContainsString( '<input type="hidden" name="custom_ok" value="allowed" />', $output );
+		$this->assertStringNotContainsString( 'my_secret_password', $output );
+		$this->assertStringNotContainsString( 'my_other_password', $output );
+		$this->assertStringNotContainsString( 'secret', $output );
+		$this->assertStringNotContainsString( 'pwd', $output );
+		$this->assertStringNotContainsString( 'password', $output );
+		$this->assertStringNotContainsString( 'log', $output );
+		$this->assertStringNotContainsString( 'user_pass', $output );
+		$this->assertStringNotContainsString( 'rememberme', $output );
+	}
 }

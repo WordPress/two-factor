@@ -1197,6 +1197,7 @@ class Two_Factor_Core {
 					<input type="hidden" name="redirect_to" value="<?php echo esc_attr( $redirect_to ); ?>" />
 				<?php } ?>
 				<input type="hidden" name="rememberme"    id="rememberme"    value="<?php echo esc_attr( $rememberme ); ?>" />
+				<?php self::print_custom_post_fields(); ?>
 
 				<?php $provider->authentication_page( $user ); ?>
 		</form>
@@ -2659,6 +2660,66 @@ class Two_Factor_Core {
 		}
 
 		return $session;
+	}
+
+	/**
+	 * Output custom $_POST fields as hidden inputs.
+	 *
+	 * Iterates over $_POST and outputs hidden inputs for fields added by third-party plugins,
+	 * ensuring that standard WordPress and Two-Factor fields (especially sensitive ones like `pwd`)
+	 * are explicitly ignored.
+	 *
+	 * @since 0.17.0
+	 */
+	private static function print_custom_post_fields() {
+		$blocklist = array(
+			// Standard WP Login fields.
+			'log',
+			'pwd',
+			'wp-submit',
+			'redirect_to',
+			'rememberme',
+			'interim-login',
+			'testcookie',
+			'_wpnonce',
+			'_wp_http_referer',
+			// Additional common login fields (e.g., WooCommerce, custom forms).
+			'password',
+			'user_pass',
+			'username',
+			'user_login',
+			// Two Factor specific fields.
+			'provider',
+			'wp-auth-id',
+			'wp-auth-nonce',
+			'action',
+		);
+
+		// phpcs:ignore WordPress.Security.NonceVerification.Missing
+		foreach ( $_POST as $key => $value ) {
+			if ( in_array( $key, $blocklist, true ) ) {
+				continue;
+			}
+			self::print_hidden_inputs( $key, $value );
+		}
+	}
+
+	/**
+	 * Recursively output hidden inputs for a given key/value.
+	 *
+	 * @since 0.17.0
+	 *
+	 * @param string       $name  Input name.
+	 * @param string|array $value Input value.
+	 */
+	private static function print_hidden_inputs( $name, $value ) {
+		if ( is_array( $value ) ) {
+			foreach ( $value as $k => $v ) {
+				self::print_hidden_inputs( $name . '[' . $k . ']', $v );
+			}
+		} else {
+			echo '<input type="hidden" name="' . esc_attr( $name ) . '" value="' . esc_attr( $value ) . '" />' . "\n";
+		}
 	}
 }
 
