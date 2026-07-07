@@ -238,10 +238,8 @@ class Two_Factor_Core {
 		}
 
 		// Delete options first since that is faster.
-		if ( ! empty( $option_keys ) ) {
-			foreach ( $option_keys as $option_key ) {
-				delete_option( $option_key );
-			}
+		foreach ( $option_keys as $option_key ) {
+			delete_option( $option_key );
 		}
 
 		foreach ( $user_meta_keys as $meta_key ) {
