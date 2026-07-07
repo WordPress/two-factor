@@ -29,6 +29,7 @@ if ( ! $_tests_dir ) {
 require_once $_tests_dir . '/includes/functions.php';
 require_once dirname( __DIR__ ) . '/includes/function.login-header.php';
 require_once dirname( __DIR__ ) . '/includes/function.login-footer.php';
+require_once __DIR__ . '/class-two-factor-redirect-exception.php';
 
 // Activate the plugin.
 tests_add_filter(
