@@ -160,6 +160,30 @@ class Test_ClassTwoFactorCore extends WP_UnitTestCase {
 	}
 
 	/**
+	 * Reset stored profile errors between tests.
+	 */
+	private function reset_profile_errors() {
+		$reflection = new ReflectionClass( Two_Factor_Core::class );
+		$prop       = $reflection->getProperty( 'profile_errors' );
+		$prop->setAccessible( true );
+		$prop->setValue( null, array() );
+	}
+
+	/**
+	 * Render the user two-factor settings UI and return the markup.
+	 *
+	 * @param WP_User $user User instance.
+	 * @return string
+	 */
+	private function render_user_two_factor_options( WP_User $user ) {
+		$this->reset_profile_errors();
+
+		ob_start();
+		Two_Factor_Core::user_two_factor_options( $user );
+		return ob_get_clean();
+	}
+
+	/**
 	 * Verify adding hooks.
 	 *
 	 * @covers Two_Factor_Core::add_hooks
@@ -841,6 +865,42 @@ class Test_ClassTwoFactorCore extends WP_UnitTestCase {
 		Two_Factor_Core::maybe_show_reset_password_notice( $errors );
 		$this->assertCount( 1, $errors->get_error_codes() );
 		$this->assertSame( 'two_factor_password_reset', $errors->get_error_code() );
+	}
+
+	/**
+	 * Test no reset notice when _wpnonce is present but invalid.
+	 *
+	 * @covers Two_Factor_Core::maybe_show_reset_password_notice()
+	 */
+	public function test_no_reset_notice_when_wpnonce_invalid() {
+		$user              = self::factory()->user->create_and_get();
+		$errors            = new WP_Error( 'incorrect_password', 'Incorrect password' );
+		$_POST['log']      = $user->user_login;
+		$_POST['_wpnonce'] = 'invalid-nonce';
+
+		update_user_meta( $user->ID, Two_Factor_Core::USER_PASSWORD_WAS_RESET_KEY, true );
+		Two_Factor_Core::maybe_show_reset_password_notice( $errors );
+		$this->assertCount( 1, $errors->get_error_codes() );
+		$this->assertSame( 'incorrect_password', $errors->get_error_code() );
+		unset( $_POST['_wpnonce'] );
+	}
+
+	/**
+	 * Test reset notice when _wpnonce is present and valid for log-in.
+	 *
+	 * @covers Two_Factor_Core::maybe_show_reset_password_notice()
+	 */
+	public function test_reset_notice_when_wpnonce_valid() {
+		$user              = self::factory()->user->create_and_get();
+		$errors            = new WP_Error( 'incorrect_password', 'Incorrect password' );
+		$_POST['log']      = $user->user_login;
+		$_POST['_wpnonce'] = wp_create_nonce( 'log-in' );
+
+		update_user_meta( $user->ID, Two_Factor_Core::USER_PASSWORD_WAS_RESET_KEY, true );
+		Two_Factor_Core::maybe_show_reset_password_notice( $errors );
+		$this->assertCount( 1, $errors->get_error_codes() );
+		$this->assertSame( 'two_factor_password_reset', $errors->get_error_code() );
+		unset( $_POST['_wpnonce'] );
 	}
 
 	/**
@@ -1891,6 +1951,28 @@ class Test_ClassTwoFactorCore extends WP_UnitTestCase {
 	}
 
 	/**
+	 * Plugin uninstall removes the site-wide enabled providers option.
+	 *
+	 * @covers Two_Factor_Core::uninstall
+	 */
+	public function test_uninstall_removes_enabled_providers_option() {
+		update_option( Two_Factor_Core::ENABLED_PROVIDERS_OPTION_KEY, array( 'Two_Factor_Email' ) );
+
+		$this->assertSame(
+			array( 'Two_Factor_Email' ),
+			get_option( Two_Factor_Core::ENABLED_PROVIDERS_OPTION_KEY ),
+			'Enabled providers option was set'
+		);
+
+		Two_Factor_Core::uninstall();
+
+		$this->assertFalse(
+			get_option( Two_Factor_Core::ENABLED_PROVIDERS_OPTION_KEY ),
+			'Enabled providers option was deleted during uninstall'
+		);
+	}
+
+	/**
 	 * Test delete_login_nonce removes the nonce.
 	 *
 	 * @covers Two_Factor_Core::delete_login_nonce
@@ -2155,6 +2237,71 @@ class Test_ClassTwoFactorCore extends WP_UnitTestCase {
 		$this->assertIsArray( $providers, 'Returns an array of providers' );
 		$this->assertArrayHasKey( 'Two_Factor_Email', $providers, 'Email provider is supported by default' );
 		$this->assertArrayHasKey( 'Two_Factor_Totp', $providers, 'TOTP provider is supported by default' );
+	}
+
+	/**
+	 * Test user_two_factor_options output when backup codes are available.
+	 *
+	 * @covers Two_Factor_Core::user_two_factor_options
+	 */
+	public function test_user_two_factor_options_mentions_recovery_codes_when_backup_codes_are_available() {
+		$user = self::factory()->user->create_and_get();
+
+		Two_Factor_Core::enable_provider_for_user( $user->ID, 'Two_Factor_Email' );
+
+		try {
+			$output = $this->render_user_two_factor_options( $user );
+
+			$this->assertStringContainsString(
+				'consider enabling a backup method like Recovery Codes',
+				$output
+			);
+			$this->assertStringContainsString(
+				'Configure a primary two-factor method along with a backup method, such as Recovery Codes',
+				$output
+			);
+			$this->assertStringNotContainsString(
+				'consider enabling an additional two-factor method',
+				$output
+			);
+		} finally {
+			$this->reset_profile_errors();
+		}
+	}
+
+	/**
+	 * Test user_two_factor_options output when backup codes are filtered out.
+	 *
+	 * @covers Two_Factor_Core::user_two_factor_options
+	 */
+	public function test_user_two_factor_options_uses_generic_wording_when_backup_codes_are_filtered_out() {
+		$filter = static function ( $providers ) {
+			unset( $providers['Two_Factor_Backup_Codes'] );
+			return $providers;
+		};
+
+		add_filter( 'two_factor_providers', $filter );
+
+		try {
+			$user = self::factory()->user->create_and_get();
+
+			Two_Factor_Core::enable_provider_for_user( $user->ID, 'Two_Factor_Email' );
+
+			$output = $this->render_user_two_factor_options( $user );
+
+			$this->assertStringContainsString(
+				'consider enabling an additional two-factor method',
+				$output
+			);
+			$this->assertStringContainsString(
+				'Configure a primary two-factor method along with an additional two-factor method',
+				$output
+			);
+			$this->assertStringNotContainsString( 'Recovery Codes', $output );
+		} finally {
+			remove_filter( 'two_factor_providers', $filter );
+			$this->reset_profile_errors();
+		}
 	}
 
 	/**
