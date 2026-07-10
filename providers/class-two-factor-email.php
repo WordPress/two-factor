@@ -337,10 +337,10 @@ class Two_Factor_Email extends Two_Factor_Provider {
 	 *
 	 * @since 0.1-dev
 	 *
-	 * @param WP_User $user WP_User object of the logged-in user.
+	 * @param WP_User|false $user WP_User object of the logged-in user.
 	 */
 	public function authentication_page( $user ) {
-		if ( ! $user ) {
+		if ( ! ( $user instanceof WP_User ) ) {
 			return;
 		}
 
@@ -384,11 +384,15 @@ class Two_Factor_Email extends Two_Factor_Provider {
 	 *
 	 * @since 0.2.0
 	 *
-	 * @param  WP_User $user WP_User object of the logged-in user.
+	 * @param WP_User|false $user WP_User object of the logged-in user.
 	 * @return boolean
 	 */
 	public function pre_process_authentication( $user ) {
-		if ( isset( $user->ID ) && isset( $_REQUEST[ self::INPUT_NAME_RESEND_CODE ] ) ) { // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- non-distructive option that relies on user state.
+		if ( ! ( $user instanceof WP_User ) ) {
+			return false;
+		}
+
+		if ( isset( $_REQUEST[ self::INPUT_NAME_RESEND_CODE ] ) ) { // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- non-destructive option that relies on user state.
 			$this->generate_and_email_token( $user );
 			return true;
 		}
@@ -401,12 +405,16 @@ class Two_Factor_Email extends Two_Factor_Provider {
 	 *
 	 * @since 0.1-dev
 	 *
-	 * @param WP_User $user WP_User object of the logged-in user.
+	 * @param WP_User|false $user WP_User object of the logged-in user.
 	 * @return boolean
 	 */
 	public function validate_authentication( $user ) {
+		if ( ! ( $user instanceof WP_User ) ) {
+			return false;
+		}
+
 		$code = $this->sanitize_code_from_request( 'two-factor-email-code' );
-		if ( ! isset( $user->ID ) || ! $code ) {
+		if ( ! $code ) {
 			return false;
 		}
 
