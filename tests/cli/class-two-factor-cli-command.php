@@ -464,7 +464,8 @@ class Tests_Two_Factor_CLI_Command extends WP_UnitTestCase {
 			}
 		);
 
-		// Provider remains enabled because the prompt was declined.
+		// The prompt was shown, and the provider remains enabled because it was declined.
+		$this->assertNotEmpty( WP_CLI::get_logs( 'confirm' ), 'Expected a confirmation prompt without --yes.' );
 		$this->assertContains( 'Two_Factor_Totp', Two_Factor_Core::get_enabled_providers_for_user( $this->user ) );
 	}
 
@@ -573,6 +574,7 @@ class Tests_Two_Factor_CLI_Command extends WP_UnitTestCase {
 			}
 		);
 
+		$this->assertNotEmpty( WP_CLI::get_logs( 'confirm' ), 'Expected a confirmation prompt without --yes.' );
 		$this->assertContains( 'Two_Factor_Email', Two_Factor_Core::get_enabled_providers_for_user( $this->user ) );
 	}
 
