@@ -35,6 +35,7 @@ npm run composer -- test -- --group email
 npm run composer -- test -- --group backup-codes
 npm run composer -- test -- --group providers
 npm run composer -- test -- --group core
+npm run composer -- test -- --group cli
 
 # Run a single file
 npm run composer -- test -- tests/providers/class-two-factor-totp.php
@@ -56,7 +57,7 @@ The largest test file. Covers the full authentication lifecycle managed by `Two_
 - Provider registration and retrieval (`get_providers`, `get_enabled_providers_for_user`, `get_available_providers_for_user`, `get_primary_provider_for_user`)
 - Login interception (`filter_authenticate`, `show_two_factor_login`, `process_provider`)
 - Login nonce creation, verification, and deletion
-- Rate limiting (`get_user_time_delay`, `is_user_rate_limited`)
+- Rate limiting (`get_user_time_delay`, `is_user_rate_limited`, `clear_login_rate_limit`)
 - Session management: two-factor factored vs. non-factored sessions, session destruction on 2FA enable/disable, revalidation
 - Password reset flow (compromise detection, email notifications, reset notices)
 - REST API permission callbacks (`rest_api_can_edit_user_and_update_two_factor_options`)
@@ -154,7 +155,25 @@ Tests `Two_Factor_Dummy_Secure` (a fixture that always _fails_ authentication, u
 - `validate_authentication` always returns false
 - `two_factor_provider_classname` filter
 
+### WP-CLI Commands — `tests/cli/class-two-factor-cli-command.php`
+
+**Class:** `Tests_Two_Factor_CLI_Command` · **Group:** `cli`
+Tests the `Two_Factor_CLI_Command` WP-CLI command class. The WP-CLI runtime is
+not loaded during PHPUnit, so the suite loads lightweight test doubles for
+`WP_CLI`, `WP_CLI_Command`, and the `WP_CLI\Utils` helpers (see Test Helpers)
+that capture output for assertions and throw on `error()`/`confirm()`:
+
+- User resolution by ID, login, and email; "user not found" errors
+- `status` — output for users with and without 2FA, backup-code count, `--format` passthrough
+- `list-providers` — registered providers listed, `--format` passthrough
+- `enable` — enabling secret-free providers; session destruction on change; refusing TOTP (no stale "Phase 3" pointer) and backup codes; unknown provider and missing-argument errors
+- `disable` (single provider) — removal leaves others intact, session destruction on change, idempotent no-op, confirmation required without `--yes`
+- `disable` (all) — full reset clears providers/throttle/nonce state and destroys sessions, preserves the compromised-password-reset flag, idempotent no-op, stale-meta cleanup guarding the fail-closed email fallback, confirmation required without `--yes`
+- `backup-codes generate` — default and `--count` code counts, regeneration replaces the set, enables the provider so codes are usable at login, session destruction when first enabled, unknown-action and missing-argument errors
+- `unlock` — clears the login throttle for a rate-limited user; no-op message otherwise
+
 ## Test Helpers
 
 - **`tests/bootstrap.php`** — Locates the WordPress test library (via `WP_TESTS_DIR` env var, relative path, or `/tmp/wordpress-tests-lib`), loads the plugin via `muplugins_loaded`, then boots the WP test environment.
 - **`tests/class-two-factor-dummy-secure.php`** — Defines `Two_Factor_Dummy_Secure`, a test-only provider class that spoofs the key of `Two_Factor_Dummy` but always fails `validate_authentication`. Used by `Tests_Two_Factor_Dummy_Secure` and some core tests.
+- **`tests/cli/`** — WP-CLI test doubles loaded by `Tests_Two_Factor_CLI_Command`: `class-wp-cli-command.php` (empty base-class stub), `class-wp-cli.php` (captures output into `WP_CLI::$logger`, throws on `error()`/`confirm()`), `class-wp-cli-mock-exit-exception.php` (stands in for a process exit), and `wp-cli-utils.php` (`WP_CLI\Utils\get_flag_value()` and `format_items()`).
