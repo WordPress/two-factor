@@ -12,6 +12,8 @@
  * On Multisite, user meta is network-global — a reset applies to the user's
  * account across every site in the network without needing --url.
  *
+ * @since 0.17.0
+ *
  * @package Two_Factor
  */
 class Two_Factor_CLI_Command extends WP_CLI_Command {
@@ -20,6 +22,8 @@ class Two_Factor_CLI_Command extends WP_CLI_Command {
 	 * Resolve a user from an ID, login, or email address.
 	 *
 	 * Resolution order is ID, then login, then email.
+	 *
+	 * @since 0.17.0
 	 *
 	 * @param string $identifier User ID, login, or email.
 	 * @return WP_User|false WP_User on success, false if not found.
@@ -42,6 +46,8 @@ class Two_Factor_CLI_Command extends WP_CLI_Command {
 	 * Two_Factor_Core::user_two_factor_options_update()) when 2FA settings
 	 * change. A configuration change made out-of-band via the CLI should take
 	 * effect immediately and force any active session to re-authenticate.
+	 *
+	 * @since 0.17.0
 	 *
 	 * @param WP_User $user             Target user.
 	 * @param array   $providers_before Enabled provider keys captured before the change.
@@ -83,6 +89,8 @@ class Two_Factor_CLI_Command extends WP_CLI_Command {
 	 *
 	 *     # Output as JSON
 	 *     $ wp two-factor status 1 --format=json
+	 *
+	 * @since 0.17.0
 	 *
 	 * @param array $args       Positional arguments.
 	 * @param array $assoc_args Associative arguments.
@@ -163,6 +171,8 @@ class Two_Factor_CLI_Command extends WP_CLI_Command {
 	 *     # Remove only TOTP, leaving backup codes in place
 	 *     $ wp two-factor disable admin Two_Factor_Totp
 	 *
+	 * @since 0.17.0
+	 *
 	 * @param array $args       Positional arguments.
 	 * @param array $assoc_args Associative arguments.
 	 */
@@ -191,6 +201,8 @@ class Two_Factor_CLI_Command extends WP_CLI_Command {
 	 * @param WP_User $user       Target user.
 	 * @param string  $provider   Provider class name.
 	 * @param array   $assoc_args CLI flags.
+	 *
+	 * @since 0.17.0
 	 */
 	private function disable_single_provider( $user, $provider, $assoc_args ) {
 		$enabled = Two_Factor_Core::get_enabled_providers_for_user( $user );
@@ -245,6 +257,8 @@ class Two_Factor_CLI_Command extends WP_CLI_Command {
 	 *
 	 * @param WP_User $user       Target user.
 	 * @param array   $assoc_args CLI flags.
+	 *
+	 * @since 0.17.0
 	 */
 	private function disable_all_providers( $user, $assoc_args ) {
 		$enabled = Two_Factor_Core::get_enabled_providers_for_user( $user );
@@ -353,6 +367,8 @@ class Two_Factor_CLI_Command extends WP_CLI_Command {
 	 *
 	 * @subcommand list-providers
 	 *
+	 * @since 0.17.0
+	 *
 	 * @param array $args       Positional arguments.
 	 * @param array $assoc_args Associative arguments.
 	 */
@@ -395,6 +411,8 @@ class Two_Factor_CLI_Command extends WP_CLI_Command {
 	 * ## EXAMPLES
 	 *
 	 *     $ wp two-factor enable admin Two_Factor_Email
+	 *
+	 * @since 0.17.0
 	 *
 	 * @param array $args       Positional arguments.
 	 * @param array $assoc_args Associative arguments.
@@ -484,6 +502,8 @@ class Two_Factor_CLI_Command extends WP_CLI_Command {
 	 *     $ wp two-factor backup-codes generate admin --count=5
 	 *
 	 * @subcommand backup-codes
+	 *
+	 * @since 0.17.0
 	 *
 	 * @param array $args       Positional arguments: action, user.
 	 * @param array $assoc_args Associative arguments.
@@ -577,6 +597,8 @@ class Two_Factor_CLI_Command extends WP_CLI_Command {
 	 * ## EXAMPLES
 	 *
 	 *     $ wp two-factor unlock admin
+	 *
+	 * @since 0.17.0
 	 *
 	 * @param array $args       Positional arguments.
 	 * @param array $assoc_args Associative arguments.
