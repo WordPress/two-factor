@@ -36,6 +36,28 @@ class Two_Factor_CLI_Command extends WP_CLI_Command {
 	}
 
 	/**
+	 * Destroy all of a user's sessions when their enabled providers changed.
+	 *
+	 * Mirrors the session invalidation the profile-page path performs (see
+	 * Two_Factor_Core::user_two_factor_options_update()) when 2FA settings
+	 * change. A configuration change made out-of-band via the CLI should take
+	 * effect immediately and force any active session to re-authenticate.
+	 *
+	 * @param WP_User $user             Target user.
+	 * @param array   $providers_before Enabled provider keys captured before the change.
+	 */
+	private function destroy_sessions_if_providers_changed( $user, $providers_before ) {
+		$providers_after = Two_Factor_Core::get_enabled_providers_for_user( $user );
+
+		sort( $providers_before );
+		sort( $providers_after );
+
+		if ( $providers_before !== $providers_after ) {
+			WP_Session_Tokens::get_instance( $user->ID )->destroy_all();
+		}
+	}
+
+	/**
 	 * Show two-factor authentication status for a user.
 	 *
 	 * ## OPTIONS
@@ -109,9 +131,11 @@ class Two_Factor_CLI_Command extends WP_CLI_Command {
 	 * Disable two-factor authentication for a user.
 	 *
 	 * Without a provider argument every factor is disabled and the user is
-	 * returned to a clean, pre-2FA baseline (nonce, lockout timers, the
-	 * password-was-reset flag, and all provider secrets are also cleared). With
-	 * a provider argument only that single factor is removed and the others are
+	 * returned to a clean, pre-2FA baseline (nonce, lockout timers, and all
+	 * provider secrets are also cleared, and existing sessions are destroyed).
+	 * The compromised-password-reset flag is intentionally preserved so the
+	 * rescued user still sees why their old password stopped working. With a
+	 * provider argument only that single factor is removed and the others are
 	 * left intact.
 	 *
 	 * The command is idempotent: disabling an already-disabled user or provider
@@ -194,6 +218,8 @@ class Two_Factor_CLI_Command extends WP_CLI_Command {
 		);
 
 		if ( Two_Factor_Core::disable_provider_for_user( $user->ID, $provider ) ) {
+			$this->destroy_sessions_if_providers_changed( $user, $enabled );
+
 			WP_CLI::success(
 				sprintf(
 					/* translators: 1: provider class name, 2: user login */
@@ -256,10 +282,14 @@ class Two_Factor_CLI_Command extends WP_CLI_Command {
 		delete_user_meta( $user->ID, Two_Factor_Core::ENABLED_PROVIDERS_USER_META_KEY );
 		delete_user_meta( $user->ID, Two_Factor_Core::PROVIDER_USER_META_KEY );
 
-		// Clear session and throttle state.
+		// Clear login nonce and throttle state.
 		delete_user_meta( $user->ID, Two_Factor_Core::USER_META_NONCE_KEY );
-		delete_user_meta( $user->ID, Two_Factor_Core::USER_PASSWORD_WAS_RESET_KEY );
 		Two_Factor_Core::clear_login_rate_limit( $user );
+
+		// Preserve USER_PASSWORD_WAS_RESET_KEY: it records that the password was
+		// reset after a compromise and drives the login notice explaining why the
+		// old password stopped working. That is independent of 2FA configuration
+		// and a rescued user should still see it after a reset.
 
 		// Clear provider-specific secrets for a clean baseline.
 		if ( class_exists( 'Two_Factor_Totp' ) ) {
@@ -285,6 +315,10 @@ class Two_Factor_CLI_Command extends WP_CLI_Command {
 				)
 			);
 		}
+
+		// The 2FA configuration changed, so drop every existing session and force
+		// re-authentication, matching the profile-page behaviour.
+		WP_Session_Tokens::get_instance( $user->ID )->destroy_all();
 
 		WP_CLI::success(
 			sprintf(
@@ -389,7 +423,7 @@ class Two_Factor_CLI_Command extends WP_CLI_Command {
 			WP_CLI::error(
 				sprintf(
 					/* translators: %s: provider class name */
-					__( 'Provider %s requires a pre-shared secret and cannot be enabled from the CLI. Set it up via the user profile page or the totp subcommand (Phase 3).', 'two-factor' ),
+					__( 'Provider %s requires a pre-shared secret and cannot be enabled from the CLI. Set it up via the user profile page.', 'two-factor' ),
 					$provider
 				)
 			);
@@ -402,7 +436,11 @@ class Two_Factor_CLI_Command extends WP_CLI_Command {
 			);
 		}
 
+		$providers_before = Two_Factor_Core::get_enabled_providers_for_user( $user );
+
 		if ( Two_Factor_Core::enable_provider_for_user( $user->ID, $provider ) ) {
+			$this->destroy_sessions_if_providers_changed( $user, $providers_before );
+
 			WP_CLI::success(
 				sprintf(
 					/* translators: 1: provider class name, 2: user login */
@@ -492,6 +530,21 @@ class Two_Factor_CLI_Command extends WP_CLI_Command {
 				'method' => 'replace',
 			)
 		);
+
+		// Enable the provider so the codes are actually usable at login, mirroring
+		// rest_generate_codes(). Without this the codes are stored but the provider
+		// is never offered, so the user is rejected at the 2FA step.
+		$providers_before = Two_Factor_Core::get_enabled_providers_for_user( $user );
+		if ( ! Two_Factor_Core::enable_provider_for_user( $user->ID, 'Two_Factor_Backup_Codes' ) ) {
+			WP_CLI::error(
+				sprintf(
+					/* translators: %s: user login */
+					__( 'Backup codes were generated but the provider could not be enabled for user %s.', 'two-factor' ),
+					$user->user_login
+				)
+			);
+		}
+		$this->destroy_sessions_if_providers_changed( $user, $providers_before );
 
 		WP_CLI::log(
 			sprintf(

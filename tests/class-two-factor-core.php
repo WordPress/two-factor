@@ -773,6 +773,30 @@ class Test_ClassTwoFactorCore extends WP_UnitTestCase {
 	}
 
 	/**
+	 * Test that clearing the login rate limit removes the throttle state.
+	 *
+	 * @covers Two_Factor_Core::clear_login_rate_limit
+	 */
+	public function test_clear_login_rate_limit() {
+		$user = $this->get_dummy_user();
+
+		// Put the user into a rate-limited state.
+		update_user_meta( $user->ID, Two_Factor_Core::USER_FAILED_LOGIN_ATTEMPTS_KEY, 5 );
+		update_user_meta( $user->ID, Two_Factor_Core::USER_RATE_LIMIT_KEY, time() );
+		$this->assertTrue( Two_Factor_Core::is_user_rate_limited( $user ) );
+
+		Two_Factor_Core::clear_login_rate_limit( $user );
+
+		$this->assertFalse( Two_Factor_Core::is_user_rate_limited( $user ) );
+		$this->assertEmpty( get_user_meta( $user->ID, Two_Factor_Core::USER_RATE_LIMIT_KEY, true ) );
+		$this->assertEmpty( get_user_meta( $user->ID, Two_Factor_Core::USER_FAILED_LOGIN_ATTEMPTS_KEY, true ) );
+
+		// Clearing an already-clean user is a harmless no-op.
+		Two_Factor_Core::clear_login_rate_limit( $user );
+		$this->assertFalse( Two_Factor_Core::is_user_rate_limited( $user ) );
+	}
+
+	/**
 	 * Test that the "invalid login attempts have occurred" login notice works as expected.
 	 *
 	 * @covers Two_Factor_Core::maybe_show_last_login_failure_notice()
