@@ -22,19 +22,17 @@
  * Network:           True
  */
 
+if ( ! defined( 'TWO_FACTOR_DIR' ) ) {
+	define( 'TWO_FACTOR_DIR', __DIR__ . '/' );
+}
+
+if ( ! defined( 'TWO_FACTOR_VERSION' ) ) {
+	define( 'TWO_FACTOR_VERSION', '0.16.0' );
+}
+
 if ( ! defined( 'ABSPATH' ) ) {
 	exit; // Exit if accessed directly.
 }
-
-/**
- * Shortcut constant to the path of this file.
- */
-define( 'TWO_FACTOR_DIR', plugin_dir_path( __FILE__ ) );
-
-/**
- * Version of the plugin.
- */
-define( 'TWO_FACTOR_VERSION', '0.16.0' );
 
 /**
  * Include the base class here, so that other plugins can also extend it.
@@ -134,7 +132,7 @@ function two_factor_render_settings_page() {
  * @return array|null
  */
 function two_factor_get_enabled_providers_option() {
-	$enabled = get_option( 'two_factor_enabled_providers', null );
+	$enabled = get_option( Two_Factor_Core::ENABLED_PROVIDERS_OPTION_KEY, null );
 	if ( null === $enabled ) {
 		return null; // Never saved — allow everything.
 	}
