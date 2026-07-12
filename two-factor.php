@@ -249,11 +249,11 @@ function two_factor_bypass_primary_provider_for_user( $provider, $user_id ) {
  * @since 0.17.0
  */
 function two_factor_bypass_admin_notice() {
-	if ( ! current_user_can( 'manage_options' ) ) {
+	if ( ! defined( 'TWO_FACTOR_DISABLE_FOR_USER' ) || empty( TWO_FACTOR_DISABLE_FOR_USER ) ) {
 		return;
 	}
 
-	if ( ! defined( 'TWO_FACTOR_DISABLE_FOR_USER' ) || empty( TWO_FACTOR_DISABLE_FOR_USER ) ) {
+	if ( ! current_user_can( 'manage_options' ) ) {
 		return;
 	}
 
