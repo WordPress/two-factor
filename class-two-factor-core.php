@@ -687,26 +687,32 @@ class Two_Factor_Core {
 		$user_providers_raw   = get_user_meta( $user->ID, self::ENABLED_PROVIDERS_USER_META_KEY, true );
 
 		/**
-		 * If the user had enabled providers, but none of them exist currently,
-		 * if emailed codes is available force it to be on, so that deprecated
-		 * or removed providers don't result in the two-factor requirement being
+		 * If the user had enabled providers in user meta, but none of those
+		 * providers are still registered, force emailed codes on when available
+		 * so deprecated or removed providers don't result in two-factor being
 		 * removed and 'failing open'.
 		 *
-		 * Possible enhancement: add a filter to change the fallback method?
+		 * If the configured providers are still registered, an empty enabled list
+		 * may have been returned intentionally by two_factor_enabled_providers_for_user
+		 * and must be respected.
 		 */
 		if ( empty( $enabled_providers ) && $user_providers_raw ) {
-			if ( isset( $providers['Two_Factor_Email'] ) ) {
-				// Force Emailed codes to 'on'.
-				$enabled_providers[] = 'Two_Factor_Email';
-			} else {
-				return new WP_Error(
-					'no_available_2fa_methods',
-					__( 'Error: You have Two Factor method(s) enabled, but the provider(s) no longer exist. Please contact a site administrator for assistance.', 'two-factor' ),
-					array(
-						'user_providers_raw'  => $user_providers_raw,
-						'available_providers' => array_keys( $providers ),
-					)
-				);
+			$still_registered = array_intersect( (array) $user_providers_raw, array_keys( $providers ) );
+
+			if ( empty( $still_registered ) ) {
+				if ( isset( $providers['Two_Factor_Email'] ) ) {
+					// Force Emailed codes to 'on'.
+					$enabled_providers[] = 'Two_Factor_Email';
+				} else {
+					return new WP_Error(
+						'no_available_2fa_methods',
+						__( 'Error: You have Two Factor method(s) enabled, but the provider(s) no longer exist. Please contact a site administrator for assistance.', 'two-factor' ),
+						array(
+							'user_providers_raw'  => $user_providers_raw,
+							'available_providers' => array_keys( $providers ),
+						)
+					);
+				}
 			}
 		}
 

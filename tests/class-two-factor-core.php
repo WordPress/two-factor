@@ -2268,6 +2268,49 @@ class Test_ClassTwoFactorCore extends WP_UnitTestCase {
 	}
 
 	/**
+	 * Ensure an intentionally emptied provider list is respected.
+	 *
+	 * @covers Two_Factor_Core::get_available_providers_for_user
+	 */
+	public function test_get_available_providers_for_user_respects_filter_cleared_list() {
+		$user = self::factory()->user->create_and_get();
+
+		update_user_meta( $user->ID, Two_Factor_Core::ENABLED_PROVIDERS_USER_META_KEY, array( 'Two_Factor_Email' ) );
+
+		$filter = function ( $enabled_providers, $user_id ) use ( $user ) {
+			$this->assertSame( $user->ID, $user_id, 'Filter received expected user ID' );
+			return array();
+		};
+
+		add_filter( 'two_factor_enabled_providers_for_user', $filter, 10, 2 );
+
+		try {
+			$this->assertEmpty(
+				Two_Factor_Core::get_available_providers_for_user( $user->ID ),
+				'No fallback provider is forced when the filter intentionally returns an empty list'
+			);
+		} finally {
+			remove_filter( 'two_factor_enabled_providers_for_user', $filter, 10 );
+		}
+	}
+
+	/**
+	 * Ensure fallback still applies when configured providers are no longer registered.
+	 *
+	 * @covers Two_Factor_Core::get_available_providers_for_user
+	 */
+	public function test_get_available_providers_for_user_falls_back_when_configured_providers_are_missing() {
+		$user = self::factory()->user->create_and_get();
+
+		update_user_meta( $user->ID, Two_Factor_Core::ENABLED_PROVIDERS_USER_META_KEY, array( 'Two_Factor_Missing' ) );
+
+		$available = Two_Factor_Core::get_available_providers_for_user( $user->ID );
+
+		$this->assertCount( 1, $available, 'Email fallback remains active when configured providers are missing' );
+		$this->assertArrayHasKey( 'Two_Factor_Email', $available, 'Emailed codes are forced on for missing configured providers' );
+	}
+
+	/**
 	 * Verify process_provider() returns WP_Error when no provider is given.
 	 *
 	 * @covers Two_Factor_Core::process_provider
