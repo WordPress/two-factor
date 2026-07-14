@@ -427,6 +427,126 @@ class Test_ClassTwoFactorCore extends WP_UnitTestCase {
 	}
 
 	/**
+	 * The two_factor_is_required_for_user filter can bypass an enabled provider.
+	 *
+	 * @covers Two_Factor_Core::is_user_using_two_factor
+	 */
+	public function test_is_user_using_two_factor_filter_can_bypass() {
+		$user = $this->get_dummy_user();
+
+		$this->assertTrue( Two_Factor_Core::is_user_using_two_factor( $user->ID ), 'Default is true when a provider is enabled.' );
+
+		add_filter( 'two_factor_is_required_for_user', '__return_false' );
+		$this->assertFalse( Two_Factor_Core::is_user_using_two_factor( $user->ID ), 'Filter returning false bypasses two-factor.' );
+		remove_filter( 'two_factor_is_required_for_user', '__return_false' );
+
+		$this->assertTrue( Two_Factor_Core::is_user_using_two_factor( $user->ID ), 'Behavior restored after removing the filter.' );
+
+		$this->clean_dummy_user();
+	}
+
+	/**
+	 * The two_factor_is_required_for_user filter can force the requirement on.
+	 *
+	 * @covers Two_Factor_Core::is_user_using_two_factor
+	 */
+	public function test_is_user_using_two_factor_filter_can_require() {
+		$user_id = self::factory()->user->create();
+
+		$this->assertFalse( Two_Factor_Core::is_user_using_two_factor( $user_id ), 'Default is false without a provider.' );
+
+		add_filter( 'two_factor_is_required_for_user', '__return_true' );
+		$this->assertTrue( Two_Factor_Core::is_user_using_two_factor( $user_id ), 'Filter returning true forces the requirement.' );
+		remove_filter( 'two_factor_is_required_for_user', '__return_true' );
+	}
+
+	/**
+	 * A user without any provider is not using two-factor by default.
+	 *
+	 * @covers Two_Factor_Core::is_user_using_two_factor
+	 */
+	public function test_is_user_using_two_factor_without_provider() {
+		$user_id = self::factory()->user->create();
+
+		$this->assertFalse( Two_Factor_Core::is_user_using_two_factor( $user_id ), 'Default is false without a provider.' );
+	}
+
+	/**
+	 * The filter receives the resolved WP_User and the provider-based default.
+	 *
+	 * @covers Two_Factor_Core::is_user_using_two_factor
+	 */
+	public function test_is_user_using_two_factor_filter_args() {
+		$user = $this->get_dummy_user();
+		$plain_user_id = self::factory()->user->create();
+
+		$received = null;
+		$callback = function ( $is_required, $filter_user ) use ( &$received ) {
+			$received = array( $is_required, $filter_user );
+			return $is_required;
+		};
+
+		add_filter( 'two_factor_is_required_for_user', $callback, 10, 2 );
+		Two_Factor_Core::is_user_using_two_factor( $user->ID ); // Called with an ID on purpose.
+
+		$this->assertNotNull( $received, 'Filter was applied.' );
+		$this->assertTrue( $received[0], 'Default reflects the enabled provider.' );
+		$this->assertInstanceOf( WP_User::class, $received[1], 'Second argument is a WP_User even when called with an ID.' );
+		$this->assertSame( $user->ID, $received[1]->ID );
+
+		Two_Factor_Core::is_user_using_two_factor( $plain_user_id );
+		remove_filter( 'two_factor_is_required_for_user', $callback, 10 );
+
+		$this->assertFalse( $received[0], 'Default reflects the missing provider.' );
+		$this->assertInstanceOf( WP_User::class, $received[1], 'Second argument is still a WP_User for users without providers.' );
+		$this->assertSame( $plain_user_id, $received[1]->ID );
+
+		$this->clean_dummy_user();
+	}
+
+	/**
+	 * The filter is not applied when no user can be resolved.
+	 *
+	 * @covers Two_Factor_Core::is_user_using_two_factor
+	 */
+	public function test_is_user_using_two_factor_filter_not_applied_without_user() {
+		wp_set_current_user( 0 );
+
+		$filter_calls = 0;
+		$callback     = function ( $is_required ) use ( &$filter_calls ) {
+			$filter_calls++;
+			return $is_required;
+		};
+
+		add_filter( 'two_factor_is_required_for_user', $callback, 10, 2 );
+		$this->assertFalse( Two_Factor_Core::is_user_using_two_factor(), 'No user resolves to false regardless of the filter.' );
+		remove_filter( 'two_factor_is_required_for_user', $callback, 10 );
+
+		$this->assertSame( 0, $filter_calls, 'Filter is short-circuited when no user resolves.' );
+	}
+
+	/**
+	 * Bypassing via the filter carries through the login flow.
+	 *
+	 * @covers Two_Factor_Core::filter_authenticate
+	 * @covers Two_Factor_Core::is_user_using_two_factor
+	 */
+	public function test_filter_authenticate_respects_bypass_filter() {
+		$user_2fa_enabled = $this->get_dummy_user();
+
+		add_filter( 'two_factor_is_required_for_user', '__return_false' );
+		Two_Factor_Core::filter_authenticate( $user_2fa_enabled );
+		remove_filter( 'two_factor_is_required_for_user', '__return_false' );
+
+		$this->assertFalse(
+			has_filter( 'send_auth_cookies', '__return_false' ) === PHP_INT_MAX,
+			'Bypassed user login should not block auth cookies.'
+		);
+
+		$this->clean_dummy_user();
+	}
+
+	/**
 	 * Verify the login URL.
 	 *
 	 * @covers Two_Factor_Core::login_url
