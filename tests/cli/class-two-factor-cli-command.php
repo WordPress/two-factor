@@ -656,6 +656,38 @@ class Tests_Two_Factor_CLI_Command extends WP_UnitTestCase {
 	}
 
 	/**
+	 * A count lower than 1 is rejected.
+	 *
+	 * @covers Two_Factor_CLI_Command::backup_codes
+	 */
+	public function test_backup_codes_generate_rejects_zero_count() {
+		$message = $this->assert_command_aborts(
+			function () {
+				$this->command->backup_codes( array( 'generate', 'cli_test_user' ), array( 'count' => 0 ) );
+			}
+		);
+
+		$this->assertStringContainsString( 'Invalid value for --count', $message );
+		$this->assertSame( 0, Two_Factor_Backup_Codes::codes_remaining_for_user( $this->user ) );
+	}
+
+	/**
+	 * Negative count values are rejected.
+	 *
+	 * @covers Two_Factor_CLI_Command::backup_codes
+	 */
+	public function test_backup_codes_generate_rejects_negative_count() {
+		$message = $this->assert_command_aborts(
+			function () {
+				$this->command->backup_codes( array( 'generate', 'cli_test_user' ), array( 'count' => -5 ) );
+			}
+		);
+
+		$this->assertStringContainsString( 'Invalid value for --count', $message );
+		$this->assertSame( 0, Two_Factor_Backup_Codes::codes_remaining_for_user( $this->user ) );
+	}
+
+	/**
 	 * Regenerating replaces the previous set of codes.
 	 *
 	 * @covers Two_Factor_CLI_Command::backup_codes

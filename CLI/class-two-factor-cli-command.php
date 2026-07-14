@@ -543,6 +543,16 @@ class Two_Factor_CLI_Command extends WP_CLI_Command {
 		}
 
 		$count = (int) WP_CLI\Utils\get_flag_value( $assoc_args, 'count', Two_Factor_Backup_Codes::NUMBER_OF_CODES );
+		if ( $count < 1 ) {
+			WP_CLI::error(
+				sprintf(
+					/* translators: %d: provided count */
+					__( 'Invalid value for --count: %d. It must be 1 or greater.', 'two-factor' ),
+					$count
+				)
+			);
+		}
+
 		$codes = Two_Factor_Backup_Codes::get_instance()->generate_codes(
 			$user,
 			array(
