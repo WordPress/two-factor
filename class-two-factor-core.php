@@ -725,6 +725,7 @@ class Two_Factor_Core {
 						'available_providers' => array_keys( $providers ),
 					)
 				);
+			}
 		}
 
 		foreach ( $providers as $provider_key => $provider ) {
