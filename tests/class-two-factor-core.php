@@ -477,7 +477,7 @@ class Test_ClassTwoFactorCore extends WP_UnitTestCase {
 	 * @covers Two_Factor_Core::is_user_using_two_factor
 	 */
 	public function test_is_user_using_two_factor_filter_args() {
-		$user = $this->get_dummy_user();
+		$user          = $this->get_dummy_user();
 		$plain_user_id = self::factory()->user->create();
 
 		$received = null;
@@ -514,7 +514,7 @@ class Test_ClassTwoFactorCore extends WP_UnitTestCase {
 
 		$filter_calls = 0;
 		$callback     = function ( $is_required ) use ( &$filter_calls ) {
-			$filter_calls++;
+			++$filter_calls;
 			return $is_required;
 		};
 
@@ -528,18 +528,53 @@ class Test_ClassTwoFactorCore extends WP_UnitTestCase {
 	/**
 	 * Bypassing via the filter carries through the login flow.
 	 *
+	 * Asserts both directions: without the filter a 2FA user has auth cookies
+	 * blocked (so the second factor can be completed first), and with the bypass
+	 * filter that block is never installed, so the login proceeds without 2FA.
+	 *
 	 * @covers Two_Factor_Core::filter_authenticate
 	 * @covers Two_Factor_Core::is_user_using_two_factor
 	 */
 	public function test_filter_authenticate_respects_bypass_filter() {
 		$user_2fa_enabled = $this->get_dummy_user();
 
+		// The WP test framework registers __return_false on send_auth_cookies at priority 10 to
+		// prevent real cookies from being set during tests. Check for the plugin's specific
+		// __return_false callback at PHP_INT_MAX (see Two_Factor_Core::filter_authenticate).
+		$has_plugin_cookie_block = function () {
+			global $wp_filter;
+
+			if (
+				! isset( $wp_filter['send_auth_cookies'] ) ||
+				! $wp_filter['send_auth_cookies'] instanceof WP_Hook ||
+				empty( $wp_filter['send_auth_cookies']->callbacks[ PHP_INT_MAX ] )
+			) {
+				return false;
+			}
+
+			foreach ( $wp_filter['send_auth_cookies']->callbacks[ PHP_INT_MAX ] as $cb ) {
+				if ( '__return_false' === $cb['function'] ) {
+					return true;
+				}
+			}
+			return false;
+		};
+
+		// Control: without the bypass filter, a 2FA user should have auth cookies blocked.
+		Two_Factor_Core::filter_authenticate( $user_2fa_enabled );
+		$this->assertTrue(
+			$has_plugin_cookie_block(),
+			'Without the bypass filter, a 2FA user should have auth cookies blocked.'
+		);
+		remove_filter( 'send_auth_cookies', '__return_false', PHP_INT_MAX );
+
+		// With the bypass filter, the block is never installed and login proceeds without 2FA.
 		add_filter( 'two_factor_is_required_for_user', '__return_false' );
 		Two_Factor_Core::filter_authenticate( $user_2fa_enabled );
 		remove_filter( 'two_factor_is_required_for_user', '__return_false' );
 
 		$this->assertFalse(
-			has_filter( 'send_auth_cookies', '__return_false' ) === PHP_INT_MAX,
+			$has_plugin_cookie_block(),
 			'Bypassed user login should not block auth cookies.'
 		);
 
