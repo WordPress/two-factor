@@ -167,7 +167,7 @@ abstract class Two_Factor_Provider {
 	/**
 	 * Get the code length for a provider.
 	 *
-	 * @since 0.?.0
+	 * @since 0.17.0
 	 *
 	 * @param int         $default  Default code length if not filtered.
 	 * @param string|null $provider The provider class name. Null uses the called class.
@@ -177,7 +177,7 @@ abstract class Two_Factor_Provider {
 		/**
 		 * Filter the default code length for a provider.
 		 *
-		 * @since 0.?.0
+		 * @since 0.17.0
 		 *
 		 * @param int    $code_length Length of the code. Default 8.
 		 * @param string $provider    The provider class name.

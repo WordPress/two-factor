@@ -392,7 +392,7 @@ class Two_Factor_Backup_Codes extends Two_Factor_Provider {
 		 *
 		 * To disable autosubmit, set the digits to `0` via the core method `__return_zero`.
 		 *
-		 * @since 0.?.0
+		 * @since 0.17.0
 		 *
 		 * @param int $code_length The length of the backup code.
 		 * @param Two_Factor_Provider $provider The two-factor provider instance.
