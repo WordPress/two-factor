@@ -67,6 +67,8 @@ abstract class Two_Factor_Provider {
 	 * Prints the name of the provider.
 	 *
 	 * @since 0.1-dev
+	 *
+	 * @codeCoverageIgnore
 	 */
 	public function print_label() {
 		echo esc_html( $this->get_label() );
@@ -197,11 +199,11 @@ abstract class Two_Factor_Provider {
 	 * @return false|string Auth code on success, false if the field is not set or not expected length.
 	 */
 	public static function sanitize_code_from_request( $field, $length = 0 ) {
-		if ( empty( $_REQUEST[ $field ] ) ) {
+		if ( empty( $_REQUEST[ $field ] ) ) { // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Caller (core) verifies nonce before provider processing.
 			return false;
 		}
 
-		$code = wp_unslash( $_REQUEST[ $field ] ); // phpcs:ignore WordPress.Security.NonceVerification.Recommended, handled by the core method already.
+		$code = wp_unslash( $_REQUEST[ $field ] ); // phpcs:ignore WordPress.Security.NonceVerification.Recommended, WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- Caller (core) verifies nonce; value normalized below.
 		$code = preg_replace( '/\s+/', '', $code );
 
 		// Maybe validate the length.

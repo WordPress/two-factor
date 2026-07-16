@@ -39,6 +39,8 @@ class Two_Factor_Email extends Two_Factor_Provider {
 	 * Class constructor.
 	 *
 	 * @since 0.1-dev
+	 *
+	 * @codeCoverageIgnore
 	 */
 	protected function __construct() {
 		add_action( 'two_factor_user_options_' . __CLASS__, array( $this, 'user_options' ) );
@@ -298,7 +300,7 @@ class Two_Factor_Email extends Two_Factor_Provider {
 				$ttl_minutes
 			),
 			sprintf(
-				/* translators: $1$s: IP address of user, $2$s: user login */
+				/* translators: %1$s: IP address of user, %2$s: user login */
 				__( 'A user from IP address %1$s has successfully authenticated as %2$s. If this wasn\'t you, please change your password.', 'two-factor' ),
 				$remote_ip,
 				$user->user_login
@@ -336,10 +338,10 @@ class Two_Factor_Email extends Two_Factor_Provider {
 	 *
 	 * @since 0.1-dev
 	 *
-	 * @param WP_User $user WP_User object of the logged-in user.
+	 * @param WP_User|false $user WP_User object of the logged-in user.
 	 */
 	public function authentication_page( $user ) {
-		if ( ! $user ) {
+		if ( ! ( $user instanceof WP_User ) ) {
 			return;
 		}
 
@@ -376,16 +378,7 @@ class Two_Factor_Email extends Two_Factor_Provider {
 		<p class="two-factor-email-resend">
 			<input type="submit" class="button" name="<?php echo esc_attr( self::INPUT_NAME_RESEND_CODE ); ?>" value="<?php esc_attr_e( 'Resend Code', 'two-factor' ); ?>" />
 		</p>
-		<script>
-			setTimeout( function(){
-				var d;
-				try{
-					d = document.getElementById('authcode');
-					d.value = '';
-					d.focus();
-				} catch(e){}
-			}, 200);
-		</script>
+		<?php wp_enqueue_script( 'two-factor-login' ); ?>
 		<?php
 	}
 
@@ -395,11 +388,15 @@ class Two_Factor_Email extends Two_Factor_Provider {
 	 *
 	 * @since 0.2.0
 	 *
-	 * @param  WP_User $user WP_User object of the logged-in user.
+	 * @param WP_User|false $user WP_User object of the logged-in user.
 	 * @return boolean
 	 */
 	public function pre_process_authentication( $user ) {
-		if ( isset( $user->ID ) && isset( $_REQUEST[ self::INPUT_NAME_RESEND_CODE ] ) ) { // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- non-distructive option that relies on user state.
+		if ( ! ( $user instanceof WP_User ) ) {
+			return false;
+		}
+
+		if ( isset( $_REQUEST[ self::INPUT_NAME_RESEND_CODE ] ) ) { // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- non-destructive option that relies on user state.
 			$this->generate_and_email_token( $user );
 			return true;
 		}
@@ -412,12 +409,16 @@ class Two_Factor_Email extends Two_Factor_Provider {
 	 *
 	 * @since 0.1-dev
 	 *
-	 * @param WP_User $user WP_User object of the logged-in user.
+	 * @param WP_User|false $user WP_User object of the logged-in user.
 	 * @return boolean
 	 */
 	public function validate_authentication( $user ) {
+		if ( ! ( $user instanceof WP_User ) ) {
+			return false;
+		}
+
 		$code = $this->sanitize_code_from_request( 'two-factor-email-code' );
-		if ( ! isset( $user->ID ) || ! $code ) {
+		if ( ! $code ) {
 			return false;
 		}
 

@@ -16,6 +16,12 @@
 /phpcs*
 /phpunit*
 /phpstan.*
+/AGENTS.md
+/CHANGELOG.md
+/CLAUDE.md
+/CREDITS.md
+/codecov.yml
 /readme.md
 /RELEASING.md
 /SECURITY.md
+/TESTS.md

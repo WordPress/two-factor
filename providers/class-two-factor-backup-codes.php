@@ -29,6 +29,14 @@ class Two_Factor_Backup_Codes extends Two_Factor_Provider {
 	const NUMBER_OF_CODES = 10;
 
 	/**
+	 * The default number of remaining codes at or below which the user is
+	 * warned to regenerate, before they run out entirely.
+	 *
+	 * @type int
+	 */
+	const LOW_CODES_THRESHOLD = 2;
+
+	/**
 	 * Class constructor.
 	 *
 	 * @since 0.1-dev
@@ -39,8 +47,29 @@ class Two_Factor_Backup_Codes extends Two_Factor_Provider {
 		add_action( 'rest_api_init', array( $this, 'register_rest_routes' ) );
 		add_action( 'two_factor_user_options_' . __CLASS__, array( $this, 'user_options' ) );
 		add_action( 'admin_notices', array( $this, 'admin_notices' ) );
+		add_action( 'admin_enqueue_scripts', array( $this, 'enqueue_assets' ) );
+		add_action( 'wp_enqueue_scripts', array( $this, 'enqueue_assets' ) );
 
 		parent::__construct();
+	}
+
+	/**
+	 * Enqueue scripts for backup codes.
+	 *
+	 * @since 0.10.0
+	 *
+	 * @codeCoverageIgnore
+	 *
+	 * @param string $hook_suffix Optional. The current admin page hook suffix.
+	 */
+	public function enqueue_assets( $hook_suffix = '' ) {
+		wp_register_script(
+			'two-factor-backup-codes-admin',
+			plugins_url( 'js/backup-codes-admin.js', __FILE__ ),
+			array( 'jquery', 'wp-api-request' ),
+			TWO_FACTOR_VERSION,
+			true
+		);
 	}
 
 	/**
@@ -76,7 +105,7 @@ class Two_Factor_Backup_Codes extends Two_Factor_Provider {
 	}
 
 	/**
-	 * Displays an admin notice when backup codes have run out.
+	 * Displays an admin notice when backup codes have run out, or are running low.
 	 *
 	 * @since 0.1-dev
 	 *
@@ -90,28 +119,70 @@ class Two_Factor_Backup_Codes extends Two_Factor_Provider {
 			return;
 		}
 
-		// Return if we are not out of codes.
-		if ( $this->is_available_for_user( $user ) ) {
+		$count          = self::codes_remaining_for_user( $user );
+		$regenerate_url = esc_url( get_edit_user_link( $user->ID ) . '#two-factor-backup-codes' );
+
+		// Out of codes: show an error and bail.
+		if ( 0 === $count ) {
+			?>
+			<div class="error">
+				<p>
+					<span>
+						<?php
+						echo wp_kses(
+							sprintf(
+							/* translators: %s: URL for code regeneration */
+								__( 'Two-Factor: You are out of recovery codes and need to <a href="%s">regenerate!</a>', 'two-factor' ),
+								$regenerate_url
+							),
+							array( 'a' => array( 'href' => true ) )
+						);
+						?>
+					</span>
+				</p>
+			</div>
+			<?php
 			return;
 		}
-		?>
-		<div class="error">
-			<p>
-				<span>
-					<?php
-					echo wp_kses(
-						sprintf(
-						/* translators: %s: URL for code regeneration */
-							__( 'Two-Factor: You are out of recovery codes and need to <a href="%s">regenerate!</a>', 'two-factor' ),
-							esc_url( get_edit_user_link( $user->ID ) . '#two-factor-backup-codes' )
-						),
-						array( 'a' => array( 'href' => true ) )
-					);
-					?>
-				</span>
-			</p>
-		</div>
-		<?php
+
+		/**
+		 * Filters the number of remaining recovery codes at or below which the
+		 * user is warned to regenerate, before they run out entirely.
+		 *
+		 * @since 0.17.0
+		 *
+		 * @param int     $threshold Number of remaining codes that triggers the warning. Default 2.
+		 * @param WP_User $user      User object.
+		 */
+		$threshold = (int) apply_filters( 'two_factor_backup_codes_low_threshold', self::LOW_CODES_THRESHOLD, $user );
+
+		// Running low: warn the user before they hit zero.
+		if ( $count <= $threshold ) {
+			?>
+			<div class="notice notice-warning">
+				<p>
+					<span>
+						<?php
+						echo wp_kses(
+							sprintf(
+							/* translators: 1: number of recovery codes remaining, 2: URL for code regeneration */
+								_n(
+									'Two-Factor: You only have %1$s recovery code left. <a href="%2$s">Regenerate your codes</a> now before you run out.',
+									'Two-Factor: You only have %1$s recovery codes left. <a href="%2$s">Regenerate your codes</a> now before you run out.',
+									$count,
+									'two-factor'
+								),
+								number_format_i18n( $count ),
+								$regenerate_url
+							),
+							array( 'a' => array( 'href' => true ) )
+						);
+						?>
+					</span>
+				</p>
+			</div>
+			<?php
+		}
 	}
 
 	/**
@@ -156,8 +227,15 @@ class Two_Factor_Backup_Codes extends Two_Factor_Provider {
 	 * @param WP_User $user WP_User object of the logged-in user.
 	 */
 	public function user_options( $user ) {
-		wp_enqueue_script( 'wp-api-request' );
-		wp_enqueue_script( 'jquery' );
+		wp_localize_script(
+			'two-factor-backup-codes-admin',
+			'twoFactorBackupCodes',
+			array(
+				'restPath' => Two_Factor_Core::REST_NAMESPACE . '/generate-backup-codes',
+				'userId'   => $user->ID,
+			)
+		);
+		wp_enqueue_script( 'two-factor-backup-codes-admin' );
 
 		$count = self::codes_remaining_for_user( $user );
 		?>
@@ -191,54 +269,6 @@ class Two_Factor_Backup_Codes extends Two_Factor_Provider {
 				<a class="button button-two-factor-backup-codes-download button-secondary hide-if-no-js" href="javascript:void(0);" id="two-factor-backup-codes-download-link" download="two-factor-backup-codes.txt"><?php esc_html_e( 'Download Codes', 'two-factor' ); ?></a>
 			</p>
 		</div>
-		<script>
-			( function( $ ) {
-				$( '.button-two-factor-backup-codes-copy' ).click( function() {
-					var csvCodes = $( '.two-factor-backup-codes-wrapper' ).data( 'codesCsv' );
-
-					if ( ! csvCodes ) {
-						return;
-					}
-
-					if ( navigator.clipboard && navigator.clipboard.writeText ) {
-						navigator.clipboard.writeText( csvCodes );
-						return;
-					}
-
-					var $temp = $( '<textarea>' ).val( csvCodes ).css( { position: 'absolute', left: '-9999px' } );
-					$( 'body' ).append( $temp );
-					$temp[0].select();
-					document.execCommand( 'copy' );
-					$temp.remove();
-				} );
-
-				$( '.button-two-factor-backup-codes-generate' ).click( function() {
-					wp.apiRequest( {
-						method: 'POST',
-						path: <?php echo wp_json_encode( Two_Factor_Core::REST_NAMESPACE . '/generate-backup-codes' ); ?>,
-						data: {
-							user_id: <?php echo wp_json_encode( $user->ID ); ?>
-						}
-					} ).then( function( response ) {
-						var $codesList = $( '.two-factor-backup-codes-unused-codes' );
-
-						$( '.two-factor-backup-codes-wrapper' ).show();
-						$codesList.html( '' );
-						$codesList.css( { 'column-count': 2, 'column-gap': '80px', 'max-width': '420px' } );
-						$( '.two-factor-backup-codes-wrapper' ).data( 'codesCsv', response.codes.join( ',' ) );
-
-						// Append the codes.
-						for ( var i = 0; i < response.codes.length; i++ ) {
-							$codesList.append( '<li class="two-factor-backup-codes-token">' + response.codes[ i ] + '</li>' );
-						}
-
-						// Update counter.
-						$( '.two-factor-backup-codes-count' ).html( response.i18n.count );
-						$( '#two-factor-backup-codes-download-link' ).attr( 'href', response.download_link );
-					} );
-				} );
-			} )( jQuery );
-		</script>
 		<?php
 	}
 
