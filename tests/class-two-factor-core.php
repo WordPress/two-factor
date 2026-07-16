@@ -796,8 +796,10 @@ class Test_ClassTwoFactorCore extends WP_UnitTestCase {
 		$contents = ob_get_clean();
 
 		$this->assertNotEmpty( $contents );
-		$this->assertStringNotContainsString( '1 times', $contents );
-		$this->assertStringContainsString( 'failed verification code attempt', $contents );
+		// A single failure uses the singular form; assert the plural is absent, since
+		// "attempt" alone also matches "attempts".
+		$this->assertStringContainsString( '1 failed verification code attempt on this account', $contents );
+		$this->assertStringNotContainsString( 'failed verification code attempts', $contents );
 
 		// 5 failed login attempts 5 hours ago - User should be informed.
 		$five_hours_ago = time() - 5 * HOUR_IN_SECONDS;
@@ -808,7 +810,7 @@ class Test_ClassTwoFactorCore extends WP_UnitTestCase {
 		$contents = ob_get_clean();
 
 		$this->assertNotEmpty( $contents );
-		$this->assertStringContainsString( 'failed verification code attempts', $contents );
+		$this->assertStringContainsString( '5 failed verification code attempts on this account', $contents );
 		$this->assertStringContainsString( human_time_diff( $five_hours_ago ), $contents );
 	}
 
@@ -820,7 +822,7 @@ class Test_ClassTwoFactorCore extends WP_UnitTestCase {
 	public function test_login_failure_notice_language_is_calm_and_informational() {
 		$user = $this->get_dummy_user();
 		update_user_meta( $user->ID, Two_Factor_Core::USER_FAILED_LOGIN_ATTEMPTS_KEY, 3 );
-		update_user_meta( $user->ID, Two_Factor_Core::USER_RATE_LIMIT_KEY, time() - 60 );
+		update_user_meta( $user->ID, Two_Factor_Core::USER_RATE_LIMIT_KEY, time() - MINUTE_IN_SECONDS );
 
 		ob_start();
 		Two_Factor_Core::maybe_show_last_login_failure_notice( $user );
