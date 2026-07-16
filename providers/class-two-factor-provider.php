@@ -144,7 +144,7 @@ abstract class Two_Factor_Provider {
 	}
 
 	/**
-	 * Generate a random eight-digit string to send out as an auth code.
+	 * Generate a random string to send out as an auth code.  Default is an 8 digit numeric code, but the length and characters can be customized.
 	 *
 	 * @since 0.1-dev
 	 *
@@ -152,7 +152,10 @@ abstract class Two_Factor_Provider {
 	 * @param string|array $chars Valid auth code characters.
 	 * @return string
 	 */
-	public static function get_code( $length = 8, $chars = '1234567890' ) {
+	public static function get_code( $length = null, $chars = '1234567890' ) {
+		if ( is_null( $length ) ) {
+			$length = self::get_code_length( 8, static::class );
+		}
 		$code = '';
 		if ( is_array( $chars ) ) {
 			$chars = implode( '', $chars );
@@ -161,6 +164,29 @@ abstract class Two_Factor_Provider {
 			$code .= substr( $chars, wp_rand( 0, strlen( $chars ) - 1 ), 1 );
 		}
 		return $code;
+	}
+
+	/**
+	 * Get the code length for a provider.
+	 *
+	 * @since 0.17.0
+	 *
+	 * @param int         $default  Default code length if not filtered.
+	 * @param string|null $provider The provider class name. Null uses the called class.
+	 * @return int Number of characters.
+	 */
+	public static function get_code_length( $default = 8, $provider = null ) {
+		/**
+		 * Filter the default code length for a provider.
+		 *
+		 * @since 0.17.0
+		 *
+		 * @param int    $code_length Length of the code. Default 8.
+		 * @param string $provider    The provider class name.
+		 */
+		$code_length = (int) apply_filters( 'two_factor_code_length', $default, $provider ?: static::class );
+
+		return $code_length;
 	}
 
 	/**
