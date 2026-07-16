@@ -1197,7 +1197,7 @@ class Two_Factor_Core {
 			</div>
 		<?php endif; ?>
 
-<?php wp_enqueue_script( 'two-factor-login-authcode' ); ?>
+		<?php wp_enqueue_script( 'two-factor-login-authcode' ); ?>
 		<?php
 		if ( ! function_exists( 'login_footer' ) ) {
 			require_once TWO_FACTOR_DIR . 'includes/function.login-footer.php';
