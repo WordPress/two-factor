@@ -147,6 +147,8 @@ class Two_Factor_Core {
 		add_action( 'admin_init', array( __CLASS__, 'trigger_user_settings_action' ) );
 		add_filter( 'two_factor_providers', array( __CLASS__, 'enable_dummy_method_for_debug' ) );
 
+		add_action( 'two_factor_revalidate_session', array( __CLASS__, 'action_revalidate_session' ), 10, 2 );
+
 		// Add Settings link to plugin action links.
 		add_filter( 'plugin_action_links_' . plugin_basename( TWO_FACTOR_DIR . 'two-factor.php' ), array( __CLASS__, 'add_settings_action_link' ) );
 
@@ -600,6 +602,40 @@ class Two_Factor_Core {
 			 * @param string $action Settings action.
 			 */
 			do_action( 'two_factor_user_settings_action', $user_id, $action );
+		}
+	}
+
+	/**
+	 * Require a recent Two Factor session.
+	 *
+	 * Triggers a redirect to the two-factor revalidation screen if the current session
+	 * hasn't been validated within the specified time window.
+	 *
+	 * @since NEXT
+	 *
+	 * @param int    $time_window The grace period in seconds. Default 300 (5 minutes).
+	 * @param string $redirect_to The URL to redirect back to after revalidation. Defaults to the current request URI.
+	 *
+	 * @return void
+	 */
+	public static function action_revalidate_session( $time_window = 300, $redirect_to = '' ) {
+		if ( ! is_user_logged_in() || ! self::is_user_using_two_factor() ) {
+			return;
+		}
+
+		$last_2fa  = self::is_current_user_session_two_factor();
+		$is_recent = $last_2fa && ( time() - $last_2fa < (int) $time_window );
+
+		if ( ! $is_recent ) {
+			if ( empty( $redirect_to ) && isset( $_SERVER['REQUEST_URI'] ) ) {
+				$redirect_to = wp_unslash( $_SERVER['REQUEST_URI'] );
+			}
+
+			$reauth_url = self::get_user_two_factor_revalidate_url();
+			$reauth_url = add_query_arg( 'redirect_to', urlencode( $redirect_to ), $reauth_url );
+
+			wp_safe_redirect( $reauth_url );
+			exit;
 		}
 	}
 
@@ -1161,6 +1197,7 @@ class Two_Factor_Core {
 					<input type="hidden" name="redirect_to" value="<?php echo esc_attr( $redirect_to ); ?>" />
 				<?php } ?>
 				<input type="hidden" name="rememberme"    id="rememberme"    value="<?php echo esc_attr( $rememberme ); ?>" />
+				<?php self::print_custom_post_fields(); ?>
 
 				<?php $provider->authentication_page( $user ); ?>
 		</form>
@@ -2623,6 +2660,66 @@ class Two_Factor_Core {
 		}
 
 		return $session;
+	}
+
+	/**
+	 * Output custom $_POST fields as hidden inputs.
+	 *
+	 * Iterates over $_POST and outputs hidden inputs for fields added by third-party plugins,
+	 * ensuring that standard WordPress and Two-Factor fields (especially sensitive ones like `pwd`)
+	 * are explicitly ignored.
+	 *
+	 * @since 0.17.0
+	 */
+	private static function print_custom_post_fields() {
+		$blocklist = array(
+			// Standard WP Login fields.
+			'log',
+			'pwd',
+			'wp-submit',
+			'redirect_to',
+			'rememberme',
+			'interim-login',
+			'testcookie',
+			'_wpnonce',
+			'_wp_http_referer',
+			// Additional common login fields (e.g., WooCommerce, custom forms).
+			'password',
+			'user_pass',
+			'username',
+			'user_login',
+			// Two Factor specific fields.
+			'provider',
+			'wp-auth-id',
+			'wp-auth-nonce',
+			'action',
+		);
+
+		// phpcs:ignore WordPress.Security.NonceVerification.Missing
+		foreach ( $_POST as $key => $value ) {
+			if ( in_array( $key, $blocklist, true ) ) {
+				continue;
+			}
+			self::print_hidden_inputs( $key, $value );
+		}
+	}
+
+	/**
+	 * Recursively output hidden inputs for a given key/value.
+	 *
+	 * @since 0.17.0
+	 *
+	 * @param string       $name  Input name.
+	 * @param string|array $value Input value.
+	 */
+	private static function print_hidden_inputs( $name, $value ) {
+		if ( is_array( $value ) ) {
+			foreach ( $value as $k => $v ) {
+				self::print_hidden_inputs( $name . '[' . $k . ']', $v );
+			}
+		} else {
+			echo '<input type="hidden" name="' . esc_attr( $name ) . '" value="' . esc_attr( $value ) . '" />' . "\n";
+		}
 	}
 }
 
