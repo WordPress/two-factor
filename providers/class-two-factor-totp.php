@@ -794,8 +794,6 @@ class Two_Factor_Totp extends Two_Factor_Provider {
 		<?php
 		/** This action is documented in providers/class-two-factor-backup-codes.php */
 		do_action( 'two_factor_after_authentication_input', $this );
-		?>
-		<?php
 		submit_button( __( 'Verify', 'two-factor' ) );
 	}
 
