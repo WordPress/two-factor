@@ -832,9 +832,10 @@ class Test_ClassTwoFactorCore extends WP_UnitTestCase {
 	 * @covers Two_Factor_Core::maybe_show_last_login_failure_notice()
 	 */
 	public function test_login_failure_notice_language_is_calm_and_informational() {
-		$user = $this->get_dummy_user();
+		$user           = $this->get_dummy_user();
+		$one_minute_ago = time() - MINUTE_IN_SECONDS;
 		update_user_meta( $user->ID, Two_Factor_Core::USER_FAILED_LOGIN_ATTEMPTS_KEY, 3 );
-		update_user_meta( $user->ID, Two_Factor_Core::USER_RATE_LIMIT_KEY, time() - MINUTE_IN_SECONDS );
+		update_user_meta( $user->ID, Two_Factor_Core::USER_RATE_LIMIT_KEY, $one_minute_ago );
 
 		ob_start();
 		Two_Factor_Core::maybe_show_last_login_failure_notice( $user );
@@ -842,9 +843,13 @@ class Test_ClassTwoFactorCore extends WP_UnitTestCase {
 
 		$this->assertStringNotContainsString( 'WARNING', $contents );
 		$this->assertStringNotContainsString( "wasn't you", $contents );
-		$this->assertStringNotContainsString( 'reset your password', $contents );
 		$this->assertStringContainsString( 'failed verification code', $contents );
-		$this->assertStringContainsString( 'review your account security', $contents );
+		$this->assertStringContainsString( 'someone else may know your password', $contents );
+		$this->assertStringContainsString( 'Change your password after you log in', $contents );
+		$this->assertStringContainsString(
+			'The last attempt was ' . human_time_diff( $one_minute_ago ) . ' ago',
+			$contents
+		);
 	}
 
 	/**

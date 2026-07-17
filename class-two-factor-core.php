@@ -1024,8 +1024,8 @@ class Two_Factor_Core {
 				esc_html(
 					/* translators: 1: number of failed verification code attempts, 2: human-readable time since the last attempt, e.g. "5 minutes" */
 					_n(
-						'%1$s failed verification code attempt on this account. The last attempt was %2$s ago. If you did not make this attempt, review your account security after logging in.',
-						'%1$s failed verification code attempts on this account. The last attempt was %2$s ago. If you did not make these attempts, review your account security after logging in.',
+						'%1$s failed verification code attempt on this account. The last attempt was %2$s ago. If you did not make this attempt, someone else may know your password. Change your password after you log in.',
+						'%1$s failed verification code attempts on this account. The last attempt was %2$s ago. If you did not make these attempts, someone else may know your password. Change your password after you log in.',
 						$failed_login_count,
 						'two-factor'
 					)
