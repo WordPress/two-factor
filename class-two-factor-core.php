@@ -856,8 +856,28 @@ class Two_Factor_Core {
 	 * @return bool
 	 */
 	public static function is_user_using_two_factor( $user = null ) {
+		$user = self::fetch_user( $user );
+		if ( ! $user ) {
+			return false;
+		}
+
 		$provider = self::get_primary_provider_for_user( $user );
-		return ! empty( $provider );
+
+		/**
+		 * Filters whether two-factor authentication is required for a user.
+		 *
+		 * Return false to bypass the two-factor authentication flow for the user —
+		 * for example, for requests from trusted IP addresses. Return true to
+		 * require two-factor authentication even if the user has no provider
+		 * configured (note the login will fail in that case, as there is no
+		 * provider to authenticate against).
+		 *
+		 * @since 0.17.0
+		 *
+		 * @param bool    $is_required Whether two-factor is required for the user. Default true when the user has a primary provider.
+		 * @param WP_User $user        The user being checked.
+		 */
+		return (bool) apply_filters( 'two_factor_is_required_for_user', ! empty( $provider ), $user );
 	}
 
 	/**
