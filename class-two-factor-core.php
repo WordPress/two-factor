@@ -840,7 +840,7 @@ class Two_Factor_Core {
 		 */
 		$provider = apply_filters( 'two_factor_primary_provider_for_user', $provider, $user->ID );
 
-		if ( isset( $providers[ $provider ] ) ) {
+		if ( ! empty( $provider ) && isset( $providers[ $provider ] ) ) {
 			return $providers[ $provider ];
 		}
 
