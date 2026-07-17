@@ -2719,4 +2719,66 @@ class Test_ClassTwoFactorCore extends WP_UnitTestCase {
 		$this->assertStringContainsString( 'Settings', $first );
 		$this->assertStringContainsString( 'options-general.php', $first );
 	}
+
+	/**
+	 * @covers Two_Factor_Core::action_revalidate_session
+	 */
+	public function test_action_revalidate_session_redirects_when_not_recent() {
+		$user_id = self::factory()->user->create();
+		wp_set_current_user( $user_id );
+		update_user_meta( $user_id, Two_Factor_Core::ENABLED_PROVIDERS_USER_META_KEY, array( 'Two_Factor_Dummy' ) );
+		update_user_meta( $user_id, Two_Factor_Core::PROVIDER_USER_META_KEY, 'Two_Factor_Dummy' );
+
+		// Simulate an old session (20 minutes ago)
+		$old_time = time() - ( 20 * MINUTE_IN_SECONDS );
+		Two_Factor_Core::update_current_user_session(
+			array(
+				'two-factor-provider' => 'Two_Factor_Dummy',
+				'two-factor-login'    => $old_time,
+			)
+		);
+
+		$_SERVER['REQUEST_URI'] = '/wp-admin/post.php?post=1&action=edit';
+
+		// Catch the redirect exception
+		$redirected = false;
+		try {
+			Two_Factor_Core::action_revalidate_session( 300, '/custom-redirect/' );
+		} catch ( Two_Factor_Redirect_Exception $e ) {
+			$redirected = true;
+			$location   = $e->getMessage();
+			$this->assertStringContainsString( 'action=revalidate_2fa', $location );
+			$this->assertStringContainsString( 'redirect_to=%2Fcustom-redirect%2F', $location );
+		}
+
+		$this->assertTrue( $redirected, 'Expected wp_safe_redirect to throw Two_Factor_Redirect_Exception.' );
+	}
+
+	/**
+	 * @covers Two_Factor_Core::action_revalidate_session
+	 */
+	public function test_action_revalidate_session_bypasses_when_recent() {
+		$user_id = self::factory()->user->create();
+		wp_set_current_user( $user_id );
+		update_user_meta( $user_id, Two_Factor_Core::ENABLED_PROVIDERS_USER_META_KEY, array( 'Two_Factor_Dummy' ) );
+
+		// Simulate a recent session (1 minute ago)
+		$recent_time = time() - MINUTE_IN_SECONDS;
+		Two_Factor_Core::update_current_user_session(
+			array(
+				'two-factor-provider' => 'Two_Factor_Dummy',
+				'two-factor-login'    => $recent_time,
+			)
+		);
+
+		// Should not throw an exception (no redirect)
+		$exception = false;
+		try {
+			Two_Factor_Core::action_revalidate_session( 300 );
+		} catch ( Two_Factor_Redirect_Exception $e ) {
+			$exception = true;
+		}
+
+		$this->assertFalse( $exception, 'Expected no redirect for a recent session.' );
+	}
 }
