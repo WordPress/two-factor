@@ -47,9 +47,10 @@ The plugin follows a provider pattern. `Two_Factor_Core` owns the login intercep
 
 ### Core Files
 
-- **`two-factor.php`** — Entry point. Defines `TWO_FACTOR_DIR` and `TWO_FACTOR_VERSION`, loads all core files, instantiates `Two_Factor_Compat`, and calls `Two_Factor_Core::add_hooks()`.
+- **`two-factor.php`** — Entry point. Defines `TWO_FACTOR_DIR` and `TWO_FACTOR_VERSION`, loads all core files (including the settings class), instantiates `Two_Factor_Compat`, and calls `Two_Factor_Core::add_hooks()`. Also registers the wp-admin settings page (Settings → Two-Factor) and the filter callbacks that enforce the site-wide enabled-providers option (`two_factor_filter_enabled_providers`, `two_factor_filter_enabled_providers_for_user`).
 - **`class-two-factor-core.php`** — Central class. Owns the login flow, user meta, nonce management, rate limiting, session tracking, REST API endpoints, and the user profile settings UI.
 - **`class-two-factor-compat.php`** — Compatibility shims for third-party plugins (currently: Jetpack SSO). New integrations go here; the goal is to avoid any plugin-specific logic outside this file.
+- **`settings/class-two-factor-settings.php`** — `Two_Factor_Settings`, renders the site-wide settings screen (Settings → Two-Factor, requires `manage_options`) where admins choose which providers are available on the site. Saving writes the `two_factor_enabled_providers` option; enforcement happens via the filters registered in `two-factor.php`, not in this class.
 - **`providers/class-two-factor-provider.php`** — Abstract base class all providers extend. Defines the required interface: `get_label()`, `is_available_for_user()`, `authentication_page()`, `validate_authentication()`, and optional hooks for REST routes, settings UI, and uninstall cleanup.
 - **`providers/`** — Concrete providers: `class-two-factor-totp.php`, `class-two-factor-email.php`, `class-two-factor-backup-codes.php`, `class-two-factor-dummy.php`.
 - **`includes/`** — Custom `login_header()` and `login_footer()` template functions that replace the WordPress core versions with additional filter hooks. Excluded from PHPCS because they intentionally deviate from core function signatures. Do not modify files in includes/ directly. They are intentionally kept close to WordPress core function signatures to ease future merging into Core. Any functional changes should go through the filter hooks they expose instead.
@@ -97,6 +98,12 @@ New providers should follow this pattern rather than registering hooks from outs
 | `USER_FAILED_LOGIN_ATTEMPTS_KEY` | `_two_factor_failed_login_attempts` | Failed attempt count |
 | `USER_PASSWORD_WAS_RESET_KEY` | `_two_factor_password_was_reset` | Flags compromised-password reset |
 
+### Key Site Options (constants on `Two_Factor_Core`)
+
+| Constant | Option Key | Purpose |
+|---|---|---|
+| `ENABLED_PROVIDERS_OPTION_KEY` | `two_factor_enabled_providers` | Provider class names enabled site-wide via the settings page; never saved means all providers are allowed. |
+
 ### REST API
 
 Namespace: `two-factor/1.0` (constant `Two_Factor_Core::REST_NAMESPACE`). Each provider that exposes REST endpoints registers its own routes in `register_rest_routes()` called from its constructor.
@@ -104,6 +111,7 @@ Namespace: `two-factor/1.0` (constant `Two_Factor_Core::REST_NAMESPACE`). Each p
 ## Code Standards
 
 - PHP 7.2+ compatibility required; enforced by PHPCompatibilityWP.
+- WordPress 6.9+ required.
 - Follows WordPress coding standards (WPCS) and WordPress-VIP-Go rules.
 - `includes/` is excluded from PHPCS — those files intentionally override core functions.
 - The codebase does not fully pass all PHPCS checks (known issue [#437](https://github.com/WordPress/two-factor/issues/437)). Do not treat existing violations as license to introduce new ones.
