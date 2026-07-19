@@ -27,7 +27,7 @@ For code coverage support: `npm run env start -- --xdebug=coverage`
 ```bash
 npm run lint            # all linters (PHP, CSS, JS)
 npm run lint:php        # PHPCS with WordPress + VIP-Go standards
-npm run lint:phpstan    # PHPStan static analysis (level 0)
+npm run lint:phpstan    # PHPStan static analysis (level 2)
 npm run lint:css        # wp-scripts lint-style
 npm run lint:js         # wp-scripts lint-js
 npm run format          # auto-fix PHPCS and JS/CSS issues
@@ -106,4 +106,4 @@ Namespace: `two-factor/1.0` (constant `Two_Factor_Core::REST_NAMESPACE`). Each p
 - PHP 7.2+ compatibility required; enforced by PHPCompatibilityWP.
 - Follows WordPress coding standards (WPCS) and WordPress-VIP-Go rules.
 - `includes/` is excluded from PHPCS — those files intentionally override core functions.
-- The codebase does not fully pass all PHPCS checks (known issue [#437](https://github.com/WordPress/two-factor/issues/437)). Do not treat existing violations as license to introduce new ones.
+- PHPCS must pass and is enforced in CI.

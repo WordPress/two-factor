@@ -18,6 +18,7 @@
 		<whitelist addUncoveredFilesFromWhitelist="false" processUncoveredFilesFromWhitelist="false">
 			<directory suffix=".php">includes</directory>
 			<directory suffix=".php">providers</directory>
+			<directory suffix=".php">settings</directory>
 			<file>class-two-factor-compat.php</file>
 			<file>class-two-factor-core.php</file>
 			<file>two-factor.php</file>
