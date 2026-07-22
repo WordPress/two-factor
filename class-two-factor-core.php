@@ -1859,8 +1859,8 @@ class Two_Factor_Core {
 			return new WP_Error(
 				'two_factor_too_fast',
 				sprintf(
-					/* translators: %s: human-readable time delay until another attempt can be made. */
-					__( 'ERROR: Too many invalid verification codes, you can try again in %s. This limit protects your account against automated attacks.', 'two-factor' ),
+					/* translators: %s: human-readable time until another attempt is allowed, e.g. "2 minutes". */
+					__( 'Too many incorrect verification codes. Please wait %s and reload this page to try again.', 'two-factor' ),
 					human_time_diff( $last_login + $time_delay )
 				)
 			);

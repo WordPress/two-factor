@@ -2489,6 +2489,28 @@ class Test_ClassTwoFactorCore extends WP_UnitTestCase {
 	}
 
 	/**
+	 * Verify the rate-limit error message does not use alarming language.
+	 *
+	 * "ERROR:" and "automated attacks" are alarming to a legitimate user who
+	 * simply mistyped their code. The message should be calm and actionable.
+	 *
+	 * @covers Two_Factor_Core::process_provider
+	 */
+	public function test_rate_limit_error_message_is_calm_and_actionable() {
+		$user     = self::factory()->user->create_and_get();
+		$provider = Two_Factor_Dummy::get_instance();
+
+		update_user_meta( $user->ID, Two_Factor_Core::USER_FAILED_LOGIN_ATTEMPTS_KEY, 1 );
+		update_user_meta( $user->ID, Two_Factor_Core::USER_RATE_LIMIT_KEY, time() );
+
+		$result  = Two_Factor_Core::process_provider( $provider, $user, true );
+		$message = $result->get_error_message();
+
+		$this->assertStringNotContainsString( 'ERROR:', $message, 'Rate-limit message must not use the ERROR: prefix' );
+		$this->assertStringNotContainsString( 'automated attacks', $message, 'Rate-limit message must not mention automated attacks' );
+	}
+
+	/**
 	 * Verify process_provider() returns WP_Error and increments the failed-attempts
 	 * counter when authentication fails.
 	 *
