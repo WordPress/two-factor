@@ -343,8 +343,8 @@ class Two_Factor_Totp extends Two_Factor_Provider {
 	 */
 	public function user_two_factor_options( $user ) {
 		if ( ! ( $user instanceof WP_User ) ) {
- 			return;
- 		}
+			return;
+		}
 
 		$key = $this->get_user_totp_key( $user->ID );
 

@@ -153,7 +153,8 @@ function two_factor_filter_enabled_providers( $providers ) {
 	}
 
 	// On the settings page itself, show all providers so admins can change the selection.
-	if ( is_admin() && isset( $_GET['page'] ) && 'two-factor-settings' === $_GET['page'] ) {
+	$page = isset( $_GET['page'] ) ? sanitize_key( wp_unslash( $_GET['page'] ) ) : ''; // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Reading the current admin page slug only; no state change occurs here.
+	if ( is_admin() && 'two-factor-settings' === $page ) {
 		return $providers;
 	}
 
@@ -176,7 +177,7 @@ function two_factor_filter_enabled_providers( $providers ) {
  * @param int   $user_id  ID of the user being filtered.
  * @return array Filtered list of provider classnames allowed by the site.
  */
-function two_factor_filter_enabled_providers_for_user( $enabled, $user_id ) {
+function two_factor_filter_enabled_providers_for_user( $enabled, $user_id ) { // phpcs:ignore Generic.CodeAnalysis.UnusedFunctionParameter.FoundAfterLastUsed -- Filter signature includes user_id, but this site-wide restriction only needs the enabled providers list.
 	$site_enabled = two_factor_get_enabled_providers_option();
 
 	// null means the option was never saved — allow all.

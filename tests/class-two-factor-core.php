@@ -6,11 +6,6 @@
  */
 
 /**
- * Exception thrown when wp_redirect fires, to prevent exit() from terminating the test process.
- */
-class Two_Factor_Redirect_Exception extends RuntimeException {}
-
-/**
  * Class Test_ClassTwoFactorCore
  *
  * @package Two_Factor
@@ -1240,7 +1235,7 @@ class Test_ClassTwoFactorCore extends WP_UnitTestCase {
 	 *
 	 * @covers Two_Factor_Core::is_current_user_session_two_factor()
 	 * @covers Two_Factor_Core::current_user_can_update_two_factor_options()
-	 * @covers Two_Factor_Core::_login_form_validate_2fa()
+	 * @covers Two_Factor_Core::validate_login_form_2fa()
 	 */
 	public function test_is_current_user_session_two_factor_with_two_factor() {
 		$user = $this->get_dummy_user( array( 'Two_Factor_Dummy' => 'Two_Factor_Dummy' ) );
@@ -1257,7 +1252,7 @@ class Test_ClassTwoFactorCore extends WP_UnitTestCase {
 		$this->assertNotFalse( $login_nonce );
 
 		ob_start();
-		Two_Factor_Core::_login_form_validate_2fa( $user, $login_nonce['key'], 'Two_Factor_Dummy', '', false );
+		Two_Factor_Core::validate_login_form_2fa( $user, $login_nonce['key'], 'Two_Factor_Dummy', '', false );
 		ob_end_clean();
 
 		// Validate that the session is not set, as it wasn't a POST.
@@ -1269,7 +1264,7 @@ class Test_ClassTwoFactorCore extends WP_UnitTestCase {
 		// Process it.
 		$redirect_url = $this->do_redirect_callable(
 			function () use ( $user, $login_nonce ) {
-				Two_Factor_Core::_login_form_validate_2fa( $user, $login_nonce['key'], 'Two_Factor_Dummy', '', true );
+				Two_Factor_Core::validate_login_form_2fa( $user, $login_nonce['key'], 'Two_Factor_Dummy', '', true );
 			}
 		);
 		$this->assertNotNull( $redirect_url, 'Expected a redirect after successful 2FA validation.' );
@@ -1292,7 +1287,7 @@ class Test_ClassTwoFactorCore extends WP_UnitTestCase {
 	/**
 	 * Validate that a simulated 2fa revalidation updates the session two-factor data.
 	 *
-	 * @covers Two_Factor_Core::_login_form_revalidate_2fa()
+	 * @covers Two_Factor_Core::revalidate_login_form_2fa()
 	 * @covers Two_Factor_Core::current_user_can_update_two_factor_options()
 	 */
 	public function test_revalidation_sets_time() {
@@ -1313,7 +1308,7 @@ class Test_ClassTwoFactorCore extends WP_UnitTestCase {
 		$this->assertNotFalse( $login_nonce );
 
 		ob_start();
-		Two_Factor_Core::_login_form_validate_2fa( $user, $login_nonce['key'], 'Two_Factor_Dummy', '', false );
+		Two_Factor_Core::validate_login_form_2fa( $user, $login_nonce['key'], 'Two_Factor_Dummy', '', false );
 		ob_end_clean();
 
 		$login_nonce = Two_Factor_Core::create_login_nonce( $user->ID );
@@ -1322,7 +1317,7 @@ class Test_ClassTwoFactorCore extends WP_UnitTestCase {
 		// Process it.
 		$redirect_url = $this->do_redirect_callable(
 			function () use ( $user, $login_nonce ) {
-				Two_Factor_Core::_login_form_validate_2fa( $user, $login_nonce['key'], 'Two_Factor_Dummy', '', true );
+				Two_Factor_Core::validate_login_form_2fa( $user, $login_nonce['key'], 'Two_Factor_Dummy', '', true );
 			}
 		);
 		$this->assertNotNull( $redirect_url, 'Expected a redirect after successful 2FA validation.' );
@@ -1359,7 +1354,7 @@ class Test_ClassTwoFactorCore extends WP_UnitTestCase {
 		// Revalidate.
 		// Simulate displaying it.
 		ob_start();
-		Two_Factor_Core::_login_form_revalidate_2fa( '', 'Two_Factor_Dummy', '', false );
+		Two_Factor_Core::revalidate_login_form_2fa( '', 'Two_Factor_Dummy', '', false );
 		ob_end_clean();
 
 		// Check it's still expired.
@@ -1369,7 +1364,7 @@ class Test_ClassTwoFactorCore extends WP_UnitTestCase {
 		$bad_nonce        = '__BAD_NONCE__';
 		$bad_redirect_url = $this->do_redirect_callable(
 			function () use ( $bad_nonce ) {
-				Two_Factor_Core::_login_form_revalidate_2fa( $bad_nonce, 'Two_Factor_Dummy', '', true );
+				Two_Factor_Core::revalidate_login_form_2fa( $bad_nonce, 'Two_Factor_Dummy', '', true );
 			}
 		);
 		$this->assertNotNull( $bad_redirect_url, 'Expected a redirect after bad-nonce revalidation attempt.' );
@@ -1383,7 +1378,7 @@ class Test_ClassTwoFactorCore extends WP_UnitTestCase {
 
 		$good_redirect_url = $this->do_redirect_callable(
 			function () use ( $login_nonce ) {
-				Two_Factor_Core::_login_form_revalidate_2fa( $login_nonce, 'Two_Factor_Dummy', '', true );
+				Two_Factor_Core::revalidate_login_form_2fa( $login_nonce, 'Two_Factor_Dummy', '', true );
 			}
 		);
 		$this->assertNotNull( $good_redirect_url, 'Expected a redirect after successful revalidation.' );
@@ -1619,7 +1614,7 @@ class Test_ClassTwoFactorCore extends WP_UnitTestCase {
 		// Process it.
 		$redirect_url = $this->do_redirect_callable(
 			function () use ( $user, $login_nonce ) {
-				Two_Factor_Core::_login_form_validate_2fa( $user, $login_nonce['key'], 'Two_Factor_Dummy', '', true );
+				Two_Factor_Core::validate_login_form_2fa( $user, $login_nonce['key'], 'Two_Factor_Dummy', '', true );
 			}
 		);
 		$this->assertNotNull( $redirect_url, 'Expected a redirect after successful 2FA validation.' );
