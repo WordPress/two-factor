@@ -88,21 +88,10 @@ jobs:
                   - '8.1'
                   - '8.0'
                   - '7.4'
-                  - '7.3'
-                  - '7.2'
                 wp:
                   - latest
                   - trunk
-                  - '6.9'
-                exclude:
-                  - php: '7.3'
-                    wp: trunk
-                  - php: '7.2'
-                    wp: trunk
-                  - php: '7.3'
-                    wp: latest
-                  - php: '7.2'
-                    wp: latest
+                  - '7.0'
 
         env:
             WP_ENV_PHP_VERSION: ${{ matrix.php }}

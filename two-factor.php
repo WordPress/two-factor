@@ -11,9 +11,9 @@
  * Plugin Name:       Two Factor
  * Plugin URI:        https://wordpress.org/plugins/two-factor/
  * Description:       Enable Two-Factor Authentication using time-based one-time passwords, email, and backup verification codes.
- * Requires at least: 6.9
+ * Requires at least: 7.0
  * Version:           0.16.0
- * Requires PHP:      7.2
+ * Requires PHP:      7.4
  * Author:            WordPress.org Contributors
  * Author URI:        https://github.com/wordpress/two-factor/graphs/contributors
  * License:           GPL-2.0-or-later
