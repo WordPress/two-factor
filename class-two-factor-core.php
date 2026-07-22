@@ -744,7 +744,9 @@ class Two_Factor_Core {
 	 *
 	 * @param int|WP_User        $user Optional. User ID, or WP_User object of the the user. Defaults to current user.
 	 * @param null|string|object $preferred_provider Optional. The name of the provider, the provider, or empty.
-	 * @return null|object The provider
+	 * @return null|object|WP_Error The provider, null if none is available, or a WP_Error if the user has
+	 *                               provider(s) enabled that are no longer registered (see
+	 *                               Two_Factor_Core::get_primary_provider_for_user()).
 	 */
 	public static function get_provider_for_user( $user = null, $preferred_provider = null ) {
 		$user = self::fetch_user( $user );
@@ -789,6 +791,10 @@ class Two_Factor_Core {
 		$primary_provider    = get_user_meta( $user->ID, self::PROVIDER_USER_META_KEY, true );
 		$available_providers = self::get_available_providers_for_user( $user );
 
+		if ( is_wp_error( $available_providers ) ) {
+			return null;
+		}
+
 		if ( ! empty( $primary_provider ) && ! empty( $available_providers[ $primary_provider ] ) ) {
 			return $primary_provider;
 		}
@@ -802,7 +808,10 @@ class Two_Factor_Core {
 	 * @since 0.2.0
 	 *
 	 * @param int|WP_User $user Optional. User ID, or WP_User object of the the user. Defaults to current user.
-	 * @return object|null
+	 * @return object|null|WP_Error Provider instance, null if the user has none configured, or a WP_Error if the
+	 *                               user has provider(s) enabled that are no longer registered. Callers that render
+	 *                               shared admin UI (e.g. list tables) must not `wp_die()` on the WP_Error case, since
+	 *                               that would break the page for everyone, not just the affected user.
 	 */
 	public static function get_primary_provider_for_user( $user = null ) {
 		$user = self::fetch_user( $user );
@@ -813,13 +822,15 @@ class Two_Factor_Core {
 		$providers           = self::get_supported_providers_for_user( $user );
 		$available_providers = self::get_available_providers_for_user( $user );
 
-		// If there's only one available provider, force that to be the primary.
-		if ( empty( $available_providers ) ) {
+		if ( is_wp_error( $available_providers ) ) {
+			// The user's configured methods don't exist, and there was no replacement to swap in. Bubble the
+			// error up instead of dying here — this can run from contexts (like the Users list table) where
+			// killing the whole request would break the page for an admin who isn't even the affected user.
+			return $available_providers;
+		} elseif ( empty( $available_providers ) ) {
 			return null;
-		} elseif ( is_wp_error( $available_providers ) ) {
-			// If it returned an error, the configured methods don't exist, and it couldn't swap in a replacement.
-			wp_die( $available_providers );
 		} elseif ( 1 === count( $available_providers ) ) {
+			// If there's only one available provider, force that to be the primary.
 			$provider = key( $available_providers );
 		} else {
 			$provider = self::get_primary_provider_key_selected_for_user( $user );
@@ -857,7 +868,11 @@ class Two_Factor_Core {
 	 */
 	public static function is_user_using_two_factor( $user = null ) {
 		$provider = self::get_primary_provider_for_user( $user );
-		return ! empty( $provider );
+
+		// A WP_Error means the user has a provider enabled that's no longer registered. Still treat them as
+		// "using" two-factor so the login requirement isn't dropped (failing open) just because their specific
+		// method disappeared.
+		return ! empty( $provider ) || is_wp_error( $provider );
 	}
 
 	/**
@@ -1116,6 +1131,11 @@ class Two_Factor_Core {
 	 */
 	public static function login_html( $user, $login_nonce, $redirect_to, $error_msg = '', $provider = null, $action = 'validate_2fa' ) {
 		$provider = self::get_provider_for_user( $user, $provider );
+		if ( is_wp_error( $provider ) ) {
+			// The user's configured methods don't exist, and there was no replacement to swap in. This is the
+			// user's own login screen, so it's appropriate to stop here with a specific, actionable message.
+			wp_die( $provider );
+		}
 		if ( ! $provider ) {
 			wp_die( esc_html__( 'Two-factor provider not available for this user.', 'two-factor' ) );
 		}
@@ -1620,6 +1640,11 @@ class Two_Factor_Core {
 		}
 
 		$provider = self::get_provider_for_user( $user, $provider );
+		if ( is_wp_error( $provider ) ) {
+			// The user's configured methods don't exist, and there was no replacement to swap in. This is the
+			// user's own login attempt, so it's appropriate to stop here with a specific, actionable message.
+			wp_die( $provider );
+		}
 		if ( ! $provider ) {
 			wp_die( esc_html__( 'Two-factor provider not available for this user.', 'two-factor' ) );
 		}
@@ -1761,6 +1786,11 @@ class Two_Factor_Core {
 		}
 
 		$provider = self::get_provider_for_user( $user, $provider );
+		if ( is_wp_error( $provider ) ) {
+			// The user's configured methods don't exist, and there was no replacement to swap in. This is the
+			// user's own session revalidation, so it's appropriate to stop here with a specific, actionable message.
+			wp_die( $provider );
+		}
 		if ( ! $provider ) {
 			wp_die( esc_html__( 'Two-factor provider not available for this user.', 'two-factor' ) );
 		}
@@ -2088,10 +2118,22 @@ class Two_Factor_Core {
 
 		if ( ! self::is_user_using_two_factor( $user_id ) ) {
 			return sprintf( '<span class="dashicons-before dashicons-no-alt">%s</span>', esc_html__( 'Disabled', 'two-factor' ) );
-		} else {
-			$provider = self::get_primary_provider_for_user( $user_id );
-			return esc_html( $provider->get_label() );
 		}
+
+		$provider = self::get_primary_provider_for_user( $user_id );
+
+		if ( is_wp_error( $provider ) ) {
+			// The user has a provider enabled that's no longer registered on the site. Show a clear,
+			// non-fatal indicator instead of erroring out — this must never wp_die(), since that would
+			// truncate the Users list table for every admin viewing the page, not just this one user's row.
+			return sprintf( '<span class="dashicons-before dashicons-warning">%s</span>', esc_html__( 'Error: legacy 2FA method', 'two-factor' ) );
+		}
+
+		if ( ! $provider ) {
+			return sprintf( '<span class="dashicons-before dashicons-no-alt">%s</span>', esc_html__( 'Disabled', 'two-factor' ) );
+		}
+
+		return esc_html( $provider->get_label() );
 	}
 
 	/**
@@ -2108,7 +2150,16 @@ class Two_Factor_Core {
 
 		wp_enqueue_style( 'user-edit-2fa', plugins_url( 'user-edit.css', __FILE__ ), array(), TWO_FACTOR_VERSION );
 
-		$enabled_providers = array_keys( self::get_available_providers_for_user( $user ) );
+		$available_providers_or_error = self::get_available_providers_for_user( $user );
+
+		if ( is_wp_error( $available_providers_or_error ) ) {
+			// The user has provider(s) enabled that are no longer registered on the site. Surface the existing
+			// admin-contact message on their own profile screen (where they can act on it) rather than crashing.
+			self::add_error( $available_providers_or_error );
+			$enabled_providers = array();
+		} else {
+			$enabled_providers = array_keys( $available_providers_or_error );
+		}
 
 		// This is specific to the current session, not the displayed user.
 		$show_2fa_options = self::current_user_can_update_two_factor_options();
@@ -2257,6 +2308,12 @@ class Two_Factor_Core {
 		$primary_provider_key      = self::get_primary_provider_key_selected_for_user( $user );
 		$available_providers       = self::get_available_providers_for_user( $user );
 		$recommended_provider_keys = self::get_recommended_providers( $user );
+
+		if ( is_wp_error( $available_providers ) ) {
+			// Already surfaced via self::add_error() in user_two_factor_options(); avoid treating the WP_Error
+			// as an array of providers here.
+			$available_providers = array();
+		}
 
 		// Move the recommended providers first.
 		$recommended_providers = array_intersect_key( $providers, array_flip( $recommended_provider_keys ) );
@@ -2417,7 +2474,7 @@ class Two_Factor_Core {
 
 		// Remove this from being a primary provider, if set.
 		$primary_provider = self::get_primary_provider_for_user( $user_id );
-		if ( $primary_provider && $primary_provider->get_key() === $provider_to_delete ) {
+		if ( $primary_provider && ! is_wp_error( $primary_provider ) && $primary_provider->get_key() === $provider_to_delete ) {
 			delete_user_meta( $user_id, self::PROVIDER_USER_META_KEY );
 		}
 
