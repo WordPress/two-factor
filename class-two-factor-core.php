@@ -2116,10 +2116,6 @@ class Two_Factor_Core {
 			return $output;
 		}
 
-		if ( ! self::is_user_using_two_factor( $user_id ) ) {
-			return sprintf( '<span class="dashicons-before dashicons-no-alt">%s</span>', esc_html__( 'Disabled', 'two-factor' ) );
-		}
-
 		$provider = self::get_primary_provider_for_user( $user_id );
 
 		if ( is_wp_error( $provider ) ) {
