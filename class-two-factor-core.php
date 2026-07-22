@@ -125,6 +125,9 @@ class Two_Factor_Core {
 		add_filter( 'wpmu_users_columns', array( __CLASS__, 'filter_manage_users_columns' ) );
 		add_filter( 'manage_users_custom_column', array( __CLASS__, 'manage_users_custom_column' ), 10, 3 );
 
+		// 0. Intercept passkey authentications to bypass password requirement (priority 20).
+		add_filter( 'authenticate', array( __CLASS__, 'filter_authenticate_passkey' ), 20, 3 );
+
 		// 1. Prevent WP core from sending login cookies after username/password authentication (priority 30).
 		add_filter( 'authenticate', array( __CLASS__, 'filter_authenticate' ), 31 );
 
@@ -261,6 +264,7 @@ class Two_Factor_Core {
 			'Two_Factor_Email'        => TWO_FACTOR_DIR . 'providers/class-two-factor-email.php',
 			'Two_Factor_Totp'         => TWO_FACTOR_DIR . 'providers/class-two-factor-totp.php',
 			'Two_Factor_Backup_Codes' => TWO_FACTOR_DIR . 'providers/class-two-factor-backup-codes.php',
+			'Two_Factor_Passkey'      => TWO_FACTOR_DIR . 'providers/class-two-factor-passkey.php',
 			'Two_Factor_Dummy'        => TWO_FACTOR_DIR . 'providers/class-two-factor-dummy.php',
 		);
 	}
@@ -904,6 +908,57 @@ class Two_Factor_Core {
 		foreach ( self::$password_auth_tokens as $auth_token ) {
 			$session_manager->destroy( $auth_token );
 		}
+	}
+
+	/**
+	 * Intercept login to process Passwordless Passkey authentications.
+	 * 
+	 * If a passkey payload is present, it validates it and returns the WP_User,
+	 * bypassing the standard password check.
+	 *
+	 * @since 0.17.0
+	 *
+	 * @param WP_User|WP_Error|null $user     WP_User or WP_Error object from a previous callback. Default null.
+	 * @param string                $username Username for authentication.
+	 * @param string                $password Password for authentication.
+	 * @return WP_User|WP_Error|null WP_User on success, WP_Error on failure, or unchanged if not a passkey request.
+	 */
+	public static function filter_authenticate_passkey( $user, $username, $password ) { // phpcs:ignore Generic.CodeAnalysis.UnusedFunctionParameter.FoundAfterLastUsed
+		// phpcs:ignore WordPress.Security.NonceVerification.Missing
+		if ( empty( $_POST['two_factor_passkey_assertion'] ) || empty( $username ) ) {
+			return $user;
+		}
+
+		$passkey_provider = self::get_providers()['Two_Factor_Passkey'] ?? null;
+		if ( ! $passkey_provider ) {
+			return $user;
+		}
+
+		// Find the user by username or email.
+		$user_obj = get_user_by( 'login', $username );
+		if ( ! $user_obj ) {
+			$user_obj = get_user_by( 'email', $username );
+		}
+
+		if ( ! $user_obj || ! $passkey_provider->is_available_for_user( $user_obj ) ) {
+			return new WP_Error( 'invalid_passkey', __( 'No passkeys found for this user.', 'two-factor' ) );
+		}
+
+		// Delegate validation to the provider.
+		// phpcs:ignore WordPress.Security.NonceVerification.Missing, WordPress.Security.ValidatedSanitizedInput.InputNotSanitized
+		$assertion_json = wp_unslash( $_POST['two_factor_passkey_assertion'] );
+		$is_valid = $passkey_provider->validate_passwordless_assertion( $user_obj, $assertion_json );
+
+		if ( is_wp_error( $is_valid ) ) {
+			return $is_valid;
+		} elseif ( $is_valid ) {
+			// Passkeys satisfy both factors. Bypass the Two-Factor UI enforcement.
+			remove_filter( 'authenticate', array( __CLASS__, 'filter_authenticate' ), 31 );
+			remove_action( 'wp_login', array( __CLASS__, 'wp_login' ), PHP_INT_MAX );
+			return $user_obj;
+		}
+
+		return new WP_Error( 'invalid_passkey', __( 'Invalid Passkey authentication.', 'two-factor' ) );
 	}
 
 	/**

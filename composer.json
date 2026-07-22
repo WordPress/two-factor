@@ -21,7 +21,8 @@
   "minimum-stability": "dev",
   "prefer-stable" : true,
   "require": {
-    "php": ">=7.2.24|^8"
+    "php": ">=7.2.24|^8",
+    "lbuchs/webauthn": "^2.0"
   },
   "require-dev": {
     "automattic/vipwpcs": "^3.0",
