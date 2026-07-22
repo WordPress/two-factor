@@ -808,9 +808,10 @@ class Test_ClassTwoFactorCore extends WP_UnitTestCase {
 		$contents = ob_get_clean();
 
 		$this->assertNotEmpty( $contents );
-		$this->assertStringNotContainsString( '1 times', $contents );
-		$this->assertStringContainsString( 'attempted to login', $contents );
-		$this->assertStringContainsString( 'without providing a valid two factor token', $contents );
+		// A single failure uses the singular form; assert the plural is absent, since
+		// "attempt" alone also matches "attempts".
+		$this->assertStringContainsString( '1 failed verification code attempt on this account', $contents );
+		$this->assertStringNotContainsString( 'failed verification code attempts', $contents );
 
 		// 5 failed login attempts 5 hours ago - User should be informed.
 		$five_hours_ago = time() - 5 * HOUR_IN_SECONDS;
@@ -821,8 +822,34 @@ class Test_ClassTwoFactorCore extends WP_UnitTestCase {
 		$contents = ob_get_clean();
 
 		$this->assertNotEmpty( $contents );
-		$this->assertStringContainsString( '5 times', $contents );
+		$this->assertStringContainsString( '5 failed verification code attempts on this account', $contents );
 		$this->assertStringContainsString( human_time_diff( $five_hours_ago ), $contents );
+	}
+
+	/**
+	 * Test that the login failure notice uses calm, informational language.
+	 *
+	 * @covers Two_Factor_Core::maybe_show_last_login_failure_notice()
+	 */
+	public function test_login_failure_notice_language_is_calm_and_informational() {
+		$user           = $this->get_dummy_user();
+		$one_minute_ago = time() - MINUTE_IN_SECONDS;
+		update_user_meta( $user->ID, Two_Factor_Core::USER_FAILED_LOGIN_ATTEMPTS_KEY, 3 );
+		update_user_meta( $user->ID, Two_Factor_Core::USER_RATE_LIMIT_KEY, $one_minute_ago );
+
+		ob_start();
+		Two_Factor_Core::maybe_show_last_login_failure_notice( $user );
+		$contents = ob_get_clean();
+
+		$this->assertStringNotContainsString( 'WARNING', $contents );
+		$this->assertStringNotContainsString( "wasn't you", $contents );
+		$this->assertStringContainsString( 'failed verification code', $contents );
+		$this->assertStringContainsString( 'someone else may know your password', $contents );
+		$this->assertStringContainsString( 'Change your password after you log in', $contents );
+		$this->assertStringContainsString(
+			'The last attempt was ' . human_time_diff( $one_minute_ago ) . ' ago',
+			$contents
+		);
 	}
 
 	/**
