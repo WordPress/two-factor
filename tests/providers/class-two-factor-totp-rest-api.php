@@ -403,4 +403,45 @@ class Tests_Two_Factor_Totp_REST_API extends WP_Test_REST_TestCase {
 
 		$this->assertErrorResponse( 'rest_forbidden', $response, 403 );
 	}
+
+	/**
+	 * All TOTP mutations reject nonexistent users before provider callbacks.
+	 *
+	 * @ticket 937
+	 * @covers Two_Factor_Core::rest_api_can_edit_user
+	 */
+	public function test_totp_routes_reject_nonexistent_users_consistently() {
+		wp_set_current_user( self::$admin_id );
+		$before = get_user_meta( 0 );
+		$routes = array(
+			array(
+				'POST',
+				'/' . Two_Factor_Core::REST_NAMESPACE . '/totp/enrollment',
+				array( 'user_id' => 0 ),
+			),
+			array(
+				'POST',
+				'/' . Two_Factor_Core::REST_NAMESPACE . '/totp',
+				array(
+					'user_id' => 0,
+					'key'     => self::$provider->generate_key(),
+					'code'    => '123456',
+				),
+			),
+			array(
+				'DELETE',
+				'/' . Two_Factor_Core::REST_NAMESPACE . '/totp',
+				array( 'user_id' => 0 ),
+			),
+		);
+
+		foreach ( $routes as $route ) {
+			$request = new WP_REST_Request( $route[0], $route[1] );
+			$request->set_body_params( $route[2] );
+			$response = rest_do_request( $request );
+
+			$this->assertErrorResponse( 'rest_user_invalid_id', $response, 404 );
+			$this->assertSame( $before, get_user_meta( 0 ) );
+		}
+	}
 }

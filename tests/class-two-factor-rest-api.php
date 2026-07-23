@@ -282,4 +282,33 @@ class Tests_Two_Factor_REST_API extends WP_Test_REST_TestCase {
 		$this->assertSame( 'revalidate_2fa', $data['data']['revalidation']['action'] );
 		$this->assertStringContainsString( 'action=revalidate_2fa', $data['data']['revalidation']['url'] );
 	}
+
+	/**
+	 * Provider settings routes consistently reject nonexistent users.
+	 *
+	 * @ticket 937
+	 * @covers Two_Factor_Core::rest_api_can_edit_user
+	 */
+	public function test_provider_settings_routes_reject_nonexistent_users_consistently() {
+		wp_set_current_user( self::$admin_id );
+		$before   = get_user_meta( 0 );
+		$requests = array(
+			$this->get_request( 'GET', 0 ),
+			$this->get_request(
+				'POST',
+				0,
+				array(
+					'enabled_providers' => array(),
+					'primary_provider'  => '',
+				)
+			),
+		);
+
+		foreach ( $requests as $request ) {
+			$response = rest_do_request( $request );
+
+			$this->assertErrorResponse( 'rest_user_invalid_id', $response, 404 );
+			$this->assertSame( $before, get_user_meta( 0 ) );
+		}
+	}
 }
