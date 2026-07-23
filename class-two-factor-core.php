@@ -1186,7 +1186,7 @@ class Two_Factor_Core {
 
 			foreach ( $backup_providers as $backup_provider_key => $backup_provider ) {
 				$backup_link_args['provider'] = $backup_provider_key;
-				$links[] = array(
+				$links[]                      = array(
 					'url'   => self::login_url( $backup_link_args ),
 					'label' => $backup_provider->get_alternative_provider_label(),
 				);
@@ -1472,6 +1472,22 @@ class Two_Factor_Core {
 		 * @param WP_User $user         The user attempting to login.
 		 */
 		return apply_filters( 'two_factor_is_user_rate_limited', $rate_limited, $user );
+	}
+
+	/**
+	 * Clear the login rate-limit and failed-attempt counter for a user.
+	 *
+	 * Used by the WP-CLI `unlock` and `disable` (all) commands so there is one
+	 * tested code path for clearing throttle state rather than deleting the meta
+	 * keys directly from each call site.
+	 *
+	 * @since 0.17.0
+	 *
+	 * @param WP_User $user The user whose throttle state should be cleared.
+	 */
+	public static function clear_login_rate_limit( $user ) {
+		delete_user_meta( $user->ID, self::USER_RATE_LIMIT_KEY );
+		delete_user_meta( $user->ID, self::USER_FAILED_LOGIN_ATTEMPTS_KEY );
 	}
 
 	/**
