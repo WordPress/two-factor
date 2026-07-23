@@ -454,6 +454,9 @@ class Tests_Two_Factor_Totp extends WP_UnitTestCase {
 	 */
 	private function call_pad_secret( $secret, $length ) {
 		$method = new ReflectionMethod( 'Two_Factor_Totp', 'pad_secret' );
+		if ( PHP_VERSION_ID < 80100 ) {
+			$method->setAccessible( true );
+		}
 		return $method->invoke( null, $secret, $length );
 	}
 
