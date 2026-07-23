@@ -871,8 +871,8 @@ class Two_Factor_Core {
 
 		// A WP_Error means the user has a provider enabled that's no longer registered. Still treat them as
 		// "using" two-factor so the login requirement isn't dropped (failing open) just because their specific
-		// method disappeared.
-		return ! empty( $provider ) || is_wp_error( $provider );
+		// method disappeared. WP_Error is a non-null object, so !empty() already covers it.
+		return ! empty( $provider );
 	}
 
 	/**
@@ -1134,7 +1134,7 @@ class Two_Factor_Core {
 		if ( is_wp_error( $provider ) ) {
 			// The user's configured methods don't exist, and there was no replacement to swap in. This is the
 			// user's own login screen, so it's appropriate to stop here with a specific, actionable message.
-			wp_die( $provider );
+			wp_die( esc_html( $provider->get_error_message() ) );
 		}
 		if ( ! $provider ) {
 			wp_die( esc_html__( 'Two-factor provider not available for this user.', 'two-factor' ) );
@@ -1142,15 +1142,16 @@ class Two_Factor_Core {
 
 		$provider_key        = $provider->get_key();
 		$available_providers = self::get_available_providers_for_user( $user );
-		$backup_providers    = array_diff_key( $available_providers, array( $provider_key => null ) );
-		$interim_login       = isset( $_REQUEST['interim-login'] ); // phpcs:ignore WordPress.Security.NonceVerification.Recommended
-
-		$rememberme = intval( self::rememberme() );
 
 		if ( is_wp_error( $available_providers ) ) {
 			// If it returned an error, the configured methods don't exist, and it couldn't swap in a replacement.
-			wp_die( $available_providers );
+			wp_die( esc_html( $available_providers->get_error_message() ) );
 		}
+
+		$backup_providers = array_diff_key( $available_providers, array( $provider_key => null ) );
+		$interim_login    = isset( $_REQUEST['interim-login'] ); // phpcs:ignore WordPress.Security.NonceVerification.Recommended
+
+		$rememberme = intval( self::rememberme() );
 
 		if ( ! function_exists( 'login_header' ) ) {
 			// We really should migrate login_header() out of `wp-login.php` so it can be called from an includes file.
@@ -1643,7 +1644,7 @@ class Two_Factor_Core {
 		if ( is_wp_error( $provider ) ) {
 			// The user's configured methods don't exist, and there was no replacement to swap in. This is the
 			// user's own login attempt, so it's appropriate to stop here with a specific, actionable message.
-			wp_die( $provider );
+			wp_die( esc_html( $provider->get_error_message() ) );
 		}
 		if ( ! $provider ) {
 			wp_die( esc_html__( 'Two-factor provider not available for this user.', 'two-factor' ) );
@@ -1789,7 +1790,7 @@ class Two_Factor_Core {
 		if ( is_wp_error( $provider ) ) {
 			// The user's configured methods don't exist, and there was no replacement to swap in. This is the
 			// user's own session revalidation, so it's appropriate to stop here with a specific, actionable message.
-			wp_die( $provider );
+			wp_die( esc_html( $provider->get_error_message() ) );
 		}
 		if ( ! $provider ) {
 			wp_die( esc_html__( 'Two-factor provider not available for this user.', 'two-factor' ) );
