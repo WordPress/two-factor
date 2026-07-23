@@ -144,6 +144,7 @@ class Two_Factor_Core {
 		add_filter( 'attach_session_information', array( __CLASS__, 'filter_session_information' ), 10, 2 );
 
 		add_action( 'login_enqueue_scripts', array( __CLASS__, 'login_enqueue_scripts' ), 5 );
+		add_action( 'rest_api_init', array( __CLASS__, 'register_rest_routes' ) );
 		add_action( 'admin_init', array( __CLASS__, 'trigger_user_settings_action' ) );
 		add_filter( 'two_factor_providers', array( __CLASS__, 'enable_dummy_method_for_debug' ) );
 
@@ -1549,6 +1550,29 @@ class Two_Factor_Core {
 	}
 
 	/**
+	 * Validate that the current user can edit an existing user.
+	 *
+	 * Capability is checked before existence to avoid exposing user IDs to
+	 * unauthorized callers.
+	 *
+	 * @since NEXT
+	 * @param int $user_id The user ID being accessed.
+	 *
+	 * @return bool|\WP_Error
+	 */
+	public static function rest_api_can_edit_user( $user_id ) {
+		if ( ! current_user_can( 'edit_user', $user_id ) ) {
+			return false;
+		}
+
+		if ( ! self::fetch_user( $user_id ) ) {
+			return new WP_Error( 'rest_user_invalid_id', __( 'Invalid user ID.', 'two-factor' ), array( 'status' => 404 ) );
+		}
+
+		return true;
+	}
+
+	/**
 	 * Validate that the current user can edit the specified user. If two-factor is required by the account, also verify that it's within the revalidation grace period.
 	 *
 	 * @since 0.9.0
@@ -1557,12 +1581,20 @@ class Two_Factor_Core {
 	 * @return bool|\WP_Error
 	 */
 	public static function rest_api_can_edit_user_and_update_two_factor_options( $user_id ) {
-		if ( ! current_user_can( 'edit_user', $user_id ) ) {
-			return false;
+		$can_edit = self::rest_api_can_edit_user( $user_id );
+		if ( true !== $can_edit ) {
+			return $can_edit;
 		}
 
 		if ( ! self::current_user_can_update_two_factor_options( 'save' ) ) {
-			return new WP_Error( 'revalidation_required', __( 'Two Factor Revalidation required.', 'two-factor' ) );
+			return new WP_Error(
+				'revalidation_required',
+				__( 'Two Factor Revalidation required.', 'two-factor' ),
+				array(
+					'status'       => 403,
+					'revalidation' => self::get_rest_revalidation(),
+				)
+			);
 		}
 
 		/**
@@ -1574,6 +1606,143 @@ class Two_Factor_Core {
 		 * @param int  $user_id  The user ID being updated.
 		 */
 		return apply_filters( 'two_factor_rest_api_can_edit_user', true, $user_id );
+	}
+
+	/**
+	 * Register REST routes for managing a user's providers.
+	 *
+	 * @since NEXT
+	 *
+	 * @return void
+	 */
+	public static function register_rest_routes() {
+		register_rest_route(
+			self::REST_NAMESPACE,
+			'/users/(?P<user_id>[\d]+)/providers',
+			array(
+				array(
+					'methods'             => WP_REST_Server::READABLE,
+					'callback'            => array( __CLASS__, 'rest_get_user_provider_settings' ),
+					'permission_callback' => function ( $request ) {
+						return self::rest_api_can_edit_user( $request['user_id'] );
+					},
+					'args'                => array(
+						'user_id' => array(
+							'required' => true,
+							'type'     => 'integer',
+						),
+					),
+				),
+				array(
+					'methods'             => WP_REST_Server::EDITABLE,
+					'callback'            => array( __CLASS__, 'rest_update_user_provider_settings' ),
+					'permission_callback' => function ( $request ) {
+						return self::rest_api_can_edit_user_and_update_two_factor_options( $request['user_id'] );
+					},
+					'args'                => array(
+						'user_id'           => array(
+							'required' => true,
+							'type'     => 'integer',
+						),
+						'enabled_providers' => array(
+							'required' => true,
+							'type'     => 'array',
+							'items'    => array(
+								'type' => 'string',
+							),
+						),
+						'primary_provider'  => array(
+							'required' => true,
+							'type'     => 'string',
+						),
+					),
+				),
+			)
+		);
+	}
+
+	/**
+	 * Return structured information for launching the existing revalidation flow.
+	 *
+	 * @since NEXT
+	 *
+	 * @return array Revalidation state and target.
+	 */
+	private static function get_rest_revalidation() {
+		return array(
+			'required' => ! self::current_user_can_update_two_factor_options( 'save' ),
+			'action'   => 'revalidate_2fa',
+			'url'      => self::get_user_two_factor_revalidate_url( true ),
+		);
+	}
+
+	/**
+	 * Get provider settings for a user via REST.
+	 *
+	 * @since NEXT
+	 *
+	 * @param WP_REST_Request $request Request object.
+	 * @return array|WP_Error Provider settings or an error.
+	 */
+	public static function rest_get_user_provider_settings( $request ) {
+		$user = self::fetch_user( $request['user_id'] );
+		if ( ! $user ) {
+			return new WP_Error( 'rest_user_invalid_id', __( 'Invalid user ID.', 'two-factor' ), array( 'status' => 404 ) );
+		}
+
+		$providers         = self::get_providers();
+		$supported         = self::get_supported_providers_for_user( $user );
+		$enabled           = self::get_enabled_providers_for_user( $user );
+		$primary_provider  = self::get_primary_provider_for_user( $user );
+		$primary_key       = $primary_provider ? $primary_provider->get_key() : '';
+		$provider_settings = array();
+
+		foreach ( $providers as $provider_key => $provider ) {
+			$is_supported = isset( $supported[ $provider_key ] );
+			$remaining    = null;
+
+			if ( $provider instanceof Two_Factor_Backup_Codes ) {
+				$remaining = $provider::codes_remaining_for_user( $user );
+			}
+
+			$provider_settings[] = array(
+				'key'        => $provider_key,
+				'label'      => $provider->get_label(),
+				'supported'  => $is_supported,
+				'configured' => $is_supported && $provider->is_available_for_user( $user ),
+				'enabled'    => in_array( $provider_key, $enabled, true ),
+				'primary'    => $provider_key === $primary_key,
+				'remaining'  => $remaining,
+			);
+		}
+
+		return array(
+			'user_id'      => $user->ID,
+			'providers'    => $provider_settings,
+			'revalidation' => self::get_rest_revalidation(),
+		);
+	}
+
+	/**
+	 * Update provider settings for a user via REST.
+	 *
+	 * @since NEXT
+	 *
+	 * @param WP_REST_Request $request Request object.
+	 * @return array|WP_Error Updated settings or an error.
+	 */
+	public static function rest_update_user_provider_settings( $request ) {
+		$result = self::update_user_provider_settings(
+			$request['user_id'],
+			$request['enabled_providers'],
+			$request['primary_provider']
+		);
+
+		if ( is_wp_error( $result ) ) {
+			return $result;
+		}
+
+		return self::rest_get_user_provider_settings( $request );
 	}
 
 	/**
@@ -2425,6 +2594,100 @@ class Two_Factor_Core {
 	}
 
 	/**
+	 * Validate and update a user's provider settings.
+	 *
+	 * The caller is responsible for checking permission to edit the user.
+	 *
+	 * @since NEXT
+	 *
+	 * @param int      $user_id           User ID.
+	 * @param string[] $enabled_providers Provider keys to enable.
+	 * @param string   $primary_provider  Provider key to use as primary, or an empty string for the default.
+	 * @return true|WP_Error True on success, or an error when the requested settings are invalid.
+	 */
+	public static function update_user_provider_settings( $user_id, $enabled_providers, $primary_provider = '' ) {
+		$user = self::fetch_user( $user_id );
+		if ( ! $user ) {
+			return new WP_Error( 'rest_user_invalid_id', __( 'Invalid user ID.', 'two-factor' ), array( 'status' => 404 ) );
+		}
+
+		$supported_providers = self::get_supported_providers_for_user( $user );
+		$enabled_providers   = array_values( array_unique( $enabled_providers ) );
+
+		foreach ( $enabled_providers as $provider_key ) {
+			if ( ! isset( $supported_providers[ $provider_key ] ) ) {
+				return new WP_Error( 'two_factor_provider_not_supported', __( 'The requested provider is not supported for this user.', 'two-factor' ), array( 'status' => 400 ) );
+			}
+
+			if ( ! $supported_providers[ $provider_key ]->is_available_for_user( $user ) ) {
+				return new WP_Error( 'two_factor_provider_not_configured', __( 'The requested provider must be configured before it can be enabled.', 'two-factor' ), array( 'status' => 400 ) );
+			}
+		}
+
+		if ( $primary_provider && ! in_array( $primary_provider, $enabled_providers, true ) ) {
+			return new WP_Error( 'two_factor_primary_provider_not_enabled', __( 'The primary provider must be configured and enabled.', 'two-factor' ), array( 'status' => 400 ) );
+		}
+
+		self::save_user_provider_settings( $user_id, $enabled_providers, $primary_provider );
+
+		return true;
+	}
+
+	/**
+	 * Persist provider settings and apply the existing session invalidation rules.
+	 *
+	 * @since NEXT
+	 *
+	 * @param int      $user_id           User ID.
+	 * @param string[] $enabled_providers Provider keys to enable.
+	 * @param string   $primary_provider  Provider key to use as primary.
+	 * @return void
+	 */
+	private static function save_user_provider_settings( $user_id, $enabled_providers, $primary_provider ) {
+		$existing_providers = self::get_enabled_providers_for_user( $user_id );
+
+		update_user_meta( $user_id, self::ENABLED_PROVIDERS_USER_META_KEY, array_values( $enabled_providers ) );
+
+		if ( $primary_provider ) {
+			update_user_meta( $user_id, self::PROVIDER_USER_META_KEY, $primary_provider );
+		} else {
+			delete_user_meta( $user_id, self::PROVIDER_USER_META_KEY );
+		}
+
+		// Have we changed the two-factor settings for the current user? Alter their session metadata.
+		if ( get_current_user_id() === $user_id ) {
+			if ( $enabled_providers && ! $existing_providers && ! self::is_current_user_session_two_factor() ) {
+				// No provider was used for this session because two-factor was just enabled.
+				self::update_current_user_session(
+					array(
+						'two-factor-provider' => '',
+						'two-factor-login'    => time(),
+					)
+				);
+			} elseif ( $existing_providers && ! $enabled_providers ) {
+				self::update_current_user_session(
+					array(
+						'two-factor-provider' => null,
+						'two-factor-login'    => null,
+					)
+				);
+			}
+		}
+
+		// Destroy other sessions on initial setup or when removing an active provider.
+		if (
+			( ! $existing_providers && $enabled_providers ) ||
+			( $existing_providers && $enabled_providers && array_diff( $existing_providers, $enabled_providers ) )
+		) {
+			if ( get_current_user_id() === $user_id ) {
+				wp_destroy_other_sessions();
+			} else {
+				WP_Session_Tokens::get_instance( $user_id )->destroy_all();
+			}
+		}
+	}
+
+	/**
 	 * Update the user meta value.
 	 *
 	 * This executes during the `personal_options_update` & `edit_user_profile_update` actions.
@@ -2446,10 +2709,9 @@ class Two_Factor_Core {
 				return;
 			}
 
-			$user               = self::fetch_user( $user_id );
-			$providers          = self::get_supported_providers_for_user( $user_id );
-			$enabled_providers  = $_POST[ self::ENABLED_PROVIDERS_USER_META_KEY ];
-			$existing_providers = self::get_enabled_providers_for_user( $user_id );
+			$user              = self::fetch_user( $user_id );
+			$providers         = self::get_supported_providers_for_user( $user_id );
+			$enabled_providers = $_POST[ self::ENABLED_PROVIDERS_USER_META_KEY ];
 
 			// Enable only the available providers.
 			$enabled_providers = array_intersect_key( $providers, array_flip( $enabled_providers ) );
@@ -2475,53 +2737,11 @@ class Two_Factor_Core {
 				}
 			}
 
-			update_user_meta( $user_id, self::ENABLED_PROVIDERS_USER_META_KEY, array_keys( $enabled_providers ) );
-
 			// Primary provider must be enabled.
 			$new_provider = isset( $_POST[ self::PROVIDER_USER_META_KEY ] ) ? $_POST[ self::PROVIDER_USER_META_KEY ] : '';
-			if ( ! empty( $new_provider ) && isset( $enabled_providers[ $new_provider ] ) ) {
-				update_user_meta( $user_id, self::PROVIDER_USER_META_KEY, $new_provider );
-			} else {
-				delete_user_meta( $user_id, self::PROVIDER_USER_META_KEY );
-			}
+			$new_provider = ! empty( $new_provider ) && isset( $enabled_providers[ $new_provider ] ) ? $new_provider : '';
 
-			// Have we changed the two-factor settings for the current user? Alter their session metadata.
-			if ( get_current_user_id() === $user_id ) {
-
-				if ( $enabled_providers && ! $existing_providers && ! self::is_current_user_session_two_factor() ) {
-					// We've enabled two-factor from a non-two-factor session, set the key but not the provider, as no provider has been used yet.
-					self::update_current_user_session(
-						array(
-							'two-factor-provider' => '',
-							'two-factor-login'    => time(),
-						)
-					);
-				} elseif ( $existing_providers && ! $enabled_providers ) {
-					// We've disabled two-factor, remove session metadata.
-					self::update_current_user_session(
-						array(
-							'two-factor-provider' => null,
-							'two-factor-login'    => null,
-						)
-					);
-				}
-			}
-
-			// Destroy other sessions if setup 2FA for the first time, or deactivated a provider.
-			if (
-				// No providers, enabling one (or more).
-				( ! $existing_providers && $enabled_providers ) ||
-				// Has providers, and is disabling one (or more), but remaining with 2FA.
-				( $existing_providers && $enabled_providers && array_diff( $existing_providers, array_keys( $enabled_providers ) ) )
-			) {
-				if ( get_current_user_id() === $user_id ) {
-					// Keep the current session, destroy others sessions for this user.
-					wp_destroy_other_sessions();
-				} else {
-					// Destroy all sessions for the user.
-					WP_Session_Tokens::get_instance( $user_id )->destroy_all();
-				}
-			}
+			self::save_user_provider_settings( $user_id, array_keys( $enabled_providers ), $new_provider );
 		}
 	}
 
@@ -2625,4 +2845,3 @@ class Two_Factor_Core {
 		return $session;
 	}
 }
-

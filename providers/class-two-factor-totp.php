@@ -26,6 +26,20 @@ class Two_Factor_Totp extends Two_Factor_Provider {
 	 */
 	const LAST_SUCCESSFUL_LOGIN_META_KEY = '_two_factor_totp_last_successful_login';
 
+	/**
+	 * The user meta key for a pending REST enrollment.
+	 *
+	 * @var string
+	 */
+	const PENDING_ENROLLMENT_META_KEY = '_two_factor_totp_pending_enrollment';
+
+	/**
+	 * Pending enrollments expire after ten minutes.
+	 *
+	 * @var int
+	 */
+	const PENDING_ENROLLMENT_TTL = 10 * MINUTE_IN_SECONDS;
+
 	const DEFAULT_KEY_BIT_SIZE        = 160;
 	const DEFAULT_CRYPTO              = 'sha1';
 	const DEFAULT_DIGIT_COUNT         = 6;
@@ -139,6 +153,24 @@ class Two_Factor_Totp extends Two_Factor_Provider {
 				),
 			)
 		);
+
+		register_rest_route(
+			Two_Factor_Core::REST_NAMESPACE,
+			'/totp/enrollment',
+			array(
+				'methods'             => WP_REST_Server::CREATABLE,
+				'callback'            => array( $this, 'rest_begin_enrollment' ),
+				'permission_callback' => function ( $request ) {
+					return Two_Factor_Core::rest_api_can_edit_user_and_update_two_factor_options( $request['user_id'] );
+				},
+				'args'                => array(
+					'user_id' => array(
+						'required' => true,
+						'type'     => 'integer',
+					),
+				),
+			)
+		);
 	}
 
 	/**
@@ -238,6 +270,15 @@ class Two_Factor_Totp extends Two_Factor_Provider {
 		$key  = $request['key'];
 		$code = preg_replace( '/\s+/', '', $request['code'] );
 
+		if ( empty( $key ) ) {
+			$pending_enrollment = $this->get_pending_enrollment( $user_id );
+			if ( is_wp_error( $pending_enrollment ) ) {
+				return $pending_enrollment;
+			}
+
+			$key = $pending_enrollment['key'];
+		}
+
 		if ( ! $this->is_valid_key( $key ) ) {
 			return new WP_Error( 'invalid_key', __( 'Invalid Two Factor Authentication secret key.', 'two-factor' ), array( 'status' => 400 ) );
 		}
@@ -249,6 +290,8 @@ class Two_Factor_Totp extends Two_Factor_Provider {
 		if ( ! $this->set_user_totp_key( $user_id, $key ) ) {
 			return new WP_Error( 'db_error', __( 'Unable to save Two Factor Authentication code. Please re-scan the QR code and enter the code provided by your application.', 'two-factor' ), array( 'status' => 500 ) );
 		}
+
+		delete_user_meta( $user_id, self::PENDING_ENROLLMENT_META_KEY );
 
 		if ( $request->get_param( 'enable_provider' ) && ! Two_Factor_Core::enable_provider_for_user( $user_id, 'Two_Factor_Totp' ) ) {
 			return new WP_Error( 'db_error', __( 'Unable to enable TOTP provider for this user.', 'two-factor' ), array( 'status' => 500 ) );
@@ -262,6 +305,65 @@ class Two_Factor_Totp extends Two_Factor_Provider {
 			'success' => true,
 			'html'    => $html,
 		);
+	}
+
+	/**
+	 * Begin a server-owned TOTP enrollment.
+	 *
+	 * A subsequent request replaces any pending enrollment for the user. The
+	 * secret is returned only by this response and must be confirmed via /totp.
+	 *
+	 * @since NEXT
+	 *
+	 * @param WP_REST_Request $request The REST request object.
+	 * @return array|WP_Error Enrollment details or an error.
+	 */
+	public function rest_begin_enrollment( $request ) {
+		$user = get_user_by( 'id', $request['user_id'] );
+		if ( ! $user ) {
+			return new WP_Error( 'rest_user_invalid_id', __( 'Invalid user ID.', 'two-factor' ), array( 'status' => 404 ) );
+		}
+
+		$key        = $this->generate_key();
+		$expires_at = self::time() + self::PENDING_ENROLLMENT_TTL;
+		$pending    = array(
+			'key'        => $key,
+			'expires_at' => $expires_at,
+		);
+
+		if ( ! update_user_meta( $user->ID, self::PENDING_ENROLLMENT_META_KEY, $pending ) ) {
+			return new WP_Error( 'db_error', __( 'Unable to begin Two Factor Authentication enrollment.', 'two-factor' ), array( 'status' => 500 ) );
+		}
+
+		return array(
+			'secret'      => $key,
+			'otpauth_uri' => self::generate_qr_code_url( $user, $key ),
+			'expires_at'  => $expires_at,
+		);
+	}
+
+	/**
+	 * Get a user's unexpired pending enrollment.
+	 *
+	 * @since NEXT
+	 *
+	 * @param int $user_id User ID.
+	 * @return array|WP_Error Pending enrollment or an error.
+	 */
+	private function get_pending_enrollment( $user_id ) {
+		$pending = get_user_meta( $user_id, self::PENDING_ENROLLMENT_META_KEY, true );
+
+		if ( ! is_array( $pending ) || empty( $pending['key'] ) || empty( $pending['expires_at'] ) ) {
+			return new WP_Error( 'totp_enrollment_not_found', __( 'No pending TOTP enrollment was found.', 'two-factor' ), array( 'status' => 400 ) );
+		}
+
+		if ( self::time() >= $pending['expires_at'] ) {
+			delete_user_meta( $user_id, self::PENDING_ENROLLMENT_META_KEY );
+
+			return new WP_Error( 'totp_enrollment_expired', __( 'The pending TOTP enrollment has expired.', 'two-factor' ), array( 'status' => 400 ) );
+		}
+
+		return $pending;
 	}
 
 	/**
@@ -343,8 +445,8 @@ class Two_Factor_Totp extends Two_Factor_Provider {
 	 */
 	public function user_two_factor_options( $user ) {
 		if ( ! ( $user instanceof WP_User ) ) {
- 			return;
- 		}
+			return;
+		}
 
 		$key = $this->get_user_totp_key( $user->ID );
 
@@ -900,6 +1002,7 @@ class Two_Factor_Totp extends Two_Factor_Provider {
 		return array(
 			self::SECRET_META_KEY,
 			self::LAST_SUCCESSFUL_LOGIN_META_KEY,
+			self::PENDING_ENROLLMENT_META_KEY,
 		);
 	}
 }
