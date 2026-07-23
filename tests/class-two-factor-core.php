@@ -165,7 +165,9 @@ class Test_ClassTwoFactorCore extends WP_UnitTestCase {
 	private function reset_profile_errors() {
 		$reflection = new ReflectionClass( Two_Factor_Core::class );
 		$prop       = $reflection->getProperty( 'profile_errors' );
-		$prop->setAccessible( true );
+		if ( PHP_VERSION_ID < 80100 ) {
+			$prop->setAccessible( true );
+		}
 		$prop->setValue( null, array() );
 	}
 
@@ -2371,7 +2373,9 @@ class Test_ClassTwoFactorCore extends WP_UnitTestCase {
 		// but capture the original value so it can be restored afterward.
 		$reflection = new ReflectionClass( Two_Factor_Core::class );
 		$prop       = $reflection->getProperty( 'password_auth_tokens' );
-		$prop->setAccessible( true );
+		if ( PHP_VERSION_ID < 80100 ) {
+			$prop->setAccessible( true );
+		}
 		$original_tokens = $prop->getValue( null );
 
 		try {
