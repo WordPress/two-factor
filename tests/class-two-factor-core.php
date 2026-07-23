@@ -178,9 +178,21 @@ class Test_ClassTwoFactorCore extends WP_UnitTestCase {
 	private function render_user_two_factor_options( WP_User $user ) {
 		$this->reset_profile_errors();
 
+		$ob_level = ob_get_level();
 		ob_start();
-		Two_Factor_Core::user_two_factor_options( $user );
-		return ob_get_clean();
+
+		try {
+			Two_Factor_Core::user_two_factor_options( $user );
+			return ob_get_clean();
+		} finally {
+			// If user_two_factor_options() aborted early, close only the buffer
+			// this helper opened and clear the static profile errors, so a leaked
+			// buffer or stale error state can't bleed into later tests.
+			while ( ob_get_level() > $ob_level ) {
+				ob_end_clean();
+			}
+			$this->reset_profile_errors();
+		}
 	}
 
 	/**
