@@ -19,6 +19,15 @@
 class Two_Factor_CLI_Command extends WP_CLI_Command {
 
 	/**
+	 * Maximum number of backup codes that can be generated in one command.
+	 *
+	 * @since 0.17.0
+	 *
+	 * @var int
+	 */
+	const BACKUP_CODES_MAX_GENERATE_COUNT = 100;
+
+	/**
 	 * Resolve a user from an ID, login, or email address.
 	 *
 	 * Resolution order is ID, then login, then email.
@@ -230,6 +239,13 @@ class Two_Factor_CLI_Command extends WP_CLI_Command {
 		);
 
 		if ( Two_Factor_Core::disable_provider_for_user( $user->ID, $provider ) ) {
+			if ( 'Two_Factor_Totp' === $provider ) {
+				$providers = Two_Factor_Core::get_providers();
+				if ( isset( $providers[ $provider ] ) && is_object( $providers[ $provider ] ) && method_exists( $providers[ $provider ], 'delete_user_totp_key' ) ) {
+					$providers[ $provider ]->delete_user_totp_key( $user->ID );
+				}
+			}
+
 			$this->destroy_sessions_if_providers_changed( $user, $enabled );
 
 			WP_CLI::success(
@@ -491,7 +507,10 @@ class Two_Factor_CLI_Command extends WP_CLI_Command {
 	 * : User ID, login, or email.
 	 *
 	 * [--count=<n>]
-	 * : Number of codes to generate. Defaults to 10.
+	 * : Number of codes to generate. Must be a decimal integer between 1 and 100. Defaults to 10.
+	 *
+	 * [--yes]
+	 * : Skip confirmation when replacing an existing set of backup codes.
 	 *
 	 * ## EXAMPLES
 	 *
@@ -500,6 +519,9 @@ class Two_Factor_CLI_Command extends WP_CLI_Command {
 	 *
 	 *     # Generate 5 backup codes
 	 *     $ wp two-factor backup-codes generate admin --count=5
+	 *
+	 *     # Replace an existing set without a prompt
+	 *     $ wp two-factor backup-codes generate admin --count=5 --yes
 	 *
 	 * @subcommand backup-codes
 	 *
@@ -522,7 +544,7 @@ class Two_Factor_CLI_Command extends WP_CLI_Command {
 		}
 
 		if ( ! isset( $args[1] ) ) {
-			WP_CLI::error( __( 'Usage: wp two-factor backup-codes generate <user> [--count=<n>]', 'two-factor' ) );
+			WP_CLI::error( __( 'Usage: wp two-factor backup-codes generate <user> [--count=<n>] [--yes]', 'two-factor' ) );
 		}
 
 		$user_identifier = $args[1];
@@ -542,14 +564,53 @@ class Two_Factor_CLI_Command extends WP_CLI_Command {
 			WP_CLI::error( __( 'The Two_Factor_Backup_Codes provider is not available.', 'two-factor' ) );
 		}
 
-		$count = (int) WP_CLI\Utils\get_flag_value( $assoc_args, 'count', Two_Factor_Backup_Codes::NUMBER_OF_CODES );
-		if ( $count < 1 ) {
+		$raw_count = WP_CLI\Utils\get_flag_value( $assoc_args, 'count', (string) Two_Factor_Backup_Codes::NUMBER_OF_CODES );
+		if ( ! is_scalar( $raw_count ) ) {
 			WP_CLI::error(
 				sprintf(
-					/* translators: %d: provided count */
-					__( 'Invalid value for --count: %d. It must be 1 or greater.', 'two-factor' ),
-					$count
+					/* translators: 1: provided count, 2: maximum allowed count */
+					__( 'Invalid value for --count: %1$s. It must be a decimal integer between 1 and %2$d.', 'two-factor' ),
+					wp_json_encode( $raw_count ),
+					self::BACKUP_CODES_MAX_GENERATE_COUNT
 				)
+			);
+		}
+
+		$raw_count = trim( (string) $raw_count );
+		if ( '' === $raw_count || ! preg_match( '/^\d+$/', $raw_count ) ) {
+			WP_CLI::error(
+				sprintf(
+					/* translators: 1: provided count, 2: maximum allowed count */
+					__( 'Invalid value for --count: %1$s. It must be a decimal integer between 1 and %2$d.', 'two-factor' ),
+					$raw_count,
+					self::BACKUP_CODES_MAX_GENERATE_COUNT
+				)
+			);
+		}
+
+		$count = (int) $raw_count;
+		if ( $count < 1 || $count > self::BACKUP_CODES_MAX_GENERATE_COUNT ) {
+			WP_CLI::error(
+				sprintf(
+					/* translators: 1: provided count, 2: maximum allowed count */
+					__( 'Invalid value for --count: %1$d. It must be a decimal integer between 1 and %2$d.', 'two-factor' ),
+					$count,
+					self::BACKUP_CODES_MAX_GENERATE_COUNT
+				)
+			);
+		}
+
+		$existing_codes     = get_user_meta( $user->ID, Two_Factor_Backup_Codes::BACKUP_CODES_META_KEY, true );
+		$has_existing_codes = is_array( $existing_codes ) && ! empty( $existing_codes );
+		if ( $has_existing_codes ) {
+			WP_CLI::confirm(
+				sprintf(
+					/* translators: 1: user login, 2: number of existing codes */
+					__( 'User %1$s already has %2$d backup codes. Regenerating will invalidate all existing backup codes. Continue?', 'two-factor' ),
+					$user->user_login,
+					count( $existing_codes )
+				),
+				$assoc_args
 			);
 		}
 

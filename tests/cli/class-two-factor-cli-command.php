@@ -425,6 +425,23 @@ class Tests_Two_Factor_CLI_Command extends WP_UnitTestCase {
 	}
 
 	/**
+	 * Disabling TOTP via CLI also removes the stored TOTP secret.
+	 *
+	 * @covers Two_Factor_CLI_Command::disable
+	 */
+	public function test_disable_single_totp_clears_stored_secret() {
+		$this->enable_provider( 'Two_Factor_Totp' );
+		$totp = Two_Factor_Totp::get_instance();
+
+		$this->assertTrue( $totp->set_user_totp_key( $this->user->ID, Two_Factor_Totp::generate_key() ) );
+		$this->assertNotSame( '', $totp->get_user_totp_key( $this->user->ID ) );
+
+		$this->command->disable( array( 'cli_test_user', 'Two_Factor_Totp' ), array( 'yes' => true ) );
+
+		$this->assertSame( '', $totp->get_user_totp_key( $this->user->ID ) );
+	}
+
+	/**
 	 * Disabling one provider while others remain destroys the user's sessions.
 	 *
 	 * @covers Two_Factor_CLI_Command::disable
@@ -688,15 +705,69 @@ class Tests_Two_Factor_CLI_Command extends WP_UnitTestCase {
 	}
 
 	/**
+	 * Count values with non-digit suffixes are rejected.
+	 *
+	 * @covers Two_Factor_CLI_Command::backup_codes
+	 */
+	public function test_backup_codes_generate_rejects_non_decimal_count() {
+		$message = $this->assert_command_aborts(
+			function () {
+				$this->command->backup_codes( array( 'generate', 'cli_test_user' ), array( 'count' => '2garbage' ) );
+			}
+		);
+
+		$this->assertStringContainsString( 'Invalid value for --count', $message );
+		$this->assertSame( 0, Two_Factor_Backup_Codes::codes_remaining_for_user( $this->user ) );
+	}
+
+	/**
+	 * Count values above the safety cap are rejected.
+	 *
+	 * @covers Two_Factor_CLI_Command::backup_codes
+	 */
+	public function test_backup_codes_generate_rejects_count_above_maximum() {
+		$message = $this->assert_command_aborts(
+			function () {
+				$this->command->backup_codes(
+					array( 'generate', 'cli_test_user' ),
+					array( 'count' => Two_Factor_CLI_Command::BACKUP_CODES_MAX_GENERATE_COUNT + 1 )
+				);
+			}
+		);
+
+		$this->assertStringContainsString( 'Invalid value for --count', $message );
+		$this->assertStringContainsString( (string) Two_Factor_CLI_Command::BACKUP_CODES_MAX_GENERATE_COUNT, $message );
+		$this->assertSame( 0, Two_Factor_Backup_Codes::codes_remaining_for_user( $this->user ) );
+	}
+
+	/**
 	 * Regenerating replaces the previous set of codes.
 	 *
 	 * @covers Two_Factor_CLI_Command::backup_codes
 	 */
 	public function test_backup_codes_generate_replaces_existing() {
 		$this->command->backup_codes( array( 'generate', 'cli_test_user' ), array( 'count' => 8 ) );
-		$this->command->backup_codes( array( 'generate', 'cli_test_user' ), array( 'count' => 3 ) );
+		$this->command->backup_codes( array( 'generate', 'cli_test_user' ), array( 'count' => 3, 'yes' => true ) );
 
 		$this->assertSame( 3, Two_Factor_Backup_Codes::codes_remaining_for_user( $this->user ) );
+	}
+
+	/**
+	 * Regenerating existing backup codes requires confirmation without --yes.
+	 *
+	 * @covers Two_Factor_CLI_Command::backup_codes
+	 */
+	public function test_backup_codes_generate_replacing_existing_requires_confirmation() {
+		$this->command->backup_codes( array( 'generate', 'cli_test_user' ), array( 'count' => 8 ) );
+
+		$this->assert_command_aborts(
+			function () {
+				$this->command->backup_codes( array( 'generate', 'cli_test_user' ), array( 'count' => 3 ) );
+			}
+		);
+
+		$this->assertNotEmpty( WP_CLI::get_logs( 'confirm' ), 'Expected a confirmation prompt without --yes.' );
+		$this->assertSame( 8, Two_Factor_Backup_Codes::codes_remaining_for_user( $this->user ) );
 	}
 
 	/**
