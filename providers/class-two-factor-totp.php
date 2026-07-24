@@ -331,7 +331,7 @@ class Two_Factor_Totp extends Two_Factor_Provider {
 			'expires_at' => $expires_at,
 		);
 
-		if ( ! update_user_meta( $user->ID, self::PENDING_ENROLLMENT_META_KEY, $pending ) ) {
+		if ( ! update_user_meta( $user->ID, self::PENDING_ENROLLMENT_META_KEY, $pending ) && get_user_meta( $user->ID, self::PENDING_ENROLLMENT_META_KEY, true ) !== $pending ) {
 			return new WP_Error( 'db_error', __( 'Unable to begin Two Factor Authentication enrollment.', 'two-factor' ), array( 'status' => 500 ) );
 		}
 

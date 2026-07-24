@@ -350,6 +350,40 @@ class Tests_Two_Factor_Totp_REST_API extends WP_Test_REST_TestCase {
 	}
 
 	/**
+	 * An unchanged pending enrollment value is not a database error.
+	 *
+	 * @covers Two_Factor_Totp::rest_begin_enrollment
+	 */
+	public function test_begin_enrollment_accepts_unchanged_meta_update() {
+		wp_set_current_user( self::$admin_id );
+
+		$filter = function ( $check, $user_id, $meta_key, $meta_value ) use ( &$filter ) {
+			if ( Two_Factor_Totp::PENDING_ENROLLMENT_META_KEY !== $meta_key ) {
+				return $check;
+			}
+
+			remove_filter( 'update_user_metadata', $filter );
+			update_user_meta( $user_id, $meta_key, $meta_value );
+
+			return false;
+		};
+		add_filter( 'update_user_metadata', $filter, 10, 4 );
+
+		$request = new WP_REST_Request( 'POST', '/' . Two_Factor_Core::REST_NAMESPACE . '/totp/enrollment' );
+		$request->set_body_params( array( 'user_id' => self::$admin_id ) );
+		$response = rest_do_request( $request );
+		$data     = $response->get_data();
+
+		remove_filter( 'update_user_metadata', $filter );
+
+		$this->assertSame( 200, $response->get_status() );
+		$pending = get_user_meta( self::$admin_id, Two_Factor_Totp::PENDING_ENROLLMENT_META_KEY, true );
+		$this->assertSame( $data['secret'], $pending['key'] );
+
+		delete_user_meta( self::$admin_id, Two_Factor_Totp::PENDING_ENROLLMENT_META_KEY );
+	}
+
+	/**
 	 * A newer enrollment replaces the previous pending secret.
 	 *
 	 * @covers Two_Factor_Totp::rest_begin_enrollment
