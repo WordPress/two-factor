@@ -283,7 +283,7 @@ class Two_Factor_Totp extends Two_Factor_Provider {
 			return new WP_Error( 'invalid_key', __( 'Invalid Two Factor Authentication secret key.', 'two-factor' ), array( 'status' => 400 ) );
 		}
 
-		if ( ! $this->is_valid_authcode( $key, $code ) ) {
+		if ( ! preg_match( '/^[0-9]{' . self::DEFAULT_DIGIT_COUNT . '}$/', $code ) || ! $this->is_valid_authcode( $key, $code ) ) {
 			return new WP_Error( 'invalid_key_code', __( 'Invalid Two Factor Authentication code.', 'two-factor' ), array( 'status' => 400 ) );
 		}
 

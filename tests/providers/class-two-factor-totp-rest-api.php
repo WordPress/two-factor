@@ -143,6 +143,30 @@ class Tests_Two_Factor_Totp_REST_API extends WP_Test_REST_TestCase {
 	}
 
 	/**
+	 * Verify oversized auth codes are rejected before TOTP calculation.
+	 *
+	 * @ticket 936
+	 * @covers Two_Factor_Totp::rest_setup_totp
+	 */
+	public function test_user_two_factor_rest_rejects_oversized_auth_code() {
+		wp_set_current_user( self::$admin_id );
+
+		$request = new WP_REST_Request( 'POST', '/' . Two_Factor_Core::REST_NAMESPACE . '/totp' );
+		$request->set_body_params(
+			array(
+				'user_id' => self::$admin_id,
+				'key'     => self::$provider->generate_key(),
+				'code'    => str_repeat( '1', 1000 ),
+			)
+		);
+
+		$response = rest_do_request( $request );
+
+		$this->assertErrorResponse( 'invalid_key_code', $response, 400 );
+		$this->assertFalse( self::$provider->is_available_for_user( wp_get_current_user() ) );
+	}
+
+	/**
 	 * Verify setting up TOTP with an authcode.
 	 *
 	 * @covers Two_Factor_Totp::rest_setup_totp
