@@ -50,9 +50,8 @@ jobs:
     name: Generate a list of props
     runs-on: ubuntu-24.04
     permissions:
-      # The action needs permission `write` permission for PRs in order to add a comment.
-      pull-requests: write
-      contents: read
+      pull-requests: write # Required to post the props comment on the pull request.
+      issues: write        # Required to remove the props-bot label.
     timeout-minutes: 20
     # The job will run when pull requests are open, ready for review and:
     #

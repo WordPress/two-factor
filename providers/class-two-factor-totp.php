@@ -342,9 +342,9 @@ class Two_Factor_Totp extends Two_Factor_Provider {
 	 * @codeCoverageIgnore
 	 */
 	public function user_two_factor_options( $user ) {
-		if ( ! isset( $user->ID ) ) {
-			return;
-		}
+		if ( ! ( $user instanceof WP_User ) ) {
+ 			return;
+ 		}
 
 		$key = $this->get_user_totp_key( $user->ID );
 
@@ -662,11 +662,11 @@ class Two_Factor_Totp extends Two_Factor_Provider {
 		if ( 8 === PHP_INT_SIZE ) {
 			return pack( 'J', $value );
 		}
-	
+
 		// 32-bit PHP fallback
 		$higher = ( $value >> 32 ) & 0xFFFFFFFF;
 		$lower  = $value & 0xFFFFFFFF;
-	
+
 		return pack( 'NN', $higher, $lower );
 	}
 
@@ -825,7 +825,7 @@ class Two_Factor_Totp extends Two_Factor_Provider {
 		$base32_string     = '';
 
 		foreach ( $five_bit_sections as $five_bit_section ) {
-			$base32_string .= self::$base_32_chars[ base_convert( str_pad( $five_bit_section, 5, '0' ), 2, 10 ) ];
+			$base32_string .= self::$base_32_chars[ (int) base_convert( str_pad( $five_bit_section, 5, '0' ), 2, 10 ) ];
 		}
 
 		return $base32_string;
