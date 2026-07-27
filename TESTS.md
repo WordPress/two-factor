@@ -75,6 +75,18 @@ Tests the abstract `Two_Factor_Provider` base class:
 - `is_supported_for_user` (globally registered vs. not)
 - Default implementations of `get_alternative_provider_label`, `pre_process_authentication`, `uninstall_user_meta_keys`, `uninstall_options`
 
+### Provider Settings REST API — `tests/class-two-factor-rest-api.php`
+
+**Class:** `Tests_Two_Factor_REST_API` · **Groups:** `core`, `rest-api`
+Tests the authenticated provider settings endpoints:
+
+- Self and administrator permission boundaries
+- Provider status and TOTP secret redaction
+- Email and recovery-code management
+- Configured, enabled, and primary-provider invariants
+- Recent revalidation responses and targets
+- Session invalidation for self-service and administrator changes
+
 ### TOTP Provider — `tests/providers/class-two-factor-totp.php`
 
 **Class:** `Tests_Two_Factor_Totp` · **Groups:** `providers`, `totp`
@@ -95,6 +107,7 @@ Extends `WP_Test_REST_TestCase`. Tests the TOTP REST endpoints:
 
 - Setting a TOTP key with a valid/invalid/missing auth code
 - Updating an existing TOTP key
+- Server-owned enrollment creation, confirmation, replacement, expiry, and replay prevention
 - Deleting own secret
 - Admin deleting another user's secret
 - Non-admin cannot delete another user's secret

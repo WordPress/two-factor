@@ -138,4 +138,56 @@ class Tests_Two_Factor_Backup_Codes_REST_API extends WP_Test_REST_TestCase {
 		$this->assertFalse( self::$provider->validate_code( wp_get_current_user(), $data['codes'][0] ) );
 		$this->assertTrue( self::$provider->validate_code( get_user_by( 'id', self::$editor_id ), $data['codes'][0] ) );
 	}
+
+	/**
+	 * A nonexistent user cannot receive generated recovery codes.
+	 *
+	 * PHPUnit converts warnings to exceptions, so this also verifies that the
+	 * invalid target never reaches provider generation logic.
+	 *
+	 * @ticket 937
+	 * @covers Two_Factor_Core::rest_api_can_edit_user
+	 * @covers Two_Factor_Backup_Codes::rest_generate_codes
+	 */
+	public function test_generate_codes_rejects_nonexistent_user_without_codes_or_mutation() {
+		wp_set_current_user( self::$admin_id );
+		$before = get_user_meta( 0 );
+
+		$request = new WP_REST_Request( 'POST', '/' . Two_Factor_Core::REST_NAMESPACE . '/generate-backup-codes' );
+		$request->set_body_params( array( 'user_id' => 0 ) );
+		$response = rest_do_request( $request );
+		$data     = $response->get_data();
+
+		$this->assertErrorResponse( 'rest_user_invalid_id', $response, 404 );
+		$this->assertArrayNotHasKey( 'codes', $data );
+		$this->assertArrayNotHasKey( 'download_link', $data );
+		$this->assertSame( $before, get_user_meta( 0 ) );
+	}
+
+	/**
+	 * A nonexistent user cannot enable recovery codes during generation.
+	 *
+	 * @ticket 937
+	 * @covers Two_Factor_Core::rest_api_can_edit_user
+	 * @covers Two_Factor_Backup_Codes::rest_generate_codes
+	 */
+	public function test_generate_and_enable_codes_rejects_nonexistent_user_consistently() {
+		wp_set_current_user( self::$admin_id );
+		$before = get_user_meta( 0 );
+
+		$request = new WP_REST_Request( 'POST', '/' . Two_Factor_Core::REST_NAMESPACE . '/generate-backup-codes' );
+		$request->set_body_params(
+			array(
+				'user_id'         => 0,
+				'enable_provider' => true,
+			)
+		);
+		$response = rest_do_request( $request );
+		$data     = $response->get_data();
+
+		$this->assertErrorResponse( 'rest_user_invalid_id', $response, 404 );
+		$this->assertArrayNotHasKey( 'codes', $data );
+		$this->assertArrayNotHasKey( 'download_link', $data );
+		$this->assertSame( $before, get_user_meta( 0 ) );
+	}
 }
