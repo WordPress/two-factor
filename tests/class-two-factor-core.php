@@ -2747,6 +2747,10 @@ class Test_ClassTwoFactorCore extends WP_UnitTestCase {
 			'user_pass'  => 'secret',
 			'rememberme' => '1',
 			'custom_ok'  => 'allowed',
+			'nested'     => array(
+				'pwd' => 'nested_secret_password',
+				'ok'  => 'nested_allowed',
+			),
 		);
 
 		$method = new ReflectionMethod( 'Two_Factor_Core', 'print_custom_post_fields' );
@@ -2759,8 +2763,10 @@ class Test_ClassTwoFactorCore extends WP_UnitTestCase {
 		$_POST = $original_post;
 
 		$this->assertStringContainsString( '<input type="hidden" name="custom_ok" value="allowed" />', $output );
+		$this->assertStringContainsString( '<input type="hidden" name="nested[ok]" value="nested_allowed" />', $output );
 		$this->assertStringNotContainsString( 'my_secret_password', $output );
 		$this->assertStringNotContainsString( 'my_other_password', $output );
+		$this->assertStringNotContainsString( 'nested_secret_password', $output );
 		$this->assertStringNotContainsString( 'secret', $output );
 		$this->assertStringNotContainsString( 'pwd', $output );
 		$this->assertStringNotContainsString( 'password', $output );

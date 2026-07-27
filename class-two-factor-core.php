@@ -2664,7 +2664,7 @@ class Two_Factor_Core {
 			if ( in_array( $key, $blocklist, true ) ) {
 				continue;
 			}
-			self::print_hidden_inputs( $key, $value );
+			self::print_hidden_inputs( $key, wp_unslash( $value ), $blocklist );
 		}
 	}
 
@@ -2673,13 +2673,17 @@ class Two_Factor_Core {
 	 *
 	 * @since 0.17.0
 	 *
-	 * @param string       $name  Input name.
-	 * @param string|array $value Input value.
+	 * @param string       $name      Input name.
+	 * @param string|array $value     Input value.
+	 * @param array        $blocklist Array of keys to skip.
 	 */
-	private static function print_hidden_inputs( $name, $value ) {
+	private static function print_hidden_inputs( $name, $value, $blocklist = array() ) {
 		if ( is_array( $value ) ) {
 			foreach ( $value as $k => $v ) {
-				self::print_hidden_inputs( $name . '[' . $k . ']', $v );
+				if ( in_array( $k, $blocklist, true ) ) {
+					continue;
+				}
+				self::print_hidden_inputs( $name . '[' . $k . ']', $v, $blocklist );
 			}
 		} else {
 			echo '<input type="hidden" name="' . esc_attr( $name ) . '" value="' . esc_attr( $value ) . '" />' . "\n";
