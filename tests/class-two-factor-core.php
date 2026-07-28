@@ -34,6 +34,13 @@ class Test_ClassTwoFactorCore extends WP_UnitTestCase {
 		set_error_handler( array( 'Test_ClassTwoFactorCore', 'error_handler' ) ); // phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_set_error_handler
 		add_action( 'set_auth_cookie', array( __CLASS__, 'set_auth_cookie' ) );
 		add_action( 'set_logged_in_cookie', array( __CLASS__, 'set_logged_in_cookie' ) );
+
+		self::$mockmailer = new MockPHPMailer();
+
+		if ( isset( $GLOBALS['phpmailer'] ) ) {
+			self::$phpmailer = $GLOBALS['phpmailer'];
+		}
+		$GLOBALS['phpmailer'] = self::$mockmailer;
 	}
 
 	/**
@@ -45,7 +52,28 @@ class Test_ClassTwoFactorCore extends WP_UnitTestCase {
 		restore_error_handler();
 		remove_action( 'set_auth_cookie', array( __CLASS__, 'set_auth_cookie' ) );
 		remove_action( 'set_logged_in_cookie', array( __CLASS__, 'set_logged_in_cookie' ) );
+
+		if ( isset( self::$phpmailer ) ) {
+			$GLOBALS['phpmailer'] = self::$phpmailer;
+			self::$phpmailer      = null;
+		} else {
+			unset( $GLOBALS['phpmailer'] );
+		}
 	}
+
+	/**
+	 * Instance of the PHPMailer class.
+	 *
+	 * @var PHPMailer
+	 */
+	protected static $phpmailer = null;
+
+	/**
+	 * Instance of the MockPHPMailer class.
+	 *
+	 * @var MockPHPMailer
+	 */
+	protected static $mockmailer;
 
 	/**
 	 * Cleanup after each test.
@@ -2718,5 +2746,246 @@ class Test_ClassTwoFactorCore extends WP_UnitTestCase {
 		$this->assertStringContainsString( '<a', $first );
 		$this->assertStringContainsString( 'Settings', $first );
 		$this->assertStringContainsString( 'options-general.php', $first );
+	}
+
+	/**
+	 * Verify generate_recovery_token() creates and stores a hashed token.
+	 *
+	 * @covers Two_Factor_Core::generate_recovery_token
+	 */
+	public function test_generate_recovery_token() {
+		$user_id = self::factory()->user->create();
+
+		$token = Two_Factor_Core::generate_recovery_token( $user_id );
+
+		$this->assertNotEmpty( $token, 'Token is generated' );
+		$this->assertNotEquals( $token, get_user_meta( $user_id, Two_Factor_Core::RECOVERY_TOKEN_META_KEY, true ), 'Stored token is hashed' );
+		$this->assertNotEmpty( get_user_meta( $user_id, Two_Factor_Core::RECOVERY_TOKEN_TIMESTAMP_META_KEY, true ), 'Timestamp is stored' );
+
+		// Invalid user ID returns false.
+		$this->assertFalse( Two_Factor_Core::generate_recovery_token( 0 ) );
+	}
+
+	/**
+	 * Verify validate_recovery_token() accepts a valid token and deletes it.
+	 *
+	 * @covers Two_Factor_Core::validate_recovery_token
+	 */
+	public function test_validate_recovery_token_valid() {
+		$user_id = self::factory()->user->create();
+		$token   = Two_Factor_Core::generate_recovery_token( $user_id );
+
+		$this->assertTrue( Two_Factor_Core::validate_recovery_token( $user_id, $token ), 'Valid token is accepted' );
+		$this->assertEmpty( get_user_meta( $user_id, Two_Factor_Core::RECOVERY_TOKEN_META_KEY, true ), 'Token is deleted after use' );
+	}
+
+	/**
+	 * Verify validate_recovery_token() rejects an invalid token.
+	 *
+	 * @covers Two_Factor_Core::validate_recovery_token
+	 */
+	public function test_validate_recovery_token_invalid() {
+		$user_id = self::factory()->user->create();
+		Two_Factor_Core::generate_recovery_token( $user_id );
+
+		$this->assertFalse( Two_Factor_Core::validate_recovery_token( $user_id, 'wrong-token' ), 'Invalid token is rejected' );
+	}
+
+	/**
+	 * Verify validate_recovery_token() rejects an expired token.
+	 *
+	 * @covers Two_Factor_Core::validate_recovery_token
+	 */
+	public function test_validate_recovery_token_expired() {
+		$user_id = self::factory()->user->create();
+		$token   = Two_Factor_Core::generate_recovery_token( $user_id );
+
+		// Move the timestamp beyond the 24-hour expiry window.
+		update_user_meta( $user_id, Two_Factor_Core::RECOVERY_TOKEN_TIMESTAMP_META_KEY, time() - DAY_IN_SECONDS - 1 );
+
+		$this->assertFalse( Two_Factor_Core::validate_recovery_token( $user_id, $token ), 'Expired token is rejected' );
+		$this->assertEmpty( get_user_meta( $user_id, Two_Factor_Core::RECOVERY_TOKEN_META_KEY, true ), 'Expired token meta is cleared' );
+	}
+
+	/**
+	 * Verify generate_cancel_token() and validate_cancel_token() work together.
+	 *
+	 * @covers Two_Factor_Core::generate_cancel_token
+	 * @covers Two_Factor_Core::validate_cancel_token
+	 */
+	public function test_cancel_token_round_trip() {
+		$user_id = self::factory()->user->create();
+		$token   = Two_Factor_Core::generate_cancel_token( $user_id );
+
+		$this->assertNotEmpty( $token, 'Cancel token is generated' );
+		$this->assertTrue( Two_Factor_Core::validate_cancel_token( $user_id, $token ), 'Valid cancel token is accepted' );
+		$this->assertEmpty( get_user_meta( $user_id, Two_Factor_Core::RECOVERY_CANCEL_TOKEN_META_KEY, true ), 'Cancel token is deleted after use' );
+	}
+
+	/**
+	 * Verify has_user_pending_recovery() and can_user_complete_recovery() track the wait period.
+	 *
+	 * @covers Two_Factor_Core::has_user_pending_recovery
+	 * @covers Two_Factor_Core::can_user_complete_recovery
+	 */
+	public function test_recovery_wait_period() {
+		$user_id = self::factory()->user->create();
+
+		$this->assertFalse( Two_Factor_Core::has_user_pending_recovery( $user_id ), 'No pending recovery initially' );
+		$this->assertFalse( Two_Factor_Core::can_user_complete_recovery( $user_id ), 'Cannot complete without a request' );
+
+		// Start the wait period.
+		update_user_meta( $user_id, Two_Factor_Core::RECOVERY_REQUEST_TIME_META_KEY, time() );
+
+		$this->assertTrue( Two_Factor_Core::has_user_pending_recovery( $user_id ), 'Pending recovery is tracked' );
+		$this->assertFalse( Two_Factor_Core::can_user_complete_recovery( $user_id ), 'Cannot complete during the wait period' );
+
+		// Move the request time past the delay window.
+		$delay = Two_Factor_Core::get_recovery_delay_seconds();
+		update_user_meta( $user_id, Two_Factor_Core::RECOVERY_REQUEST_TIME_META_KEY, time() - $delay - 1 );
+
+		$this->assertTrue( Two_Factor_Core::can_user_complete_recovery( $user_id ), 'Can complete after the wait period' );
+	}
+
+	/**
+	 * Verify clear_recovery_meta() removes all recovery keys.
+	 *
+	 * @covers Two_Factor_Core::clear_recovery_meta
+	 */
+	public function test_clear_recovery_meta() {
+		$user_id = self::factory()->user->create();
+
+		Two_Factor_Core::generate_recovery_token( $user_id );
+		update_user_meta( $user_id, Two_Factor_Core::RECOVERY_REQUEST_TIME_META_KEY, time() );
+		Two_Factor_Core::generate_cancel_token( $user_id );
+
+		Two_Factor_Core::clear_recovery_meta( $user_id );
+
+		$this->assertEmpty( get_user_meta( $user_id, Two_Factor_Core::RECOVERY_TOKEN_META_KEY, true ) );
+		$this->assertEmpty( get_user_meta( $user_id, Two_Factor_Core::RECOVERY_TOKEN_TIMESTAMP_META_KEY, true ) );
+		$this->assertEmpty( get_user_meta( $user_id, Two_Factor_Core::RECOVERY_REQUEST_TIME_META_KEY, true ) );
+		$this->assertEmpty( get_user_meta( $user_id, Two_Factor_Core::RECOVERY_CANCEL_TOKEN_META_KEY, true ) );
+	}
+
+	/**
+	 * Verify is_user_rate_limited_for_recovery() enforces the rate limit.
+	 *
+	 * @covers Two_Factor_Core::is_user_rate_limited_for_recovery
+	 */
+	public function test_recovery_rate_limit() {
+		$user = self::factory()->user->create_and_get();
+
+		$this->assertFalse( Two_Factor_Core::is_user_rate_limited_for_recovery( $user ), 'Not rate limited initially' );
+
+		Two_Factor_Core::generate_recovery_token( $user->ID );
+
+		$this->assertTrue( Two_Factor_Core::is_user_rate_limited_for_recovery( $user ), 'Rate limited right after a request' );
+
+		// Move the token timestamp beyond the rate limit window.
+		$rate_limit = Two_Factor_Core::get_recovery_rate_limit_seconds();
+		update_user_meta( $user->ID, Two_Factor_Core::RECOVERY_TOKEN_TIMESTAMP_META_KEY, time() - $rate_limit - 1 );
+
+		$this->assertFalse( Two_Factor_Core::is_user_rate_limited_for_recovery( $user ), 'Not rate limited after the window passes' );
+	}
+
+	/**
+	 * Verify is_recovery_disabled() respects the TWO_FACTOR_DISABLE_RECOVERY constant.
+	 *
+	 * @covers Two_Factor_Core::is_recovery_disabled
+	 */
+	public function test_is_recovery_disabled_default() {
+		$this->assertFalse( Two_Factor_Core::is_recovery_disabled(), 'Recovery is enabled by default' );
+	}
+
+	/**
+	 * Verify get_recovery_url() builds a URL with the action and token.
+	 *
+	 * @covers Two_Factor_Core::get_recovery_url
+	 */
+	public function test_get_recovery_url() {
+		$user_id = self::factory()->user->create();
+		$url     = Two_Factor_Core::get_recovery_url( $user_id, 'confirm_2fa_recovery', 'abc123' );
+
+		$this->assertStringContainsString( 'action=confirm_2fa_recovery', $url );
+		$this->assertStringContainsString( 'wp-auth-id=' . $user_id, $url );
+		$this->assertStringContainsString( 'two-factor-token=abc123', $url );
+	}
+
+	/**
+	 * Verify disable_all_providers_for_user() removes provider meta.
+	 *
+	 * @covers Two_Factor_Core::disable_all_providers_for_user
+	 */
+	public function test_disable_all_providers_for_user() {
+		$user = $this->get_dummy_user( array( 'Two_Factor_Dummy' => 'Two_Factor_Dummy' ) );
+
+		$this->assertTrue( Two_Factor_Core::is_user_using_two_factor( $user->ID ), 'User has 2FA enabled' );
+
+		Two_Factor_Core::disable_all_providers_for_user( $user->ID );
+
+		$this->assertFalse( Two_Factor_Core::is_user_using_two_factor( $user->ID ), '2FA is disabled' );
+		$this->assertEmpty( get_user_meta( $user->ID, Two_Factor_Core::ENABLED_PROVIDERS_USER_META_KEY, true ) );
+		$this->assertEmpty( get_user_meta( $user->ID, Two_Factor_Core::PROVIDER_USER_META_KEY, true ) );
+
+		$this->clean_dummy_user();
+	}
+
+	/**
+	 * Verify cancel_pending_recovery() clears a pending request.
+	 *
+	 * @covers Two_Factor_Core::cancel_pending_recovery
+	 */
+	public function test_cancel_pending_recovery() {
+		$user_id = self::factory()->user->create();
+
+		update_user_meta( $user_id, Two_Factor_Core::RECOVERY_REQUEST_TIME_META_KEY, time() );
+		$this->assertTrue( Two_Factor_Core::has_user_pending_recovery( $user_id ) );
+
+		Two_Factor_Core::cancel_pending_recovery( $user_id );
+		$this->assertFalse( Two_Factor_Core::has_user_pending_recovery( $user_id ), 'Pending recovery is cancelled' );
+	}
+
+	/**
+	 * Verify send_recovery_confirmation_email() sends an email with the confirmation link.
+	 *
+	 * @covers Two_Factor_Core::send_recovery_confirmation_email
+	 */
+	public function test_send_recovery_confirmation_email() {
+		$user  = self::factory()->user->create_and_get(
+			array(
+				'user_email' => 'recovery@example.com',
+			)
+		);
+		$token = Two_Factor_Core::generate_recovery_token( $user->ID );
+
+		$sent = Two_Factor_Core::send_recovery_confirmation_email( $user, $token );
+
+		$this->assertTrue( $sent, 'Confirmation email is sent' );
+
+		// phpcs:ignore WordPress.NamingConventions.ValidVariableName.UsedPropertyNotSnakeCase
+		$this->assertStringContainsString( 'confirm_2fa_recovery', $GLOBALS['phpmailer']->Body );
+	}
+
+	/**
+	 * Verify send_recovery_cancel_email() sends an email with the cancel link.
+	 *
+	 * @covers Two_Factor_Core::send_recovery_cancel_email
+	 */
+	public function test_send_recovery_cancel_email() {
+		$user  = self::factory()->user->create_and_get(
+			array(
+				'user_email' => 'recovery@example.com',
+			)
+		);
+		$token = Two_Factor_Core::generate_cancel_token( $user->ID );
+
+		$sent = Two_Factor_Core::send_recovery_cancel_email( $user, $token );
+
+		$this->assertTrue( $sent, 'Cancel email is sent' );
+
+		// phpcs:ignore WordPress.NamingConventions.ValidVariableName.UsedPropertyNotSnakeCase
+		$this->assertStringContainsString( 'cancel_2fa_recovery', $GLOBALS['phpmailer']->Body );
+		// phpcs:ignore WordPress.NamingConventions.ValidVariableName.UsedPropertyNotSnakeCase
+		$this->assertStringContainsString( 'sign in with your password to complete recovery', $GLOBALS['phpmailer']->Body );
 	}
 }
