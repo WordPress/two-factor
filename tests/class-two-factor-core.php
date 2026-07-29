@@ -2470,6 +2470,34 @@ class Test_ClassTwoFactorCore extends WP_UnitTestCase {
 	}
 
 	/**
+	 * Ensure an unregistered `two_factor_fallback_provider_for_user` return value fails closed
+	 * instead of silently letting the user through with no second factor.
+	 *
+	 * @covers Two_Factor_Core::get_available_providers_for_user
+	 */
+	public function test_get_available_providers_for_user_fails_closed_on_invalid_fallback_provider() {
+		$user = self::factory()->user->create_and_get();
+
+		update_user_meta( $user->ID, Two_Factor_Core::ENABLED_PROVIDERS_USER_META_KEY, array( 'Two_Factor_Missing' ) );
+
+		$filter = function () {
+			return 'Two_Factor_Nonexistent';
+		};
+
+		add_filter( 'two_factor_fallback_provider_for_user', $filter );
+
+		try {
+			$result = Two_Factor_Core::get_available_providers_for_user( $user->ID );
+
+			$this->assertInstanceOf( WP_Error::class, $result, 'An unregistered fallback provider results in a WP_Error' );
+			$this->assertSame( 'no_available_2fa_methods', $result->get_error_code() );
+			$this->assertSame( 'Two_Factor_Nonexistent', $result->get_error_data()['fallback_provider'], 'Error data records the rejected fallback provider' );
+		} finally {
+			remove_filter( 'two_factor_fallback_provider_for_user', $filter );
+		}
+	}
+
+	/**
 	 * Verify process_provider() returns WP_Error when no provider is given.
 	 *
 	 * @covers Two_Factor_Core::process_provider

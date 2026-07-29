@@ -714,7 +714,9 @@ class Two_Factor_Core {
 	 *
 	 * @param int|WP_User $user Optional. User ID, or WP_User object of the the user. Defaults to current user.
 	 * @return Two_Factor_Provider[]|WP_Error List of provider instances, or a WP_Error if the user's stored
-	 *                                        providers are no longer registered and email isn't registered either.
+	 *                                        providers are no longer registered and the fallback provider
+	 *                                        (`Two_Factor_Email` by default, see `two_factor_fallback_provider_for_user`)
+	 *                                        doesn't resolve to a registered, available provider.
 	 */
 	public static function get_available_providers_for_user( $user = null ) {
 		$user = self::fetch_user( $user );
