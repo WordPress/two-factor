@@ -39,7 +39,7 @@ class Two_Factor_Settings {
 			// Remove empty values.
 			$enabled = array_values( array_filter( $posted, 'strlen' ) );
 
-			update_option( 'two_factor_enabled_providers', array_values( array_unique( $enabled ) ) );
+			update_option( Two_Factor_Core::ENABLED_PROVIDERS_OPTION_KEY, array_values( array_unique( $enabled ) ) );
 
 			echo '<div class="updated"><p>' . esc_html__( 'Settings saved.', 'two-factor' ) . '</p></div>';
 		}
@@ -55,7 +55,7 @@ class Two_Factor_Settings {
 
 		// Default to all providers enabled when the option has never been saved.
 		$all_provider_keys = array_keys( $provider_instances );
-		$saved_enabled     = get_option( 'two_factor_enabled_providers', $all_provider_keys );
+		$saved_enabled     = get_option( Two_Factor_Core::ENABLED_PROVIDERS_OPTION_KEY, $all_provider_keys );
 
 		echo '<div class="wrap two-factor-settings">';
 		echo '<h1>' . esc_html__( 'Two-Factor Settings', 'two-factor' ) . '</h1>';
