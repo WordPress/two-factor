@@ -750,8 +750,8 @@ class Tests_Two_Factor_CLI_Command extends WP_UnitTestCase {
 		$this->command->backup_codes(
 			array( 'generate', 'cli_test_user' ),
 			array(
-			'count' => 3,
-			'yes'   => true,
+				'count' => 3,
+				'yes'   => true,
 			)
 		);
 
