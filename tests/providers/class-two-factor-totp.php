@@ -14,9 +14,25 @@
  */
 class Tests_Two_Factor_Totp extends WP_UnitTestCase {
 
+	/**
+	 * Shared token test vector seed.
+	 *
+	 * @var string
+	 */
 	private static $token = '12345678901234567890';
-	private static $step  = 30;
 
+	/**
+	 * TOTP step size used for RFC vectors.
+	 *
+	 * @var int
+	 */
+	private static $step = 30;
+
+	/**
+	 * RFC test vectors keyed by timestamp.
+	 *
+	 * @var array<int, array<int, string>>
+	 */
 	private static $vectors = array(
 		59          => array( '94287082', '46119246', '90693936' ),
 		1111111109  => array( '07081804', '68084774', '25091201' ),
@@ -329,6 +345,8 @@ class Tests_Two_Factor_Totp extends WP_UnitTestCase {
 	}
 
 	/**
+	 * Verify SHA-1 test vectors generate the expected TOTP values.
+	 *
 	 * @covers Two_Factor_Totp::calc_totp
 	 */
 	public function test_sha1_generate() {
@@ -348,6 +366,8 @@ class Tests_Two_Factor_Totp extends WP_UnitTestCase {
 	}
 
 	/**
+	 * Verify SHA-1 generated codes authenticate successfully.
+	 *
 	 * @covers Two_Factor_Totp::is_valid_authcode
 	 * @covers Two_Factor_Totp::calc_totp
 	 */
@@ -368,6 +388,8 @@ class Tests_Two_Factor_Totp extends WP_UnitTestCase {
 	}
 
 	/**
+	 * Verify SHA-256 test vectors generate the expected TOTP values.
+	 *
 	 * @covers Two_Factor_Totp::calc_totp
 	 */
 	public function test_sha256_generate() {
@@ -387,6 +409,8 @@ class Tests_Two_Factor_Totp extends WP_UnitTestCase {
 	}
 
 	/**
+	 * Verify SHA-256 generated codes authenticate successfully.
+	 *
 	 * @covers Two_Factor_Totp::is_valid_authcode
 	 * @covers Two_Factor_Totp::calc_totp
 	 */
@@ -407,6 +431,8 @@ class Tests_Two_Factor_Totp extends WP_UnitTestCase {
 	}
 
 	/**
+	 * Verify SHA-512 test vectors generate the expected TOTP values.
+	 *
 	 * @covers Two_Factor_Totp::calc_totp
 	 */
 	public function test_sha512_generate() {
@@ -426,6 +452,8 @@ class Tests_Two_Factor_Totp extends WP_UnitTestCase {
 	}
 
 	/**
+	 * Verify SHA-512 generated codes authenticate successfully.
+	 *
 	 * @covers Two_Factor_Totp::is_valid_authcode
 	 * @covers Two_Factor_Totp::calc_totp
 	 */
