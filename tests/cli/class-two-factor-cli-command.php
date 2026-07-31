@@ -747,7 +747,13 @@ class Tests_Two_Factor_CLI_Command extends WP_UnitTestCase {
 	 */
 	public function test_backup_codes_generate_replaces_existing() {
 		$this->command->backup_codes( array( 'generate', 'cli_test_user' ), array( 'count' => 8 ) );
-		$this->command->backup_codes( array( 'generate', 'cli_test_user' ), array( 'count' => 3, 'yes' => true ) );
+		$this->command->backup_codes(
+		array( 'generate', 'cli_test_user' ),
+		array(
+			'count' => 3,
+			'yes'   => true,
+		)
+	);
 
 		$this->assertSame( 3, Two_Factor_Backup_Codes::codes_remaining_for_user( $this->user ) );
 	}
