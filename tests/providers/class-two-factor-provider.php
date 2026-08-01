@@ -104,14 +104,14 @@ class Tests_Two_Factor_Provider extends WP_UnitTestCase {
 	 * @covers Two_Factor_Provider::get_code_length
 	 */
 	public function test_get_code_length_filter_overrides_default() {
-		$set_length_to_4 = function() {
+		$set_length_to_4 = function () {
 			return 4;
 		};
 		add_filter( 'two_factor_code_length', $set_length_to_4 );
 		$this->assertSame( 4, Two_Factor_Provider::get_code_length( 8 ) );
 		remove_filter( 'two_factor_code_length', $set_length_to_4 );
 
-		$set_length_to_12 = function() {
+		$set_length_to_12 = function () {
 			return 12;
 		};
 		add_filter( 'two_factor_code_length', $set_length_to_12 );
@@ -126,7 +126,7 @@ class Tests_Two_Factor_Provider extends WP_UnitTestCase {
 	 * @covers Two_Factor_Provider::get_code_length
 	 */
 	public function test_get_code_with_null_uses_filtered_length() {
-		$set_length_to_5 = function() {
+		$set_length_to_5 = function () {
 			return 5;
 		};
 		add_filter( 'two_factor_code_length', $set_length_to_5 );
@@ -134,7 +134,7 @@ class Tests_Two_Factor_Provider extends WP_UnitTestCase {
 		remove_filter( 'two_factor_code_length', $set_length_to_5 );
 
 		$this->assertSame( 5, strlen( $code ) );
-  }
+	}
 
 	/**
 	 * Verify get_key() returns the provider's class name.
