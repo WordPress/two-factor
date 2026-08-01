@@ -6,11 +6,6 @@
  */
 
 /**
- * Exception thrown when wp_redirect fires, to prevent exit() from terminating the test process.
- */
-class Two_Factor_Redirect_Exception extends RuntimeException {}
-
-/**
  * Class Test_ClassTwoFactorCore
  *
  * @package Two_Factor
@@ -157,6 +152,44 @@ class Test_ClassTwoFactorCore extends WP_UnitTestCase {
 			remove_filter( 'wp_redirect', $redirect_filter, PHP_INT_MAX );
 		}
 		return $intercepted_url;
+	}
+
+	/**
+	 * Reset stored profile errors between tests.
+	 */
+	private function reset_profile_errors() {
+		$reflection = new ReflectionClass( Two_Factor_Core::class );
+		$prop       = $reflection->getProperty( 'profile_errors' );
+		if ( PHP_VERSION_ID < 80100 ) {
+			$prop->setAccessible( true );
+		}
+		$prop->setValue( null, array() );
+	}
+
+	/**
+	 * Render the user two-factor settings UI and return the markup.
+	 *
+	 * @param WP_User $user User instance.
+	 * @return string
+	 */
+	private function render_user_two_factor_options( WP_User $user ) {
+		$this->reset_profile_errors();
+
+		$ob_level = ob_get_level();
+		ob_start();
+
+		try {
+			Two_Factor_Core::user_two_factor_options( $user );
+			return ob_get_clean();
+		} finally {
+			// If user_two_factor_options() aborted early, close only the buffer
+			// this helper opened and clear the static profile errors, so a leaked
+			// buffer or stale error state can't bleed into later tests.
+			while ( ob_get_level() > $ob_level ) {
+				ob_end_clean();
+			}
+			$this->reset_profile_errors();
+		}
 	}
 
 	/**
@@ -844,6 +877,42 @@ class Test_ClassTwoFactorCore extends WP_UnitTestCase {
 	}
 
 	/**
+	 * Test no reset notice when _wpnonce is present but invalid.
+	 *
+	 * @covers Two_Factor_Core::maybe_show_reset_password_notice()
+	 */
+	public function test_no_reset_notice_when_wpnonce_invalid() {
+		$user              = self::factory()->user->create_and_get();
+		$errors            = new WP_Error( 'incorrect_password', 'Incorrect password' );
+		$_POST['log']      = $user->user_login;
+		$_POST['_wpnonce'] = 'invalid-nonce';
+
+		update_user_meta( $user->ID, Two_Factor_Core::USER_PASSWORD_WAS_RESET_KEY, true );
+		Two_Factor_Core::maybe_show_reset_password_notice( $errors );
+		$this->assertCount( 1, $errors->get_error_codes() );
+		$this->assertSame( 'incorrect_password', $errors->get_error_code() );
+		unset( $_POST['_wpnonce'] );
+	}
+
+	/**
+	 * Test reset notice when _wpnonce is present and valid for log-in.
+	 *
+	 * @covers Two_Factor_Core::maybe_show_reset_password_notice()
+	 */
+	public function test_reset_notice_when_wpnonce_valid() {
+		$user              = self::factory()->user->create_and_get();
+		$errors            = new WP_Error( 'incorrect_password', 'Incorrect password' );
+		$_POST['log']      = $user->user_login;
+		$_POST['_wpnonce'] = wp_create_nonce( 'log-in' );
+
+		update_user_meta( $user->ID, Two_Factor_Core::USER_PASSWORD_WAS_RESET_KEY, true );
+		Two_Factor_Core::maybe_show_reset_password_notice( $errors );
+		$this->assertCount( 1, $errors->get_error_codes() );
+		$this->assertSame( 'two_factor_password_reset', $errors->get_error_code() );
+		unset( $_POST['_wpnonce'] );
+	}
+
+	/**
 	 * Test clear password reset notice.
 	 *
 	 * @covers Two_Factor_Core::clear_password_reset_notice()
@@ -1168,7 +1237,7 @@ class Test_ClassTwoFactorCore extends WP_UnitTestCase {
 	 *
 	 * @covers Two_Factor_Core::is_current_user_session_two_factor()
 	 * @covers Two_Factor_Core::current_user_can_update_two_factor_options()
-	 * @covers Two_Factor_Core::_login_form_validate_2fa()
+	 * @covers Two_Factor_Core::validate_login_form_2fa()
 	 */
 	public function test_is_current_user_session_two_factor_with_two_factor() {
 		$user = $this->get_dummy_user( array( 'Two_Factor_Dummy' => 'Two_Factor_Dummy' ) );
@@ -1185,7 +1254,7 @@ class Test_ClassTwoFactorCore extends WP_UnitTestCase {
 		$this->assertNotFalse( $login_nonce );
 
 		ob_start();
-		Two_Factor_Core::_login_form_validate_2fa( $user, $login_nonce['key'], 'Two_Factor_Dummy', '', false );
+		Two_Factor_Core::validate_login_form_2fa( $user, $login_nonce['key'], 'Two_Factor_Dummy', '', false );
 		ob_end_clean();
 
 		// Validate that the session is not set, as it wasn't a POST.
@@ -1197,7 +1266,7 @@ class Test_ClassTwoFactorCore extends WP_UnitTestCase {
 		// Process it.
 		$redirect_url = $this->do_redirect_callable(
 			function () use ( $user, $login_nonce ) {
-				Two_Factor_Core::_login_form_validate_2fa( $user, $login_nonce['key'], 'Two_Factor_Dummy', '', true );
+				Two_Factor_Core::validate_login_form_2fa( $user, $login_nonce['key'], 'Two_Factor_Dummy', '', true );
 			}
 		);
 		$this->assertNotNull( $redirect_url, 'Expected a redirect after successful 2FA validation.' );
@@ -1220,7 +1289,7 @@ class Test_ClassTwoFactorCore extends WP_UnitTestCase {
 	/**
 	 * Validate that a simulated 2fa revalidation updates the session two-factor data.
 	 *
-	 * @covers Two_Factor_Core::_login_form_revalidate_2fa()
+	 * @covers Two_Factor_Core::revalidate_login_form_2fa()
 	 * @covers Two_Factor_Core::current_user_can_update_two_factor_options()
 	 */
 	public function test_revalidation_sets_time() {
@@ -1241,7 +1310,7 @@ class Test_ClassTwoFactorCore extends WP_UnitTestCase {
 		$this->assertNotFalse( $login_nonce );
 
 		ob_start();
-		Two_Factor_Core::_login_form_validate_2fa( $user, $login_nonce['key'], 'Two_Factor_Dummy', '', false );
+		Two_Factor_Core::validate_login_form_2fa( $user, $login_nonce['key'], 'Two_Factor_Dummy', '', false );
 		ob_end_clean();
 
 		$login_nonce = Two_Factor_Core::create_login_nonce( $user->ID );
@@ -1250,7 +1319,7 @@ class Test_ClassTwoFactorCore extends WP_UnitTestCase {
 		// Process it.
 		$redirect_url = $this->do_redirect_callable(
 			function () use ( $user, $login_nonce ) {
-				Two_Factor_Core::_login_form_validate_2fa( $user, $login_nonce['key'], 'Two_Factor_Dummy', '', true );
+				Two_Factor_Core::validate_login_form_2fa( $user, $login_nonce['key'], 'Two_Factor_Dummy', '', true );
 			}
 		);
 		$this->assertNotNull( $redirect_url, 'Expected a redirect after successful 2FA validation.' );
@@ -1287,7 +1356,7 @@ class Test_ClassTwoFactorCore extends WP_UnitTestCase {
 		// Revalidate.
 		// Simulate displaying it.
 		ob_start();
-		Two_Factor_Core::_login_form_revalidate_2fa( '', 'Two_Factor_Dummy', '', false );
+		Two_Factor_Core::revalidate_login_form_2fa( '', 'Two_Factor_Dummy', '', false );
 		ob_end_clean();
 
 		// Check it's still expired.
@@ -1297,7 +1366,7 @@ class Test_ClassTwoFactorCore extends WP_UnitTestCase {
 		$bad_nonce        = '__BAD_NONCE__';
 		$bad_redirect_url = $this->do_redirect_callable(
 			function () use ( $bad_nonce ) {
-				Two_Factor_Core::_login_form_revalidate_2fa( $bad_nonce, 'Two_Factor_Dummy', '', true );
+				Two_Factor_Core::revalidate_login_form_2fa( $bad_nonce, 'Two_Factor_Dummy', '', true );
 			}
 		);
 		$this->assertNotNull( $bad_redirect_url, 'Expected a redirect after bad-nonce revalidation attempt.' );
@@ -1311,7 +1380,7 @@ class Test_ClassTwoFactorCore extends WP_UnitTestCase {
 
 		$good_redirect_url = $this->do_redirect_callable(
 			function () use ( $login_nonce ) {
-				Two_Factor_Core::_login_form_revalidate_2fa( $login_nonce, 'Two_Factor_Dummy', '', true );
+				Two_Factor_Core::revalidate_login_form_2fa( $login_nonce, 'Two_Factor_Dummy', '', true );
 			}
 		);
 		$this->assertNotNull( $good_redirect_url, 'Expected a redirect after successful revalidation.' );
@@ -1547,7 +1616,7 @@ class Test_ClassTwoFactorCore extends WP_UnitTestCase {
 		// Process it.
 		$redirect_url = $this->do_redirect_callable(
 			function () use ( $user, $login_nonce ) {
-				Two_Factor_Core::_login_form_validate_2fa( $user, $login_nonce['key'], 'Two_Factor_Dummy', '', true );
+				Two_Factor_Core::validate_login_form_2fa( $user, $login_nonce['key'], 'Two_Factor_Dummy', '', true );
 			}
 		);
 		$this->assertNotNull( $redirect_url, 'Expected a redirect after successful 2FA validation.' );
@@ -1891,6 +1960,28 @@ class Test_ClassTwoFactorCore extends WP_UnitTestCase {
 	}
 
 	/**
+	 * Plugin uninstall removes the site-wide enabled providers option.
+	 *
+	 * @covers Two_Factor_Core::uninstall
+	 */
+	public function test_uninstall_removes_enabled_providers_option() {
+		update_option( Two_Factor_Core::ENABLED_PROVIDERS_OPTION_KEY, array( 'Two_Factor_Email' ) );
+
+		$this->assertSame(
+			array( 'Two_Factor_Email' ),
+			get_option( Two_Factor_Core::ENABLED_PROVIDERS_OPTION_KEY ),
+			'Enabled providers option was set'
+		);
+
+		Two_Factor_Core::uninstall();
+
+		$this->assertFalse(
+			get_option( Two_Factor_Core::ENABLED_PROVIDERS_OPTION_KEY ),
+			'Enabled providers option was deleted during uninstall'
+		);
+	}
+
+	/**
 	 * Test delete_login_nonce removes the nonce.
 	 *
 	 * @covers Two_Factor_Core::delete_login_nonce
@@ -2158,6 +2249,71 @@ class Test_ClassTwoFactorCore extends WP_UnitTestCase {
 	}
 
 	/**
+	 * Test user_two_factor_options output when backup codes are available.
+	 *
+	 * @covers Two_Factor_Core::user_two_factor_options
+	 */
+	public function test_user_two_factor_options_mentions_recovery_codes_when_backup_codes_are_available() {
+		$user = self::factory()->user->create_and_get();
+
+		Two_Factor_Core::enable_provider_for_user( $user->ID, 'Two_Factor_Email' );
+
+		try {
+			$output = $this->render_user_two_factor_options( $user );
+
+			$this->assertStringContainsString(
+				'consider enabling a backup method like Recovery Codes',
+				$output
+			);
+			$this->assertStringContainsString(
+				'Configure a primary two-factor method along with a backup method, such as Recovery Codes',
+				$output
+			);
+			$this->assertStringNotContainsString(
+				'consider enabling an additional two-factor method',
+				$output
+			);
+		} finally {
+			$this->reset_profile_errors();
+		}
+	}
+
+	/**
+	 * Test user_two_factor_options output when backup codes are filtered out.
+	 *
+	 * @covers Two_Factor_Core::user_two_factor_options
+	 */
+	public function test_user_two_factor_options_uses_generic_wording_when_backup_codes_are_filtered_out() {
+		$filter = static function ( $providers ) {
+			unset( $providers['Two_Factor_Backup_Codes'] );
+			return $providers;
+		};
+
+		add_filter( 'two_factor_providers', $filter );
+
+		try {
+			$user = self::factory()->user->create_and_get();
+
+			Two_Factor_Core::enable_provider_for_user( $user->ID, 'Two_Factor_Email' );
+
+			$output = $this->render_user_two_factor_options( $user );
+
+			$this->assertStringContainsString(
+				'consider enabling an additional two-factor method',
+				$output
+			);
+			$this->assertStringContainsString(
+				'Configure a primary two-factor method along with an additional two-factor method',
+				$output
+			);
+			$this->assertStringNotContainsString( 'Recovery Codes', $output );
+		} finally {
+			remove_filter( 'two_factor_providers', $filter );
+			$this->reset_profile_errors();
+		}
+	}
+
+	/**
 	 * Test is_user_using_two_factor with enabled provider.
 	 *
 	 * @covers Two_Factor_Core::is_user_using_two_factor
@@ -2212,7 +2368,9 @@ class Test_ClassTwoFactorCore extends WP_UnitTestCase {
 		// but capture the original value so it can be restored afterward.
 		$reflection = new ReflectionClass( Two_Factor_Core::class );
 		$prop       = $reflection->getProperty( 'password_auth_tokens' );
-		$prop->setAccessible( true );
+		if ( PHP_VERSION_ID < 80100 ) {
+			$prop->setAccessible( true );
+		}
 		$original_tokens = $prop->getValue( null );
 
 		try {

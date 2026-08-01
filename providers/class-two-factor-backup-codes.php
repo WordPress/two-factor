@@ -29,6 +29,14 @@ class Two_Factor_Backup_Codes extends Two_Factor_Provider {
 	const NUMBER_OF_CODES = 10;
 
 	/**
+	 * The default number of remaining codes at or below which the user is
+	 * warned to regenerate, before they run out entirely.
+	 *
+	 * @type int
+	 */
+	const LOW_CODES_THRESHOLD = 2;
+
+	/**
 	 * Class constructor.
 	 *
 	 * @since 0.1-dev
@@ -97,7 +105,7 @@ class Two_Factor_Backup_Codes extends Two_Factor_Provider {
 	}
 
 	/**
-	 * Displays an admin notice when backup codes have run out.
+	 * Displays an admin notice when backup codes have run out, or are running low.
 	 *
 	 * @since 0.1-dev
 	 *
@@ -111,28 +119,70 @@ class Two_Factor_Backup_Codes extends Two_Factor_Provider {
 			return;
 		}
 
-		// Return if we are not out of codes.
-		if ( $this->is_available_for_user( $user ) ) {
+		$count          = self::codes_remaining_for_user( $user );
+		$regenerate_url = esc_url( get_edit_user_link( $user->ID ) . '#two-factor-backup-codes' );
+
+		// Out of codes: show an error and bail.
+		if ( 0 === $count ) {
+			?>
+			<div class="error">
+				<p>
+					<span>
+						<?php
+						echo wp_kses(
+							sprintf(
+							/* translators: %s: URL for code regeneration */
+								__( 'Two-Factor: You are out of recovery codes and need to <a href="%s">regenerate!</a>', 'two-factor' ),
+								$regenerate_url
+							),
+							array( 'a' => array( 'href' => true ) )
+						);
+						?>
+					</span>
+				</p>
+			</div>
+			<?php
 			return;
 		}
-		?>
-		<div class="error">
-			<p>
-				<span>
-					<?php
-					echo wp_kses(
-						sprintf(
-						/* translators: %s: URL for code regeneration */
-							__( 'Two-Factor: You are out of recovery codes and need to <a href="%s">regenerate!</a>', 'two-factor' ),
-							esc_url( get_edit_user_link( $user->ID ) . '#two-factor-backup-codes' )
-						),
-						array( 'a' => array( 'href' => true ) )
-					);
-					?>
-				</span>
-			</p>
-		</div>
-		<?php
+
+		/**
+		 * Filters the number of remaining recovery codes at or below which the
+		 * user is warned to regenerate, before they run out entirely.
+		 *
+		 * @since 0.17.0
+		 *
+		 * @param int     $threshold Number of remaining codes that triggers the warning. Default 2.
+		 * @param WP_User $user      User object.
+		 */
+		$threshold = (int) apply_filters( 'two_factor_backup_codes_low_threshold', self::LOW_CODES_THRESHOLD, $user );
+
+		// Running low: warn the user before they hit zero.
+		if ( $count <= $threshold ) {
+			?>
+			<div class="notice notice-warning">
+				<p>
+					<span>
+						<?php
+						echo wp_kses(
+							sprintf(
+							/* translators: 1: number of recovery codes remaining, 2: URL for code regeneration */
+								_n(
+									'Two-Factor: You only have %1$s recovery code left. <a href="%2$s">Regenerate your codes</a> now before you run out.',
+									'Two-Factor: You only have %1$s recovery codes left. <a href="%2$s">Regenerate your codes</a> now before you run out.',
+									$count,
+									'two-factor'
+								),
+								number_format_i18n( $count ),
+								$regenerate_url
+							),
+							array( 'a' => array( 'href' => true ) )
+						);
+						?>
+					</span>
+				</p>
+			</div>
+			<?php
+		}
 	}
 
 	/**
