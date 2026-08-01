@@ -106,7 +106,7 @@ function two_factor_render_settings_page() {
 	}
 
 	// Prefer new settings class (keeps main file small).
-	if ( class_exists( 'Two_Factor_Settings' ) && is_callable( array( 'Two_Factor_Settings', 'render_settings_page' ) ) ) {
+	if ( class_exists( 'Two_Factor_Settings' ) ) {
 		Two_Factor_Settings::render_settings_page();
 		return;
 	}
