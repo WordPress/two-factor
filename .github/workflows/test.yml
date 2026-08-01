@@ -64,7 +64,7 @@ jobs:
               run: npm install
 
             - name: Lint PHP
-              run: npm run lint:php || true # Ignore for now.
+              run: npm run lint:php
 
             - name: Lint PHP Compatibility
               run: composer lint-compat
