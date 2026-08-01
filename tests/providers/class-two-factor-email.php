@@ -437,6 +437,7 @@ class Tests_Two_Factor_Email extends WP_UnitTestCase {
 
 	/**
 	 * Test that the token email subject can be filtered.
+	 * Tests cover current and deprecated filters.
 	 *
 	 * @expectedDeprecated two_factor_token_email_subject
 	 */
@@ -445,7 +446,6 @@ class Tests_Two_Factor_Email extends WP_UnitTestCase {
 		$this->provider->generate_and_email_token( $user );
 		$default_email = end( self::$mockmailer->mock_sent );
 
-		// Test deprecated filter
 		add_filter(
 			'two_factor_token_email_subject',
 			function () {
@@ -461,7 +461,6 @@ class Tests_Two_Factor_Email extends WP_UnitTestCase {
 
 		remove_all_filters( 'two_factor_token_email_subject' );
 
-		// Test new filter
 		add_filter(
 			'two_factor_email_token_subject',
 			function ( $subject, $token ) {
@@ -482,6 +481,7 @@ class Tests_Two_Factor_Email extends WP_UnitTestCase {
 
 	/**
 	 * Test that the token email message can be filtered.
+	 * Tests cover current and deprecated filters.
 	 *
 	 * @expectedDeprecated two_factor_token_email_message
 	 */
@@ -490,12 +490,11 @@ class Tests_Two_Factor_Email extends WP_UnitTestCase {
 		$this->provider->generate_and_email_token( $user );
 		$default_email = end( self::$mockmailer->mock_sent );
 
-		// deprecated filter was renamed, use the same callback to test both filters
+		// Deprecated filter was renamed, use the same callback to test both filters.
 		$callback = function ( $message, $token ) {
 			return "<span>$token</span>";
 		};
 
-		// Test deprecated filter
 		add_filter(
 			'two_factor_token_email_message',
 			$callback,
@@ -511,7 +510,6 @@ class Tests_Two_Factor_Email extends WP_UnitTestCase {
 
 		remove_all_filters( 'two_factor_token_email_message' );
 
-		// Test new filter
 		add_filter(
 			'two_factor_email_token_message',
 			$callback,
