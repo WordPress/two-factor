@@ -184,7 +184,11 @@ abstract class Two_Factor_Provider {
 		 * @param int    $code_length Length of the code. Default 8.
 		 * @param string $provider    The provider class name.
 		 */
-		$code_length = (int) apply_filters( 'two_factor_code_length', $default, $provider ?: static::class );
+		$code_length = (int) apply_filters(
+			'two_factor_code_length',
+			$default,
+			$provider ? $provider : static::class
+		);
 
 		return $code_length;
 	}
