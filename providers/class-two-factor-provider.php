@@ -171,11 +171,11 @@ abstract class Two_Factor_Provider {
 	 *
 	 * @since 0.17.0
 	 *
-	 * @param int         $default  Default code length if not filtered.
+	 * @param int         $default_length  Default code length if not filtered.
 	 * @param string|null $provider The provider class name. Null uses the called class.
 	 * @return int Number of characters.
 	 */
-	public static function get_code_length( $default = 8, $provider = null ) {
+	public static function get_code_length( $default_length = 8, $provider = null ) {
 		/**
 		 * Filter the default code length for a provider.
 		 *
@@ -186,7 +186,7 @@ abstract class Two_Factor_Provider {
 		 */
 		$code_length = (int) apply_filters(
 			'two_factor_code_length',
-			$default,
+			$default_length,
 			$provider ? $provider : static::class
 		);
 
