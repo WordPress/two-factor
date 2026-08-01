@@ -448,7 +448,7 @@ class Tests_Two_Factor_Email extends WP_UnitTestCase {
 
 		add_filter(
 			'two_factor_token_email_subject',
-			function () {
+			function ( $subject ) { // phpcs:ignore Generic.CodeAnalysis.UnusedFunctionParameter.Found -- Required to match filter signature.
 				return 'New Subject';
 			}
 		);
