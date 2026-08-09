@@ -227,6 +227,18 @@ class Test_Two_Factor_Privacy extends WP_UnitTestCase {
 	}
 
 	/**
+	 * The TOTP replay-protection timestamp is erased.
+	 */
+	public function test_erase_removes_the_totp_replay_timestamp() {
+		update_user_meta( $this->user->ID, Two_Factor_Totp::LAST_SUCCESSFUL_LOGIN_META_KEY, time() );
+
+		$response = $this->erase();
+
+		$this->assertTrue( $response['items_removed'] );
+		$this->assertSame( '', get_user_meta( $this->user->ID, Two_Factor_Totp::LAST_SUCCESSFUL_LOGIN_META_KEY, true ) );
+	}
+
+	/**
 	 * Nothing is retained when the user has no second factor configured.
 	 */
 	public function test_erase_retains_nothing_when_no_provider_is_enabled() {
