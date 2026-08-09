@@ -533,4 +533,28 @@ class Two_Factor_Backup_Codes extends Two_Factor_Provider {
 			self::BACKUP_CODES_META_KEY,
 		);
 	}
+
+	/**
+	 * Report how many backup codes are left, never the codes or their hashes.
+	 *
+	 * @since 0.17.0
+	 *
+	 * @param WP_User $user The user whose data is being exported.
+	 *
+	 * @return array
+	 */
+	public function privacy_export_data( $user ) {
+		$remaining = self::codes_remaining_for_user( $user );
+
+		if ( ! $remaining ) {
+			return array();
+		}
+
+		return array(
+			array(
+				'name'  => __( 'Backup codes remaining', 'two-factor' ),
+				'value' => (string) $remaining,
+			),
+		);
+	}
 }

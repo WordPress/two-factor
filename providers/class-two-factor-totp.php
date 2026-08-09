@@ -902,4 +902,39 @@ class Two_Factor_Totp extends Two_Factor_Provider {
 			self::LAST_SUCCESSFUL_LOGIN_META_KEY,
 		);
 	}
+
+	/**
+	 * Report whether an authenticator app is configured, without disclosing the secret.
+	 *
+	 * @since 0.17.0
+	 *
+	 * @param WP_User $user The user whose data is being exported.
+	 *
+	 * @return array
+	 */
+	public function privacy_export_data( $user ) {
+		if ( ! $this->get_user_totp_key( $user->ID ) ) {
+			return array();
+		}
+
+		return array(
+			array(
+				'name'  => __( 'Authenticator app (TOTP)', 'two-factor' ),
+				'value' => __( 'Configured. The secret key itself is not included in this export.', 'two-factor' ),
+			),
+		);
+	}
+
+	/**
+	 * The replay-protection timestamp is incidental; the secret key is retained.
+	 *
+	 * @since 0.17.0
+	 *
+	 * @return array
+	 */
+	public static function privacy_eraser_user_meta_keys() {
+		return array(
+			self::LAST_SUCCESSFUL_LOGIN_META_KEY,
+		);
+	}
 }

@@ -211,4 +211,38 @@ abstract class Two_Factor_Provider {
 	public static function uninstall_options() {
 		return array();
 	}
+
+	/**
+	 * Return this provider's contribution to a personal data export.
+	 *
+	 * Describe what is stored, never the credential itself: report a secret as
+	 * configured rather than disclosing it, and a set of codes as a count.
+	 *
+	 * @since 0.17.0
+	 *
+	 * @param WP_User $user The user whose data is being exported.
+	 *
+	 * @return array List of `array( 'name' => string, 'value' => string )` pairs.
+	 */
+	public function privacy_export_data( $user ) { // phpcs:ignore Generic.CodeAnalysis.UnusedFunctionParameter.Found -- Base implementation keeps the provider interface signature but has no data to export.
+		return array();
+	}
+
+	/**
+	 * Return the user meta keys to delete on a personal data erasure request.
+	 *
+	 * This covers incidental login records only — pending tokens, counters and
+	 * timestamps. Credential material is deliberately excluded, because erasing
+	 * it would silently disable the second factor on a live account. It is
+	 * removed with the account itself, and on plugin uninstall.
+	 *
+	 * @since 0.17.0
+	 *
+	 * Note: this method doesn't have access to the instantiated provider object.
+	 *
+	 * @return array
+	 */
+	public static function privacy_eraser_user_meta_keys() {
+		return array();
+	}
 }

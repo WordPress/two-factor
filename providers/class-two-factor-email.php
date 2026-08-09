@@ -472,4 +472,48 @@ class Two_Factor_Email extends Two_Factor_Provider {
 			self::TOKEN_META_KEY_TIMESTAMP,
 		);
 	}
+
+	/**
+	 * Report a pending login code by the time it was issued, never by its value.
+	 *
+	 * Only a hash of the code is stored, and even that is withheld — a hash of a
+	 * short numeric code is trivially reversible.
+	 *
+	 * @since 0.17.0
+	 *
+	 * @param WP_User $user The user whose data is being exported.
+	 *
+	 * @return array
+	 */
+	public function privacy_export_data( $user ) {
+		if ( ! $this->user_has_token( $user->ID ) ) {
+			return array();
+		}
+
+		$issued = get_user_meta( $user->ID, self::TOKEN_META_KEY_TIMESTAMP, true );
+
+		return array(
+			array(
+				'name'  => __( 'Email login code', 'two-factor' ),
+				'value' => $issued
+					/* translators: %s: date and time the login code was sent. */
+					? sprintf( __( 'A one-time login code was sent on %s. The code itself is not stored.', 'two-factor' ), Two_Factor_Core::format_privacy_timestamp( $issued ) )
+					: __( 'A one-time login code is pending. The code itself is not stored.', 'two-factor' ),
+			),
+		);
+	}
+
+	/**
+	 * A pending login token is short-lived and incidental, so it is erased.
+	 *
+	 * @since 0.17.0
+	 *
+	 * @return array
+	 */
+	public static function privacy_eraser_user_meta_keys() {
+		return array(
+			self::TOKEN_META_KEY,
+			self::TOKEN_META_KEY_TIMESTAMP,
+		);
+	}
 }

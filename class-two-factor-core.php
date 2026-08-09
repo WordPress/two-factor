@@ -157,6 +157,8 @@ class Two_Factor_Core {
 		add_action( 'login_enqueue_scripts', array( __CLASS__, 'login_enqueue_scripts' ), 5 );
 		add_action( 'admin_init', array( __CLASS__, 'trigger_user_settings_action' ) );
 		add_action( 'admin_init', array( __CLASS__, 'add_privacy_policy_content' ) );
+		add_filter( 'wp_privacy_personal_data_exporters', array( __CLASS__, 'register_privacy_exporter' ) );
+		add_filter( 'wp_privacy_personal_data_erasers', array( __CLASS__, 'register_privacy_eraser' ) );
 		add_filter( 'two_factor_providers', array( __CLASS__, 'enable_dummy_method_for_debug' ) );
 
 		// Add Settings link to plugin action links.
@@ -2965,5 +2967,199 @@ class Two_Factor_Core {
 			'Two Factor',
 			wp_kses_post( wpautop( $content, false ) )
 		);
+	}
+
+	/**
+	 * Register the personal data exporter.
+	 *
+	 * @since 0.17.0
+	 *
+	 * @param array $exporters Registered exporters.
+	 *
+	 * @return array
+	 */
+	public static function register_privacy_exporter( $exporters ) {
+		$exporters['two-factor'] = array(
+			'exporter_friendly_name' => __( 'Two-Factor Authentication', 'two-factor' ),
+			'callback'               => array( __CLASS__, 'privacy_export' ),
+		);
+
+		return $exporters;
+	}
+
+	/**
+	 * Register the personal data eraser.
+	 *
+	 * @since 0.17.0
+	 *
+	 * @param array $erasers Registered erasers.
+	 *
+	 * @return array
+	 */
+	public static function register_privacy_eraser( $erasers ) {
+		$erasers['two-factor'] = array(
+			'eraser_friendly_name' => __( 'Two-Factor Authentication', 'two-factor' ),
+			'callback'             => array( __CLASS__, 'privacy_erase' ),
+		);
+
+		return $erasers;
+	}
+
+	/**
+	 * Export a user's two-factor data for a personal data request.
+	 *
+	 * Credentials are described, never disclosed: the TOTP secret is reported as
+	 * configured and backup codes as a remaining count. Nothing here is enough to
+	 * pass a second factor if the export is intercepted.
+	 *
+	 * @since 0.17.0
+	 *
+	 * @param string $email_address Email address of the data subject.
+	 * @param int    $page          Page of results, 1-indexed.
+	 *
+	 * @return array
+	 */
+	public static function privacy_export( $email_address, $page = 1 ) { // phpcs:ignore Generic.CodeAnalysis.UnusedFunctionParameter.FoundAfterLastUsed -- Exporter signature includes the page number, but all data fits in a single page.
+		$user = get_user_by( 'email', $email_address );
+
+		if ( ! $user ) {
+			return array(
+				'data' => array(),
+				'done' => true,
+			);
+		}
+
+		$data = array();
+
+		$enabled_providers = self::get_enabled_providers_for_user( $user );
+		if ( ! empty( $enabled_providers ) ) {
+			$data[] = array(
+				'name'  => __( 'Enabled two-factor methods', 'two-factor' ),
+				'value' => implode( ', ', $enabled_providers ),
+			);
+		}
+
+		$primary_provider = get_user_meta( $user->ID, self::PROVIDER_USER_META_KEY, true );
+		if ( $primary_provider ) {
+			$data[] = array(
+				'name'  => __( 'Primary two-factor method', 'two-factor' ),
+				'value' => $primary_provider,
+			);
+		}
+
+		$failed_attempts = get_user_meta( $user->ID, self::USER_FAILED_LOGIN_ATTEMPTS_KEY, true );
+		if ( $failed_attempts ) {
+			$data[] = array(
+				'name'  => __( 'Failed two-factor attempts', 'two-factor' ),
+				'value' => (string) (int) $failed_attempts,
+			);
+		}
+
+		$last_failure = get_user_meta( $user->ID, self::USER_RATE_LIMIT_KEY, true );
+		if ( $last_failure ) {
+			$data[] = array(
+				'name'  => __( 'Last failed two-factor attempt', 'two-factor' ),
+				'value' => self::format_privacy_timestamp( $last_failure ),
+			);
+		}
+
+		foreach ( self::get_providers() as $provider ) {
+			if ( ! method_exists( $provider, 'privacy_export_data' ) ) {
+				continue;
+			}
+
+			$data = array_merge( $data, $provider->privacy_export_data( $user ) );
+		}
+
+		if ( empty( $data ) ) {
+			return array(
+				'data' => array(),
+				'done' => true,
+			);
+		}
+
+		return array(
+			'data' => array(
+				array(
+					'group_id'    => 'two-factor',
+					'group_label' => __( 'Two-Factor Authentication', 'two-factor' ),
+					'item_id'     => 'two-factor-' . $user->ID,
+					'data'        => $data,
+				),
+			),
+			'done' => true,
+		);
+	}
+
+	/**
+	 * Format a stored Unix timestamp for inclusion in a personal data export.
+	 *
+	 * @since 0.17.0
+	 *
+	 * @param int|string $timestamp Unix timestamp.
+	 *
+	 * @return string
+	 */
+	public static function format_privacy_timestamp( $timestamp ) {
+		return wp_date( get_option( 'date_format' ) . ' ' . get_option( 'time_format' ), (int) $timestamp );
+	}
+
+	/**
+	 * Erase a user's incidental two-factor records for a personal data request.
+	 *
+	 * Login nonces, failed-attempt counters, rate-limit timestamps and pending
+	 * tokens are removed. Credentials — enabled methods, the TOTP secret, backup
+	 * codes — are retained and reported as such, because erasing them would turn
+	 * off the second factor on a live account without the account holder asking
+	 * for that. They are removed when the account is deleted.
+	 *
+	 * @since 0.17.0
+	 *
+	 * @param string $email_address Email address of the data subject.
+	 * @param int    $page          Page of results, 1-indexed.
+	 *
+	 * @return array
+	 */
+	public static function privacy_erase( $email_address, $page = 1 ) { // phpcs:ignore Generic.CodeAnalysis.UnusedFunctionParameter.FoundAfterLastUsed -- Eraser signature includes the page number, but all erasure happens in a single page.
+		$response = array(
+			'items_removed'  => false,
+			'items_retained' => false,
+			'messages'       => array(),
+			'done'           => true,
+		);
+
+		$user = get_user_by( 'email', $email_address );
+
+		if ( ! $user ) {
+			return $response;
+		}
+
+		$meta_keys = array(
+			self::USER_META_NONCE_KEY,
+			self::USER_RATE_LIMIT_KEY,
+			self::USER_FAILED_LOGIN_ATTEMPTS_KEY,
+			self::USER_PASSWORD_WAS_RESET_KEY,
+		);
+
+		foreach ( self::get_providers() as $provider ) {
+			if ( ! method_exists( $provider, 'privacy_eraser_user_meta_keys' ) ) {
+				continue;
+			}
+
+			$meta_keys = array_merge( $meta_keys, $provider->privacy_eraser_user_meta_keys() );
+		}
+
+		foreach ( array_unique( $meta_keys ) as $meta_key ) {
+			if ( metadata_exists( 'user', $user->ID, $meta_key ) && delete_user_meta( $user->ID, $meta_key ) ) {
+				$response['items_removed'] = true;
+			}
+		}
+
+		if ( ! empty( self::get_enabled_providers_for_user( $user ) ) ) {
+			$response['items_retained'] = true;
+			$response['messages'][]     = __( 'Two-factor authentication credentials were retained so that two-factor login stays active on this account. They are removed when the account is deleted.', 'two-factor' );
+		}
+
+		return $response;
 	}
 }
