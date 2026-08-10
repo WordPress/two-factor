@@ -533,6 +533,7 @@ class Two_Factor_Core {
 	 * Check if a user action is valid.
 	 *
 	 * @since 0.5.2
+	 * @deprecated x.x.x Use two_factor_is_valid_user_action() instead.
 	 *
 	 * @param integer $user_id User ID.
 	 * @param string  $action User action ID.
@@ -540,21 +541,8 @@ class Two_Factor_Core {
 	 * @return boolean
 	 */
 	public static function is_valid_user_action( $user_id, $action ) {
-		$request_nonce_raw = isset( $_REQUEST[ self::USER_SETTINGS_ACTION_NONCE_QUERY_ARG ] ) ? wp_unslash( $_REQUEST[ self::USER_SETTINGS_ACTION_NONCE_QUERY_ARG ] ) : ''; // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- Value sanitized and then only passed to wp_verify_nonce().
-		if ( ! is_scalar( $request_nonce_raw ) ) {
-			$request_nonce = '';
-		} else {
-			$request_nonce = sanitize_text_field( (string) $request_nonce_raw );
-		}
-
-		if ( ! $user_id || ! $action || ! $request_nonce ) {
-			return false;
-		}
-
-		return wp_verify_nonce(
-			$request_nonce,
-			sprintf( '%d-%s', $user_id, $action )
-		);
+		_deprecated_function( __FUNCTION__, 'x.x.x', 'two_factor_is_valid_user_action' );
+		return two_factor_is_valid_user_action( $user_id, $action );
 	}
 
 	/**
@@ -586,11 +574,12 @@ class Two_Factor_Core {
 	 * @return void
 	 */
 	public static function trigger_user_settings_action() {
-		$action_raw = isset( $_REQUEST[ self::USER_SETTINGS_ACTION_QUERY_VAR ] ) ? wp_unslash( $_REQUEST[ self::USER_SETTINGS_ACTION_QUERY_VAR ] ) : ''; // phpcs:ignore WordPress.Security.NonceVerification.Recommended, WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- Value sanitized below; nonce verified in is_valid_user_action() before do_action.
-		$action     = ( is_scalar( $action_raw ) && '' !== (string) $action_raw ) ? sanitize_key( (string) $action_raw ) : '';
-		$user_id    = self::current_user_being_edited();
+		$action  = isset( $_REQUEST[ self::USER_SETTINGS_ACTION_QUERY_VAR ] ) && is_scalar( $_REQUEST[ self::USER_SETTINGS_ACTION_QUERY_VAR ] )
+			? sanitize_key( wp_unslash( $_REQUEST[ self::USER_SETTINGS_ACTION_QUERY_VAR ] ) )
+			: '';
+		$user_id = self::current_user_being_edited();
 
-		if ( self::is_valid_user_action( $user_id, $action ) ) {
+		if ( two_factor_is_valid_user_action( $user_id, $action ) ) {
 			/**
 			 * This action is triggered when a valid Two Factor settings
 			 * action is detected and it passes the nonce validation.

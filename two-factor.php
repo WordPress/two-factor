@@ -187,3 +187,28 @@ function two_factor_filter_enabled_providers_for_user( $enabled, $user_id ) { //
 
 	return array_values( array_intersect( (array) $enabled, $site_enabled ) );
 }
+
+/**
+ * Check if a user action is valid.
+ *
+ * @since 0.5.2
+ *
+ * @param integer $user_id User ID.
+ * @param string  $action User action ID.
+ *
+ * @return boolean
+ */
+function two_factor_is_valid_user_action( $user_id, $action ) {
+	$request_nonce = isset( $_REQUEST[ Two_Factor_Core::USER_SETTINGS_ACTION_NONCE_QUERY_ARG ] ) && is_scalar( $_REQUEST[ Two_Factor_Core::USER_SETTINGS_ACTION_NONCE_QUERY_ARG ] )
+		? sanitize_text_field( wp_unslash( $_REQUEST[ Two_Factor_Core::USER_SETTINGS_ACTION_NONCE_QUERY_ARG ] ) )
+		: '';
+
+	if ( ! $user_id || ! $action || ! $request_nonce ) {
+		return false;
+	}
+
+	return wp_verify_nonce(
+		$request_nonce,
+		sprintf( '%d-%s', $user_id, $action )
+	);
+}

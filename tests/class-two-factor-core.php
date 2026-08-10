@@ -2033,29 +2033,29 @@ class Test_ClassTwoFactorCore extends WP_UnitTestCase {
 	/**
 	 * Test is_valid_user_action validates actions correctly.
 	 *
-	 * @covers Two_Factor_Core::is_valid_user_action
+	 * @covers two_factor_is_valid_user_action
 	 */
 	public function test_is_valid_user_action() {
 		$user_id = self::factory()->user->create();
 		$action  = 'test_action';
 
 		// Test without nonce.
-		$this->assertFalse( Two_Factor_Core::is_valid_user_action( $user_id, $action ), 'Action is invalid without nonce' );
+		$this->assertFalse( two_factor_is_valid_user_action( $user_id, $action ), 'Action is invalid without nonce' );
 
 		// Test with invalid nonce.
 		$_REQUEST[ Two_Factor_Core::USER_SETTINGS_ACTION_NONCE_QUERY_ARG ] = 'invalid_nonce';
-		$this->assertFalse( Two_Factor_Core::is_valid_user_action( $user_id, $action ), 'Action is invalid with wrong nonce' );
+		$this->assertFalse( two_factor_is_valid_user_action( $user_id, $action ), 'Action is invalid with wrong nonce' );
 
 		// Test with valid nonce.
 		$nonce = wp_create_nonce( sprintf( '%d-%s', $user_id, $action ) );
 		$_REQUEST[ Two_Factor_Core::USER_SETTINGS_ACTION_NONCE_QUERY_ARG ] = $nonce;
-		$this->assertNotFalse( Two_Factor_Core::is_valid_user_action( $user_id, $action ), 'Action is valid with correct nonce' );
+		$this->assertNotFalse( two_factor_is_valid_user_action( $user_id, $action ), 'Action is valid with correct nonce' );
 
 		// Test with missing user_id.
-		$this->assertFalse( Two_Factor_Core::is_valid_user_action( 0, $action ), 'Action is invalid without user ID' );
+		$this->assertFalse( two_factor_is_valid_user_action( 0, $action ), 'Action is invalid without user ID' );
 
 		// Test with missing action.
-		$this->assertFalse( Two_Factor_Core::is_valid_user_action( $user_id, '' ), 'Action is invalid without action name' );
+		$this->assertFalse( two_factor_is_valid_user_action( $user_id, '' ), 'Action is invalid without action name' );
 
 		// Cleanup.
 		unset( $_REQUEST[ Two_Factor_Core::USER_SETTINGS_ACTION_NONCE_QUERY_ARG ] );
