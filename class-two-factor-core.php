@@ -2532,7 +2532,7 @@ class Two_Factor_Core {
 			update_user_meta( $user_id, self::ENABLED_PROVIDERS_USER_META_KEY, array_keys( $enabled_providers ) );
 
 			// Primary provider must be enabled.
-			$new_provider = isset( $_POST[ self::PROVIDER_USER_META_KEY ] ) ? sanitize_text_field( wp_unslash( $_POST[ self::PROVIDER_USER_META_KEY ] ) ) : ''; // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- Value sanitized inline.
+			$new_provider = isset( $_POST[ self::PROVIDER_USER_META_KEY ] ) ? sanitize_text_field( wp_unslash( $_POST[ self::PROVIDER_USER_META_KEY ] ) ) : '';
 			if ( ! empty( $new_provider ) && isset( $enabled_providers[ $new_provider ] ) ) {
 				update_user_meta( $user_id, self::PROVIDER_USER_META_KEY, $new_provider );
 			} else {
