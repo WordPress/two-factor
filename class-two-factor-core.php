@@ -2500,11 +2500,10 @@ class Two_Factor_Core {
 				return;
 			}
 
-			$user                    = self::fetch_user( $user_id );
-			$providers               = self::get_supported_providers_for_user( $user_id );
-			$enabled_providers_input = wp_unslash( $_POST[ self::ENABLED_PROVIDERS_USER_META_KEY ] ); // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- Array values are sanitized below.
-			$enabled_providers       = array_map( 'sanitize_text_field', $enabled_providers_input );
-			$existing_providers      = self::get_enabled_providers_for_user( $user_id );
+			$user               = self::fetch_user( $user_id );
+			$providers          = self::get_supported_providers_for_user( $user_id );
+			$enabled_providers  = array_map( 'sanitize_text_field', wp_unslash( $_POST[ self::ENABLED_PROVIDERS_USER_META_KEY ] ) );
+			$existing_providers = self::get_enabled_providers_for_user( $user_id );
 
 			// Enable only the available providers.
 			$enabled_providers = array_intersect_key( $providers, array_flip( $enabled_providers ) );
