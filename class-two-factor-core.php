@@ -1743,10 +1743,24 @@ class Two_Factor_Core {
 	 * @since 0.9.0
 	 */
 	public static function login_form_revalidate_2fa() {
-		$nonce           = ( isset( $_REQUEST['wp-auth-nonce'] ) && is_scalar( $_REQUEST['wp-auth-nonce'] ) ) ? sanitize_text_field( wp_unslash( (string) $_REQUEST['wp-auth-nonce'] ) ) : ''; // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Nonce verified in revalidate_login_form_2fa() for POST before processing.
-		$provider        = ! empty( $_REQUEST['provider'] ) ? sanitize_text_field( wp_unslash( $_REQUEST['provider'] ) ) : false; // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Nonce verified in revalidate_login_form_2fa() for POST before processing.
-		$redirect_to     = ! empty( $_REQUEST['redirect_to'] ) ? esc_url_raw( wp_unslash( $_REQUEST['redirect_to'] ) ) : admin_url(); // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Nonce verified in revalidate_login_form_2fa() for POST before processing.
-		$is_post_request = isset( $_SERVER['REQUEST_METHOD'] ) && 'POST' === strtoupper( $_SERVER['REQUEST_METHOD'] ); // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.MissingUnslash, WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- REQUEST_METHOD is not user input.
+		$nonce       = ( isset( $_REQUEST['wp-auth-nonce'] ) && is_scalar( $_REQUEST['wp-auth-nonce'] ) ) ? sanitize_text_field( wp_unslash( (string) $_REQUEST['wp-auth-nonce'] ) ) : '';
+		$provider    = ! empty( $_REQUEST['provider'] ) ? sanitize_text_field( wp_unslash( $_REQUEST['provider'] ) ) : false;
+		$redirect_to = ! empty( $_REQUEST['redirect_to'] ) ? esc_url_raw( wp_unslash( $_REQUEST['redirect_to'] ) ) : admin_url();
+		// phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- false report due to strtoupper.
+		$is_post_request = isset( $_SERVER['REQUEST_METHOD'] ) && 'POST' === $_SERVER['REQUEST_METHOD'];
+
+		if ( ! is_user_logged_in() ) {
+			wp_safe_redirect( home_url() );
+			exit;
+		}
+
+		$user = wp_get_current_user();
+
+		// Validate the nonce for POST requests. GET requests do not perform actions, and such do not require the nonce (such as the initial request).
+		if ( $is_post_request && ! wp_verify_nonce( $nonce, 'two_factor_revalidate_' . $user->ID ) ) {
+			wp_safe_redirect( home_url() );
+			exit;
+		}
 
 		self::revalidate_login_form_2fa( $nonce, $provider, $redirect_to, $is_post_request );
 		exit;
