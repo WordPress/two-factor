@@ -39,6 +39,10 @@ if ( ! defined( 'ABSPATH' ) ) {
  */
 require_once TWO_FACTOR_DIR . 'providers/class-two-factor-provider.php';
 
+if ( file_exists( TWO_FACTOR_DIR . 'vendor/autoload.php' ) ) {
+	require_once TWO_FACTOR_DIR . 'vendor/autoload.php';
+}
+
 /**
  * Include the core that handles the common bits.
  */
