@@ -24,7 +24,7 @@ Pass PHPUnit arguments through the `composer` wrapper:
 
 ```bash
 # Run a single test class
-npm run composer -- test -- --filter Tests_Two_Factor_Core
+npm run composer -- test -- --filter Test_ClassTwoFactorCore
 
 # Run a single test method
 npm run composer -- test -- --filter test_create_login_nonce
@@ -49,7 +49,7 @@ Smoke tests that the plugin loaded correctly: the `TWO_FACTOR_DIR` constant is d
 
 ### Core — `tests/class-two-factor-core.php`
 
-**Class:** `Tests_Two_Factor_Core` · **Group:** `core`
+**Class:** `Test_ClassTwoFactorCore` · **Group:** `core`
 The largest test file. Covers the full authentication lifecycle managed by `Two_Factor_Core`:
 
 - Hook registration (`add_hooks`)
@@ -58,10 +58,11 @@ The largest test file. Covers the full authentication lifecycle managed by `Two_
 - Login nonce creation, verification, and deletion
 - Rate limiting (`get_user_time_delay`, `is_user_rate_limited`)
 - Session management: two-factor factored vs. non-factored sessions, session destruction on 2FA enable/disable, revalidation
-- Password reset flow (compromise detection, email notifications, reset notices)
+- Password reset flow (compromise detection, email notifications, reset notices and their nonce validation)
 - REST API permission callbacks (`rest_api_can_edit_user_and_update_two_factor_options`)
 - User settings actions (`trigger_user_settings_action`, `current_user_can_update_two_factor_options`)
-- Uninstall cleanup
+- Profile settings UI output (`user_two_factor_options`), including recovery-codes wording with and without the Backup Codes provider
+- Uninstall cleanup (user meta and site-wide options)
 - Filter hooks (`two_factor_providers`, `two_factor_primary_provider_for_user`, `two_factor_user_api_login_enable`)
 
 ### Provider Base Class — `tests/providers/class-two-factor-provider.php`
@@ -158,3 +159,4 @@ Tests `Two_Factor_Dummy_Secure` (a fixture that always _fails_ authentication, u
 
 - **`tests/bootstrap.php`** — Locates the WordPress test library (via `WP_TESTS_DIR` env var, relative path, or `/tmp/wordpress-tests-lib`), loads the plugin via `muplugins_loaded`, then boots the WP test environment.
 - **`tests/class-two-factor-dummy-secure.php`** — Defines `Two_Factor_Dummy_Secure`, a test-only provider class that spoofs the key of `Two_Factor_Dummy` but always fails `validate_authentication`. Used by `Tests_Two_Factor_Dummy_Secure` and some core tests.
+- **`Two_Factor_Redirect_Exception`** — Defined in `tests/class-two-factor-core.php`. The core tests' render helper intercepts `wp_redirect` and throws this exception, so code paths that redirect and `exit` can be tested without terminating the test process.
