@@ -432,9 +432,10 @@ class Tests_Two_Factor_CLI_Command extends WP_UnitTestCase {
 	public function test_disable_single_totp_clears_stored_secret() {
 		$this->enable_provider( 'Two_Factor_Totp' );
 		$totp = Two_Factor_Totp::get_instance();
+		$key  = Two_Factor_Totp::generate_key();
 
-		$this->assertTrue( $totp->set_user_totp_key( $this->user->ID, Two_Factor_Totp::generate_key() ) );
-		$this->assertNotSame( '', $totp->get_user_totp_key( $this->user->ID ) );
+		$this->assertNotFalse( $totp->set_user_totp_key( $this->user->ID, $key ) );
+		$this->assertSame( $key, $totp->get_user_totp_key( $this->user->ID ) );
 
 		$this->command->disable( array( 'cli_test_user', 'Two_Factor_Totp' ), array( 'yes' => true ) );
 
