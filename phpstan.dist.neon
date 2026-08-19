@@ -3,9 +3,12 @@ includes:
 parameters:
 	level: 2
 	paths:
+		- CLI
 		- includes
 		- providers
 		- settings
 		- class-two-factor-compat.php
 		- class-two-factor-core.php
 		- two-factor.php
+	scanFiles:
+		- vendor/php-stubs/wp-cli-stubs/wp-cli-stubs.php
