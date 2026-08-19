@@ -77,7 +77,7 @@ class Two_Factor_Settings {
 				$label = method_exists( $instance, 'get_label' ) ? $instance->get_label() : $provider_key;
 
 				echo '<p class="provider-item"><label for="provider_' . esc_attr( $provider_key ) . '">';
-				echo '<input type="checkbox" name="two_factor_enabled_providers[]" id="provider_' . esc_attr( $provider_key ) . '" value="' . esc_attr( $provider_key ) . '" ' . checked( in_array( $provider_key, (array) $saved_enabled, true ), true, false ) . ' /> ';
+				echo '<input type="checkbox" name="two_factor_enabled_providers[]" id="provider_' . esc_attr( $provider_key ) . '" value="' . esc_attr( $provider_key ) . '" ' . checked( in_array( $provider_key, (array) $saved_enabled, true ), true, false ) . '> ';
 				echo esc_html( $label );
 				echo '</label></p>';
 			}
