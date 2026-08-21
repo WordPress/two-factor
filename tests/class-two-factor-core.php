@@ -1110,7 +1110,7 @@ class Test_ClassTwoFactorCore extends WP_UnitTestCase {
 		$totp_disabled     = Two_Factor_Core::disable_provider_for_user( $user->ID, 'Two_Factor_Totp' );
 		$enabled_providers = Two_Factor_Core::get_enabled_providers_for_user( $user->ID );
 		$this->assertTrue( $totp_disabled, 'Can disable a provider that is enabled' );
-		$this->assertSame( array( 1 => 'Two_Factor_Dummy' ), $enabled_providers, 'The other providers are kept enabled' );
+		$this->assertSame( array( 'Two_Factor_Dummy' ), $enabled_providers, 'The other providers are kept enabled' );
 		$this->assertSame( 'Two_Factor_Dummy', Two_Factor_Core::get_primary_provider_for_user( $user->ID )->get_key(), 'Primary is updated to the first available' );
 	}
 
@@ -2423,6 +2423,77 @@ class Test_ClassTwoFactorCore extends WP_UnitTestCase {
 		Two_Factor_Core::enable_provider_for_user( $user->ID, 'Two_Factor_Dummy' );
 		$available = Two_Factor_Core::get_available_providers_for_user( $user->ID );
 		$this->assertCount( 2, $available, 'Two providers are available' );
+	}
+
+	/**
+	 * Ensure an intentionally emptied provider list is respected.
+	 *
+	 * @covers Two_Factor_Core::get_available_providers_for_user
+	 */
+	public function test_get_available_providers_for_user_respects_filter_cleared_list() {
+		$user = self::factory()->user->create_and_get();
+
+		update_user_meta( $user->ID, Two_Factor_Core::ENABLED_PROVIDERS_USER_META_KEY, array( 'Two_Factor_Email' ) );
+
+		$filter = function ( $enabled_providers, $user_id ) use ( $user ) {
+			$this->assertSame( $user->ID, $user_id, 'Filter received expected user ID' );
+			return array();
+		};
+
+		add_filter( 'two_factor_enabled_providers_for_user', $filter, 10, 2 );
+
+		try {
+			$this->assertEmpty(
+				Two_Factor_Core::get_available_providers_for_user( $user->ID ),
+				'No fallback provider is forced when the filter intentionally returns an empty list'
+			);
+		} finally {
+			remove_filter( 'two_factor_enabled_providers_for_user', $filter, 10 );
+		}
+	}
+
+	/**
+	 * Ensure fallback still applies when configured providers are no longer registered.
+	 *
+	 * @covers Two_Factor_Core::get_available_providers_for_user
+	 */
+	public function test_get_available_providers_for_user_falls_back_when_configured_providers_are_missing() {
+		$user = self::factory()->user->create_and_get();
+
+		update_user_meta( $user->ID, Two_Factor_Core::ENABLED_PROVIDERS_USER_META_KEY, array( 'Two_Factor_Missing' ) );
+
+		$available = Two_Factor_Core::get_available_providers_for_user( $user->ID );
+
+		$this->assertCount( 1, $available, 'Email fallback remains active when configured providers are missing' );
+		$this->assertArrayHasKey( 'Two_Factor_Email', $available, 'Emailed codes are forced on for missing configured providers' );
+	}
+
+	/**
+	 * Ensure an unregistered `two_factor_fallback_provider_for_user` return value fails closed
+	 * instead of silently letting the user through with no second factor.
+	 *
+	 * @covers Two_Factor_Core::get_available_providers_for_user
+	 */
+	public function test_get_available_providers_for_user_fails_closed_on_invalid_fallback_provider() {
+		$user = self::factory()->user->create_and_get();
+
+		update_user_meta( $user->ID, Two_Factor_Core::ENABLED_PROVIDERS_USER_META_KEY, array( 'Two_Factor_Missing' ) );
+
+		$filter = function () {
+			return 'Two_Factor_Nonexistent';
+		};
+
+		add_filter( 'two_factor_fallback_provider_for_user', $filter );
+
+		try {
+			$result = Two_Factor_Core::get_available_providers_for_user( $user->ID );
+
+			$this->assertInstanceOf( WP_Error::class, $result, 'An unregistered fallback provider results in a WP_Error' );
+			$this->assertSame( 'no_available_2fa_methods', $result->get_error_code() );
+			$this->assertSame( 'Two_Factor_Nonexistent', $result->get_error_data()['fallback_provider'], 'Error data records the rejected fallback provider' );
+		} finally {
+			remove_filter( 'two_factor_fallback_provider_for_user', $filter );
+		}
 	}
 
 	/**
