@@ -110,8 +110,8 @@ Namespace: `two-factor/1.0` (constant `Two_Factor_Core::REST_NAMESPACE`). Each p
 
 ## Code Standards
 
-- PHP 7.2+ compatibility required; enforced by PHPCompatibilityWP.
-- WordPress 6.9+ required.
+- PHP 7.4+ compatibility required; enforced by PHPCompatibilityWP.
+- WordPress 7.0+ required.
 - Follows WordPress coding standards (WPCS) and WordPress-VIP-Go rules.
 - `includes/` is excluded from PHPCS — those files intentionally override core functions.
 - PHPCS must pass and is enforced in CI.
