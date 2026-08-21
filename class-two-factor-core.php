@@ -244,7 +244,7 @@ class Two_Factor_Core {
 		}
 
 		foreach ( $user_meta_keys as $meta_key ) {
-			delete_metadata( 'user', null, $meta_key, null, true );
+			delete_metadata( 'user', 0, $meta_key, '', true );
 		}
 	}
 
@@ -1152,14 +1152,14 @@ class Two_Factor_Core {
 
 		<form name="validate_2fa_form" id="loginform" action="<?php echo esc_url( self::login_url( array( 'action' => $action ), 'login_post' ) ); ?>" method="post" autocomplete="off">
 				<input type="hidden" name="provider"      id="provider"      value="<?php echo esc_attr( $provider_key ); ?>" />
-				<input type="hidden" name="wp-auth-id"    id="wp-auth-id"    value="<?php echo esc_attr( $user->ID ); ?>" />
+				<input type="hidden" name="wp-auth-id"    id="wp-auth-id"    value="<?php echo esc_attr( (string) $user->ID ); ?>" />
 				<input type="hidden" name="wp-auth-nonce" id="wp-auth-nonce" value="<?php echo esc_attr( $login_nonce ); ?>" />
 				<?php if ( $interim_login ) { ?>
 					<input type="hidden" name="interim-login" value="1" />
 				<?php } else { ?>
 					<input type="hidden" name="redirect_to" value="<?php echo esc_attr( $redirect_to ); ?>" />
 				<?php } ?>
-				<input type="hidden" name="rememberme"    id="rememberme"    value="<?php echo esc_attr( $rememberme ); ?>" />
+				<input type="hidden" name="rememberme"    id="rememberme"    value="<?php echo esc_attr( (string) $rememberme ); ?>" />
 
 				<?php $provider->authentication_page( $user ); ?>
 		</form>
