@@ -32,10 +32,10 @@ class Two_Factor_Settings {
 		if ( isset( $_POST['two_factor_settings_submit'] ) ) {
 			check_admin_referer( 'two_factor_save_settings', 'two_factor_settings_nonce' );
 
-			$posted = isset( $_POST['two_factor_enabled_providers'] ) && is_array( $_POST['two_factor_enabled_providers'] ) ? wp_unslash( $_POST['two_factor_enabled_providers'] ) : array(); // phpcs:ignore WordPress.Security.NonceVerification.Missing, WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- Nonce verified above; array values sanitized immediately below.
+			$posted = isset( $_POST['two_factor_enabled_providers'] ) && is_array( $_POST['two_factor_enabled_providers'] )
+				? array_map( 'sanitize_text_field', wp_unslash( $_POST['two_factor_enabled_providers'] ) )
+				: array();
 
-			// Sanitize posted values immediately.
-			$posted = array_map( 'sanitize_text_field', (array) $posted );
 			// Remove empty values.
 			$enabled = array_values( array_filter( $posted, 'strlen' ) );
 
