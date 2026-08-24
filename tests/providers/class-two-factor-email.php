@@ -155,6 +155,7 @@ class Tests_Two_Factor_Email extends WP_UnitTestCase {
 	public function test_generate_and_email_token() {
 		$user = new WP_User( self::factory()->user->create() );
 
+		// phpcs:disable WordPressVIPMinimum.Variables.ServerVariables.UserControlledHeaders, WordPressVIPMinimum.Variables.RestrictedVariables.cache_constraints___SERVER__REMOTE_ADDR__ -- Test fixture for IP-dependent email token generation.
 		$prev_remote_addr       = $_SERVER['REMOTE_ADDR'] ?? null;
 		$_SERVER['REMOTE_ADDR'] = '127.0.0.1';
 		try {
@@ -166,6 +167,7 @@ class Tests_Two_Factor_Email extends WP_UnitTestCase {
 				$_SERVER['REMOTE_ADDR'] = $prev_remote_addr;
 			}
 		}
+		// phpcs:enable WordPressVIPMinimum.Variables.ServerVariables.UserControlledHeaders, WordPressVIPMinimum.Variables.RestrictedVariables.cache_constraints___SERVER__REMOTE_ADDR__
 
 		$pattern = '/verification code below:\R\R(\d+)/';
 		$content = $GLOBALS['phpmailer']->Body;
