@@ -37,7 +37,14 @@ class Two_Factor_Settings {
 			// Sanitize posted values immediately.
 			$posted = array_map( 'sanitize_text_field', (array) $posted );
 			// Remove empty values.
-			$enabled = array_values( array_filter( $posted, 'strlen' ) );
+			$enabled = array_values(
+				array_filter(
+					$posted,
+					static function ( $value ) {
+						return '' !== $value;
+					}
+				)
+			);
 
 			update_option( Two_Factor_Core::ENABLED_PROVIDERS_OPTION_KEY, array_values( array_unique( $enabled ) ) );
 
