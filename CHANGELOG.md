@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file, per [the Keep a Changelog standard](http://keepachangelog.com/), and will adhere to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### New Features
+
+- Add an enforcement method setting so administrators can require enforced users to configure Two-Factor themselves, with a dedicated setup screen that keeps the rest of the admin unavailable until they have by [#813](https://github.com/WordPress/two-factor/issues/813).
+
 ## [0.16.0] - 2026-03-27
 
 ### Breaking Changes

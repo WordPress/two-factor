@@ -46,13 +46,21 @@ class Two_Factor_Settings {
 				: array();
 			update_option( 'two_factor_enforced_roles', array_values( array_unique( $enforced_roles_posted ) ) );
 
+			$method_posted = isset( $_POST['two_factor_enforcement_method'] )
+				? sanitize_key( wp_unslash( $_POST['two_factor_enforcement_method'] ) )
+				: Two_Factor_Onboarding::METHOD_EMAIL;
+			$method_posted = Two_Factor_Onboarding::METHOD_ENROLLMENT === $method_posted
+				? Two_Factor_Onboarding::METHOD_ENROLLMENT
+				: Two_Factor_Onboarding::METHOD_EMAIL;
+			update_option( Two_Factor_Onboarding::ENFORCEMENT_METHOD_OPTION_KEY, $method_posted );
+
 			echo '<div class="updated"><p>' . esc_html__( 'Settings saved.', 'two-factor' ) . '</p></div>';
 		}
 
 		// Show a warning when enforcement is active but the Email provider is disabled,
 		// because enforcement relies on Email being available for users not yet enrolled.
 		$enforced_roles = (array) get_option( 'two_factor_enforced_roles', array() );
-		if ( ! empty( $enforced_roles ) ) {
+		if ( ! empty( $enforced_roles ) && ! Two_Factor_Onboarding::is_enrollment_required() ) {
 			$site_enabled = function_exists( 'two_factor_get_enabled_providers_option' )
 				? two_factor_get_enabled_providers_option()
 				: null;
@@ -112,7 +120,7 @@ class Two_Factor_Settings {
 		$all_roles            = wp_roles()->get_names();
 
 		echo '<h2>' . esc_html__( 'Two-Factor Enforcement', 'two-factor' ) . '</h2>';
-		echo '<p class="description">' . esc_html__( 'Require Two-Factor authentication for specific user roles. Users in enforced roles who have not yet set up 2FA will be challenged via the Email provider on login. This requires the Email provider to be enabled above. New users in enforced roles will also have the Email provider enabled on registration.', 'two-factor' ) . '</p>';
+		echo '<p class="description">' . esc_html__( 'Require Two-Factor authentication for specific user roles, and choose how users who have not set it up yet are handled.', 'two-factor' ) . '</p>';
 
 		echo '<fieldset class="two-factor-enforcement"><legend class="screen-reader-text">' . esc_html__( 'Enforced Roles', 'two-factor' ) . '</legend>';
 		echo '<table class="form-table"><tbody>';
@@ -131,6 +139,37 @@ class Two_Factor_Settings {
 			echo '</td></tr>';
 		}
 
+		echo '</tbody></table>';
+		echo '</fieldset>';
+
+		// --- Enforcement method ---
+		$enforcement_method = Two_Factor_Onboarding::get_enforcement_method();
+
+		$methods = array(
+			Two_Factor_Onboarding::METHOD_EMAIL      => array(
+				'label'       => __( 'Email codes', 'two-factor' ),
+				'description' => __( 'Users in enforced roles who have not set up Two-Factor are challenged with an emailed code on login, and new users in those roles get the Email provider on registration. Requires the Email provider to be enabled above.', 'two-factor' ),
+			),
+			Two_Factor_Onboarding::METHOD_ENROLLMENT => array(
+				'label'       => __( 'Require setup', 'two-factor' ),
+				'description' => __( 'Users in enforced roles who have not set up Two-Factor are sent to a setup screen after logging in, and the rest of the admin stays unavailable until they have enabled a method themselves.', 'two-factor' ),
+			),
+		);
+
+		echo '<fieldset class="two-factor-enforcement-method"><legend class="screen-reader-text">' . esc_html__( 'Enforcement Method', 'two-factor' ) . '</legend>';
+		echo '<table class="form-table"><tbody>';
+		echo '<tr><th scope="row">' . esc_html__( 'Enforcement method', 'two-factor' ) . '</th><td>';
+
+		foreach ( $methods as $method_key => $method ) {
+			echo '<p class="provider-item"><label for="enforcement_method_' . esc_attr( $method_key ) . '">';
+			echo '<input type="radio" name="two_factor_enforcement_method" id="enforcement_method_' . esc_attr( $method_key ) . '" value="' . esc_attr( $method_key ) . '" ' . checked( $enforcement_method, $method_key, false ) . ' /> ';
+			echo esc_html( $method['label'] );
+			echo '</label>';
+			echo '<span class="description"><br />' . esc_html( $method['description'] ) . '</span>';
+			echo '</p>';
+		}
+
+		echo '</td></tr>';
 		echo '</tbody></table>';
 		echo '</fieldset>';
 

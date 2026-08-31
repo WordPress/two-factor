@@ -149,7 +149,12 @@ As an administrator, go to **Users → All Users** in the WordPress admin, click
  
 = Can I require 2FA for all users or specific roles? =
  
-Not through the plugin's interface — there are no built-in enforcement settings. However, developers can use the `two_factor_providers_for_user` filter to control which providers are available per user or role, and combine it with custom logic to redirect users who haven't set up 2FA. Native enforcement support is a known and tracked feature request — follow the discussion at [GitHub issue #255](https://github.com/WordPress/two-factor/issues/255).
+Yes. Go to **Settings → Two-Factor** and select the roles that require Two-Factor under **Two-Factor Enforcement**, then choose how users in those roles who have not set 2FA up yet are handled:
+
+* **Email codes** (default): they are challenged with an emailed code on login, and new users in an enforced role get the Email provider on registration. This requires the Email provider to be enabled for the site.
+* **Require setup**: after logging in they land on a dedicated setup screen and the rest of the admin stays unavailable until they have configured and enabled a method themselves. Their own profile screen remains reachable, so the Two-Factor options can also be completed from there.
+
+Developers can adjust the behaviour with the `two_factor_onboarding_is_user_pending` and `two_factor_onboarding_allowed_screens` filters.
 
 
 == Screenshots ==

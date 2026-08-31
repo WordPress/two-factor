@@ -52,9 +52,13 @@ require_once TWO_FACTOR_DIR . 'class-two-factor-compat.php';
 // Load settings UI class so the settings page can be rendered.
 require_once TWO_FACTOR_DIR . 'settings/class-two-factor-settings.php';
 
+// Load the enrollment onboarding flow used by the enrollment enforcement method.
+require_once TWO_FACTOR_DIR . 'class-two-factor-onboarding.php';
+
 $two_factor_compat = new Two_Factor_Compat();
 
 Two_Factor_Core::add_hooks( $two_factor_compat );
+Two_Factor_Onboarding::add_hooks();
 
 // Delete our options and user meta during uninstall.
 register_uninstall_hook( __FILE__, array( Two_Factor_Core::class, 'uninstall' ) );
@@ -188,6 +192,30 @@ function two_factor_filter_enabled_providers_for_user( $enabled, $user_id ) {
 }
 
 /**
+ * Helper: whether a user belongs to a role that requires Two-Factor.
+ *
+ * @since 0.16
+ *
+ * @param int|WP_User|null $user User to check.
+ * @return bool
+ */
+function two_factor_user_has_enforced_role( $user ) {
+	$enforced_roles = (array) get_option( 'two_factor_enforced_roles', array() );
+
+	if ( empty( $enforced_roles ) ) {
+		return false;
+	}
+
+	$user = Two_Factor_Core::fetch_user( $user );
+
+	if ( ! $user ) {
+		return false;
+	}
+
+	return ! empty( array_intersect( (array) $user->roles, $enforced_roles ) );
+}
+
+/**
  * Enforce Two-Factor for users in roles that require it.
  *
  * Runs after the site-enabled filter (priority 20). If a user belongs to an
@@ -210,18 +238,13 @@ function two_factor_enforce_for_user( $enabled, $user_id ) {
 		return $enabled;
 	}
 
-	$enforced_roles = (array) get_option( 'two_factor_enforced_roles', array() );
-	if ( empty( $enforced_roles ) ) {
+	// The enrollment method asks users to configure a provider themselves instead of
+	// injecting one, so nothing is added here for them.
+	if ( Two_Factor_Onboarding::is_enrollment_required() ) {
 		return $enabled;
 	}
 
-	$user = get_userdata( $user_id );
-	if ( ! $user ) {
-		return $enabled;
-	}
-
-	// Check whether the user has at least one enforced role.
-	if ( empty( array_intersect( (array) $user->roles, $enforced_roles ) ) ) {
+	if ( ! two_factor_user_has_enforced_role( $user_id ) ) {
 		return $enabled;
 	}
 
@@ -250,17 +273,17 @@ add_filter( 'two_factor_enabled_providers_for_user', 'two_factor_enforce_for_use
  * @return void
  */
 function two_factor_force_on_user_register( $user_id ) {
-	$enforced_roles = (array) get_option( 'two_factor_enforced_roles', array() );
-	if ( empty( $enforced_roles ) ) {
+	// The enrollment method leaves the choice of provider to the user.
+	if ( Two_Factor_Onboarding::is_enrollment_required() ) {
+		return;
+	}
+
+	if ( ! two_factor_user_has_enforced_role( $user_id ) ) {
 		return;
 	}
 
 	$user = get_userdata( $user_id );
 	if ( ! $user ) {
-		return;
-	}
-
-	if ( empty( array_intersect( (array) $user->roles, $enforced_roles ) ) ) {
 		return;
 	}
 
