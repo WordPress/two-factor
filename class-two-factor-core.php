@@ -644,6 +644,29 @@ class Two_Factor_Core {
 	}
 
 	/**
+	 * Get the provider keys stored in user meta, normalised.
+	 *
+	 * Returns the raw stored list without intersecting against registered providers and
+	 * without applying `two_factor_enabled_providers_for_user`, so callers can distinguish
+	 * "this user has no registered providers left" from "a filter intentionally cleared the list".
+	 *
+	 * @since 0.17.0
+	 *
+	 * @param WP_User $user User object.
+	 *
+	 * @return string[] Provider keys stored for the user. May include keys that are no longer registered.
+	 */
+	private static function get_stored_provider_keys_for_user( $user ) {
+		$stored = get_user_meta( $user->ID, self::ENABLED_PROVIDERS_USER_META_KEY, true );
+
+		if ( ! is_array( $stored ) ) {
+			$stored = array();
+		}
+
+		return array_values( array_filter( $stored, 'is_string' ) );
+	}
+
+	/**
 	 * Get two-factor providers that are enabled for the specified (or current) user
 	 * but might not be configured, yet.
 	 *
@@ -663,11 +686,10 @@ class Two_Factor_Core {
 		}
 
 		$providers         = self::get_supported_providers_for_user( $user );
-		$enabled_providers = get_user_meta( $user->ID, self::ENABLED_PROVIDERS_USER_META_KEY, true );
-		if ( empty( $enabled_providers ) ) {
-			$enabled_providers = array();
-		}
-		$enabled_providers = array_intersect( $enabled_providers, array_keys( $providers ) );
+		$enabled_providers = array_intersect(
+			self::get_stored_provider_keys_for_user( $user ),
+			array_keys( $providers )
+		);
 
 		/**
 		 * Filter the enabled two-factor authentication providers for this user.
@@ -690,7 +712,10 @@ class Two_Factor_Core {
 	 * @see Two_Factor_Core::get_enabled_providers_for_user()
 	 *
 	 * @param int|WP_User $user Optional. User ID, or WP_User object of the the user. Defaults to current user.
-	 * @return Two_Factor_Provider[]|WP_Error List of provider instances, or a WP_Error if all configured providers are unavailable.
+	 * @return Two_Factor_Provider[]|WP_Error List of provider instances, or a WP_Error if the user's stored
+	 *                                        providers are no longer registered and the fallback provider
+	 *                                        (`Two_Factor_Email` by default, see `two_factor_fallback_provider_for_user`)
+	 *                                        doesn't resolve to a registered, available provider.
 	 */
 	public static function get_available_providers_for_user( $user = null ) {
 		$user = self::fetch_user( $user );
@@ -701,29 +726,74 @@ class Two_Factor_Core {
 		$providers            = self::get_supported_providers_for_user( $user ); // Returns full objects.
 		$enabled_providers    = self::get_enabled_providers_for_user( $user ); // Returns just the keys.
 		$configured_providers = array();
-		$user_providers_raw   = get_user_meta( $user->ID, self::ENABLED_PROVIDERS_USER_META_KEY, true );
+		$stored_providers     = self::get_stored_provider_keys_for_user( $user );
 
 		/**
-		 * If the user had enabled providers, but none of them exist currently,
-		 * if emailed codes is available force it to be on, so that deprecated
-		 * or removed providers don't result in the two-factor requirement being
-		 * removed and 'failing open'.
+		 * If the user has providers stored in meta but none of them are still registered, force
+		 * emailed codes on where available so removed or deprecated providers can't drop the user
+		 * to single-factor auth ('failing open').
 		 *
-		 * Possible enhancement: add a filter to change the fallback method?
+		 * "No longer registered" is deliberately cause-agnostic: a provider dropped by plugin
+		 * deactivation, by the site-wide settings, or by `two_factor_providers_for_user` is treated
+		 * identically, because the outcome for the user is identical.
+		 *
+		 * If any stored provider IS still registered, an empty enabled list means
+		 * `two_factor_enabled_providers_for_user` cleared it on purpose, and that must be respected.
 		 */
-		if ( empty( $enabled_providers ) && $user_providers_raw ) {
-			if ( isset( $providers['Two_Factor_Email'] ) ) {
-				// Force Emailed codes to 'on'.
-				$enabled_providers[] = 'Two_Factor_Email';
-			} else {
-				return new WP_Error(
-					'no_available_2fa_methods',
-					__( 'Error: You have Two Factor method(s) enabled, but the provider(s) no longer exist. Please contact a site administrator for assistance.', 'two-factor' ),
-					array(
-						'user_providers_raw'  => $user_providers_raw,
-						'available_providers' => array_keys( $providers ),
-					)
+		if ( empty( $enabled_providers ) && ! empty( $stored_providers ) ) {
+			$still_registered = array_intersect( $stored_providers, array_keys( $providers ) );
+
+			if ( empty( $still_registered ) ) {
+				/**
+				 * Filter the provider forced on when none of a user's stored providers are still registered.
+				 *
+				 * Returning a key that is not registered, or that the provider itself reports as unavailable
+				 * for this user, is treated as "no fallback": the method returns a `no_available_2fa_methods`
+				 * WP_Error rather than allowing the user through with one factor.
+				 *
+				 * The returned provider must be usable without any prior per-user setup (like the email
+				 * provider is), since the user has no working provider left to configure it through:
+				 *
+				 *     add_filter( 'two_factor_fallback_provider_for_user', function() {
+				 *         return 'Two_Factor_Backup_Codes'; // Wrong: requires codes to already be generated.
+				 *     } );
+				 *
+				 * A fallback that is not already available for the user resolves to the WP_Error branch,
+				 * not to a silent single-factor login.
+				 *
+				 * @since 0.17.0
+				 *
+				 * @param string   $fallback_provider Provider key to force on. Default 'Two_Factor_Email'.
+				 * @param int      $user_id           The user ID.
+				 * @param string[] $stored_providers  Provider keys stored for the user, none of which are registered.
+				 */
+				$fallback_provider = apply_filters(
+					'two_factor_fallback_provider_for_user',
+					'Two_Factor_Email',
+					$user->ID,
+					$stored_providers
 				);
+
+				if (
+					is_string( $fallback_provider )
+					&& isset( $providers[ $fallback_provider ] )
+					&& $providers[ $fallback_provider ]->is_available_for_user( $user )
+				) {
+					// Force the fallback provider to 'on'.
+					$enabled_providers[] = $fallback_provider;
+				} else {
+					// Fail closed: an invalid, unregistered, or unavailable fallback locks the user
+					// out pending admin intervention, rather than letting them through with one factor.
+					return new WP_Error(
+						'no_available_2fa_methods',
+						__( 'Error: You have Two Factor method(s) enabled, but the provider(s) no longer exist. Please contact a site administrator for assistance.', 'two-factor' ),
+						array(
+							'user_providers_raw'  => $stored_providers,
+							'available_providers' => array_keys( $providers ),
+							'fallback_provider'   => $fallback_provider,
+						)
+					);
+				}
 			}
 		}
 
