@@ -79,6 +79,11 @@ jobs:
         permissions:
           contents: read # Required to clone the repo.
         strategy:
+            # One broken leg should not cancel the other 27. Notably, the PHP 7.4/8.0/8.1
+            # images are Debian bullseye based, and bullseye's security suite is now past
+            # its Release file expiry, so `apt-get update` exits 100 while building those
+            # containers. Without this, that single failure hides every other result.
+            fail-fast: false
             matrix:
                 php:
                   - '8.5'
