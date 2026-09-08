@@ -1372,6 +1372,8 @@ class Two_Factor_Core {
 		$login_nonce = get_user_meta( $user_id, self::USER_META_NONCE_KEY, true );
 
 		if ( ! $login_nonce || empty( $login_nonce['key'] ) || empty( $login_nonce['expiration'] ) ) {
+			self::log_login_nonce_failure( $user_id, 'no_nonce_stored' );
+
 			return false;
 		}
 
@@ -1388,10 +1390,76 @@ class Two_Factor_Core {
 			return true;
 		}
 
+		self::log_login_nonce_failure( $user_id, $hashes_match ? 'expired' : 'mismatch' );
+
 		// Require a fresh nonce if verification fails.
 		self::delete_login_nonce( $user_id );
 
 		return false;
+	}
+
+	/**
+	 * Record a failed login nonce verification.
+	 *
+	 * A login nonce is only ever handed out by the plugin itself, so a request that
+	 * presents one that does not verify is unexpected. A handful of these are routine --
+	 * a stale browser tab, the back button, or two sessions racing each other -- but a
+	 * sustained run of them against one account is worth an administrator's attention,
+	 * and until now they left no trace at all: the request is simply redirected away.
+	 *
+	 * The presented value is never written to the log; only the reason it was rejected.
+	 *
+	 * @since 0.17.0
+	 *
+	 * @param int    $user_id The user ID the nonce was presented for.
+	 * @param string $reason  Why verification failed. One of 'no_nonce_stored' (no
+	 *                        pending login for this user), 'expired' (correct value,
+	 *                        past its expiration), or 'mismatch' (value did not match).
+	 * @return void
+	 */
+	protected static function log_login_nonce_failure( $user_id, $reason ) {
+		/**
+		 * Fires when a login nonce fails verification.
+		 *
+		 * Useful for routing these into an audit log, an intrusion detection system, or
+		 * a rate limiter. Fires on every failure, including ones that are not written to
+		 * the PHP error log.
+		 *
+		 * @since 0.17.0
+		 *
+		 * @param int    $user_id The user ID the nonce was presented for.
+		 * @param string $reason  One of 'no_nonce_stored', 'expired', or 'mismatch'.
+		 */
+		do_action( 'two_factor_login_nonce_failed', $user_id, $reason );
+
+		/**
+		 * Filters whether failed login nonce verifications are written to the PHP error log.
+		 *
+		 * These are written unconditionally so that the failures are visible without any
+		 * configuration. Sites that would rather not carry the log volume, or that handle
+		 * the `two_factor_login_nonce_failed` action themselves, can return false here.
+		 *
+		 * @since 0.17.0
+		 *
+		 * @param bool   $log     Whether to write the failure to the error log. Default true.
+		 * @param int    $user_id The user ID the nonce was presented for.
+		 * @param string $reason  One of 'no_nonce_stored', 'expired', or 'mismatch'.
+		 */
+		if ( ! apply_filters( 'two_factor_log_login_nonce_failures', true, $user_id, $reason ) ) {
+			return;
+		}
+
+		// Unreliable behind a proxy or load balancer; hook the action above for better provenance.
+		$remote_addr = isset( $_SERVER['REMOTE_ADDR'] ) ? filter_var( wp_unslash( $_SERVER['REMOTE_ADDR'] ), FILTER_VALIDATE_IP ) : false; // phpcs:ignore WordPressVIPMinimum.Variables.ServerVariables.UserControlledHeaders, WordPressVIPMinimum.Variables.RestrictedVariables.cache_constraints___SERVER__REMOTE_ADDR__ -- Validated as an IP, and only ever written to the log; not used for caching or authorization.
+
+		error_log( // phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log -- Deliberate security diagnostic; opt out via the filter above.
+			sprintf(
+				'Two-Factor: login nonce verification failed for user %1$d (reason: %2$s, remote address: %3$s).',
+				$user_id,
+				$reason,
+				$remote_addr ? $remote_addr : 'unknown'
+			)
+		);
 	}
 
 	/**

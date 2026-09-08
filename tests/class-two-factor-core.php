@@ -29,6 +29,9 @@ class Test_ClassTwoFactorCore extends WP_UnitTestCase {
 		set_error_handler( array( 'Test_ClassTwoFactorCore', 'error_handler' ) ); // phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_set_error_handler
 		add_action( 'set_auth_cookie', array( __CLASS__, 'set_auth_cookie' ) );
 		add_action( 'set_logged_in_cookie', array( __CLASS__, 'set_logged_in_cookie' ) );
+
+		// Several tests exercise failed nonce verification; keep them out of the error log.
+		add_filter( 'two_factor_log_login_nonce_failures', '__return_false' );
 	}
 
 	/**
@@ -40,6 +43,7 @@ class Test_ClassTwoFactorCore extends WP_UnitTestCase {
 		restore_error_handler();
 		remove_action( 'set_auth_cookie', array( __CLASS__, 'set_auth_cookie' ) );
 		remove_action( 'set_logged_in_cookie', array( __CLASS__, 'set_logged_in_cookie' ) );
+		remove_filter( 'two_factor_log_login_nonce_failures', '__return_false' );
 	}
 
 	/**
@@ -708,6 +712,122 @@ class Test_ClassTwoFactorCore extends WP_UnitTestCase {
 			Two_Factor_Core::verify_login_nonce( $user_id, $nonce['key'] ),
 			'Expired nonce is invalid'
 		);
+	}
+
+	/**
+	 * A failed nonce verification fires the failure action with a reason.
+	 *
+	 * @dataProvider data_login_nonce_failure_reasons
+	 *
+	 * @covers Two_Factor_Core::verify_login_nonce()
+	 * @covers Two_Factor_Core::log_login_nonce_failure()
+	 *
+	 * @param string $expected_reason The reason the action is expected to report.
+	 * @param bool   $create_nonce    Whether to create a login nonce first.
+	 * @param bool   $expire_nonce    Whether to backdate the nonce's expiration.
+	 * @param bool   $send_valid_key  Whether to present the real key or a bogus one.
+	 */
+	public function test_failed_login_nonce_fires_action( $expected_reason, $create_nonce, $expire_nonce, $send_valid_key ) {
+		$user_id  = self::factory()->user->create();
+		$reasons  = array();
+		$recorder = function ( $logged_user_id, $reason ) use ( &$reasons ) {
+			$reasons[] = array( $logged_user_id, $reason );
+		};
+
+		add_action( 'two_factor_login_nonce_failed', $recorder, 10, 2 );
+
+		$key = 'not-a-real-nonce';
+
+		if ( $create_nonce ) {
+			$nonce = Two_Factor_Core::create_login_nonce( $user_id );
+
+			if ( $send_valid_key ) {
+				$key = $nonce['key'];
+			}
+
+			if ( $expire_nonce ) {
+				$stored               = get_user_meta( $user_id, Two_Factor_Core::USER_META_NONCE_KEY, true );
+				$stored['expiration'] = time() - 1;
+				update_user_meta( $user_id, Two_Factor_Core::USER_META_NONCE_KEY, $stored );
+			}
+		}
+
+		$this->assertFalse( Two_Factor_Core::verify_login_nonce( $user_id, $key ) );
+
+		remove_action( 'two_factor_login_nonce_failed', $recorder, 10 );
+
+		$this->assertSame(
+			array( array( $user_id, $expected_reason ) ),
+			$reasons,
+			'The failure action fires once with the expected user and reason'
+		);
+	}
+
+	/**
+	 * Data provider for test_failed_login_nonce_fires_action().
+	 *
+	 * @return array[]
+	 */
+	public function data_login_nonce_failure_reasons() {
+		return array(
+			'no pending login' => array( 'no_nonce_stored', false, false, false ),
+			'wrong value'      => array( 'mismatch', true, false, false ),
+			'past expiration'  => array( 'expired', true, true, true ),
+		);
+	}
+
+	/**
+	 * Error log output for failed nonces can be turned off, and is passed the context.
+	 *
+	 * @covers Two_Factor_Core::log_login_nonce_failure()
+	 */
+	public function test_login_nonce_failure_logging_can_be_filtered() {
+		$user_id = self::factory()->user->create();
+		$args    = array();
+
+		$recorder = function ( $log, $logged_user_id, $reason ) use ( &$args ) {
+			$args[] = array( $log, $logged_user_id, $reason );
+
+			return false;
+		};
+
+		// Stand in for the class-wide suppression so the default value is observable.
+		remove_filter( 'two_factor_log_login_nonce_failures', '__return_false' );
+		add_filter( 'two_factor_log_login_nonce_failures', $recorder, 10, 3 );
+
+		$this->assertFalse( Two_Factor_Core::verify_login_nonce( $user_id, 'not-a-real-nonce' ) );
+
+		remove_filter( 'two_factor_log_login_nonce_failures', $recorder, 10 );
+		add_filter( 'two_factor_log_login_nonce_failures', '__return_false' );
+
+		$this->assertSame(
+			array( array( true, $user_id, 'no_nonce_stored' ) ),
+			$args,
+			'The filter receives the incoming value plus the user and reason'
+		);
+	}
+
+	/**
+	 * A successful nonce verification does not fire the failure action.
+	 *
+	 * @covers Two_Factor_Core::verify_login_nonce()
+	 */
+	public function test_successful_login_nonce_does_not_fire_action() {
+		$user_id = self::factory()->user->create();
+		$nonce   = Two_Factor_Core::create_login_nonce( $user_id );
+		$fired   = false;
+
+		$recorder = function () use ( &$fired ) {
+			$fired = true;
+		};
+
+		add_action( 'two_factor_login_nonce_failed', $recorder );
+
+		$this->assertTrue( Two_Factor_Core::verify_login_nonce( $user_id, $nonce['key'] ) );
+
+		remove_action( 'two_factor_login_nonce_failed', $recorder );
+
+		$this->assertFalse( $fired, 'The failure action does not fire on a successful verification' );
 	}
 
 	/**
