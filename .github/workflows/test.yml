@@ -1,6 +1,16 @@
 name: Test
 
-on: [push, pull_request]
+# Pushing to a branch that has an open PR previously triggered this workflow twice: once
+# for `push` and once for `pull_request`. The concurrency group below cannot collapse the
+# pair, because it deliberately keys pull requests on the branch name and everything else
+# on the commit hash, putting the two runs in different groups. Limiting `push` to the
+# default branch leaves pull requests covered by the `pull_request` event alone, while
+# still running the suite on merges to master.
+on:
+    push:
+        branches:
+            - master
+    pull_request:
 
 # Cancels all previous workflow runs for pull requests that have not completed.
 concurrency:
