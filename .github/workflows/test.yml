@@ -79,20 +79,30 @@ jobs:
         permissions:
           contents: read # Required to clone the repo.
         strategy:
-            # One broken leg should not cancel the other 27. Notably, the PHP 7.4/8.0/8.1
-            # images are Debian bullseye based, and bullseye's security suite is now past
-            # its Release file expiry, so `apt-get update` exits 100 while building those
-            # containers. Without this, that single failure hides every other result.
+            # One broken leg should not cancel the rest of the matrix and hide every
+            # other result.
             fail-fast: false
             matrix:
+                # PHP 7.4 and 8.0 cannot be run here any more. wp-env builds from
+                # `wordpress:php<version>`, and those two tags were last rebuilt in 2022
+                # and 2023 respectively, permanently pinned to Debian bullseye. Bullseye
+                # LTS ended 2026-08-31, so its security Release file is now expired and
+                # the `apt-get -qy update` in wp-env's generated Dockerfile exits 100
+                # before a single test runs. No bookworm image exists for either version,
+                # and wp-env hardcodes both the base image and that apt call, so there is
+                # nothing to configure our way out of.
+                #
+                # NOTE: PHP 7.4 is still this plugin's declared minimum ("Requires PHP" in
+                # two-factor.php, `>=7.4` in composer.json). It remains covered statically
+                # by PHPCompatibilityWP via `testVersion 7.4-` in phpcs.xml.dist, but it
+                # is no longer exercised at runtime. 8.1 is now the lowest version we
+                # actually run the suite against.
                 php:
                   - '8.5'
                   - '8.4'
                   - '8.3'
                   - '8.2'
                   - '8.1'
-                  - '8.0'
-                  - '7.4'
                 wp:
                   - latest
                   - wordpress/wordpress
