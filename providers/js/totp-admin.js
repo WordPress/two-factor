@@ -38,7 +38,7 @@
 		} );
 	}
 
-	$( '.totp-submit' ).click( function( e ) {
+	$( '#two-factor-totp-options' ).on( 'click', '.totp-submit', function( e ) {
 		var key = $( '#two-factor-totp-key' ).val(),
 			code = $( '#two-factor-totp-authcode' ).val();
 
@@ -71,7 +71,7 @@
 		} );
 	} );
 
-	$( '.button.reset-totp-key' ).click( function( e ) {
+	$( '#two-factor-totp-options' ).on( 'click', '.button.reset-totp-key', function( e ) {
 		e.preventDefault();
 
 		wp.apiRequest( {
