@@ -52,12 +52,9 @@ class Two_Factor_Settings {
 		}
 
 		// Build provider list for display using public core API.
-		$provider_instances = array();
-		if ( class_exists( 'Two_Factor_Core' ) && method_exists( 'Two_Factor_Core', 'get_providers' ) ) {
-			$provider_instances = Two_Factor_Core::get_providers();
-			if ( ! is_array( $provider_instances ) ) {
-				$provider_instances = array();
-			}
+		$provider_instances = Two_Factor_Core::get_providers();
+		if ( ! is_array( $provider_instances ) ) {
+			$provider_instances = array();
 		}
 
 		// Default to all providers enabled when the option has never been saved.
