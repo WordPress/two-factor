@@ -1,0 +1,712 @@
+<?php
+/**
+ * WP-CLI commands for Two-Factor authentication management.
+ *
+ * @package Two_Factor
+ */
+
+/**
+ * Manage two-factor authentication for users.
+ *
+ * All commands target a single, explicitly named user (by ID, login, or email).
+ * On Multisite, user meta is network-global — a reset applies to the user's
+ * account across every site in the network without needing --url.
+ *
+ * @since 0.17.0
+ *
+ * @package Two_Factor
+ */
+class Two_Factor_CLI_Command extends WP_CLI_Command {
+
+	/**
+	 * Maximum number of backup codes that can be generated in one command.
+	 *
+	 * @since 0.17.0
+	 *
+	 * @var int
+	 */
+	const BACKUP_CODES_MAX_GENERATE_COUNT = 100;
+
+	/**
+	 * Resolve a user from an ID, login, or email address.
+	 *
+	 * Resolution order is ID, then login, then email.
+	 *
+	 * @since 0.17.0
+	 *
+	 * @param string $identifier User ID, login, or email.
+	 * @return WP_User|false WP_User on success, false if not found.
+	 */
+	private function resolve_user( $identifier ) {
+		foreach ( array( 'id', 'login', 'email' ) as $field ) {
+			$user = get_user_by( $field, $identifier );
+			if ( $user ) {
+				return $user;
+			}
+		}
+
+		return false;
+	}
+
+	/**
+	 * Destroy all of a user's sessions when their enabled providers changed.
+	 *
+	 * Mirrors the session invalidation the profile-page path performs (see
+	 * Two_Factor_Core::user_two_factor_options_update()) when 2FA settings
+	 * change. A configuration change made out-of-band via the CLI should take
+	 * effect immediately and force any active session to re-authenticate.
+	 *
+	 * @since 0.17.0
+	 *
+	 * @param WP_User $user             Target user.
+	 * @param array   $providers_before Enabled provider keys captured before the change.
+	 */
+	private function destroy_sessions_if_providers_changed( $user, $providers_before ) {
+		$providers_after = Two_Factor_Core::get_enabled_providers_for_user( $user );
+
+		sort( $providers_before );
+		sort( $providers_after );
+
+		if ( $providers_before !== $providers_after ) {
+			WP_Session_Tokens::get_instance( $user->ID )->destroy_all();
+		}
+	}
+
+	/**
+	 * Show two-factor authentication status for a user.
+	 *
+	 * ## OPTIONS
+	 *
+	 * <user>
+	 * : User ID, login, or email.
+	 *
+	 * [--format=<format>]
+	 * : Output format.
+	 * ---
+	 * default: table
+	 * options:
+	 *   - table
+	 *   - json
+	 *   - csv
+	 *   - yaml
+	 * ---
+	 *
+	 * ## EXAMPLES
+	 *
+	 *     # Show 2FA status for "admin"
+	 *     $ wp two-factor status admin
+	 *
+	 *     # Output as JSON
+	 *     $ wp two-factor status 1 --format=json
+	 *
+	 * @since 0.17.0
+	 *
+	 * @param array $args       Positional arguments.
+	 * @param array $assoc_args Associative arguments.
+	 */
+	public function status( $args, $assoc_args ) {
+		$user = $this->resolve_user( $args[0] );
+		if ( ! $user ) {
+			WP_CLI::error(
+				sprintf(
+					/* translators: %s: user identifier */
+					__( 'User not found: %s', 'two-factor' ),
+					$args[0]
+				)
+			);
+		}
+
+		$using_2fa         = Two_Factor_Core::is_user_using_two_factor( $user->ID );
+		$enabled_providers = Two_Factor_Core::get_enabled_providers_for_user( $user );
+		$primary           = Two_Factor_Core::get_primary_provider_for_user( $user->ID );
+
+		$backup_codes_remaining = 0;
+		if ( class_exists( 'Two_Factor_Backup_Codes' ) ) {
+			$backup_codes_remaining = Two_Factor_Backup_Codes::codes_remaining_for_user( $user );
+		}
+
+		$items = array(
+			array(
+				'user_id'                => $user->ID,
+				'user_login'             => $user->user_login,
+				'using_2fa'              => $using_2fa ? 'true' : 'false',
+				'primary_provider'       => $primary ? $primary->get_key() : '',
+				'enabled_providers'      => implode( ', ', $enabled_providers ),
+				'backup_codes_remaining' => $backup_codes_remaining,
+			),
+		);
+
+		$format = WP_CLI\Utils\get_flag_value( $assoc_args, 'format', 'table' );
+		WP_CLI\Utils\format_items(
+			$format,
+			$items,
+			array( 'user_id', 'user_login', 'using_2fa', 'primary_provider', 'enabled_providers', 'backup_codes_remaining' )
+		);
+	}
+
+	/**
+	 * Disable two-factor authentication for a user.
+	 *
+	 * Without a provider argument every factor is disabled and the user is
+	 * returned to a clean, pre-2FA baseline (nonce, lockout timers, and all
+	 * provider secrets are also cleared, and existing sessions are destroyed).
+	 * The compromised-password-reset flag is intentionally preserved so the
+	 * rescued user still sees why their old password stopped working. With a
+	 * provider argument only that single factor is removed and the others are
+	 * left intact.
+	 *
+	 * The command is idempotent: disabling an already-disabled user or provider
+	 * succeeds and makes no changes.
+	 *
+	 * On Multisite, user meta is network-global — this reset affects the user's
+	 * account across every site in the network.
+	 *
+	 * ## OPTIONS
+	 *
+	 * <user>
+	 * : User ID, login, or email.
+	 *
+	 * [<provider>]
+	 * : Provider class name to disable (e.g. Two_Factor_Totp). Omit to disable all.
+	 *
+	 * [--yes]
+	 * : Skip the confirmation prompt.
+	 *
+	 * ## EXAMPLES
+	 *
+	 *     # Fully disable 2FA for a locked-out user (no prompt)
+	 *     $ wp two-factor disable admin --yes
+	 *
+	 *     # Remove only TOTP, leaving backup codes in place
+	 *     $ wp two-factor disable admin Two_Factor_Totp
+	 *
+	 * @since 0.17.0
+	 *
+	 * @param array $args       Positional arguments.
+	 * @param array $assoc_args Associative arguments.
+	 */
+	public function disable( $args, $assoc_args ) {
+		$user = $this->resolve_user( $args[0] );
+		if ( ! $user ) {
+			WP_CLI::error(
+				sprintf(
+					/* translators: %s: user identifier */
+					__( 'User not found: %s', 'two-factor' ),
+					$args[0]
+				)
+			);
+		}
+
+		if ( isset( $args[1] ) ) {
+			$this->disable_single_provider( $user, $args[1], $assoc_args );
+		} else {
+			$this->disable_all_providers( $user, $assoc_args );
+		}
+	}
+
+	/**
+	 * Disable a single 2FA provider for a user.
+	 *
+	 * @param WP_User $user       Target user.
+	 * @param string  $provider   Provider class name.
+	 * @param array   $assoc_args CLI flags.
+	 *
+	 * @since 0.17.0
+	 */
+	private function disable_single_provider( $user, $provider, $assoc_args ) {
+		$enabled = Two_Factor_Core::get_enabled_providers_for_user( $user );
+
+		if ( ! in_array( $provider, $enabled, true ) ) {
+			WP_CLI::success(
+				sprintf(
+					/* translators: 1: provider class name, 2: user login */
+					__( 'Provider %1$s is not enabled for %2$s — no changes made.', 'two-factor' ),
+					$provider,
+					$user->user_login
+				)
+			);
+			return;
+		}
+
+		WP_CLI::confirm(
+			sprintf(
+				/* translators: 1: provider class name, 2: user login */
+				__( 'Disable provider %1$s for user %2$s?', 'two-factor' ),
+				$provider,
+				$user->user_login
+			),
+			$assoc_args
+		);
+
+		if ( Two_Factor_Core::disable_provider_for_user( $user->ID, $provider ) ) {
+			if ( 'Two_Factor_Totp' === $provider ) {
+				$providers = Two_Factor_Core::get_providers();
+				if ( isset( $providers[ $provider ] ) && is_object( $providers[ $provider ] ) && method_exists( $providers[ $provider ], 'delete_user_totp_key' ) ) {
+					$providers[ $provider ]->delete_user_totp_key( $user->ID );
+				}
+			}
+
+			$this->destroy_sessions_if_providers_changed( $user, $enabled );
+
+			WP_CLI::success(
+				sprintf(
+					/* translators: 1: provider class name, 2: user login */
+					__( 'Provider %1$s disabled for user %2$s.', 'two-factor' ),
+					$provider,
+					$user->user_login
+				)
+			);
+		} else {
+			WP_CLI::error(
+				sprintf(
+					/* translators: 1: provider class name, 2: user login */
+					__( 'Could not disable provider %1$s for user %2$s.', 'two-factor' ),
+					$provider,
+					$user->user_login
+				)
+			);
+		}
+	}
+
+	/**
+	 * Disable all 2FA providers and clean up all residual state for a user.
+	 *
+	 * @param WP_User $user       Target user.
+	 * @param array   $assoc_args CLI flags.
+	 *
+	 * @since 0.17.0
+	 */
+	private function disable_all_providers( $user, $assoc_args ) {
+		$enabled = Two_Factor_Core::get_enabled_providers_for_user( $user );
+		$raw     = get_user_meta( $user->ID, Two_Factor_Core::ENABLED_PROVIDERS_USER_META_KEY, true );
+
+		if ( empty( $enabled ) && empty( $raw ) ) {
+			WP_CLI::success(
+				sprintf(
+					/* translators: %s: user login */
+					__( 'Two-factor is already disabled for user %s — no changes made.', 'two-factor' ),
+					$user->user_login
+				)
+			);
+			return;
+		}
+
+		WP_CLI::confirm(
+			sprintf(
+				/* translators: %s: user login */
+				__( 'Disable all two-factor authentication for user %s?', 'two-factor' ),
+				$user->user_login
+			),
+			$assoc_args
+		);
+
+		// Disable each provider through the core API.
+		$disabled = array();
+		foreach ( $enabled as $provider_key ) {
+			Two_Factor_Core::disable_provider_for_user( $user->ID, $provider_key );
+			$disabled[] = $provider_key;
+		}
+
+		// Force-clear the authoritative switches to handle any stale raw meta not
+		// covered by the loop above (e.g. a provider class that no longer exists).
+		delete_user_meta( $user->ID, Two_Factor_Core::ENABLED_PROVIDERS_USER_META_KEY );
+		delete_user_meta( $user->ID, Two_Factor_Core::PROVIDER_USER_META_KEY );
+
+		// Clear login nonce and throttle state.
+		delete_user_meta( $user->ID, Two_Factor_Core::USER_META_NONCE_KEY );
+		Two_Factor_Core::clear_login_rate_limit( $user );
+
+		// Preserve USER_PASSWORD_WAS_RESET_KEY: it records that the password was
+		// reset after a compromise and drives the login notice explaining why the
+		// old password stopped working. That is independent of 2FA configuration
+		// and a rescued user should still see it after a reset.
+
+		// Clear provider-specific secrets for a clean baseline.
+		if ( class_exists( 'Two_Factor_Totp' ) ) {
+			Two_Factor_Totp::get_instance()->delete_user_totp_key( $user->ID );
+			delete_user_meta( $user->ID, Two_Factor_Totp::LAST_SUCCESSFUL_LOGIN_META_KEY );
+		}
+		if ( class_exists( 'Two_Factor_Backup_Codes' ) ) {
+			delete_user_meta( $user->ID, Two_Factor_Backup_Codes::BACKUP_CODES_META_KEY );
+		}
+		if ( class_exists( 'Two_Factor_Email' ) ) {
+			delete_user_meta( $user->ID, Two_Factor_Email::TOKEN_META_KEY );
+			delete_user_meta( $user->ID, Two_Factor_Email::TOKEN_META_KEY_TIMESTAMP );
+		}
+
+		// Guard: assert the fail-closed fallback did not silently re-enable email.
+		$still_available = Two_Factor_Core::get_available_providers_for_user( $user );
+		if ( ! empty( $still_available ) && ! is_wp_error( $still_available ) ) {
+			WP_CLI::error(
+				sprintf(
+					/* translators: %s: user login */
+					__( '2FA is still active for user %s after reset — manual inspection required.', 'two-factor' ),
+					$user->user_login
+				)
+			);
+		}
+
+		// The 2FA configuration changed, so drop every existing session and force
+		// re-authentication, matching the profile-page behaviour.
+		WP_Session_Tokens::get_instance( $user->ID )->destroy_all();
+
+		WP_CLI::success(
+			sprintf(
+				/* translators: 1: comma-separated provider names, 2: user login */
+				__( 'All 2FA disabled for user %2$s (providers removed: %1$s).', 'two-factor' ),
+				$disabled ? implode( ', ', $disabled ) : __( 'none', 'two-factor' ),
+				$user->user_login
+			)
+		);
+	}
+
+	/**
+	 * List all registered two-factor authentication providers.
+	 *
+	 * ## OPTIONS
+	 *
+	 * [--format=<format>]
+	 * : Output format.
+	 * ---
+	 * default: table
+	 * options:
+	 *   - table
+	 *   - json
+	 *   - csv
+	 *   - yaml
+	 * ---
+	 *
+	 * ## EXAMPLES
+	 *
+	 *     $ wp two-factor list-providers
+	 *     $ wp two-factor list-providers --format=json
+	 *
+	 * @subcommand list-providers
+	 *
+	 * @since 0.17.0
+	 *
+	 * @param array $args       Positional arguments.
+	 * @param array $assoc_args Associative arguments.
+	 */
+	public function list_providers( $args, $assoc_args ) {
+		$providers = Two_Factor_Core::get_providers();
+		$items     = array();
+
+		foreach ( $providers as $key => $provider ) {
+			$items[] = array(
+				'class' => $key,
+				'label' => $provider->get_label(),
+			);
+		}
+
+		if ( empty( $items ) ) {
+			WP_CLI::log( __( 'No providers registered.', 'two-factor' ) );
+			return;
+		}
+
+		$format = WP_CLI\Utils\get_flag_value( $assoc_args, 'format', 'table' );
+		WP_CLI\Utils\format_items( $format, $items, array( 'class', 'label' ) );
+	}
+
+	/**
+	 * Enable a two-factor authentication provider for a user.
+	 *
+	 * Fully meaningful for providers that need no pre-shared secret, such as
+	 * Two_Factor_Email. For providers that require a secret (Two_Factor_Totp)
+	 * or generated material (Two_Factor_Backup_Codes) this command refuses with
+	 * a pointer to the appropriate setup command.
+	 *
+	 * ## OPTIONS
+	 *
+	 * <user>
+	 * : User ID, login, or email.
+	 *
+	 * <provider>
+	 * : Provider class name to enable (e.g. Two_Factor_Email).
+	 *
+	 * ## EXAMPLES
+	 *
+	 *     $ wp two-factor enable admin Two_Factor_Email
+	 *
+	 * @since 0.17.0
+	 *
+	 * @param array $args       Positional arguments.
+	 * @param array $assoc_args Associative arguments.
+	 */
+	public function enable( $args, $assoc_args ) {
+		if ( ! isset( $args[1] ) ) {
+			WP_CLI::error( __( 'Usage: wp two-factor enable <user> <provider>', 'two-factor' ) );
+		}
+
+		$user_identifier = $args[0];
+		$provider        = $args[1];
+
+		$user = $this->resolve_user( $user_identifier );
+		if ( ! $user ) {
+			WP_CLI::error(
+				sprintf(
+					/* translators: %s: user identifier */
+					__( 'User not found: %s', 'two-factor' ),
+					$user_identifier
+				)
+			);
+		}
+
+		// TOTP requires a pre-shared secret that cannot be set up from the CLI alone.
+		if ( 'Two_Factor_Totp' === $provider ) {
+			WP_CLI::error(
+				sprintf(
+					/* translators: %s: provider class name */
+					__( 'Provider %s requires a pre-shared secret and cannot be enabled from the CLI. Set it up via the user profile page.', 'two-factor' ),
+					$provider
+				)
+			);
+		}
+
+		// Backup codes must be generated first via the dedicated command.
+		if ( 'Two_Factor_Backup_Codes' === $provider ) {
+			WP_CLI::error(
+				__( 'Use "wp two-factor backup-codes generate <user>" to generate and enable backup codes.', 'two-factor' )
+			);
+		}
+
+		$providers_before = Two_Factor_Core::get_enabled_providers_for_user( $user );
+
+		if ( Two_Factor_Core::enable_provider_for_user( $user->ID, $provider ) ) {
+			$this->destroy_sessions_if_providers_changed( $user, $providers_before );
+
+			WP_CLI::success(
+				sprintf(
+					/* translators: 1: provider class name, 2: user login */
+					__( 'Provider %1$s enabled for user %2$s.', 'two-factor' ),
+					$provider,
+					$user->user_login
+				)
+			);
+		} else {
+			WP_CLI::error(
+				sprintf(
+					/* translators: 1: provider class name, 2: user login */
+					__( 'Could not enable provider %1$s for user %2$s. Is it a registered provider?', 'two-factor' ),
+					$provider,
+					$user->user_login
+				)
+			);
+		}
+	}
+
+	/**
+	 * Manage backup recovery codes for a user.
+	 *
+	 * ## OPTIONS
+	 *
+	 * <action>
+	 * : Action to perform. Supported: generate.
+	 *
+	 * <user>
+	 * : User ID, login, or email.
+	 *
+	 * [--count=<n>]
+	 * : Number of codes to generate. Must be a decimal integer between 1 and 100. Defaults to 10.
+	 *
+	 * [--yes]
+	 * : Skip confirmation when replacing an existing set of backup codes.
+	 *
+	 * ## EXAMPLES
+	 *
+	 *     # Generate 10 backup codes for "admin"
+	 *     $ wp two-factor backup-codes generate admin
+	 *
+	 *     # Generate 5 backup codes
+	 *     $ wp two-factor backup-codes generate admin --count=5
+	 *
+	 *     # Replace an existing set without a prompt
+	 *     $ wp two-factor backup-codes generate admin --count=5 --yes
+	 *
+	 * @subcommand backup-codes
+	 *
+	 * @since 0.17.0
+	 *
+	 * @param array $args       Positional arguments: action, user.
+	 * @param array $assoc_args Associative arguments.
+	 */
+	public function backup_codes( $args, $assoc_args ) {
+		$action = isset( $args[0] ) ? $args[0] : '';
+
+		if ( 'generate' !== $action ) {
+			WP_CLI::error(
+				sprintf(
+					/* translators: %s: provided action */
+					__( 'Unknown action "%s". Use: wp two-factor backup-codes generate <user>', 'two-factor' ),
+					(string) $action
+				)
+			);
+		}
+
+		if ( ! isset( $args[1] ) ) {
+			WP_CLI::error( __( 'Usage: wp two-factor backup-codes generate <user> [--count=<n>] [--yes]', 'two-factor' ) );
+		}
+
+		$user_identifier = $args[1];
+
+		$user = $this->resolve_user( $user_identifier );
+		if ( ! $user ) {
+			WP_CLI::error(
+				sprintf(
+					/* translators: %s: user identifier */
+					__( 'User not found: %s', 'two-factor' ),
+					$user_identifier
+				)
+			);
+		}
+
+		if ( ! class_exists( 'Two_Factor_Backup_Codes' ) ) {
+			WP_CLI::error( __( 'The Two_Factor_Backup_Codes provider is not available.', 'two-factor' ) );
+		}
+
+		$raw_count = WP_CLI\Utils\get_flag_value( $assoc_args, 'count', (string) Two_Factor_Backup_Codes::NUMBER_OF_CODES );
+		if ( ! is_scalar( $raw_count ) ) {
+			WP_CLI::error(
+				sprintf(
+					/* translators: 1: provided count, 2: maximum allowed count */
+					__( 'Invalid value for --count: %1$s. It must be a decimal integer between 1 and %2$d.', 'two-factor' ),
+					wp_json_encode( $raw_count ),
+					self::BACKUP_CODES_MAX_GENERATE_COUNT
+				)
+			);
+		}
+
+		$raw_count = trim( (string) $raw_count );
+		if ( '' === $raw_count || ! preg_match( '/^\d+$/', $raw_count ) ) {
+			WP_CLI::error(
+				sprintf(
+					/* translators: 1: provided count, 2: maximum allowed count */
+					__( 'Invalid value for --count: %1$s. It must be a decimal integer between 1 and %2$d.', 'two-factor' ),
+					$raw_count,
+					self::BACKUP_CODES_MAX_GENERATE_COUNT
+				)
+			);
+		}
+
+		$count = (int) $raw_count;
+		if ( $count < 1 || $count > self::BACKUP_CODES_MAX_GENERATE_COUNT ) {
+			WP_CLI::error(
+				sprintf(
+					/* translators: 1: provided count, 2: maximum allowed count */
+					__( 'Invalid value for --count: %1$d. It must be a decimal integer between 1 and %2$d.', 'two-factor' ),
+					$count,
+					self::BACKUP_CODES_MAX_GENERATE_COUNT
+				)
+			);
+		}
+
+		$existing_codes     = get_user_meta( $user->ID, Two_Factor_Backup_Codes::BACKUP_CODES_META_KEY, true );
+		$has_existing_codes = is_array( $existing_codes ) && ! empty( $existing_codes );
+		if ( $has_existing_codes ) {
+			WP_CLI::confirm(
+				sprintf(
+					/* translators: 1: user login, 2: number of existing codes */
+					__( 'User %1$s already has %2$d backup codes. Regenerating will invalidate all existing backup codes. Continue?', 'two-factor' ),
+					$user->user_login,
+					count( $existing_codes )
+				),
+				$assoc_args
+			);
+		}
+
+		$codes = Two_Factor_Backup_Codes::get_instance()->generate_codes(
+			$user,
+			array(
+				'number' => $count,
+				'method' => 'replace',
+			)
+		);
+
+		// Enable the provider so the codes are actually usable at login, mirroring
+		// rest_generate_codes(). Without this the codes are stored but the provider
+		// is never offered, so the user is rejected at the 2FA step.
+		$providers_before = Two_Factor_Core::get_enabled_providers_for_user( $user );
+		if ( ! Two_Factor_Core::enable_provider_for_user( $user->ID, 'Two_Factor_Backup_Codes' ) ) {
+			WP_CLI::error(
+				sprintf(
+					/* translators: %s: user login */
+					__( 'Backup codes were generated but the provider could not be enabled for user %s.', 'two-factor' ),
+					$user->user_login
+				)
+			);
+		}
+		$this->destroy_sessions_if_providers_changed( $user, $providers_before );
+
+		WP_CLI::log(
+			sprintf(
+				/* translators: 1: number of codes, 2: user login */
+				__( 'Generated %1$d backup codes for %2$s. Store these somewhere safe — they will not be shown again:', 'two-factor' ),
+				count( $codes ),
+				$user->user_login
+			)
+		);
+
+		foreach ( $codes as $code ) {
+			WP_CLI::log( '  ' . $code );
+		}
+
+		WP_CLI::success( __( 'Backup codes generated and stored (existing codes replaced).', 'two-factor' ) );
+	}
+
+	/**
+	 * Clear the login throttle for a user without modifying their 2FA setup.
+	 *
+	 * Use this when a user has been temporarily locked out by too many bad codes
+	 * but still has their authenticator device available. For a full reset use
+	 * "wp two-factor disable <user>".
+	 *
+	 * ## OPTIONS
+	 *
+	 * <user>
+	 * : User ID, login, or email.
+	 *
+	 * ## EXAMPLES
+	 *
+	 *     $ wp two-factor unlock admin
+	 *
+	 * @since 0.17.0
+	 *
+	 * @param array $args       Positional arguments.
+	 * @param array $assoc_args Associative arguments.
+	 */
+	public function unlock( $args, $assoc_args ) {
+		$user_identifier = $args[0];
+
+		$user = $this->resolve_user( $user_identifier );
+		if ( ! $user ) {
+			WP_CLI::error(
+				sprintf(
+					/* translators: %s: user identifier */
+					__( 'User not found: %s', 'two-factor' ),
+					$user_identifier
+				)
+			);
+		}
+
+		$was_limited = Two_Factor_Core::is_user_rate_limited( $user );
+		Two_Factor_Core::clear_login_rate_limit( $user );
+
+		if ( $was_limited ) {
+			WP_CLI::success(
+				sprintf(
+					/* translators: %s: user login */
+					__( 'Login throttle cleared for user %s.', 'two-factor' ),
+					$user->user_login
+				)
+			);
+		} else {
+			WP_CLI::success(
+				sprintf(
+					/* translators: %s: user login */
+					__( 'User %s was not rate-limited — no changes made.', 'two-factor' ),
+					$user->user_login
+				)
+			);
+		}
+	}
+}
