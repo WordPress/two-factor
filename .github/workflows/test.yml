@@ -1,6 +1,16 @@
 name: Test
 
-on: [push, pull_request]
+# Pushing to a branch that has an open PR previously triggered this workflow twice: once
+# for `push` and once for `pull_request`. The concurrency group below cannot collapse the
+# pair, because it deliberately keys pull requests on the branch name and everything else
+# on the commit hash, putting the two runs in different groups. Limiting `push` to the
+# default branch leaves pull requests covered by the `pull_request` event alone, while
+# still running the suite on merges to master.
+on:
+    push:
+        branches:
+            - master
+    pull_request:
 
 # Cancels all previous workflow runs for pull requests that have not completed.
 concurrency:
@@ -79,15 +89,30 @@ jobs:
         permissions:
           contents: read # Required to clone the repo.
         strategy:
+            # One broken leg should not cancel the rest of the matrix and hide every
+            # other result.
+            fail-fast: false
             matrix:
+                # PHP 7.4 and 8.0 cannot be run here any more. wp-env builds from
+                # `wordpress:php<version>`, and those two tags were last rebuilt in 2022
+                # and 2023 respectively, permanently pinned to Debian bullseye. Bullseye
+                # LTS ended 2026-08-31, so its security Release file is now expired and
+                # the `apt-get -qy update` in wp-env's generated Dockerfile exits 100
+                # before a single test runs. No bookworm image exists for either version,
+                # and wp-env hardcodes both the base image and that apt call, so there is
+                # nothing to configure our way out of.
+                #
+                # NOTE: PHP 7.4 is still this plugin's declared minimum ("Requires PHP" in
+                # two-factor.php, `>=7.4` in composer.json). It remains covered statically
+                # by PHPCompatibilityWP via `testVersion 7.4-` in phpcs.xml.dist, but it
+                # is no longer exercised at runtime. 8.1 is now the lowest version we
+                # actually run the suite against.
                 php:
                   - '8.5'
                   - '8.4'
                   - '8.3'
                   - '8.2'
                   - '8.1'
-                  - '8.0'
-                  - '7.4'
                 wp:
                   - latest
                   - wordpress/wordpress
