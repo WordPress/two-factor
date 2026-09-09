@@ -532,7 +532,7 @@ class Two_Factor_Totp extends Two_Factor_Provider {
 	 * @since 0.8.0
 	 *
 	 * @param WP_User $user WP_User object of the logged-in user.
-	 * @param int     $code The TOTP token to validate.
+	 * @param string  $code The TOTP token to validate.
 	 *
 	 * @return bool Whether the code is valid for the user and a newer code has not been used.
 	 */
@@ -643,7 +643,7 @@ class Two_Factor_Totp extends Two_Factor_Provider {
 	 */
 	public static function generate_key( $bitsize = self::DEFAULT_KEY_BIT_SIZE ) {
 		$bytes  = ceil( $bitsize / 8 );
-		$secret = wp_generate_password( $bytes, true, true );
+		$secret = wp_generate_password( (int) $bytes, true, true );
 
 		return self::base32_encode( $secret );
 	}
@@ -745,7 +745,7 @@ class Two_Factor_Totp extends Two_Factor_Provider {
 				( ord( $hash[ $offset + 3 ] ) & 0xff )
 			) % pow( 10, $digits );
 
-		return str_pad( $code, $digits, '0', STR_PAD_LEFT );
+		return str_pad( (string) $code, $digits, '0', STR_PAD_LEFT );
 	}
 
 	/**
@@ -789,7 +789,7 @@ class Two_Factor_Totp extends Two_Factor_Provider {
 		?>
 		<p>
 			<label for="authcode"><?php esc_html_e( 'Authentication Code:', 'two-factor' ); ?></label>
-			<input type="text" inputmode="numeric" name="authcode" id="authcode" class="input authcode" value="" size="20" pattern="[0-9 ]*" placeholder="123 456" autocomplete="one-time-code" data-digits="<?php echo esc_attr( self::DEFAULT_DIGIT_COUNT ); ?>" />
+			<input type="text" inputmode="numeric" name="authcode" id="authcode" class="input authcode" value="" size="20" pattern="[0-9 ]*" placeholder="123 456" autocomplete="one-time-code" data-digits="<?php echo esc_attr( (string) self::DEFAULT_DIGIT_COUNT ); ?>" />
 		</p>
 		<?php
 		/** This action is documented in providers/class-two-factor-backup-codes.php */
@@ -818,7 +818,7 @@ class Two_Factor_Totp extends Two_Factor_Provider {
 		$binary_string = '';
 
 		foreach ( str_split( $input ) as $character ) {
-			$binary_string .= str_pad( base_convert( ord( $character ), 10, 2 ), 8, '0', STR_PAD_LEFT );
+			$binary_string .= str_pad( base_convert( (string) ord( $character ), 10, 2 ), 8, '0', STR_PAD_LEFT );
 		}
 
 		$five_bit_sections = str_split( $binary_string, 5 );
