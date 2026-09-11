@@ -202,6 +202,33 @@ class Tests_Two_Factor_Backup_Codes extends WP_UnitTestCase {
 	}
 
 	/**
+	 * Verify appending codes for a user with no existing codes does not store an empty entry.
+	 *
+	 * @covers Two_Factor_Backup_Codes::generate_codes
+	 * @covers Two_Factor_Backup_Codes::codes_remaining_for_user
+	 */
+	public function test_generate_codes_append_with_no_existing_codes() {
+		$user = new WP_User( self::factory()->user->create() );
+
+		$codes = $this->provider->generate_codes(
+			$user,
+			array(
+				'number' => Two_Factor_Backup_Codes::NUMBER_OF_CODES,
+				'method' => 'append',
+			)
+		);
+
+		$this->assertCount( Two_Factor_Backup_Codes::NUMBER_OF_CODES, $codes );
+
+		$backup_codes = get_user_meta( $user->ID, Two_Factor_Backup_Codes::BACKUP_CODES_META_KEY, true );
+
+		$this->assertIsArray( $backup_codes );
+		$this->assertCount( Two_Factor_Backup_Codes::NUMBER_OF_CODES, $backup_codes );
+		$this->assertNotContains( '', $backup_codes );
+		$this->assertEquals( Two_Factor_Backup_Codes::NUMBER_OF_CODES, $this->provider->codes_remaining_for_user( $user ) );
+	}
+
+	/**
 	 * Test backup code length filter.
 	 */
 	public function test_backup_code_length_filter() {
