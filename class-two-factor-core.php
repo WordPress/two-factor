@@ -1377,6 +1377,19 @@ class Two_Factor_Core {
 			return false;
 		}
 
+		/*
+		 * An expired nonce can never succeed again, whatever was presented alongside it,
+		 * so clear it before looking at the key. Deleting it here is not destructive --
+		 * it was already dead -- and it keeps abandoned logins from leaving dead weight
+		 * in usermeta until the user's next password success overwrites it.
+		 */
+		if ( time() >= $login_nonce['expiration'] ) {
+			self::log_login_nonce_failure( $user_id, 'expired' );
+			self::delete_login_nonce( $user_id );
+
+			return false;
+		}
+
 		$unverified_nonce = array(
 			'user_id'    => $user_id,
 			'expiration' => $login_nonce['expiration'],
@@ -1384,16 +1397,19 @@ class Two_Factor_Core {
 		);
 
 		$unverified_hash = self::hash_login_nonce( $unverified_nonce );
-		$hashes_match    = $unverified_hash && hash_equals( $login_nonce['key'], $unverified_hash );
 
-		if ( $hashes_match && time() < $login_nonce['expiration'] ) {
+		if ( $unverified_hash && hash_equals( $login_nonce['key'], $unverified_hash ) ) {
 			return true;
 		}
 
-		self::log_login_nonce_failure( $user_id, $hashes_match ? 'expired' : 'mismatch' );
-
-		// Require a fresh nonce if verification fails.
-		self::delete_login_nonce( $user_id );
+		/*
+		 * A value we never issued, presented against a nonce that is still live. Leave it
+		 * in place: discarding it would let an unauthenticated request end someone else's
+		 * in-progress login, and it buys no brute-force resistance -- the key is 256 bits
+		 * of random_bytes(), and a failed second factor rotates it in
+		 * validate_login_form_2fa() regardless.
+		 */
+		self::log_login_nonce_failure( $user_id, 'mismatch' );
 
 		return false;
 	}
