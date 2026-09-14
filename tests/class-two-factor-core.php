@@ -782,9 +782,11 @@ class Test_ClassTwoFactorCore extends WP_UnitTestCase {
 			}
 		}
 
-		$this->assertFalse( Two_Factor_Core::verify_login_nonce( $user_id, $key ) );
-
-		remove_action( 'two_factor_login_nonce_failed', $recorder, 10 );
+		try {
+			$this->assertFalse( Two_Factor_Core::verify_login_nonce( $user_id, $key ) );
+		} finally {
+			remove_action( 'two_factor_login_nonce_failed', $recorder, 10 );
+		}
 
 		$this->assertSame(
 			array( array( $user_id, $expected_reason ) ),
@@ -841,10 +843,13 @@ class Test_ClassTwoFactorCore extends WP_UnitTestCase {
 		remove_filter( 'two_factor_log_login_nonce_failures', '__return_false' );
 		add_filter( 'two_factor_log_login_nonce_failures', $recorder, 10, 3 );
 
-		$this->assertFalse( Two_Factor_Core::verify_login_nonce( $user_id, $nonce ) );
-
-		remove_filter( 'two_factor_log_login_nonce_failures', $recorder, 10 );
-		add_filter( 'two_factor_log_login_nonce_failures', '__return_false' );
+		try {
+			$this->assertFalse( Two_Factor_Core::verify_login_nonce( $user_id, $nonce ) );
+		} finally {
+			// Always put the suppression back, or a failure here spills into later tests.
+			remove_filter( 'two_factor_log_login_nonce_failures', $recorder, 10 );
+			add_filter( 'two_factor_log_login_nonce_failures', '__return_false' );
+		}
 
 		$this->assertSame(
 			array( array( $expected_default, $user_id, $reason ) ),
@@ -882,9 +887,11 @@ class Test_ClassTwoFactorCore extends WP_UnitTestCase {
 
 		add_action( 'two_factor_login_nonce_failed', $recorder );
 
-		$this->assertTrue( Two_Factor_Core::verify_login_nonce( $user_id, $nonce['key'] ) );
-
-		remove_action( 'two_factor_login_nonce_failed', $recorder );
+		try {
+			$this->assertTrue( Two_Factor_Core::verify_login_nonce( $user_id, $nonce['key'] ) );
+		} finally {
+			remove_action( 'two_factor_login_nonce_failed', $recorder );
+		}
 
 		$this->assertFalse( $fired, 'The failure action does not fire on a successful verification' );
 	}
