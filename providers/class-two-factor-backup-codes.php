@@ -358,8 +358,18 @@ class Two_Factor_Backup_Codes extends Two_Factor_Provider {
 		$title = sprintf(
 			/* translators: %s: the site's domain */
 			__( 'Two-Factor Recovery Codes for %s', 'two-factor' ),
-			home_url( '/' )
+			wp_parse_url( home_url(), PHP_URL_HOST )
 		);
+
+		/**
+		 * Filters the title in the backup codes download file.
+		 *
+		 * @since 0.17.0
+		 *
+		 * @param string  $title Title for the backup codes download file.
+		 * @param WP_User $user  User for whom the backup codes were generated.
+		 */
+		$title = apply_filters( 'two_factor_backup_codes_download_title', $title, $user );
 
 		// Generate download content.
 		$download_link  = 'data:application/text;charset=utf-8,';
