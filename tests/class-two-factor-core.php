@@ -701,17 +701,51 @@ class Test_ClassTwoFactorCore extends WP_UnitTestCase {
 		);
 
 		// Must create a new one since incorrect nonces deletes them.
-		$nonce = Two_Factor_Core::create_login_nonce( $user_id );
-
-		// Mark the nonce as expired.
-		$nonce_in_meta               = get_user_meta( $user_id, Two_Factor_Core::USER_META_NONCE_KEY, true );
-		$nonce_in_meta['expiration'] = time() - 1;
-		update_user_meta( $user_id, Two_Factor_Core::USER_META_NONCE_KEY, $nonce_in_meta );
+		$nonce = $this->create_expired_login_nonce( $user_id );
 
 		$this->assertFalse(
 			Two_Factor_Core::verify_login_nonce( $user_id, $nonce['key'] ),
 			'Expired nonce is invalid'
 		);
+	}
+
+	/**
+	 * Create a login nonce for a user that has already expired.
+	 *
+	 * The stored hash covers the expiration, so moving the expiration into the past in
+	 * usermeta invalidates the hash and produces a mismatch rather than an expiry. Hash
+	 * the new expiration too, so the nonce is genuinely expired and still recognizably
+	 * one we issued.
+	 *
+	 * @param int $user_id The user to create the nonce for.
+	 * @return array The plaintext nonce, in the shape create_login_nonce() returns.
+	 */
+	private function create_expired_login_nonce( $user_id ) {
+		$nonce      = Two_Factor_Core::create_login_nonce( $user_id );
+		$expiration = time() - 1;
+
+		$hash_login_nonce = new ReflectionMethod( Two_Factor_Core::class, 'hash_login_nonce' );
+		$hash_login_nonce->setAccessible( true );
+
+		update_user_meta(
+			$user_id,
+			Two_Factor_Core::USER_META_NONCE_KEY,
+			array(
+				'expiration' => $expiration,
+				'key'        => $hash_login_nonce->invoke(
+					null,
+					array(
+						'user_id'    => $user_id,
+						'expiration' => $expiration,
+						'key'        => $nonce['key'],
+					)
+				),
+			)
+		);
+
+		$nonce['expiration'] = $expiration;
+
+		return $nonce;
 	}
 
 	/**
@@ -739,16 +773,12 @@ class Test_ClassTwoFactorCore extends WP_UnitTestCase {
 		$key = 'not-a-real-nonce';
 
 		if ( $create_nonce ) {
-			$nonce = Two_Factor_Core::create_login_nonce( $user_id );
+			$nonce = $expire_nonce
+				? $this->create_expired_login_nonce( $user_id )
+				: Two_Factor_Core::create_login_nonce( $user_id );
 
 			if ( $send_valid_key ) {
 				$key = $nonce['key'];
-			}
-
-			if ( $expire_nonce ) {
-				$stored               = get_user_meta( $user_id, Two_Factor_Core::USER_META_NONCE_KEY, true );
-				$stored['expiration'] = time() - 1;
-				update_user_meta( $user_id, Two_Factor_Core::USER_META_NONCE_KEY, $stored );
 			}
 		}
 
@@ -795,16 +825,10 @@ class Test_ClassTwoFactorCore extends WP_UnitTestCase {
 		$args    = array();
 		$nonce   = 'not-a-real-nonce';
 
-		if ( 'no_nonce_stored' !== $reason ) {
-			$created = Two_Factor_Core::create_login_nonce( $user_id );
-
-			if ( 'expired' === $reason ) {
-				$nonce = $created['key'];
-
-				$stored               = get_user_meta( $user_id, Two_Factor_Core::USER_META_NONCE_KEY, true );
-				$stored['expiration'] = time() - 1;
-				update_user_meta( $user_id, Two_Factor_Core::USER_META_NONCE_KEY, $stored );
-			}
+		if ( 'expired' === $reason ) {
+			$nonce = $this->create_expired_login_nonce( $user_id )['key'];
+		} elseif ( 'mismatch' === $reason ) {
+			Two_Factor_Core::create_login_nonce( $user_id );
 		}
 
 		$recorder = function ( $log, $logged_user_id, $logged_reason ) use ( &$args ) {
