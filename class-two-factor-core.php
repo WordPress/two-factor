@@ -1432,20 +1432,32 @@ class Two_Factor_Core {
 		 */
 		do_action( 'two_factor_login_nonce_failed', $user_id, $reason );
 
-		/**
-		 * Filters whether failed login nonce verifications are written to the PHP error log.
+		/*
+		 * Only 'expired' and 'mismatch' are written to the error log. Both require a nonce
+		 * to already be stored for the user, which only happens after a successful password
+		 * check, so their volume is bounded by real login activity.
 		 *
-		 * These are written unconditionally so that the failures are visible without any
-		 * configuration. Sites that would rather not carry the log volume, or that handle
-		 * the `two_factor_login_nonce_failed` action themselves, can return false here.
+		 * 'no_nonce_stored' is not. Any unauthenticated request carrying a guessed user ID
+		 * reaches it, so logging it by default would hand anyone an unbounded write to the
+		 * error log -- and it is the least informative of the three, firing for every stale
+		 * bookmark and resubmitted form. Sites that want it can opt in via the filter below.
+		 */
+		$log_by_default = in_array( $reason, array( 'expired', 'mismatch' ), true );
+
+		/**
+		 * Filters whether a failed login nonce verification is written to the PHP error log.
+		 *
+		 * Defaults to true for 'expired' and 'mismatch', and false for 'no_nonce_stored'.
+		 * Sites that would rather not carry the log volume, or that handle the
+		 * `two_factor_login_nonce_failed` action themselves, can return false for everything.
 		 *
 		 * @since 0.17.0
 		 *
-		 * @param bool   $log     Whether to write the failure to the error log. Default true.
+		 * @param bool   $log     Whether to write this failure to the error log.
 		 * @param int    $user_id The user ID the nonce was presented for.
 		 * @param string $reason  One of 'no_nonce_stored', 'expired', or 'mismatch'.
 		 */
-		if ( ! apply_filters( 'two_factor_log_login_nonce_failures', true, $user_id, $reason ) ) {
+		if ( ! apply_filters( 'two_factor_log_login_nonce_failures', $log_by_default, $user_id, $reason ) ) {
 			return;
 		}
 

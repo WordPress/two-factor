@@ -779,14 +779,36 @@ class Test_ClassTwoFactorCore extends WP_UnitTestCase {
 	/**
 	 * Error log output for failed nonces can be turned off, and is passed the context.
 	 *
+	 * The incoming value differs by reason: 'expired' and 'mismatch' both require a stored
+	 * nonce, so they are bounded by real logins and default to true. 'no_nonce_stored' is
+	 * reachable by any unauthenticated request and defaults to false.
+	 *
+	 * @dataProvider data_login_nonce_failure_log_defaults
+	 *
 	 * @covers Two_Factor_Core::log_login_nonce_failure()
+	 *
+	 * @param string $reason           The expected failure reason.
+	 * @param bool   $expected_default The expected incoming filter value.
 	 */
-	public function test_login_nonce_failure_logging_can_be_filtered() {
+	public function test_login_nonce_failure_logging_can_be_filtered( $reason, $expected_default ) {
 		$user_id = self::factory()->user->create();
 		$args    = array();
+		$nonce   = 'not-a-real-nonce';
 
-		$recorder = function ( $log, $logged_user_id, $reason ) use ( &$args ) {
-			$args[] = array( $log, $logged_user_id, $reason );
+		if ( 'no_nonce_stored' !== $reason ) {
+			$created = Two_Factor_Core::create_login_nonce( $user_id );
+
+			if ( 'expired' === $reason ) {
+				$nonce = $created['key'];
+
+				$stored               = get_user_meta( $user_id, Two_Factor_Core::USER_META_NONCE_KEY, true );
+				$stored['expiration'] = time() - 1;
+				update_user_meta( $user_id, Two_Factor_Core::USER_META_NONCE_KEY, $stored );
+			}
+		}
+
+		$recorder = function ( $log, $logged_user_id, $logged_reason ) use ( &$args ) {
+			$args[] = array( $log, $logged_user_id, $logged_reason );
 
 			return false;
 		};
@@ -795,15 +817,28 @@ class Test_ClassTwoFactorCore extends WP_UnitTestCase {
 		remove_filter( 'two_factor_log_login_nonce_failures', '__return_false' );
 		add_filter( 'two_factor_log_login_nonce_failures', $recorder, 10, 3 );
 
-		$this->assertFalse( Two_Factor_Core::verify_login_nonce( $user_id, 'not-a-real-nonce' ) );
+		$this->assertFalse( Two_Factor_Core::verify_login_nonce( $user_id, $nonce ) );
 
 		remove_filter( 'two_factor_log_login_nonce_failures', $recorder, 10 );
 		add_filter( 'two_factor_log_login_nonce_failures', '__return_false' );
 
 		$this->assertSame(
-			array( array( true, $user_id, 'no_nonce_stored' ) ),
+			array( array( $expected_default, $user_id, $reason ) ),
 			$args,
-			'The filter receives the incoming value plus the user and reason'
+			'The filter receives the per-reason default plus the user and reason'
+		);
+	}
+
+	/**
+	 * Data provider for the per-reason error log defaults.
+	 *
+	 * @return array
+	 */
+	public function data_login_nonce_failure_log_defaults() {
+		return array(
+			'nothing stored'  => array( 'no_nonce_stored', false ),
+			'wrong value'     => array( 'mismatch', true ),
+			'past expiration' => array( 'expired', true ),
 		);
 	}
 
