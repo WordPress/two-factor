@@ -262,11 +262,13 @@ class Two_Factor_Email extends Two_Factor_Provider {
 	 * @return string|null
 	 */
 	private function get_client_ip() {
-		if ( ! empty( $_SERVER['REMOTE_ADDR'] ) ) { // phpcs:ignore WordPressVIPMinimum.Variables.ServerVariables.UserControlledHeaders -- don't have more reliable option for now.
-			return preg_replace( '/[^0-9a-fA-F:., ]/', '', wp_unslash( $_SERVER['REMOTE_ADDR'] ) ); // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized, WordPressVIPMinimum.Variables.ServerVariables.UserControlledHeaders, WordPressVIPMinimum.Variables.RestrictedVariables.cache_constraints___SERVER__REMOTE_ADDR__ -- we're limiting the allowed characters.
+		if ( empty( $_SERVER['REMOTE_ADDR'] ) ) { // phpcs:ignore WordPressVIPMinimum.Variables.ServerVariables.UserControlledHeaders -- don't have more reliable option for now.
+			return null;
 		}
 
-		return null;
+		$remote_addr = filter_var( wp_unslash( $_SERVER['REMOTE_ADDR'] ), FILTER_VALIDATE_IP ); // phpcs:ignore WordPressVIPMinimum.Variables.ServerVariables.UserControlledHeaders, WordPressVIPMinimum.Variables.RestrictedVariables.cache_constraints___SERVER__REMOTE_ADDR__ -- Validated as an IP; informational only, not used for caching or authorization.
+
+		return $remote_addr ? $remote_addr : null;
 	}
 
 	/**
