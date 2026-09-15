@@ -469,7 +469,7 @@ class Two_Factor_Totp extends Two_Factor_Provider {
 	 * @param int    $user_id User ID.
 	 * @param string $key TOTP secret key.
 	 *
-	 * @return boolean If the key was stored successfully.
+	 * @return int|bool Meta ID if the key did not exist, true on update, false on failure.
 	 */
 	public function set_user_totp_key( $user_id, $key ) {
 		return update_user_meta( $user_id, self::SECRET_META_KEY, $key );
