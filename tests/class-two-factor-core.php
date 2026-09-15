@@ -700,7 +700,6 @@ class Test_ClassTwoFactorCore extends WP_UnitTestCase {
 			'Invalid nonce is invalid'
 		);
 
-		// Must create a new one since incorrect nonces deletes them.
 		$nonce = $this->create_expired_login_nonce( $user_id );
 
 		$this->assertFalse(
@@ -802,9 +801,10 @@ class Test_ClassTwoFactorCore extends WP_UnitTestCase {
 	 */
 	public function data_login_nonce_failure_reasons() {
 		return array(
-			'no pending login' => array( 'no_nonce_stored', false, false, false ),
-			'wrong value'      => array( 'mismatch', true, false, false ),
-			'past expiration'  => array( 'expired', true, true, true ),
+			'no pending login'           => array( 'no_nonce_stored', false, false, false ),
+			'wrong value'                => array( 'mismatch', true, false, false ),
+			'past expiration'            => array( 'expired', true, true, true ),
+			'past expiration, any value' => array( 'expired', true, true, false ),
 		);
 	}
 
@@ -897,11 +897,14 @@ class Test_ClassTwoFactorCore extends WP_UnitTestCase {
 	}
 
 	/**
-	 * Invalid nonce deletes the valid nonce.
+	 * An unrecognized nonce leaves the pending nonce intact.
+	 *
+	 * Discarding it would let an unauthenticated request end another user's in-progress
+	 * login, and it buys no brute-force resistance against a 256-bit key.
 	 *
 	 * @covers Two_Factor_Core::verify_login_nonce()
 	 */
-	public function test_invalid_nonce_deletes_valid_nonce() {
+	public function test_invalid_nonce_preserves_valid_nonce() {
 		$user_id = 123456;
 		$nonce   = Two_Factor_Core::create_login_nonce( $user_id );
 
@@ -910,9 +913,50 @@ class Test_ClassTwoFactorCore extends WP_UnitTestCase {
 			'Invalid nonce is invalid'
 		);
 
+		$this->assertNotEmpty(
+			get_user_meta( $user_id, Two_Factor_Core::USER_META_NONCE_KEY, true ),
+			'The pending nonce survives an unrecognized value'
+		);
+
+		$this->assertTrue(
+			Two_Factor_Core::verify_login_nonce( $user_id, $nonce['key'] ),
+			'The correct nonce is still accepted after an invalid one has been attempted'
+		);
+	}
+
+	/**
+	 * An expired nonce is cleared out of usermeta.
+	 *
+	 * Unlike an unrecognized value, an expired nonce can never succeed again, so there
+	 * is nothing to preserve.
+	 *
+	 * @covers Two_Factor_Core::verify_login_nonce()
+	 */
+	public function test_expired_nonce_is_deleted() {
+		$user_id = 123456;
+		$nonce   = $this->create_expired_login_nonce( $user_id );
+
 		$this->assertFalse(
 			Two_Factor_Core::verify_login_nonce( $user_id, $nonce['key'] ),
-			'The correct nonce is not accepted after an invalid has been attempted'
+			'Expired nonce is invalid'
+		);
+
+		$this->assertEmpty(
+			get_user_meta( $user_id, Two_Factor_Core::USER_META_NONCE_KEY, true ),
+			'Expired nonce is removed from usermeta'
+		);
+
+		// Cleanup must not depend on the caller knowing the key.
+		$this->create_expired_login_nonce( $user_id );
+
+		$this->assertFalse(
+			Two_Factor_Core::verify_login_nonce( $user_id, 'not-a-real-nonce' ),
+			'Expired nonce is invalid whatever is presented'
+		);
+
+		$this->assertEmpty(
+			get_user_meta( $user_id, Two_Factor_Core::USER_META_NONCE_KEY, true ),
+			'Expired nonce is removed even when the presented key is wrong'
 		);
 	}
 
