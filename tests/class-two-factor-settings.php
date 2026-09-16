@@ -49,6 +49,8 @@ class Tests_Two_Factor_Settings extends WP_UnitTestCase {
 		unset( $_POST['two_factor_enabled_providers'] );
 		unset( $_REQUEST['two_factor_settings_nonce'] );
 		unset( $_REQUEST['_wp_http_referer'] );
+		unset( $GLOBALS['pagenow'] );
+		set_current_screen( 'front' );
 	}
 
 	/**
@@ -60,7 +62,8 @@ class Tests_Two_Factor_Settings extends WP_UnitTestCase {
 		$admin = self::factory()->user->create_and_get( array( 'role' => 'administrator' ) );
 		wp_set_current_user( $admin->ID );
 		set_current_screen( 'options-general' );
-		$_GET['page'] = 'two-factor-settings';
+		$_GET['page']       = 'two-factor-settings';
+		$GLOBALS['pagenow'] = 'options-general.php';
 
 		return $admin;
 	}
@@ -385,6 +388,27 @@ class Tests_Two_Factor_Settings extends WP_UnitTestCase {
 	 */
 	public function test_filter_enabled_providers_not_bypassed_outside_admin() {
 		$_GET['page'] = 'two-factor-settings';
+		update_option( Two_Factor_Core::ENABLED_PROVIDERS_OPTION_KEY, array( 'Two_Factor_Email' ) );
+
+		$result = two_factor_filter_enabled_providers( $this->sample_provider_map() );
+
+		$this->assertSame(
+			array( 'Two_Factor_Email' => '/path/email.php' ),
+			$result
+		);
+	}
+
+	/**
+	 * Bypass is restricted to the settings screen: spoofing the page query arg on profile screens still filters.
+	 *
+	 * @covers ::two_factor_filter_enabled_providers
+	 */
+	public function test_filter_enabled_providers_not_bypassed_on_profile_screen() {
+		$admin = self::factory()->user->create_and_get( array( 'role' => 'administrator' ) );
+		wp_set_current_user( $admin->ID );
+		set_current_screen( 'profile' );
+		$_GET['page']       = 'two-factor-settings';
+		$GLOBALS['pagenow'] = 'profile.php';
 		update_option( Two_Factor_Core::ENABLED_PROVIDERS_OPTION_KEY, array( 'Two_Factor_Email' ) );
 
 		$result = two_factor_filter_enabled_providers( $this->sample_provider_map() );
