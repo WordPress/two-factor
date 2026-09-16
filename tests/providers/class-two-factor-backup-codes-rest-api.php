@@ -88,6 +88,36 @@ class Tests_Two_Factor_Backup_Codes_REST_API extends WP_Test_REST_TestCase {
 		$this->assertCount( 10, $data['codes'] );
 		$this->assertTrue( self::$provider->validate_code( wp_get_current_user(), $data['codes'][0] ) );
 		$this->assertStringContainsString( $data['codes'][0], $data['download_link'] );
+		$this->assertStringContainsString( 'Two-Factor Recovery Codes for example.org', rawurldecode( $data['download_link'] ) );
+		$this->assertStringNotContainsString( home_url(), rawurldecode( $data['download_link'] ) );
+	}
+
+	/**
+	 * Verify that the download title can be filtered.
+	 *
+	 * @covers Two_Factor_Backup_Codes::rest_generate_codes
+	 */
+	public function test_download_file_title_can_be_filtered() {
+		wp_set_current_user( self::$admin_id );
+		$filter = static function () {
+			return 'Custom recovery codes title';
+		};
+		add_filter( 'two_factor_backup_codes_download_title', $filter );
+
+		$request = new WP_REST_Request( 'POST', '/' . Two_Factor_Core::REST_NAMESPACE . '/generate-backup-codes' );
+		$request->set_body_params(
+			array(
+				'user_id' => self::$admin_id,
+			)
+		);
+
+		$response = rest_do_request( $request );
+		$data     = $response->get_data();
+
+		remove_filter( 'two_factor_backup_codes_download_title', $filter );
+
+		$this->assertEquals( 200, $response->get_status() );
+		$this->assertStringContainsString( 'Custom recovery codes title', rawurldecode( $data['download_link'] ) );
 	}
 
 	/**
