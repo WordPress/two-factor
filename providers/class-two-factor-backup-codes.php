@@ -240,7 +240,7 @@ class Two_Factor_Backup_Codes extends Two_Factor_Provider {
 		$count = self::codes_remaining_for_user( $user );
 		?>
 		<div id="two-factor-backup-codes">
-			<p class="two-factor-backup-codes-count">
+			<p class="description two-factor-backup-codes-count">
 			<?php
 				echo esc_html(
 					sprintf(

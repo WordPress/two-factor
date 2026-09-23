@@ -366,7 +366,7 @@ class Two_Factor_Totp extends Two_Factor_Provider {
 			$key      = $this->generate_key();
 			$totp_url = $this->generate_qr_code_url( $user, $key );
 			?>
-			<p>
+			<p class="description">
 				<?php esc_html_e( 'Please follow these steps in order to complete setup:', 'two-factor' ); ?>
 			</p>
 			<ol class="totp-steps">

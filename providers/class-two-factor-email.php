@@ -445,7 +445,7 @@ class Two_Factor_Email extends Two_Factor_Provider {
 	public function user_options( $user ) {
 		$email = $user->user_email;
 		?>
-		<p>
+		<p class="description">
 			<?php
 			echo esc_html(
 				sprintf(
