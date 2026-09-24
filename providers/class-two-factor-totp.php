@@ -435,7 +435,7 @@ class Two_Factor_Totp extends Two_Factor_Provider {
 			wp_enqueue_script( 'two-factor-totp-qrcode' );
 			?>
 		<?php else : ?>
-			<p class="success">
+			<p class="description success">
 				<?php esc_html_e( 'An authenticator app is currently configured. You will need to re-scan the QR code on all devices if reset.', 'two-factor' ); ?>
 			</p>
 			<p>
