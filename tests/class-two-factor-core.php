@@ -2463,6 +2463,63 @@ class Test_ClassTwoFactorCore extends WP_UnitTestCase {
 	}
 
 	/**
+	 * Verify get_primary_provider_for_user() returns a WP_Error instead of
+	 * calling wp_die() when the user's only configured provider is no longer
+	 * registered and no fallback is available.
+	 *
+	 * @covers Two_Factor_Core::get_primary_provider_for_user
+	 */
+	public function test_get_primary_provider_for_user_returns_wp_error_when_deregistered() {
+		$user = self::factory()->user->create_and_get();
+
+		update_user_meta( $user->ID, Two_Factor_Core::ENABLED_PROVIDERS_USER_META_KEY, array( 'Two_Factor_Missing' ) );
+		update_user_meta( $user->ID, Two_Factor_Core::PROVIDER_USER_META_KEY, 'Two_Factor_Missing' );
+
+		$filter = function () {
+			return 'Two_Factor_Nonexistent';
+		};
+
+		add_filter( 'two_factor_fallback_provider_for_user', $filter );
+
+		try {
+			$primary = Two_Factor_Core::get_primary_provider_for_user( $user->ID );
+
+			$this->assertInstanceOf( WP_Error::class, $primary, 'A deregistered provider with no fallback results in a WP_Error, not a fatal' );
+			$this->assertTrue( Two_Factor_Core::is_user_using_two_factor( $user->ID ), 'User is still treated as using two-factor (fail closed)' );
+		} finally {
+			remove_filter( 'two_factor_fallback_provider_for_user', $filter );
+		}
+	}
+
+	/**
+	 * Verify manage_users_custom_column() renders a non-fatal error indicator,
+	 * instead of fataling the whole Users list table, when a user's provider
+	 * has been deregistered.
+	 *
+	 * @covers Two_Factor_Core::manage_users_custom_column
+	 */
+	public function test_manage_users_custom_column_deregistered_provider() {
+		$user = self::factory()->user->create_and_get();
+
+		update_user_meta( $user->ID, Two_Factor_Core::ENABLED_PROVIDERS_USER_META_KEY, array( 'Two_Factor_Missing' ) );
+		update_user_meta( $user->ID, Two_Factor_Core::PROVIDER_USER_META_KEY, 'Two_Factor_Missing' );
+
+		$filter = function () {
+			return 'Two_Factor_Nonexistent';
+		};
+
+		add_filter( 'two_factor_fallback_provider_for_user', $filter );
+
+		try {
+			$result = Two_Factor_Core::manage_users_custom_column( '', 'two-factor', $user->ID );
+
+			$this->assertStringContainsString( 'legacy 2FA method', $result, 'Deregistered provider renders a legacy/error indicator instead of fataling' );
+		} finally {
+			remove_filter( 'two_factor_fallback_provider_for_user', $filter );
+		}
+	}
+
+	/**
 	 * Test show_two_factor_login displays login form.
 	 *
 	 * @covers Two_Factor_Core::show_two_factor_login
