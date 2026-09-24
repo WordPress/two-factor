@@ -102,6 +102,14 @@ class Two_Factor_Core {
 	private static $profile_errors = array();
 
 	/**
+	 * Keep track of the user IDs that were authenticated via an application
+	 * password during the current request.
+	 *
+	 * @var array
+	 */
+	private static $app_password_auth_user_ids = array();
+
+	/**
 	 * Set up filters and actions.
 	 *
 	 * @param object $compat A compatibility layer for plugins.
@@ -127,6 +135,9 @@ class Two_Factor_Core {
 
 		// 1. Prevent WP core from sending login cookies after username/password authentication (priority 30).
 		add_filter( 'authenticate', array( __CLASS__, 'filter_authenticate' ), 31 );
+
+		// Keep track of the users authenticated via an application password during this request.
+		add_action( 'application_password_did_authenticate', array( __CLASS__, 'app_password_did_authenticate' ), 10, 1 );
 
 		// 2. Render two-factor UI after WP core has validated username/password during `wp_signon()`.
 		add_action( 'wp_login', array( __CLASS__, 'wp_login' ), PHP_INT_MAX, 2 );
@@ -940,7 +951,8 @@ class Two_Factor_Core {
 	/**
 	 * If the user can login via API requests such as XML-RPC and REST.
 	 *
-	 * Only logins with application passwords are permitted by default.
+	 * Only logins with an application password belonging to the given
+	 * user are permitted by default.
 	 *
 	 * @since 0.4.0
 	 *
@@ -960,9 +972,25 @@ class Two_Factor_Core {
 		 */
 		return (bool) apply_filters(
 			'two_factor_user_api_login_enable',
-			(bool) did_action( 'application_password_did_authenticate' ),
+			in_array( (int) $user_id, self::$app_password_auth_user_ids, true ),
 			$user_id
 		);
+	}
+
+	/**
+	 * Keep track of the users authenticated via an application password
+	 * during the current request.
+	 *
+	 * @since 0.17.0
+	 *
+	 * @param WP_User $user The user authenticated via an application password.
+	 *
+	 * @return void
+	 */
+	public static function app_password_did_authenticate( $user ) {
+		if ( $user instanceof WP_User ) {
+			self::$app_password_auth_user_ids[] = (int) $user->ID;
+		}
 	}
 
 	/**
