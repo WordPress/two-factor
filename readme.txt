@@ -1,7 +1,7 @@
 === Two Factor ===
 Contributors: georgestephanis, kasparsd, masteradhoc, valendesigns, stevenkword, jeffpaul, extendwings, sgrant, aaroncampbell, johnbillion, stevegrunwell, netweb, alihusnainarshad, passoniate
 Tags:         2fa, mfa, totp, authentication, security
-Tested up to: 7.0
+Tested up to: 7.1
 Stable tag:   0.16.0
 License:      GPL-2.0-or-later
 License URI:  https://spdx.org/licenses/GPL-2.0-or-later.html
@@ -102,6 +102,8 @@ Here is a list of action and filter hooks provided by the plugin:
 - `two_factor_after_authentication_prompt` action which receives the provider object and fires after the prompt shown on the authentication input form.
 - `two_factor_after_authentication_input` action which receives the provider object and fires after the input shown on the authentication input form (if form contains no input, action fires immediately after `two_factor_after_authentication_prompt`).
 - `two_factor_login_backup_links` filters the backup links displayed on the two-factor login form.
+- `two_factor_login_nonce_failed` action which fires when a login nonce fails verification. Provides the ID of the user the nonce was presented for as the first argument, and the reason as the second: `no_nonce_stored`, `expired`, or `mismatch`.
+- `two_factor_log_login_nonce_failures` filter overrides whether a failed login nonce verification is written to the PHP error log. Defaults to true for `expired` and `mismatch`, and false for `no_nonce_stored`, which any unauthenticated request can reach. Provides the user ID as the second argument and the reason as the third.
 
 == Redirect After the Two-Factor Challenge ==
 
