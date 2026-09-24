@@ -2428,7 +2428,7 @@ class Two_Factor_Core {
 						<label class="two-factor-method-label">
 							<input id="enabled-<?php echo esc_attr( $provider_key ); ?>" type="checkbox" name="<?php echo esc_attr( self::ENABLED_PROVIDERS_USER_META_KEY ); ?>[]" value="<?php echo esc_attr( $provider_key ); ?>" <?php checked( isset( $available_providers[ $provider_key ] ) ); ?> />
 							<?php /* translators: %s: authentication method name. */ ?>
-							<?php echo esc_html( sprintf( __( 'Enable %s', 'two-factor' ), $object->get_label() ) ); ?>
+							<strong><?php echo esc_html( sprintf( __( 'Enable %s', 'two-factor' ), $object->get_label() ) ); ?></strong>
 							<?php if ( in_array( $provider_key, $recommended_provider_keys, true ) ) : ?>
 								<abbr title="<?php esc_attr_e( 'This method is more secure and easy to use', 'two-factor' ); ?>" class="two-factor-method-recommended"><?php esc_html_e( 'Recommended', 'two-factor' ); ?></abbr>
 							<?php endif; ?>
