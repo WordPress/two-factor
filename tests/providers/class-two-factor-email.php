@@ -201,7 +201,8 @@ class Tests_Two_Factor_Email extends WP_UnitTestCase {
 	 */
 	public function test_generate_and_email_token_login_context_correct_args() {
 		$user = new WP_User( self::factory()->user->create() );
-		// Mock REMOTE_ADDR for IP check
+		// Mock REMOTE_ADDR for IP check.
+		// phpcs:disable WordPressVIPMinimum.Variables.ServerVariables.UserControlledHeaders, WordPressVIPMinimum.Variables.RestrictedVariables.cache_constraints___SERVER__REMOTE_ADDR__ -- Test fixture for IP-dependent email token generation.
 		$prev_remote_addr       = $_SERVER['REMOTE_ADDR'] ?? null;
 		$_SERVER['REMOTE_ADDR'] = '127.0.0.1';
 
@@ -214,14 +215,15 @@ class Tests_Two_Factor_Email extends WP_UnitTestCase {
 				$_SERVER['REMOTE_ADDR'] = $prev_remote_addr;
 			}
 		}
+		// phpcs:enable WordPressVIPMinimum.Variables.ServerVariables.UserControlledHeaders, WordPressVIPMinimum.Variables.RestrictedVariables.cache_constraints___SERVER__REMOTE_ADDR__
 
 		$content = $GLOBALS['phpmailer']->Body;
 
 		$this->assertStringContainsString( 'entering', $content );
 		$this->assertStringContainsString( 'login', $content );
-		// Check that IP is effectively in the message (and not the token key or something else)
+		// Check that the IP is effectively in the message (and not the token key or something else).
 		$this->assertStringContainsString( '127.0.0.1', $content );
-		// Check that username is in the message
+		// Check that the username is in the message.
 		$this->assertStringContainsString( $user->user_login, $content );
 	}
 
@@ -351,15 +353,15 @@ class Tests_Two_Factor_Email extends WP_UnitTestCase {
 	 */
 	public function test_pre_user_options_update_blocks_unverified() {
 		$user_id = self::factory()->user->create();
-		
+
 		// Simulate POST request trying to enable Email provider.
 		$_POST[ Two_Factor_Core::ENABLED_PROVIDERS_USER_META_KEY ] = array( 'Two_Factor_Email', 'Two_Factor_Dummy' );
-		
+
 		$this->provider->pre_user_options_update( $user_id );
-		
+
 		$this->assertNotContains( 'Two_Factor_Email', $_POST[ Two_Factor_Core::ENABLED_PROVIDERS_USER_META_KEY ] );
 		$this->assertContains( 'Two_Factor_Dummy', $_POST[ Two_Factor_Core::ENABLED_PROVIDERS_USER_META_KEY ] );
-		
+
 		unset( $_POST[ Two_Factor_Core::ENABLED_PROVIDERS_USER_META_KEY ] );
 	}
 
@@ -370,17 +372,17 @@ class Tests_Two_Factor_Email extends WP_UnitTestCase {
 	 */
 	public function test_pre_user_options_update_allows_legacy() {
 		$user_id = self::factory()->user->create();
-		
+
 		// Set up legacy state: enabled but not verified.
 		update_user_meta( $user_id, Two_Factor_Core::ENABLED_PROVIDERS_USER_META_KEY, array( 'Two_Factor_Email' ) );
-		
+
 		// Simulate POST request keeping it enabled.
 		$_POST[ Two_Factor_Core::ENABLED_PROVIDERS_USER_META_KEY ] = array( 'Two_Factor_Email' );
-		
+
 		$this->provider->pre_user_options_update( $user_id );
-		
+
 		$this->assertContains( 'Two_Factor_Email', $_POST[ Two_Factor_Core::ENABLED_PROVIDERS_USER_META_KEY ] );
-		
+
 		unset( $_POST[ Two_Factor_Core::ENABLED_PROVIDERS_USER_META_KEY ] );
 	}
 
@@ -391,17 +393,17 @@ class Tests_Two_Factor_Email extends WP_UnitTestCase {
 	 */
 	public function test_pre_user_options_update_allows_verified() {
 		$user_id = self::factory()->user->create();
-		
+
 		// Set up verified state.
 		update_user_meta( $user_id, Two_Factor_Email::VERIFIED_META_KEY, true );
-		
+
 		// Simulate POST request enabling it.
 		$_POST[ Two_Factor_Core::ENABLED_PROVIDERS_USER_META_KEY ] = array( 'Two_Factor_Email' );
-		
+
 		$this->provider->pre_user_options_update( $user_id );
-		
+
 		$this->assertContains( 'Two_Factor_Email', $_POST[ Two_Factor_Core::ENABLED_PROVIDERS_USER_META_KEY ] );
-		
+
 		unset( $_POST[ Two_Factor_Core::ENABLED_PROVIDERS_USER_META_KEY ] );
 	}
 

@@ -157,6 +157,26 @@ class Tests_Two_Factor_Email_REST_API extends WP_Test_REST_TestCase {
 	}
 
 	/**
+	 * Verify setting up email for a nonexistent user returns an error.
+	 *
+	 * @covers Two_Factor_Email::rest_setup_email
+	 */
+	public function test_user_two_factor_rest_setup_email_invalid_user() {
+		wp_set_current_user( self::$admin_id );
+
+		$request = new WP_REST_Request( 'POST', '/' . Two_Factor_Core::REST_NAMESPACE . '/email' );
+		$request->set_body_params(
+			array(
+				'user_id' => 999999,
+			)
+		);
+
+		$response = rest_do_request( $request );
+
+		$this->assertErrorResponse( 'invalid_user', $response, 400 );
+	}
+
+	/**
 	 * Verify setting up email with a valid code enables the provider.
 	 *
 	 * @covers Two_Factor_Email::rest_setup_email
@@ -195,8 +215,10 @@ class Tests_Two_Factor_Email_REST_API extends WP_Test_REST_TestCase {
 	public function test_user_can_delete_email_verification() {
 		wp_set_current_user( self::$admin_id );
 		update_user_meta( self::$admin_id, Two_Factor_Email::VERIFIED_META_KEY, true );
-		Two_Factor_Core::enable_provider_for_user( self::$admin_id, 'Two_Factor_Email' );
 
+		// Note: the provider is intentionally not enabled for the acting user here.
+		// A user with two-factor enabled requires session revalidation before
+		// updating their own two-factor options (see Two_Factor_Core).
 		$request = new WP_REST_Request( 'DELETE', '/' . Two_Factor_Core::REST_NAMESPACE . '/email' );
 		$request->set_body_params(
 			array(
@@ -208,7 +230,7 @@ class Tests_Two_Factor_Email_REST_API extends WP_Test_REST_TestCase {
 		$this->assertEquals( 200, $response->get_status() );
 
 		// Should no longer be verified.
-		$this->assertFalse( get_user_meta( self::$admin_id, Two_Factor_Email::VERIFIED_META_KEY, true ) );
+		$this->assertEmpty( get_user_meta( self::$admin_id, Two_Factor_Email::VERIFIED_META_KEY, true ) );
 	}
 
 	/**
@@ -230,7 +252,12 @@ class Tests_Two_Factor_Email_REST_API extends WP_Test_REST_TestCase {
 		$response = rest_do_request( $request );
 
 		$this->assertEquals( 200, $response->get_status() );
-		$this->assertFalse( get_user_meta( self::$editor_id, Two_Factor_Email::VERIFIED_META_KEY, true ) );
+		$this->assertEmpty( get_user_meta( self::$editor_id, Two_Factor_Email::VERIFIED_META_KEY, true ) );
+		$this->assertNotContains(
+			'Two_Factor_Email',
+			Two_Factor_Core::get_enabled_providers_for_user( self::$editor_id ),
+			'The provider should be disabled for the user'
+		);
 	}
 
 	/**

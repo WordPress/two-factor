@@ -62,7 +62,7 @@ class Two_Factor_Email extends Two_Factor_Provider {
 	/**
 	 * Enqueue scripts for email provider.
 	 *
-	 * @since 0.16.0
+	 * @since 0.17.0
 	 *
 	 * @codeCoverageIgnore
 	 *
@@ -99,7 +99,7 @@ class Two_Factor_Email extends Two_Factor_Provider {
 	/**
 	 * Register the rest-api endpoints required for this provider.
 	 *
-	 * @since 0.16.0
+	 * @since 0.17.0
 	 */
 	public function register_rest_routes() {
 		register_rest_route(
@@ -126,11 +126,11 @@ class Two_Factor_Email extends Two_Factor_Provider {
 						return Two_Factor_Core::rest_api_can_edit_user_and_update_two_factor_options( $request['user_id'] );
 					},
 					'args'                => array(
-						'user_id' => array(
+						'user_id'         => array(
 							'required' => true,
 							'type'     => 'integer',
 						),
-						'code'    => array(
+						'code'            => array(
 							'type'              => 'string',
 							'default'           => '',
 							'validate_callback' => null, // Note: validation handled in ::rest_setup_email().
@@ -149,7 +149,7 @@ class Two_Factor_Email extends Two_Factor_Provider {
 	/**
 	 * REST API endpoint for setting up Email.
 	 *
-	 * @since 0.16.0
+	 * @since 0.17.0
 	 *
 	 * @param WP_REST_Request $request The Rest Request object.
 	 * @return WP_Error|array Array of data on success, WP_Error on error.
@@ -157,6 +157,9 @@ class Two_Factor_Email extends Two_Factor_Provider {
 	public function rest_setup_email( $request ) {
 		$user_id = $request['user_id'];
 		$user    = get_user_by( 'id', $user_id );
+		if ( ! $user ) {
+			return new WP_Error( 'invalid_user', __( 'Invalid user ID.', 'two-factor' ), array( 'status' => 400 ) );
+		}
 
 		$code = preg_replace( '/\s+/', '', $request['code'] );
 
@@ -193,20 +196,23 @@ class Two_Factor_Email extends Two_Factor_Provider {
 	/**
 	 * Rest API endpoint for handling deactivation of Email.
 	 *
-	 * @since 0.16.0
+	 * @since 0.17.0
 	 *
 	 * @param WP_REST_Request $request The Rest Request object.
-	 * @return array Success array.
+	 * @return WP_Error|array Array of data on success, WP_Error on error.
 	 */
 	public function rest_delete_email( $request ) {
 		$user_id = $request['user_id'];
 		$user    = get_user_by( 'id', $user_id );
-
-		delete_user_meta( $user_id, self::VERIFIED_META_KEY );
+		if ( ! $user ) {
+			return new WP_Error( 'invalid_user', __( 'Invalid user ID.', 'two-factor' ), array( 'status' => 400 ) );
+		}
 
 		if ( ! Two_Factor_Core::disable_provider_for_user( $user_id, 'Two_Factor_Email' ) ) {
 			return new WP_Error( 'db_error', __( 'Unable to disable Email provider for this user.', 'two-factor' ), array( 'status' => 500 ) );
 		}
+
+		delete_user_meta( $user_id, self::VERIFIED_META_KEY );
 
 		ob_start();
 		$this->user_options( $user );
@@ -478,7 +484,7 @@ class Two_Factor_Email extends Two_Factor_Provider {
 					$user->user_login
 				),
 			);
-			$message = wp_strip_all_tags( implode( "\n\n", $message_parts ) );
+			$message       = wp_strip_all_tags( implode( "\n\n", $message_parts ) );
 		}
 
 		/**
@@ -488,8 +494,9 @@ class Two_Factor_Email extends Two_Factor_Provider {
 		 *
 		 * @param string $subject The email subject line.
 		 * @param int    $user_id The ID of the user.
+		 * @param string $action  The action the token is for. Accepts 'login', 'verification_setup'.
 		 */
-		$subject = apply_filters( 'two_factor_token_email_subject', $subject, $user->ID );
+		$subject = apply_filters( 'two_factor_token_email_subject', $subject, $user->ID, $action );
 
 		/**
 		 * Filters the token email message.
@@ -499,8 +506,9 @@ class Two_Factor_Email extends Two_Factor_Provider {
 		 * @param string $message The email message.
 		 * @param string $token   The token.
 		 * @param int    $user_id The ID of the user.
+		 * @param string $action  The action the token is for. Accepts 'login', 'verification_setup'.
 		 */
-		$message = apply_filters( 'two_factor_token_email_message', $message, $token, $user->ID );
+		$message = apply_filters( 'two_factor_token_email_message', $message, $token, $user->ID, $action );
 
 		return wp_mail( $user->user_email, $subject, $message ); // phpcs:ignore WordPressVIPMinimum.Functions.RestrictedFunctions.wp_mail_wp_mail
 	}
@@ -604,8 +612,8 @@ class Two_Factor_Email extends Two_Factor_Provider {
 	 */
 	public function is_available_for_user( $user ) {
 		// If the user has already enabled the provider (legacy), allow them to continue using it.
-		$providers = get_user_meta( $user->ID, Two_Factor_Core::ENABLED_PROVIDERS_USER_META_KEY, true );
-		if ( is_array( $providers ) && in_array( 'Two_Factor_Email', $providers, true ) ) {
+		$enabled_providers = Two_Factor_Core::get_enabled_providers_for_user( $user );
+		if ( in_array( 'Two_Factor_Email', (array) $enabled_providers, true ) ) {
 			return true;
 		}
 
@@ -621,6 +629,10 @@ class Two_Factor_Email extends Two_Factor_Provider {
 	 * @param WP_User $user WP_User object of the logged-in user.
 	 */
 	public function user_options( $user ) {
+		if ( ! ( $user instanceof WP_User ) ) {
+			return;
+		}
+
 		$email = $user->user_email;
 
 		// Check if user is verified.
@@ -671,20 +683,20 @@ class Two_Factor_Email extends Two_Factor_Provider {
 	/**
 	 * Prevent enabling the Email provider if it hasn't been verified (and isn't a legacy enabled user).
 	 *
-	 * @since 0.16.0
+	 * @since 0.17.0
 	 *
 	 * @param int $user_id The user ID.
 	 */
 	public function pre_user_options_update( $user_id ) {
 		// phpcs:ignore WordPress.Security.NonceVerification.Missing -- Nonce validation is handled by core.
 		if ( isset( $_POST[ Two_Factor_Core::ENABLED_PROVIDERS_USER_META_KEY ] ) && is_array( $_POST[ Two_Factor_Core::ENABLED_PROVIDERS_USER_META_KEY ] ) ) {
-			$enabled_providers = $_POST[ Two_Factor_Core::ENABLED_PROVIDERS_USER_META_KEY ]; // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- Payload is sanitized when saved.
+			$enabled_providers = $_POST[ Two_Factor_Core::ENABLED_PROVIDERS_USER_META_KEY ]; // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized, WordPress.Security.NonceVerification.Missing -- Nonce validation is handled by core; payload is sanitized when saved.
 			if ( in_array( 'Two_Factor_Email', $enabled_providers, true ) ) {
 				$is_verified = get_user_meta( $user_id, self::VERIFIED_META_KEY, true );
-				$current_providers = get_user_meta( $user_id, Two_Factor_Core::ENABLED_PROVIDERS_USER_META_KEY, true );
-				
+
 				// If not verified, and NOT currently enabled (legacy), disallow enabling.
-				if ( ! $is_verified && ( ! is_array( $current_providers ) || ! in_array( 'Two_Factor_Email', $current_providers, true ) ) ) {
+				$currently_enabled = Two_Factor_Core::get_enabled_providers_for_user( $user_id );
+				if ( ! $is_verified && ! in_array( 'Two_Factor_Email', (array) $currently_enabled, true ) ) {
 					$enabled_providers = array_diff( $enabled_providers, array( 'Two_Factor_Email' ) );
 					$_POST[ Two_Factor_Core::ENABLED_PROVIDERS_USER_META_KEY ] = $enabled_providers;
 				}
