@@ -51,10 +51,6 @@ Deployments [to WP.org plugin repository](https://wordpress.org/plugins/two-fact
 
 [View release documentation →](RELEASING.md)
 
-## Known Issues
-
-- PHP codebase doesn't pass the WordPress coding standard checks, see [#437](https://github.com/WordPress/two-factor/issues/437).
-
 ## Changelog
 
 A complete listing of all notable changes are documented in [CHANGELOG.md](https://github.com/wordpress/two-factor/blob/master/CHANGELOG.md).

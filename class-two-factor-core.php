@@ -644,6 +644,29 @@ class Two_Factor_Core {
 	}
 
 	/**
+	 * Get the provider keys stored in user meta, normalised.
+	 *
+	 * Returns the raw stored list without intersecting against registered providers and
+	 * without applying `two_factor_enabled_providers_for_user`, so callers can distinguish
+	 * "this user has no registered providers left" from "a filter intentionally cleared the list".
+	 *
+	 * @since 0.17.0
+	 *
+	 * @param WP_User $user User object.
+	 *
+	 * @return string[] Provider keys stored for the user. May include keys that are no longer registered.
+	 */
+	private static function get_stored_provider_keys_for_user( $user ) {
+		$stored = get_user_meta( $user->ID, self::ENABLED_PROVIDERS_USER_META_KEY, true );
+
+		if ( ! is_array( $stored ) ) {
+			$stored = array();
+		}
+
+		return array_values( array_filter( $stored, 'is_string' ) );
+	}
+
+	/**
 	 * Get two-factor providers that are enabled for the specified (or current) user
 	 * but might not be configured, yet.
 	 *
@@ -663,11 +686,10 @@ class Two_Factor_Core {
 		}
 
 		$providers         = self::get_supported_providers_for_user( $user );
-		$enabled_providers = get_user_meta( $user->ID, self::ENABLED_PROVIDERS_USER_META_KEY, true );
-		if ( empty( $enabled_providers ) ) {
-			$enabled_providers = array();
-		}
-		$enabled_providers = array_intersect( $enabled_providers, array_keys( $providers ) );
+		$enabled_providers = array_intersect(
+			self::get_stored_provider_keys_for_user( $user ),
+			array_keys( $providers )
+		);
 
 		/**
 		 * Filter the enabled two-factor authentication providers for this user.
@@ -690,7 +712,10 @@ class Two_Factor_Core {
 	 * @see Two_Factor_Core::get_enabled_providers_for_user()
 	 *
 	 * @param int|WP_User $user Optional. User ID, or WP_User object of the the user. Defaults to current user.
-	 * @return Two_Factor_Provider[]|WP_Error List of provider instances, or a WP_Error if all configured providers are unavailable.
+	 * @return Two_Factor_Provider[]|WP_Error List of provider instances, or a WP_Error if the user's stored
+	 *                                        providers are no longer registered and the fallback provider
+	 *                                        (`Two_Factor_Email` by default, see `two_factor_fallback_provider_for_user`)
+	 *                                        doesn't resolve to a registered, available provider.
 	 */
 	public static function get_available_providers_for_user( $user = null ) {
 		$user = self::fetch_user( $user );
@@ -701,29 +726,74 @@ class Two_Factor_Core {
 		$providers            = self::get_supported_providers_for_user( $user ); // Returns full objects.
 		$enabled_providers    = self::get_enabled_providers_for_user( $user ); // Returns just the keys.
 		$configured_providers = array();
-		$user_providers_raw   = get_user_meta( $user->ID, self::ENABLED_PROVIDERS_USER_META_KEY, true );
+		$stored_providers     = self::get_stored_provider_keys_for_user( $user );
 
 		/**
-		 * If the user had enabled providers, but none of them exist currently,
-		 * if emailed codes is available force it to be on, so that deprecated
-		 * or removed providers don't result in the two-factor requirement being
-		 * removed and 'failing open'.
+		 * If the user has providers stored in meta but none of them are still registered, force
+		 * emailed codes on where available so removed or deprecated providers can't drop the user
+		 * to single-factor auth ('failing open').
 		 *
-		 * Possible enhancement: add a filter to change the fallback method?
+		 * "No longer registered" is deliberately cause-agnostic: a provider dropped by plugin
+		 * deactivation, by the site-wide settings, or by `two_factor_providers_for_user` is treated
+		 * identically, because the outcome for the user is identical.
+		 *
+		 * If any stored provider IS still registered, an empty enabled list means
+		 * `two_factor_enabled_providers_for_user` cleared it on purpose, and that must be respected.
 		 */
-		if ( empty( $enabled_providers ) && $user_providers_raw ) {
-			if ( isset( $providers['Two_Factor_Email'] ) ) {
-				// Force Emailed codes to 'on'.
-				$enabled_providers[] = 'Two_Factor_Email';
-			} else {
-				return new WP_Error(
-					'no_available_2fa_methods',
-					__( 'Error: You have Two Factor method(s) enabled, but the provider(s) no longer exist. Please contact a site administrator for assistance.', 'two-factor' ),
-					array(
-						'user_providers_raw'  => $user_providers_raw,
-						'available_providers' => array_keys( $providers ),
-					)
+		if ( empty( $enabled_providers ) && ! empty( $stored_providers ) ) {
+			$still_registered = array_intersect( $stored_providers, array_keys( $providers ) );
+
+			if ( empty( $still_registered ) ) {
+				/**
+				 * Filter the provider forced on when none of a user's stored providers are still registered.
+				 *
+				 * Returning a key that is not registered, or that the provider itself reports as unavailable
+				 * for this user, is treated as "no fallback": the method returns a `no_available_2fa_methods`
+				 * WP_Error rather than allowing the user through with one factor.
+				 *
+				 * The returned provider must be usable without any prior per-user setup (like the email
+				 * provider is), since the user has no working provider left to configure it through:
+				 *
+				 *     add_filter( 'two_factor_fallback_provider_for_user', function() {
+				 *         return 'Two_Factor_Backup_Codes'; // Wrong: requires codes to already be generated.
+				 *     } );
+				 *
+				 * A fallback that is not already available for the user resolves to the WP_Error branch,
+				 * not to a silent single-factor login.
+				 *
+				 * @since 0.17.0
+				 *
+				 * @param string   $fallback_provider Provider key to force on. Default 'Two_Factor_Email'.
+				 * @param int      $user_id           The user ID.
+				 * @param string[] $stored_providers  Provider keys stored for the user, none of which are registered.
+				 */
+				$fallback_provider = apply_filters(
+					'two_factor_fallback_provider_for_user',
+					'Two_Factor_Email',
+					$user->ID,
+					$stored_providers
 				);
+
+				if (
+					is_string( $fallback_provider )
+					&& isset( $providers[ $fallback_provider ] )
+					&& $providers[ $fallback_provider ]->is_available_for_user( $user )
+				) {
+					// Force the fallback provider to 'on'.
+					$enabled_providers[] = $fallback_provider;
+				} else {
+					// Fail closed: an invalid, unregistered, or unavailable fallback locks the user
+					// out pending admin intervention, rather than letting them through with one factor.
+					return new WP_Error(
+						'no_available_2fa_methods',
+						__( 'Error: You have Two Factor method(s) enabled, but the provider(s) no longer exist. Please contact a site administrator for assistance.', 'two-factor' ),
+						array(
+							'user_providers_raw'  => $stored_providers,
+							'available_providers' => array_keys( $providers ),
+							'fallback_provider'   => $fallback_provider,
+						)
+					);
+				}
 			}
 		}
 
@@ -1036,10 +1106,10 @@ class Two_Factor_Core {
 			echo '<div id="login_notice" class="message"><strong>';
 			printf(
 				esc_html(
-					/* translators: 1: number of failed login attempts, 2: time since last failed attempt */
+					/* translators: 1: number of failed verification code attempts, 2: human-readable time since the last attempt, e.g. "5 minutes" */
 					_n(
-						'WARNING: Your account has attempted to login %1$s time without providing a valid two factor token. The last failed login occurred %2$s ago. If this wasn\'t you, you should reset your password.',
-						'WARNING: Your account has attempted to login %1$s times without providing a valid two factor token. The last failed login occurred %2$s ago. If this wasn\'t you, you should reset your password.',
+						'%1$s failed verification code attempt on this account. The last attempt was %2$s ago. If you did not make this attempt, someone else may know your password. Change your password after you log in.',
+						'%1$s failed verification code attempts on this account. The last attempt was %2$s ago. If you did not make these attempts, someone else may know your password. Change your password after you log in.',
 						$failed_login_count,
 						'two-factor'
 					)
@@ -1165,22 +1235,22 @@ class Two_Factor_Core {
 		login_header();
 
 		if ( ! empty( $error_msg ) ) {
-			echo '<div id="login_error"><strong>' . esc_html( $error_msg ) . '</strong><br /></div>';
+			echo '<div id="login_error"><strong>' . esc_html( $error_msg ) . '</strong><br></div>';
 		} elseif ( 'validate_2fa' === $action ) {
 			self::maybe_show_last_login_failure_notice( $user );
 		}
 		?>
 
 		<form name="validate_2fa_form" id="loginform" action="<?php echo esc_url( self::login_url( array( 'action' => $action ), 'login_post' ) ); ?>" method="post" autocomplete="off">
-				<input type="hidden" name="provider"      id="provider"      value="<?php echo esc_attr( $provider_key ); ?>" />
-				<input type="hidden" name="wp-auth-id"    id="wp-auth-id"    value="<?php echo esc_attr( (string) $user->ID ); ?>" />
-				<input type="hidden" name="wp-auth-nonce" id="wp-auth-nonce" value="<?php echo esc_attr( $login_nonce ); ?>" />
+				<input type="hidden" name="provider"      id="provider"      value="<?php echo esc_attr( $provider_key ); ?>">
+				<input type="hidden" name="wp-auth-id"    id="wp-auth-id"    value="<?php echo esc_attr( (string) $user->ID ); ?>">
+				<input type="hidden" name="wp-auth-nonce" id="wp-auth-nonce" value="<?php echo esc_attr( $login_nonce ); ?>">
 				<?php if ( $interim_login ) { ?>
-					<input type="hidden" name="interim-login" value="1" />
+					<input type="hidden" name="interim-login" value="1">
 				<?php } else { ?>
-					<input type="hidden" name="redirect_to" value="<?php echo esc_attr( $redirect_to ); ?>" />
+					<input type="hidden" name="redirect_to" value="<?php echo esc_attr( $redirect_to ); ?>">
 				<?php } ?>
-				<input type="hidden" name="rememberme"    id="rememberme"    value="<?php echo esc_attr( (string) $rememberme ); ?>" />
+				<input type="hidden" name="rememberme"    id="rememberme"    value="<?php echo esc_attr( (string) $rememberme ); ?>">
 
 				<?php $provider->authentication_page( $user ); ?>
 		</form>
@@ -1241,33 +1311,6 @@ class Two_Factor_Core {
 			</div>
 		<?php endif; ?>
 
-		<style>
-			/* @todo: migrate to an external stylesheet. */
-			.backup-methods-wrap {
-				margin-top: 16px;
-				padding: 0 24px;
-			}
-			.backup-methods-wrap a {
-				text-decoration: none;
-			}
-			.backup-methods-wrap ul {
-				list-style-position: inside;
-			}
-			/* Prevent Jetpack from hiding our controls, see https://github.com/Automattic/jetpack/issues/3747 */
-			.jetpack-sso-form-display #loginform > p,
-			.jetpack-sso-form-display #loginform > div {
-				display: block;
-			}
-			#login form p.two-factor-prompt {
-				margin-bottom: 1em;
-			}
-			.input.authcode {
-				letter-spacing: .3em;
-			}
-			.input.authcode::placeholder {
-				opacity: 0.5;
-			}
-		</style>
 		<?php wp_enqueue_script( 'two-factor-login-authcode' ); ?>
 		<?php
 		if ( ! function_exists( 'login_footer' ) ) {
@@ -1393,6 +1436,21 @@ class Two_Factor_Core {
 		$login_nonce = get_user_meta( $user_id, self::USER_META_NONCE_KEY, true );
 
 		if ( ! $login_nonce || empty( $login_nonce['key'] ) || empty( $login_nonce['expiration'] ) ) {
+			self::log_login_nonce_failure( $user_id, 'no_nonce_stored' );
+
+			return false;
+		}
+
+		/*
+		 * An expired nonce can never succeed again, whatever was presented alongside it,
+		 * so clear it before looking at the key. Deleting it here is not destructive --
+		 * it was already dead -- and it keeps abandoned logins from leaving dead weight
+		 * in usermeta until the user's next password success overwrites it.
+		 */
+		if ( time() >= $login_nonce['expiration'] ) {
+			self::log_login_nonce_failure( $user_id, 'expired' );
+			self::delete_login_nonce( $user_id );
+
 			return false;
 		}
 
@@ -1403,16 +1461,97 @@ class Two_Factor_Core {
 		);
 
 		$unverified_hash = self::hash_login_nonce( $unverified_nonce );
-		$hashes_match    = $unverified_hash && hash_equals( $login_nonce['key'], $unverified_hash );
 
-		if ( $hashes_match && time() < $login_nonce['expiration'] ) {
+		if ( $unverified_hash && hash_equals( $login_nonce['key'], $unverified_hash ) ) {
 			return true;
 		}
 
-		// Require a fresh nonce if verification fails.
-		self::delete_login_nonce( $user_id );
+		/*
+		 * A value we never issued, presented against a nonce that is still live. Leave it
+		 * in place: discarding it would let an unauthenticated request end someone else's
+		 * in-progress login, and it buys no brute-force resistance -- the key is 256 bits
+		 * of random_bytes(), and a failed second factor rotates it in
+		 * validate_login_form_2fa() regardless.
+		 */
+		self::log_login_nonce_failure( $user_id, 'mismatch' );
 
 		return false;
+	}
+
+	/**
+	 * Record a failed login nonce verification.
+	 *
+	 * A login nonce is only ever handed out by the plugin itself, so a request that
+	 * presents one that does not verify is unexpected. A handful of these are routine --
+	 * a stale browser tab, the back button, or two sessions racing each other -- but a
+	 * sustained run of them against one account is worth an administrator's attention,
+	 * and until now they left no trace at all: the request is simply redirected away.
+	 *
+	 * The presented value is never written to the log; only the reason it was rejected.
+	 *
+	 * @since 0.17.0
+	 *
+	 * @param int    $user_id The user ID the nonce was presented for.
+	 * @param string $reason  Why verification failed. One of 'no_nonce_stored' (no
+	 *                        pending login for this user), 'expired' (correct value,
+	 *                        past its expiration), or 'mismatch' (value did not match).
+	 * @return void
+	 */
+	protected static function log_login_nonce_failure( $user_id, $reason ) {
+		/**
+		 * Fires when a login nonce fails verification.
+		 *
+		 * Useful for routing these into an audit log, an intrusion detection system, or
+		 * a rate limiter. Fires on every failure, including ones that are not written to
+		 * the PHP error log.
+		 *
+		 * @since 0.17.0
+		 *
+		 * @param int    $user_id The user ID the nonce was presented for.
+		 * @param string $reason  One of 'no_nonce_stored', 'expired', or 'mismatch'.
+		 */
+		do_action( 'two_factor_login_nonce_failed', $user_id, $reason );
+
+		/*
+		 * Only 'expired' and 'mismatch' are written to the error log. Both require a nonce
+		 * to already be stored for the user, which only happens after a successful password
+		 * check, so their volume is bounded by real login activity.
+		 *
+		 * 'no_nonce_stored' is not. Any unauthenticated request carrying a guessed user ID
+		 * reaches it, so logging it by default would hand anyone an unbounded write to the
+		 * error log -- and it is the least informative of the three, firing for every stale
+		 * bookmark and resubmitted form. Sites that want it can opt in via the filter below.
+		 */
+		$log_by_default = in_array( $reason, array( 'expired', 'mismatch' ), true );
+
+		/**
+		 * Filters whether a failed login nonce verification is written to the PHP error log.
+		 *
+		 * Defaults to true for 'expired' and 'mismatch', and false for 'no_nonce_stored'.
+		 * Sites that would rather not carry the log volume, or that handle the
+		 * `two_factor_login_nonce_failed` action themselves, can return false for everything.
+		 *
+		 * @since 0.17.0
+		 *
+		 * @param bool   $log     Whether to write this failure to the error log.
+		 * @param int    $user_id The user ID the nonce was presented for.
+		 * @param string $reason  One of 'no_nonce_stored', 'expired', or 'mismatch'.
+		 */
+		if ( ! apply_filters( 'two_factor_log_login_nonce_failures', $log_by_default, $user_id, $reason ) ) {
+			return;
+		}
+
+		// Unreliable behind a proxy or load balancer; hook the action above for better provenance.
+		$remote_addr = isset( $_SERVER['REMOTE_ADDR'] ) ? filter_var( wp_unslash( $_SERVER['REMOTE_ADDR'] ), FILTER_VALIDATE_IP ) : false; // phpcs:ignore WordPressVIPMinimum.Variables.ServerVariables.UserControlledHeaders, WordPressVIPMinimum.Variables.RestrictedVariables.cache_constraints___SERVER__REMOTE_ADDR__ -- Validated as an IP, and only ever written to the log; not used for caching or authorization.
+
+		error_log( // phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log -- Deliberate security diagnostic; opt out via the filter above.
+			sprintf(
+				'Two-Factor: login nonce verification failed for user %1$d (reason: %2$s, remote address: %3$s).',
+				$user_id,
+				$reason,
+				$remote_addr ? $remote_addr : 'unknown'
+			)
+		);
 	}
 
 	/**
@@ -2263,7 +2402,7 @@ class Two_Factor_Core {
 
 		<?php self::render_errors( $generic_errors ); ?>
 
-		<fieldset id="two-factor-options" <?php echo $show_2fa_options ? '' : 'disabled="disabled"'; ?>>
+		<fieldset id="two-factor-options" <?php echo $show_2fa_options ? '' : 'disabled'; ?>>
 		<legend class="screen-reader-text"><?php esc_html_e( 'Two-Factor Options', 'two-factor' ); ?></legend>
 		<?php
 		if ( $providers ) {
@@ -2374,7 +2513,7 @@ class Two_Factor_Core {
 		<?php endif; // Application passwords are supported. ?>
 
 		<?php wp_nonce_field( 'user_two_factor_options', '_nonce_user_two_factor_options', false ); ?>
-		<input type="hidden" name="<?php echo esc_attr( self::ENABLED_PROVIDERS_USER_META_KEY ); ?>[]" value="<?php /* Dummy input so $_POST value is passed when no providers are enabled. */ ?>" />
+		<input type="hidden" name="<?php echo esc_attr( self::ENABLED_PROVIDERS_USER_META_KEY ); ?>[]" value="<?php /* Dummy input so $_POST value is passed when no providers are enabled. */ ?>">
 
 		<table class="form-table two-factor-methods-table" role="presentation">
 			<tbody>
@@ -2384,7 +2523,7 @@ class Two_Factor_Core {
 					<td>
 						<?php self::render_errors( self::get_provider_errors( $provider_key ) ); ?>
 						<label class="two-factor-method-label">
-							<input id="enabled-<?php echo esc_attr( $provider_key ); ?>" type="checkbox" name="<?php echo esc_attr( self::ENABLED_PROVIDERS_USER_META_KEY ); ?>[]" value="<?php echo esc_attr( $provider_key ); ?>" <?php checked( isset( $available_providers[ $provider_key ] ) ); ?> />
+							<input id="enabled-<?php echo esc_attr( $provider_key ); ?>" type="checkbox" name="<?php echo esc_attr( self::ENABLED_PROVIDERS_USER_META_KEY ); ?>[]" value="<?php echo esc_attr( $provider_key ); ?>" <?php checked( isset( $available_providers[ $provider_key ] ) ); ?>>
 							<?php /* translators: %s: authentication method name. */ ?>
 							<strong><?php echo esc_html( sprintf( __( 'Enable %s', 'two-factor' ), $object->get_label() ) ); ?></strong>
 							<?php if ( in_array( $provider_key, $recommended_provider_keys, true ) ) : ?>
@@ -2409,7 +2548,7 @@ class Two_Factor_Core {
 			<?php endforeach; ?>
 			</tbody>
 		</table>
-		<hr />
+		<hr>
 		<table class="form-table two-factor-primary-method-table" role="presentation">
 			<tbody>
 				<tr>
