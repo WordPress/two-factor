@@ -4,7 +4,7 @@
   "private": true,
   "engineStrict": true,
   "engines": {
-    "node": ">=20"
+    "node": "^24.0"
   },
   "homepage": "https://github.com/wordpress/two-factor",
   "scripts": {
