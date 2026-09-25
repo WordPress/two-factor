@@ -1,13 +1,13 @@
 /* global twoFactorTotpQrcode, qrcode */
 ( function() {
-	const qrGenerator = function() {
+	var qrGenerator = function() {
 		/*
 		 * 0 = Automatically select the version, to avoid going over the limit of URL
 		 *     length.
 		 * L = Least amount of error correction, because it's not needed when scanning
 		 *     on a monitor, and it lowers the image size.
 		 */
-		let qr = qrcode( 0, 'L' ),
+		var qr = qrcode( 0, 'L' ),
 			svg,
 			title;
 

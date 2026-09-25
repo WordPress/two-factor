@@ -1,7 +1,7 @@
 /* global twoFactorTotpAdmin, qrcode, jQuery */
 ( function( $ ) {
-	const generateQrCode = function( totpUrl ) {
-		let $qrLink = $( '#two-factor-qr-code a' ),
+	var generateQrCode = function( totpUrl ) {
+		var $qrLink = $( '#two-factor-qr-code a' ),
 			qr,
 			svg,
 			title;
@@ -18,7 +18,7 @@
 
 		svg = $qrLink.find( 'svg' )[ 0 ];
 		if ( svg ) {
-			const ariaLabel =
+			var ariaLabel =
 				typeof twoFactorTotpAdmin !== 'undefined' &&
 				twoFactorTotpAdmin &&
 				twoFactorTotpAdmin.qrCodeAriaLabel
@@ -32,7 +32,7 @@
 		}
 	};
 
-	const checkbox = document.getElementById( 'enabled-Two_Factor_Totp' );
+	var checkbox = document.getElementById( 'enabled-Two_Factor_Totp' );
 
 	// Focus the auth code input when the checkbox is clicked.
 	if ( checkbox ) {
@@ -47,7 +47,7 @@
 		'click',
 		'.totp-submit',
 		function( e ) {
-			const key = $( '#two-factor-totp-key' ).val(),
+			var key = $( '#two-factor-totp-key' ).val(),
 				code = $( '#two-factor-totp-authcode' ).val();
 
 			e.preventDefault();
@@ -57,13 +57,13 @@
 				path: twoFactorTotpAdmin.restPath,
 				data: {
 					user_id: parseInt( twoFactorTotpAdmin.userId, 10 ),
-					key,
-					code,
-					enable_provider: true,
-				},
+					key: key,
+					code: code,
+					enable_provider: true
+				}
 			} )
 				.fail( function( response, status ) {
-					let errorMessage =
+					var errorMessage =
 							( response &&
 								response.responseJSON &&
 								response.responseJSON.message ) ||
@@ -104,10 +104,10 @@
 				method: 'DELETE',
 				path: twoFactorTotpAdmin.restPath,
 				data: {
-					user_id: parseInt( twoFactorTotpAdmin.userId, 10 ),
-				},
+					user_id: parseInt( twoFactorTotpAdmin.userId, 10 )
+				}
 			} ).then( function( response ) {
-				let totpUrl;
+				var totpUrl;
 
 				$( '#enabled-Two_Factor_Totp' ).prop( 'checked', false );
 				$( '#two-factor-totp-options' ).html( response.html );

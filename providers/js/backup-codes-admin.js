@@ -1,7 +1,7 @@
 /* global twoFactorBackupCodes, jQuery */
 ( function( $ ) {
 	$( '.button-two-factor-backup-codes-copy' ).click( function() {
-		let csvCodes = $( '.two-factor-backup-codes-wrapper' ).data(
+		var csvCodes = $( '.two-factor-backup-codes-wrapper' ).data(
 				'codesCsv'
 			),
 			$temp;
@@ -29,10 +29,10 @@
 			method: 'POST',
 			path: twoFactorBackupCodes.restPath,
 			data: {
-				user_id: parseInt( twoFactorBackupCodes.userId, 10 ),
-			},
+				user_id: parseInt( twoFactorBackupCodes.userId, 10 )
+			}
 		} ).then( function( response ) {
-			let $codesList = $( '.two-factor-backup-codes-unused-codes' ),
+			var $codesList = $( '.two-factor-backup-codes-unused-codes' ),
 				i;
 
 			$( '.two-factor-backup-codes-wrapper' ).show();
@@ -40,7 +40,7 @@
 			$codesList.css( {
 				'column-count': 2,
 				'column-gap': '80px',
-				'max-width': '420px',
+				'max-width': '420px'
 			} );
 			$( '.two-factor-backup-codes-wrapper' ).data(
 				'codesCsv',

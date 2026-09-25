@@ -1,6 +1,6 @@
 ( function() {
 	setTimeout( function() {
-		let d;
+		var d;
 		try {
 			d = document.getElementById( 'authcode' );
 			d.value = '';

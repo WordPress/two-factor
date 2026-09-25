@@ -7,7 +7,7 @@ module.exports = function( grunt ) {
 	require( 'load-grunt-tasks' )( grunt );
 
 	const distignore = ignoreParse( '.distignore', [], {
-		invert: true,
+		invert: true
 	} );
 
 	grunt.initConfig( {
@@ -16,7 +16,7 @@ module.exports = function( grunt ) {
 		dist_dir: 'dist',
 
 		clean: {
-			build: [ '<%= dist_dir %>' ],
+			build: [ '<%= dist_dir %>' ]
 		},
 
 		copy: {
@@ -25,18 +25,18 @@ module.exports = function( grunt ) {
 					{
 						src: [ '**' ].concat( distignore ),
 						dest: '<%= dist_dir %>',
-						expand: true,
+						expand: true
 					},
 					{
 						cwd: 'node_modules/',
 						src: 'qrcode-generator/dist/qrcode.js',
 						dest: '<%= dist_dir %>/includes',
 						expand: true,
-						rename: ( dest ) => dest + '/qrcode-generator/qrcode.js',
-					},
-				],
-			},
-		},
+						rename: ( dest ) => dest + '/qrcode-generator/qrcode.js'
+					}
+				]
+			}
+		}
 	} );
 
 	grunt.registerTask( 'build', [ 'clean', 'copy' ] );

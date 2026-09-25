@@ -15,11 +15,14 @@ module.exports = [
 	...wordpress.configs[ 'recommended-with-formatting' ],
 	{
 		rules: {
-			// Preset requires dangling commas in multiline literals.
-			'comma-dangle': 'off',
-			// The legacy provider scripts use multi-variable declarations
-			// where only some variables are ever reassigned; prefer-const
-			// flags those but its fixer cannot split the declaration.
+			// Preset requires dangling commas in multiline literals; the
+			// legacy code style omits them.
+			'comma-dangle': [ 'error', 'never' ],
+			// The legacy provider scripts stay ES5 for old-browser support.
+			'no-var': 'off',
+			// Same: the legacy code style uses explicit ES5 property
+			// names (`key: key`) rather than object shorthand.
+			'object-shorthand': 'off',
 			'prefer-const': 'off',
 		},
 	},

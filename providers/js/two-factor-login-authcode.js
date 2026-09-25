@@ -1,6 +1,6 @@
 ( function() {
 	// Enforce numeric-only input for numeric inputmode elements.
-	let form = document.querySelector( '#loginform' ),
+	var form = document.querySelector( '#loginform' ),
 		inputEl = document.querySelector(
 			'input.authcode[inputmode="numeric"]'
 		),
@@ -10,7 +10,7 @@
 
 	if ( inputEl ) {
 		inputEl.addEventListener( 'input', function() {
-			let value = this.value
+			var value = this.value
 					.replace( /[^0-9 ]/g, '' )
 					.replace( /^\s+/, '' ),
 				submitControl;
