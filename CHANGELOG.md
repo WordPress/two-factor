@@ -397,6 +397,8 @@ All notable changes to this project will be documented in this file, per [the Ke
 
 - Add developer tools for deploying to WP.org manually.
 
+[0.17.0]: https://github.com/WordPress/two-factor/compare/0.16.0...0.17.0
+[0.16.0]: https://github.com/WordPress/two-factor/compare/0.15.0...0.16.0
 [0.15.0]: https://github.com/WordPress/two-factor/compare/0.14.1...0.15.0
 [0.14.2]: https://github.com/WordPress/two-factor/compare/0.14.1...0.14.2
 [0.14.1]: https://github.com/WordPress/two-factor/compare/0.14.0...0.14.1
