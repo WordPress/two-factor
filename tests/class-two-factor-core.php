@@ -431,6 +431,92 @@ class Test_ClassTwoFactorCore extends WP_UnitTestCase {
 	}
 
 	/**
+	 * Malformed `_two_factor_provider` meta (array or object) must not fatal when the
+	 * primary provider is resolved; resolution fails closed to an available provider.
+	 *
+	 * @see https://github.com/WordPress/two-factor/issues/944
+	 *
+	 * @covers Two_Factor_Core::get_primary_provider_for_user
+	 * @covers Two_Factor_Core::get_primary_provider_key_selected_for_user
+	 *
+	 * @dataProvider data_malformed_primary_provider_meta
+	 *
+	 * @param mixed $malformed Malformed stored primary-provider value.
+	 */
+	public function test_get_primary_provider_for_user_handles_malformed_primary_meta( $malformed ) {
+		$user = new WP_User( self::factory()->user->create() );
+
+		// Two available providers are needed to reach the stored-primary lookup; with only one,
+		// resolution short-circuits to that provider and never touches the malformed value.
+		Two_Factor_Totp::get_instance()->set_user_totp_key( $user->ID, 'foo' );
+		Two_Factor_Core::enable_provider_for_user( $user->ID, 'Two_Factor_Totp' );
+		Two_Factor_Core::enable_provider_for_user( $user->ID, 'Two_Factor_Email' );
+
+		$this->assertCount( 2, Two_Factor_Core::get_available_providers_for_user( $user ), 'Two providers are available.' );
+
+		update_user_meta( $user->ID, Two_Factor_Core::PROVIDER_USER_META_KEY, $malformed );
+
+		$provider = Two_Factor_Core::get_primary_provider_for_user( $user->ID );
+
+		$this->assertNotWPError( $provider, 'Malformed primary meta does not surface an error.' );
+		$this->assertInstanceOf( Two_Factor_Provider::class, $provider, 'Resolution falls back to an available provider.' );
+		$this->assertContains(
+			$provider->get_key(),
+			array( 'Two_Factor_Totp', 'Two_Factor_Email' ),
+			'The fallback is one of the available providers.'
+		);
+	}
+
+	/**
+	 * Data provider of malformed non-scalar primary-provider meta values.
+	 *
+	 * @return array[]
+	 */
+	public function data_malformed_primary_provider_meta() {
+		return array(
+			'array'        => array( array( 'Two_Factor_Totp' ) ),
+			'nested array' => array( array( array( 'Two_Factor_Totp' ) ) ),
+			'object'       => array( (object) array( 'key' => 'Two_Factor_Totp' ) ),
+		);
+	}
+
+	/**
+	 * Malformed `_two_factor_enabled_providers` meta (scalar or object) must not fatal
+	 * when enabled providers are resolved; it normalizes to an empty list.
+	 *
+	 * @see https://github.com/WordPress/two-factor/issues/941
+	 *
+	 * @covers Two_Factor_Core::get_enabled_providers_for_user
+	 *
+	 * @dataProvider data_malformed_enabled_providers_meta
+	 *
+	 * @param mixed $malformed Malformed stored enabled-providers value.
+	 */
+	public function test_get_enabled_providers_for_user_handles_malformed_stored_meta( $malformed ) {
+		$user = new WP_User( self::factory()->user->create() );
+
+		update_user_meta( $user->ID, Two_Factor_Core::ENABLED_PROVIDERS_USER_META_KEY, $malformed );
+
+		$enabled = Two_Factor_Core::get_enabled_providers_for_user( $user->ID );
+
+		$this->assertIsArray( $enabled, 'Enabled providers resolve to an array.' );
+		$this->assertEmpty( $enabled, 'A malformed stored value yields no enabled providers.' );
+	}
+
+	/**
+	 * Data provider of malformed enabled-providers meta values.
+	 *
+	 * @return array[]
+	 */
+	public function data_malformed_enabled_providers_meta() {
+		return array(
+			'string'  => array( 'Two_Factor_Email' ),
+			'integer' => array( 12345 ),
+			'object'  => array( (object) array( 'x' => 1 ) ),
+		);
+	}
+
+	/**
 	 * Verify not-logged-in-user is using two facator.
 	 *
 	 * @covers Two_Factor_Core::is_user_using_two_factor
