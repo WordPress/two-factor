@@ -1,5 +1,5 @@
 const fs = require('fs');
-const ignoreParse = require('parse-gitignore');
+const ignoreParse = require('parse-gitignore'); // Keep at v0 since v1 is a breaking change.
 
 module.exports = function (grunt) {
 	'use strict';
@@ -29,9 +29,10 @@ module.exports = function (grunt) {
 					},
 					{
 						cwd: 'node_modules/',
-						src: 'qrcode-generator/qrcode.js',
+						src: 'qrcode-generator/dist/qrcode.js',
 						dest: '<%= dist_dir %>/includes',
 						expand: true,
+						rename: (dest) => dest + '/qrcode-generator/qrcode.js',
 					},
 				],
 			},

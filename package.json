@@ -4,7 +4,7 @@
   "private": true,
   "engineStrict": true,
   "engines": {
-    "node": ">=20"
+    "node": "^24.0"
   },
   "homepage": "https://github.com/wordpress/two-factor",
   "scripts": {
@@ -32,11 +32,11 @@
   "author": "georgestephanis",
   "license": "GPL-2.0-or-later",
   "dependencies": {
-    "qrcode-generator": "^1.4.4"
+    "qrcode-generator": "^2.0.4"
   },
   "devDependencies": {
-    "@wordpress/env": "^10.30.0",
-    "@wordpress/eslint-plugin": "^22.16.0",
+    "@wordpress/env": "^11.16.0",
+    "@wordpress/eslint-plugin": "^27.0.0",
     "@wordpress/scripts": "^36.0.0",
     "grunt": "^1.6.3",
     "grunt-cli": "^1.5.0",
