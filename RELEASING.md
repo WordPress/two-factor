@@ -2,6 +2,10 @@
 
 The following content can be copied and pasted into a release issue or PR to help provide a checklist of tasks when releasing this project. When utilizing this template, ensure you do the following. When pasting this content, ensure to update any `X.Y.Z` nomenclature to the release version being prepared. The person doing the release needs to be [added to the plugin committer list on wp.org](https://wordpress.org/plugins/two-factor/advanced/) (note that this is different from the contributor list), so that they get the release confirmation email, or someone who's already a committer needs to be available to confirm.
 
+**Pre-releases (betas and release candidates)** follow the same instructions below, with a few differences: use a [SemVer pre-release tag](https://semver.org/#spec-item-9) on the next unreleased version (e.g. `0.17.0-rc.1` or `0.17.0-beta.1`) and bump the versions in `readme.txt` and `two-factor.php` to match, and check the **Set as a pre-release** option in the GitHub release form. Pre-releases are distributed through GitHub only — the Deploy workflow automatically skips the WordPress.org deployment for them while still attaching the plugin ZIP to the release for testing. For an example, see [`0.7.0-rc.1`](https://github.com/WordPress/two-factor/releases/tag/0.7.0-rc.1).
+
+## Stable releases
+
 ```
 ## Release instructions
 
