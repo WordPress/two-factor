@@ -656,6 +656,75 @@ class Test_ClassTwoFactorCore extends WP_UnitTestCase {
 	}
 
 	/**
+	 * Verify user API login is enabled for the user authenticated via an application password.
+	 *
+	 * @covers Two_Factor_Core::is_user_api_login_enabled
+	 * @covers Two_Factor_Core::app_password_did_authenticate
+	 */
+	public function test_user_api_login_enabled_for_app_password_user() {
+		$user_id = self::factory()->user->create();
+
+		do_action( 'application_password_did_authenticate', new WP_User( $user_id ), array() );
+
+		$this->assertTrue(
+			Two_Factor_Core::is_user_api_login_enabled( $user_id ),
+			'API login is enabled for the user authenticated via an application password'
+		);
+	}
+
+	/**
+	 * Verify user API login stays disabled for users that were not authenticated
+	 * via an application password.
+	 *
+	 * @covers Two_Factor_Core::is_user_api_login_enabled
+	 * @covers Two_Factor_Core::app_password_did_authenticate
+	 */
+	public function test_user_api_login_not_enabled_for_other_users() {
+		$user_id       = self::factory()->user->create();
+		$other_user_id = self::factory()->user->create();
+
+		do_action( 'application_password_did_authenticate', new WP_User( $user_id ), array() );
+
+		$this->assertFalse(
+			Two_Factor_Core::is_user_api_login_enabled( $other_user_id ),
+			'An application password authentication does not enable API login for other users'
+		);
+	}
+
+	/**
+	 * Verify API request authentication for users authenticated via an application password.
+	 *
+	 * @covers Two_Factor_Core::filter_authenticate
+	 * @covers Two_Factor_Core::is_user_api_login_enabled
+	 * @runInSeparateProcess
+	 * @preserveGlobalState disabled
+	 */
+	public function test_filter_authenticate_api_with_app_password() {
+		$user_2fa_enabled = $this->get_dummy_user(); // User with a dummy two-factor method enabled.
+		$user_other       = $this->get_dummy_user();
+
+		// TODO: Get Two_Factor_Core away from static methods to allow mocking this.
+		// Guard against re-definition if the constant is already set in this process.
+		if ( ! defined( 'XMLRPC_REQUEST' ) ) {
+			define( 'XMLRPC_REQUEST', true );
+		}
+
+		do_action( 'application_password_did_authenticate', $user_2fa_enabled, array() );
+
+		$this->assertInstanceOf(
+			WP_User::class,
+			Two_Factor_Core::filter_authenticate( $user_2fa_enabled ),
+			'2FA user authenticated via an application password should be able to authenticate during API requests'
+		);
+
+		$this->assertInstanceOf(
+			WP_Error::class,
+			Two_Factor_Core::filter_authenticate( $user_other ),
+			'2FA user without an application password authentication should not be able to authenticate during API requests'
+		);
+	}
+
+	/**
 	 * Verify request is not an API request.
 	 *
 	 * @covers Two_Factor_Core::is_api_request

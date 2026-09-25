@@ -1,31 +1,29 @@
-/* eslint-env node,es6 */
+const fs = require('fs');
+const ignoreParse = require('parse-gitignore');
 
-const fs = require( 'fs' );
-const ignoreParse = require( 'parse-gitignore' );
-
-module.exports = function( grunt ) {
+module.exports = function (grunt) {
 	'use strict';
 
-	require( 'load-grunt-tasks' )( grunt );
+	require('load-grunt-tasks')(grunt);
 
-	const distignore = ignoreParse( '.distignore', [], {
+	const distignore = ignoreParse('.distignore', [], {
 		invert: true,
-	} );
+	});
 
-	grunt.initConfig( {
-		pkg: grunt.file.readJSON( 'package.json' ),
+	grunt.initConfig({
+		pkg: grunt.file.readJSON('package.json'),
 
 		dist_dir: 'dist',
 
 		clean: {
-			build: [ '<%= dist_dir %>' ],
+			build: ['<%= dist_dir %>'],
 		},
 
 		copy: {
 			dist: {
 				files: [
 					{
-						src: [ '**' ].concat( distignore ),
+						src: ['**'].concat(distignore),
 						dest: '<%= dist_dir %>',
 						expand: true,
 					},
@@ -34,24 +32,20 @@ module.exports = function( grunt ) {
 						src: 'qrcode-generator/qrcode.js',
 						dest: '<%= dist_dir %>/includes',
 						expand: true,
-					}
+					},
 				],
 			},
 		},
-	} );
+	});
 
-	grunt.registerTask(
-		'build', [
-			'clean',
-			'copy',
-		]
-	);
+	grunt.registerTask('build', ['clean', 'copy']);
 
-	grunt.registerTask(
-		'blueprint-url',
-		function() {
-			const blueprintJson = JSON.parse( fs.readFileSync( '.wordpress-org/blueprints/blueprint.json', 'utf8' ) );
-			grunt.log.write( `Blueprint URL: https://playground.wordpress.net/#${ encodeURI( JSON.stringify( blueprintJson ) ) }` );
-		}
-	);
+	grunt.registerTask('blueprint-url', function () {
+		const blueprintJson = JSON.parse(
+			fs.readFileSync('.wordpress-org/blueprints/blueprint.json', 'utf8')
+		);
+		grunt.log.write(
+			`Blueprint URL: https://playground.wordpress.net/#${encodeURI(JSON.stringify(blueprintJson))}`
+		);
+	});
 };
