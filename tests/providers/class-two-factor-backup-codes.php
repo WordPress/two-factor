@@ -224,4 +224,40 @@ class Tests_Two_Factor_Backup_Codes extends WP_UnitTestCase {
 
 		remove_all_filters( 'two_factor_backup_code_length' );
 	}
+
+	/**
+	 * Verify privacy_export_data reports nothing for a user without codes.
+	 *
+	 * @covers Two_Factor_Backup_Codes::privacy_export_data
+	 */
+	public function test_privacy_export_data_without_codes() {
+		$user = self::factory()->user->create_and_get();
+
+		$this->assertSame( array(), $this->provider->privacy_export_data( $user ) );
+	}
+
+	/**
+	 * Verify privacy_export_data reports the remaining count, not the codes.
+	 *
+	 * @covers Two_Factor_Backup_Codes::privacy_export_data
+	 */
+	public function test_privacy_export_data_with_codes() {
+		$user         = self::factory()->user->create_and_get();
+		$codes        = $this->provider->generate_codes( $user, array( 'number' => 2 ) );
+		$codes_hashed = (array) get_user_meta( $user->ID, Two_Factor_Backup_Codes::BACKUP_CODES_META_KEY, true );
+
+		$data = $this->provider->privacy_export_data( $user );
+
+		$this->assertCount( 1, $data );
+		$this->assertSame( 'Recovery codes', $data[0]['name'] );
+		$this->assertStringContainsString( '2 unused codes', $data[0]['value'] );
+
+		$payload = wp_json_encode( $data );
+		foreach ( $codes as $code ) {
+			$this->assertStringNotContainsString( $code, $payload );
+		}
+		foreach ( $codes_hashed as $hashed_code ) {
+			$this->assertStringNotContainsString( $hashed_code, $payload );
+		}
+	}
 }

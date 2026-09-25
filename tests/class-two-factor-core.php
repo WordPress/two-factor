@@ -3351,4 +3351,291 @@ class Test_ClassTwoFactorCore extends WP_UnitTestCase {
 		$this->assertStringContainsString( 'Settings', $first );
 		$this->assertStringContainsString( 'options-general.php', $first );
 	}
+
+	/**
+	 * Create a user with every Two Factor record in place.
+	 *
+	 * Returns the user along with the sensitive strings that must never
+	 * show up in an export.
+	 *
+	 * @return array
+	 */
+	private function get_fully_configured_user() {
+		$user = self::factory()->user->create_and_get();
+
+		update_user_meta( $user->ID, Two_Factor_Core::ENABLED_PROVIDERS_USER_META_KEY, array( 'Two_Factor_Totp', 'Two_Factor_Email', 'Two_Factor_Backup_Codes' ) );
+		update_user_meta( $user->ID, Two_Factor_Core::PROVIDER_USER_META_KEY, 'Two_Factor_Totp' );
+		update_user_meta( $user->ID, Two_Factor_Core::USER_FAILED_LOGIN_ATTEMPTS_KEY, 3 );
+		update_user_meta( $user->ID, Two_Factor_Core::USER_RATE_LIMIT_KEY, time() - 100 );
+		update_user_meta( $user->ID, Two_Factor_Core::USER_META_NONCE_KEY, 'login-nonce' );
+		update_user_meta( $user->ID, Two_Factor_Core::USER_PASSWORD_WAS_RESET_KEY, true );
+
+		$totp = Two_Factor_Totp::get_instance();
+		$totp->set_user_totp_key( $user->ID, Two_Factor_Totp::generate_key() );
+		update_user_meta( $user->ID, Two_Factor_Totp::LAST_SUCCESSFUL_LOGIN_META_KEY, time() - 50 );
+
+		$email        = Two_Factor_Email::get_instance();
+		$token        = $email->generate_token( $user->ID );
+		$token_hashed = get_user_meta( $user->ID, Two_Factor_Email::TOKEN_META_KEY, true );
+
+		$codes        = Two_Factor_Backup_Codes::get_instance()->generate_codes( $user );
+		$codes_hashed = (array) get_user_meta( $user->ID, Two_Factor_Backup_Codes::BACKUP_CODES_META_KEY, true );
+
+		$sensitive = array_merge(
+			array( $totp->get_user_totp_key( $user->ID ), $token, $token_hashed ),
+			$codes,
+			$codes_hashed
+		);
+
+		return array(
+			'user'      => $user,
+			'sensitive' => array_filter( $sensitive ),
+		);
+	}
+
+	/**
+	 * Verify the personal data exporter and eraser are registered.
+	 *
+	 * @covers Two_Factor_Core::add_hooks
+	 */
+	public function test_add_hooks_privacy_filters() {
+		Two_Factor_Core::add_hooks( new Two_Factor_Compat() );
+
+		$this->assertGreaterThan(
+			0,
+			has_filter(
+				'wp_privacy_personal_data_exporters',
+				array( 'Two_Factor_Core', 'register_personal_data_exporter' )
+			)
+		);
+		$this->assertGreaterThan(
+			0,
+			has_filter(
+				'wp_privacy_personal_data_erasers',
+				array( 'Two_Factor_Core', 'register_personal_data_eraser' )
+			)
+		);
+	}
+
+	/**
+	 * Verify the exporter registration adds the plugin entry.
+	 *
+	 * @covers Two_Factor_Core::register_personal_data_exporter
+	 */
+	public function test_register_personal_data_exporter() {
+		$exporters = Two_Factor_Core::register_personal_data_exporter( array() );
+
+		$this->assertArrayHasKey( 'two-factor', $exporters );
+		$this->assertSame( array( 'Two_Factor_Core', 'personal_data_exporter' ), $exporters['two-factor']['callback'] );
+		$this->assertNotEmpty( $exporters['two-factor']['exporter_friendly_name'] );
+	}
+
+	/**
+	 * Verify the eraser registration adds the plugin entry.
+	 *
+	 * @covers Two_Factor_Core::register_personal_data_eraser
+	 */
+	public function test_register_personal_data_eraser() {
+		$erasers = Two_Factor_Core::register_personal_data_eraser( array() );
+
+		$this->assertArrayHasKey( 'two-factor', $erasers );
+		$this->assertSame( array( 'Two_Factor_Core', 'personal_data_eraser' ), $erasers['two-factor']['callback'] );
+		$this->assertNotEmpty( $erasers['two-factor']['eraser_friendly_name'] );
+	}
+
+	/**
+	 * Verify the exporter returns nothing for an unknown email address.
+	 *
+	 * @covers Two_Factor_Core::personal_data_exporter
+	 */
+	public function test_personal_data_exporter_unknown_email() {
+		$response = Two_Factor_Core::personal_data_exporter( 'nobody@example.com' );
+
+		$this->assertSame( array(), $response['data'] );
+		$this->assertTrue( $response['done'] );
+	}
+
+	/**
+	 * Verify the exporter returns nothing for a user without Two Factor data.
+	 *
+	 * @covers Two_Factor_Core::personal_data_exporter
+	 */
+	public function test_personal_data_exporter_user_without_two_factor() {
+		$user     = self::factory()->user->create_and_get();
+		$response = Two_Factor_Core::personal_data_exporter( $user->user_email );
+
+		$this->assertSame( array(), $response['data'] );
+		$this->assertTrue( $response['done'] );
+	}
+
+	/**
+	 * Verify the exporter includes the records kept by the core.
+	 *
+	 * @covers Two_Factor_Core::personal_data_exporter
+	 */
+	public function test_personal_data_exporter_includes_core_records() {
+		$setup    = $this->get_fully_configured_user();
+		$user     = $setup['user'];
+		$response = Two_Factor_Core::personal_data_exporter( $user->user_email );
+
+		$this->assertTrue( $response['done'] );
+		$this->assertSame( 'two-factor', $response['data'][0]['group_id'] );
+
+		$items = $response['data'][0]['data'];
+		$names = wp_list_pluck( $items, 'name' );
+
+		$this->assertContains( 'Enabled Two Factor methods', $names );
+		$this->assertContains( 'Primary Two Factor method', $names );
+		$this->assertContains( 'Failed Two Factor login attempts', $names );
+		$this->assertContains( 'Last failed Two Factor login', $names );
+
+		$values = array_combine( $names, wp_list_pluck( $items, 'value' ) );
+		$this->assertSame( 'Two_Factor_Totp, Two_Factor_Email, Two_Factor_Backup_Codes', $values['Enabled Two Factor methods'] );
+		$this->assertSame( 'Two_Factor_Totp', $values['Primary Two Factor method'] );
+		$this->assertEquals( 3, $values['Failed Two Factor login attempts'] );
+		$this->assertNotEmpty( $values['Last failed Two Factor login'] );
+	}
+
+	/**
+	 * Verify the exporter includes the records kept by the providers.
+	 *
+	 * @covers Two_Factor_Core::personal_data_exporter
+	 */
+	public function test_personal_data_exporter_includes_provider_records() {
+		$setup    = $this->get_fully_configured_user();
+		$user     = $setup['user'];
+		$response = Two_Factor_Core::personal_data_exporter( $user->user_email );
+
+		$items = $response['data'][0]['data'];
+		$names = wp_list_pluck( $items, 'name' );
+
+		$this->assertContains( 'Authenticator app (TOTP)', $names );
+		$this->assertContains( 'Last successful login', $names );
+		$this->assertContains( 'Email login code', $names );
+		$this->assertContains( 'Recovery codes', $names );
+
+		$values = array_combine( $names, wp_list_pluck( $items, 'value' ) );
+		$this->assertSame( 'Configured', $values['Authenticator app (TOTP)'] );
+		$this->assertNotEmpty( $values['Last successful login'] );
+		$this->assertStringContainsString( 'was sent on', $values['Email login code'] );
+		$this->assertStringContainsString( '10 unused codes', $values['Recovery codes'] );
+	}
+
+	/**
+	 * Verify the export contains no secret, code or hash.
+	 *
+	 * @covers Two_Factor_Core::personal_data_exporter
+	 */
+	public function test_personal_data_exporter_does_not_leak_secrets() {
+		$setup    = $this->get_fully_configured_user();
+		$user     = $setup['user'];
+		$response = Two_Factor_Core::personal_data_exporter( $user->user_email );
+
+		$payload = wp_json_encode( $response );
+
+		foreach ( $setup['sensitive'] as $secret ) {
+			$this->assertStringNotContainsString( $secret, $payload );
+		}
+	}
+
+	/**
+	 * Verify the eraser does nothing for an unknown email address.
+	 *
+	 * @covers Two_Factor_Core::personal_data_eraser
+	 */
+	public function test_personal_data_eraser_unknown_email() {
+		$response = Two_Factor_Core::personal_data_eraser( 'nobody@example.com' );
+
+		$this->assertFalse( $response['items_removed'] );
+		$this->assertFalse( $response['items_retained'] );
+		$this->assertSame( array(), $response['messages'] );
+		$this->assertTrue( $response['done'] );
+	}
+
+	/**
+	 * Verify the eraser does nothing for a user without Two Factor data.
+	 *
+	 * @covers Two_Factor_Core::personal_data_eraser
+	 */
+	public function test_personal_data_eraser_user_without_two_factor() {
+		$user     = self::factory()->user->create_and_get();
+		$response = Two_Factor_Core::personal_data_eraser( $user->user_email );
+
+		$this->assertFalse( $response['items_removed'] );
+		$this->assertFalse( $response['items_retained'] );
+		$this->assertTrue( $response['done'] );
+	}
+
+	/**
+	 * Verify the eraser removes the short-lived records, including the
+	 * TOTP replay timestamp and the pending email code.
+	 *
+	 * @covers Two_Factor_Core::personal_data_eraser
+	 */
+	public function test_personal_data_eraser_removes_short_lived_records() {
+		$setup    = $this->get_fully_configured_user();
+		$user     = $setup['user'];
+		$response = Two_Factor_Core::personal_data_eraser( $user->user_email );
+
+		$this->assertTrue( $response['items_removed'] );
+		$this->assertTrue( $response['done'] );
+
+		$this->assertEmpty( get_user_meta( $user->ID, Two_Factor_Core::USER_META_NONCE_KEY, true ) );
+		$this->assertEmpty( get_user_meta( $user->ID, Two_Factor_Core::USER_RATE_LIMIT_KEY, true ) );
+		$this->assertEmpty( get_user_meta( $user->ID, Two_Factor_Core::USER_FAILED_LOGIN_ATTEMPTS_KEY, true ) );
+		$this->assertEmpty( get_user_meta( $user->ID, Two_Factor_Core::USER_PASSWORD_WAS_RESET_KEY, true ) );
+		$this->assertEmpty( get_user_meta( $user->ID, Two_Factor_Totp::LAST_SUCCESSFUL_LOGIN_META_KEY, true ) );
+		$this->assertEmpty( get_user_meta( $user->ID, Two_Factor_Email::TOKEN_META_KEY, true ) );
+		$this->assertEmpty( get_user_meta( $user->ID, Two_Factor_Email::TOKEN_META_KEY_TIMESTAMP, true ) );
+	}
+
+	/**
+	 * Verify the eraser keeps the credentials so the account stays protected.
+	 *
+	 * @covers Two_Factor_Core::personal_data_eraser
+	 */
+	public function test_personal_data_eraser_keeps_credentials() {
+		$setup    = $this->get_fully_configured_user();
+		$user     = $setup['user'];
+		$response = Two_Factor_Core::personal_data_eraser( $user->user_email );
+
+		$this->assertSame(
+			array( 'Two_Factor_Totp', 'Two_Factor_Email', 'Two_Factor_Backup_Codes' ),
+			get_user_meta( $user->ID, Two_Factor_Core::ENABLED_PROVIDERS_USER_META_KEY, true )
+		);
+		$this->assertSame( 'Two_Factor_Totp', get_user_meta( $user->ID, Two_Factor_Core::PROVIDER_USER_META_KEY, true ) );
+		$this->assertNotEmpty( Two_Factor_Totp::get_instance()->get_user_totp_key( $user->ID ) );
+		$this->assertNotEmpty( get_user_meta( $user->ID, Two_Factor_Backup_Codes::BACKUP_CODES_META_KEY, true ) );
+	}
+
+	/**
+	 * Verify the eraser reports the retained credentials through a message.
+	 *
+	 * @covers Two_Factor_Core::personal_data_eraser
+	 */
+	public function test_personal_data_eraser_reports_retained_credentials() {
+		$setup    = $this->get_fully_configured_user();
+		$user     = $setup['user'];
+		$response = Two_Factor_Core::personal_data_eraser( $user->user_email );
+
+		$this->assertTrue( $response['items_retained'] );
+		$this->assertNotEmpty( $response['messages'] );
+		$this->assertStringContainsString( 'Two Factor', $response['messages'][0] );
+	}
+
+	/**
+	 * Verify format_privacy_timestamp() handles empty and set timestamps.
+	 *
+	 * @covers Two_Factor_Core::format_privacy_timestamp
+	 */
+	public function test_format_privacy_timestamp() {
+		$this->assertSame( '', Two_Factor_Core::format_privacy_timestamp( '' ) );
+		$this->assertSame( '', Two_Factor_Core::format_privacy_timestamp( 0 ) );
+
+		$timestamp = time() - 100;
+		$formatted = Two_Factor_Core::format_privacy_timestamp( $timestamp );
+
+		$this->assertNotEmpty( $formatted );
+		$this->assertStringContainsString( gmdate( 'Y', $timestamp ), $formatted );
+	}
 }
