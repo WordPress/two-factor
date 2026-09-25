@@ -39,7 +39,7 @@ jobs:
             core.setOutput('number', prs.data[0].number);
 
       - name: Post Playground preview button
-        uses: WordPress/action-wp-playground-pr-preview@c8607529dac8d2bf9a1e8493865fc97cd1c3c87b # v2
+        uses: WordPress/action-wp-playground-pr-preview@1b15093d61b5e98cdfeb31466f34ade495762cd7 # v4.0.0
         with:
           mode: append-to-description
           plugin-path: .
