@@ -40,6 +40,15 @@
 		<exclude-pattern>tests/providers/*.php</exclude-pattern>
 	</rule>
 
+	<rule ref="WordPress.Security.NonceVerification">
+		<properties>
+			<property name="customNonceVerificationFunctions" type="array">
+				<element value="two_factor_is_valid_user_action"/>
+			</property>
+		</properties>
+	</rule>
+
+
 	<exclude-pattern>*/wordpress/*</exclude-pattern>
 	<exclude-pattern>*/dist/*</exclude-pattern>
 	<exclude-pattern>*/includes/*</exclude-pattern>
