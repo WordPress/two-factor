@@ -1,7 +1,7 @@
-/* global twoFactorTotpAdmin, qrcode, wp, document, jQuery */
+/* global twoFactorTotpAdmin, qrcode, jQuery */
 ( function( $ ) {
-	var generateQrCode = function( totpUrl ) {
-		var $qrLink = $( '#two-factor-qr-code a' ),
+	const generateQrCode = function( totpUrl ) {
+		let $qrLink = $( '#two-factor-qr-code a' ),
 			qr,
 			svg,
 			title;
@@ -18,7 +18,12 @@
 
 		svg = $qrLink.find( 'svg' )[ 0 ];
 		if ( svg ) {
-			var ariaLabel = ( typeof twoFactorTotpAdmin !== 'undefined' && twoFactorTotpAdmin && twoFactorTotpAdmin.qrCodeAriaLabel ) ? twoFactorTotpAdmin.qrCodeAriaLabel : 'Authenticator App QR Code';
+			const ariaLabel =
+				typeof twoFactorTotpAdmin !== 'undefined' &&
+				twoFactorTotpAdmin &&
+				twoFactorTotpAdmin.qrCodeAriaLabel
+					? twoFactorTotpAdmin.qrCodeAriaLabel
+					: 'Authenticator App QR Code';
 			title = document.createElement( 'title' );
 			svg.setAttribute( 'role', 'img' );
 			svg.setAttribute( 'aria-label', ariaLabel );
@@ -27,7 +32,7 @@
 		}
 	};
 
-	var checkbox = document.getElementById( 'enabled-Two_Factor_Totp' );
+	const checkbox = document.getElementById( 'enabled-Two_Factor_Totp' );
 
 	// Focus the auth code input when the checkbox is clicked.
 	if ( checkbox ) {
@@ -38,58 +43,80 @@
 		} );
 	}
 
-	$( '#two-factor-totp-options' ).on( 'click', '.totp-submit', function( e ) {
-		var key = $( '#two-factor-totp-key' ).val(),
-			code = $( '#two-factor-totp-authcode' ).val();
+	$( '#two-factor-totp-options' ).on(
+		'click',
+		'.totp-submit',
+		function( e ) {
+			const key = $( '#two-factor-totp-key' ).val(),
+				code = $( '#two-factor-totp-authcode' ).val();
 
-		e.preventDefault();
+			e.preventDefault();
 
-		wp.apiRequest( {
-			method: 'POST',
-			path: twoFactorTotpAdmin.restPath,
-			data: {
-				user_id: parseInt( twoFactorTotpAdmin.userId, 10 ),
-				key: key,
-				code: code,
-				enable_provider: true
-			}
-		} ).fail( function( response, status ) {
-			var errorMessage = ( response && response.responseJSON && response.responseJSON.message ) || ( response && response.statusText ) || status || '',
-				$error = $( '#totp-setup-error' );
+			wp.apiRequest( {
+				method: 'POST',
+				path: twoFactorTotpAdmin.restPath,
+				data: {
+					user_id: parseInt( twoFactorTotpAdmin.userId, 10 ),
+					key,
+					code,
+					enable_provider: true,
+				},
+			} )
+				.fail( function( response, status ) {
+					let errorMessage =
+							( response &&
+								response.responseJSON &&
+								response.responseJSON.message ) ||
+							( response && response.statusText ) ||
+							status ||
+							'',
+						$error = $( '#totp-setup-error' );
 
-			if ( ! $error.length ) {
-				$error = $( '<div class="error" id="totp-setup-error"><p></p></div>' ).insertAfter( $( '.totp-submit' ) );
-			}
+					if ( ! $error.length ) {
+						$error = $(
+							'<div class="error" id="totp-setup-error"><p></p></div>'
+						).insertAfter( $( '.totp-submit' ) );
+					}
 
-			$error.find( 'p' ).text( errorMessage );
+					$error.find( 'p' ).text( errorMessage );
 
-			$( '#enabled-Two_Factor_Totp' ).prop( 'checked', false ).trigger( 'change' );
-			$( '#two-factor-totp-authcode' ).val( '' );
-		} ).then( function( response ) {
-			$( '#enabled-Two_Factor_Totp' ).prop( 'checked', true ).trigger( 'change' );
-			$( '#two-factor-totp-options' ).html( response.html );
-		} );
-	} );
+					$( '#enabled-Two_Factor_Totp' )
+						.prop( 'checked', false )
+						.trigger( 'change' );
+					$( '#two-factor-totp-authcode' ).val( '' );
+				} )
+				.then( function( response ) {
+					$( '#enabled-Two_Factor_Totp' )
+						.prop( 'checked', true )
+						.trigger( 'change' );
+					$( '#two-factor-totp-options' ).html( response.html );
+				} );
+		}
+	);
 
-	$( '#two-factor-totp-options' ).on( 'click', '.button.reset-totp-key', function( e ) {
-		e.preventDefault();
+	$( '#two-factor-totp-options' ).on(
+		'click',
+		'.button.reset-totp-key',
+		function( e ) {
+			e.preventDefault();
 
-		wp.apiRequest( {
-			method: 'DELETE',
-			path: twoFactorTotpAdmin.restPath,
-			data: {
-				user_id: parseInt( twoFactorTotpAdmin.userId, 10 )
-			}
-		} ).then( function( response ) {
-			var totpUrl;
+			wp.apiRequest( {
+				method: 'DELETE',
+				path: twoFactorTotpAdmin.restPath,
+				data: {
+					user_id: parseInt( twoFactorTotpAdmin.userId, 10 ),
+				},
+			} ).then( function( response ) {
+				let totpUrl;
 
-			$( '#enabled-Two_Factor_Totp' ).prop( 'checked', false );
-			$( '#two-factor-totp-options' ).html( response.html );
+				$( '#enabled-Two_Factor_Totp' ).prop( 'checked', false );
+				$( '#two-factor-totp-options' ).html( response.html );
 
-			totpUrl = $( '#two-factor-qr-code a' ).attr( 'href' );
-			if ( totpUrl ) {
-				generateQrCode( totpUrl );
-			}
-		} );
-	} );
+				totpUrl = $( '#two-factor-qr-code a' ).attr( 'href' );
+				if ( totpUrl ) {
+					generateQrCode( totpUrl );
+				}
+			} );
+		}
+	);
 }( jQuery ) );

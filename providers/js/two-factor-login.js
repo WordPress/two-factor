@@ -1,11 +1,10 @@
-/* global document, setTimeout */
 ( function() {
 	setTimeout( function() {
-		var d;
+		let d;
 		try {
 			d = document.getElementById( 'authcode' );
 			d.value = '';
 			d.focus();
-		} catch ( e ) {}
+		} catch {}
 	}, 200 );
 }() );
