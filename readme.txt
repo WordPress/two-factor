@@ -168,6 +168,7 @@ Not through the plugin's interface — there are no built-in enforcement setting
 = 0.17.0 - 2026-09-25 =
 
 * **Security Fixes:** Ensure that regular passwords can't bypass the two-factor requirement for REST API and XML-RPC requests by @faisalahammad in [#989](https://github.com/WordPress/two-factor/pull/989). Thanks mqrble for responsibly reporting the issue.
+* **Security Fixes:** Add diagnostics for failed login nonce verification by @georgestephanis in [#973](https://github.com/WordPress/two-factor/pull/973). Thanks Ananda Dhakal (Patchstack) for responsibly reporting the issue.
 * **New Features:** Add WP-CLI support with `wp two-factor` commands by @masteradhoc in [#905](https://github.com/WordPress/two-factor/pull/905)
 * **New Features:** Respect intentional bypass via the `two_factor_is_required_for_user` filter by @masteradhoc in [#882](https://github.com/WordPress/two-factor/pull/882)
 * **New Features:** Add a `two_factor_fallback_provider_for_user` filter for when a user's stored providers are no longer registered by @masteradhoc in [#882](https://github.com/WordPress/two-factor/pull/882)
@@ -175,7 +176,6 @@ Not through the plugin's interface — there are no built-in enforcement setting
 * **New Features:** Add privacy policy content registration by @masteradhoc in [#869](https://github.com/WordPress/two-factor/pull/869)
 * **Bug Fixes:** Fail closed when CSPRNG is unavailable during nonce generation by @dknauss in [#877](https://github.com/WordPress/two-factor/pull/877)
 * **Bug Fixes:** Only clear the login nonce once it has expired by @georgestephanis in [#980](https://github.com/WordPress/two-factor/pull/980)
-* **Bug Fixes:** Add diagnostics for failed login nonce verification by @georgestephanis in [#973](https://github.com/WordPress/two-factor/pull/973)
 * **Bug Fixes:** Fix unslashed `REMOTE_ADDR` warning in email provider by @masteradhoc in [#975](https://github.com/WordPress/two-factor/pull/975)
 * **Bug Fixes:** Fix TOTP verify button after resetting authenticator app by @lakrisgubben in [#979](https://github.com/WordPress/two-factor/pull/979)
 * **Bug Fixes:** Remove `two_factor_enabled_providers` option on uninstall by @faisalahammad in [#903](https://github.com/WordPress/two-factor/pull/903)
