@@ -1,5 +1,5 @@
 const fs = require('fs');
-const ignoreParse = require('parse-gitignore'); // Keep at v1 since v2
+const ignoreParse = require('parse-gitignore'); // Keep at v0 since v1 is a breaking change.
 
 module.exports = function (grunt) {
 	'use strict';
