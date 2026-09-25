@@ -1714,6 +1714,56 @@ class Two_Factor_Core {
 	}
 
 	/**
+	 * Flag the current user's session as two-factor authenticated once a provider
+	 * has actually been configured for them.
+	 *
+	 * Sessions are normally flagged when a factor is validated while signing in, but
+	 * a user who does not have a second factor yet cannot have done that. Without
+	 * flagging at setup time, enabling two-factor would leave their session
+	 * unflagged, and the revalidation check would lock them out of the very settings
+	 * screen they are still configuring.
+	 *
+	 * Only the current user's own session is ever modified. A session that is already
+	 * flagged is left untouched, so repeat calls cannot push the flag forward and
+	 * extend the revalidation grace period.
+	 *
+	 * @since 0.17.0
+	 *
+	 * @param int    $user_id      The user the provider was set up for.
+	 * @param string $provider_key The key of the provider that was just configured, or an
+	 *                             empty string when the setup itself did not verify a factor.
+	 * @return bool True if the session was updated, false otherwise.
+	 */
+	public static function maybe_mark_current_session_two_factor( $user_id, $provider_key = '' ) {
+		$user_id = absint( $user_id );
+
+		// Never alter the session of a different user, or of a logged out request.
+		if ( ! $user_id || get_current_user_id() !== $user_id ) {
+			return false;
+		}
+
+		// An already validated session keeps its original timestamp.
+		if ( self::is_current_user_session_two_factor() ) {
+			return false;
+		}
+
+		// Nothing to flag until a provider is enabled and configured for the user.
+		if ( ! self::is_user_using_two_factor( $user_id ) ) {
+			return false;
+		}
+
+		self::update_current_user_session(
+			array(
+				'two-factor-provider' => sanitize_text_field( (string) $provider_key ),
+				'two-factor-login'    => time(),
+			)
+		);
+
+		// Confirm the flag landed, since the session storage returns void.
+		return (bool) self::is_current_user_session_two_factor();
+	}
+
+	/**
 	 * Determine if the current user session can update Two-Factor settings.
 	 *
 	 * @since 0.9.0
@@ -2785,14 +2835,10 @@ class Two_Factor_Core {
 			// Have we changed the two-factor settings for the current user? Alter their session metadata.
 			if ( get_current_user_id() === $user_id ) {
 
-				if ( $enabled_providers && ! $existing_providers && ! self::is_current_user_session_two_factor() ) {
-					// We've enabled two-factor from a non-two-factor session, set the key but not the provider, as no provider has been used yet.
-					self::update_current_user_session(
-						array(
-							'two-factor-provider' => '',
-							'two-factor-login'    => time(),
-						)
-					);
+				if ( $enabled_providers && ! $existing_providers ) {
+					// We've enabled two-factor from a non-two-factor session. No provider key is passed,
+					// since saving this form doesn't validate a factor for any particular provider.
+					self::maybe_mark_current_session_two_factor( $user_id );
 				} elseif ( $existing_providers && ! $enabled_providers ) {
 					// We've disabled two-factor, remove session metadata.
 					self::update_current_user_session(

@@ -65,6 +65,33 @@ class Tests_Two_Factor_Totp_REST_API extends WP_Test_REST_TestCase {
 	}
 
 	/**
+	 * Clean up after each test.
+	 */
+	public function tearDown(): void {
+		parent::tearDown();
+
+		unset( $_COOKIE[ LOGGED_IN_COOKIE ] );
+	}
+
+	/**
+	 * Log a user in with a real session token.
+	 *
+	 * The wp_set_auth_cookie() helper does not populate $_COOKIE on its own here, so
+	 * build the session and logged-in cookie directly to give the request a token.
+	 *
+	 * @param int $user_id User ID.
+	 */
+	private function set_up_session_for_user( $user_id ) {
+		wp_set_current_user( $user_id );
+
+		$expiration = time() + HOUR_IN_SECONDS;
+		$manager    = WP_Session_Tokens::get_instance( $user_id );
+		$token      = $manager->create( $expiration );
+
+		$_COOKIE[ LOGGED_IN_COOKIE ] = wp_generate_auth_cookie( $user_id, $expiration, 'logged_in', $token );
+	}
+
+	/**
 	 * Verify setting up TOTP with a bad key code.
 	 *
 	 * @covers Two_Factor_Totp::rest_setup_totp
@@ -171,6 +198,74 @@ class Tests_Two_Factor_Totp_REST_API extends WP_Test_REST_TestCase {
 		$this->assertTrue( $data['success'] );
 
 		$this->assertTrue( self::$provider->is_available_for_user( wp_get_current_user() ) );
+	}
+
+	/**
+	 * Verify that setting up TOTP flags the current session as two-factor.
+	 *
+	 * @covers Two_Factor_Totp::rest_setup_totp
+	 * @covers Two_Factor_Core::maybe_mark_current_session_two_factor
+	 */
+	public function test_user_two_factor_rest_setup_marks_session_two_factor() {
+		$this->set_up_session_for_user( self::$admin_id );
+
+		$this->assertFalse( Two_Factor_Core::is_current_user_session_two_factor() );
+
+		$key  = self::$provider->generate_key();
+		$code = self::$provider->calc_totp( $key );
+
+		$request = new WP_REST_Request( 'POST', '/' . Two_Factor_Core::REST_NAMESPACE . '/totp' );
+		$request->set_body_params(
+			array(
+				'user_id'         => self::$admin_id,
+				'key'             => $key,
+				'code'            => $code,
+				'enable_provider' => true,
+			)
+		);
+
+		$response = rest_do_request( $request );
+
+		$this->assertEquals( 200, $response->get_status() );
+
+		// The session is flagged, so the user is not asked to revalidate right after setup.
+		$this->assertNotFalse( Two_Factor_Core::is_current_user_session_two_factor() );
+
+		$session = Two_Factor_Core::get_current_user_session();
+		$this->assertEquals( 'Two_Factor_Totp', $session['two-factor-provider'] );
+
+		$this->assertTrue( Two_Factor_Core::current_user_can_update_two_factor_options( 'save' ) );
+	}
+
+	/**
+	 * Verify that setting up TOTP for another user does not flag the admin's session.
+	 *
+	 * @covers Two_Factor_Totp::rest_setup_totp
+	 * @covers Two_Factor_Core::maybe_mark_current_session_two_factor
+	 */
+	public function test_user_two_factor_rest_setup_for_other_user_does_not_mark_session() {
+		$this->set_up_session_for_user( self::$admin_id );
+
+		$key  = self::$provider->generate_key();
+		$code = self::$provider->calc_totp( $key );
+
+		$request = new WP_REST_Request( 'POST', '/' . Two_Factor_Core::REST_NAMESPACE . '/totp' );
+		$request->set_body_params(
+			array(
+				'user_id'         => self::$editor_id,
+				'key'             => $key,
+				'code'            => $code,
+				'enable_provider' => true,
+			)
+		);
+
+		$response = rest_do_request( $request );
+
+		$this->assertEquals( 200, $response->get_status() );
+
+		// The editor now uses two-factor, but that says nothing about the admin's session.
+		$this->assertTrue( Two_Factor_Core::is_user_using_two_factor( self::$editor_id ) );
+		$this->assertFalse( Two_Factor_Core::is_current_user_session_two_factor() );
 	}
 
 	/**

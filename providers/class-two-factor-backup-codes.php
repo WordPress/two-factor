@@ -380,6 +380,10 @@ class Two_Factor_Backup_Codes extends Two_Factor_Provider {
 			return new WP_Error( 'db_error', __( 'Unable to enable recovery codes for this user.', 'two-factor' ), array( 'status' => 500 ) );
 		}
 
+		// No code has been verified here, so flag the session without recording a provider,
+		// matching what saving the profile form does when two-factor is first enabled.
+		Two_Factor_Core::maybe_mark_current_session_two_factor( $user_id );
+
 		return array(
 			'codes'         => $codes,
 			'download_link' => $download_link,
