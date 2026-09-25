@@ -116,9 +116,9 @@ jobs:
                 wp:
                   - latest
                   - wordpress/wordpress
-                  - wordpress/wordpress#7.1-branch
                   - wordpress/wordpress#7.0-branch
-
+                  - wordpress/wordpress#7.1-branch
+                  - wordpress/wordpress#7.2-branch
         env:
             WP_ENV_PHP_VERSION: ${{ matrix.php }}
             WP_ENV_CORE: ${{ matrix.wp == 'latest' && 'https://wordpress.org/wordpress-latest.zip' || matrix.wp }}
