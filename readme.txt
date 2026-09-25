@@ -1,7 +1,7 @@
 === Two Factor ===
 Contributors: georgestephanis, kasparsd, masteradhoc, valendesigns, stevenkword, jeffpaul, extendwings, sgrant, aaroncampbell, johnbillion, stevegrunwell, netweb, alihusnainarshad, passoniate
 Tags:         2fa, mfa, totp, authentication, security
-Tested up to: 7.0
+Tested up to: 7.1
 Stable tag:   0.16.0
 License:      GPL-2.0-or-later
 License URI:  https://spdx.org/licenses/GPL-2.0-or-later.html
@@ -93,6 +93,7 @@ Here is a list of action and filter hooks provided by the plugin:
 - `two_factor_providers_for_user` filter overrides the available two-factor providers for a specific user. Array values are instances of provider classes and the user object `WP_User` is available as the second argument.
 - `two_factor_enabled_providers_for_user` filter overrides the list of two-factor providers enabled for a user. First argument is an array of enabled provider classnames as values, the second argument is the user ID.
 - `two_factor_is_required_for_user` filter controls whether two-factor authentication is required for a user. Return `false` to bypass the two-factor flow (e.g. for trusted IP addresses). First argument is a boolean (whether the user has a primary provider configured), the second argument is the `WP_User` object.
+- `two_factor_fallback_provider_for_user` filter overrides the provider forced on when none of a user's stored two-factor providers are still registered (e.g. after a provider plugin is deactivated). Defaults to `Two_Factor_Email`. First argument is the provider classname, the second is the user ID, the third is the array of provider classnames that were stored for the user but are no longer registered. The returned provider must be registered and available to the user (`is_available_for_user()`), or the user is shown an error instead of being let through with a fallback.
 - `two_factor_user_authenticated` action which receives the logged in `WP_User` object as the first argument for determining the logged in user right after the authentication workflow.
 - `two_factor_user_api_login_enable` filter restricts authentication for REST API and XML-RPC to application passwords only. Provides the user ID as the second argument.
 - `two_factor_email_token_ttl` filter overrides the time interval in seconds that an email token is considered after generation. Accepts the time in seconds as the first argument and the ID of the `WP_User` object being authenticated.
@@ -103,6 +104,8 @@ Here is a list of action and filter hooks provided by the plugin:
 - `two_factor_after_authentication_prompt` action which receives the provider object and fires after the prompt shown on the authentication input form.
 - `two_factor_after_authentication_input` action which receives the provider object and fires after the input shown on the authentication input form (if form contains no input, action fires immediately after `two_factor_after_authentication_prompt`).
 - `two_factor_login_backup_links` filters the backup links displayed on the two-factor login form.
+- `two_factor_login_nonce_failed` action which fires when a login nonce fails verification. Provides the ID of the user the nonce was presented for as the first argument, and the reason as the second: `no_nonce_stored`, `expired`, or `mismatch`.
+- `two_factor_log_login_nonce_failures` filter overrides whether a failed login nonce verification is written to the PHP error log. Defaults to true for `expired` and `mismatch`, and false for `no_nonce_stored`, which any unauthenticated request can reach. Provides the user ID as the second argument and the reason as the third.
 
 == Redirect After the Two-Factor Challenge ==
 
@@ -268,5 +271,4 @@ Bumps WordPress minimum supported version to 6.3 and PHP minimum to 7.2.
 
 = 0.9.0 =
 Users are now asked to re-authenticate with their two-factor before making changes to their two-factor settings. This associates each login session with the two-factor login meta data for improved handling of that session.
-
 

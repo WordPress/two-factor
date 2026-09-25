@@ -11,9 +11,9 @@
  * Plugin Name:       Two Factor
  * Plugin URI:        https://wordpress.org/plugins/two-factor/
  * Description:       Enable Two-Factor Authentication using time-based one-time passwords, email, and backup verification codes.
- * Requires at least: 6.9
+ * Requires at least: 7.0
  * Version:           0.16.0
- * Requires PHP:      7.2
+ * Requires PHP:      7.4
  * Author:            WordPress.org Contributors
  * Author URI:        https://github.com/wordpress/two-factor/graphs/contributors
  * License:           GPL-2.0-or-later
@@ -106,7 +106,7 @@ function two_factor_render_settings_page() {
 	}
 
 	// Prefer new settings class (keeps main file small).
-	if ( class_exists( 'Two_Factor_Settings' ) && is_callable( array( 'Two_Factor_Settings', 'render_settings_page' ) ) ) {
+	if ( class_exists( 'Two_Factor_Settings' ) ) {
 		Two_Factor_Settings::render_settings_page();
 		return;
 	}
@@ -153,7 +153,8 @@ function two_factor_filter_enabled_providers( $providers ) {
 	}
 
 	// On the settings page itself, show all providers so admins can change the selection.
-	if ( is_admin() && isset( $_GET['page'] ) && 'two-factor-settings' === $_GET['page'] ) {
+	$page = isset( $_GET['page'] ) ? sanitize_key( wp_unslash( $_GET['page'] ) ) : ''; // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Reading the current admin page slug only; no state change occurs here.
+	if ( is_admin() && 'two-factor-settings' === $page ) {
 		return $providers;
 	}
 
@@ -176,7 +177,7 @@ function two_factor_filter_enabled_providers( $providers ) {
  * @param int   $user_id  ID of the user being filtered.
  * @return array Filtered list of provider classnames allowed by the site.
  */
-function two_factor_filter_enabled_providers_for_user( $enabled, $user_id ) {
+function two_factor_filter_enabled_providers_for_user( $enabled, $user_id ) { // phpcs:ignore Generic.CodeAnalysis.UnusedFunctionParameter.FoundAfterLastUsed -- Filter signature includes user_id, but this site-wide restriction only needs the enabled providers list.
 	$site_enabled = two_factor_get_enabled_providers_option();
 
 	// null means the option was never saved — allow all.

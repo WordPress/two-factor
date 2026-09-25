@@ -4,7 +4,7 @@
  */
 
 /**
- * Output the login page header.
+ * Outputs the login page header.
  *
  * @since 2.1.0
  *
@@ -14,13 +14,17 @@
  *                                    upon successful login.
  * @global string      $action        The action that brought the visitor to the login page.
  *
- * @param string   $title    Optional. WordPress login Page title to display in the `<title>` element.
- *                           Default 'Log In'.
- * @param string   $message  Optional. Message to display in header. Default empty.
- * @param WP_Error $wp_error Optional. The error to pass. Default is a WP_Error instance.
+ * @param string|null   $title    Optional. WordPress login page title to display in the `<title>` element.
+ *                                Defaults to 'Log In'.
+ * @param string        $message  Optional. Message to display in header. Default empty.
+ * @param WP_Error|null $wp_error Optional. The error to pass. Defaults to a WP_Error instance.
  */
-function login_header( $title = 'Log In', $message = '', $wp_error = null ) {
+function login_header( $title = null, $message = '', $wp_error = null ) {
 	global $error, $interim_login, $action;
+
+	if ( null === $title ) {
+		$title = __( 'Log In' );
+	}
 
 	// Don't index any of these forms.
 	add_filter( 'wp_robots', 'wp_robots_sensitive_page' );
@@ -39,7 +43,7 @@ function login_header( $title = 'Log In', $message = '', $wp_error = null ) {
 	 *
 	 * @since 3.0.0
 	 *
-	 * @param array $shake_error_codes Error codes that shake the login form.
+	 * @param string[] $shake_error_codes Error codes that shake the login form.
 	 */
 	$shake_error_codes = apply_filters( 'shake_error_codes', $shake_error_codes );
 
@@ -82,13 +86,15 @@ function login_header( $title = 'Log In', $message = '', $wp_error = null ) {
 	 * but maybe better if it's not removable by plugins.
 	 */
 	if ( 'loggedout' === $wp_error->get_error_code() ) {
+		ob_start();
 		?>
 		<script>if("sessionStorage" in window){try{for(var key in sessionStorage){if(key.indexOf("wp-autosave-")!=-1){sessionStorage.removeItem(key)}}}catch(e){}};</script>
 		<?php
+		wp_print_inline_script_tag( wp_remove_surrounding_empty_script_tags( ob_get_clean() ) );
 	}
 
 	/**
-	 * Enqueue scripts and styles for the login page.
+	 * Enqueues scripts and styles for the login page.
 	 *
 	 * @since 3.1.0
 	 */
@@ -141,7 +147,7 @@ function login_header( $title = 'Log In', $message = '', $wp_error = null ) {
 	 */
 	$login_header_text = apply_filters( 'login_headertext', $login_header_text );
 
-	$classes = array( 'login-action-' . $action, 'wp-core-ui' );
+	$classes = array( 'login-action-' . $action, 'wp-core-ui', 'admin-color-modern' );
 
 	if ( is_rtl() ) {
 		$classes[] = 'rtl';
@@ -151,7 +157,7 @@ function login_header( $title = 'Log In', $message = '', $wp_error = null ) {
 		$classes[] = 'interim-login';
 
 		?>
-		<style type="text/css">html{background-color: transparent;}</style>
+		<style>html{background-color: transparent;}</style>
 		<?php
 
 		if ( 'success' === $interim_login ) {
@@ -159,24 +165,25 @@ function login_header( $title = 'Log In', $message = '', $wp_error = null ) {
 		}
 	}
 
-	$classes[] = ' locale-' . sanitize_html_class( strtolower( str_replace( '_', '-', get_locale() ) ) );
+	$classes[] = 'locale-' . sanitize_html_class( strtolower( str_replace( '_', '-', get_locale() ) ) );
 
 	/**
 	 * Filters the login page body classes.
 	 *
 	 * @since 3.5.0
 	 *
-	 * @param array  $classes An array of body classes.
-	 * @param string $action  The action that brought the visitor to the login page.
+	 * @param string[] $classes An array of body classes.
+	 * @param string   $action  The action that brought the visitor to the login page.
 	 */
 	$classes = apply_filters( 'login_body_class', $classes, $action );
 
 	?>
 	</head>
 	<body class="login no-js <?php echo esc_attr( implode( ' ', $classes ) ); ?>">
-	<script type="text/javascript">
-		document.body.className = document.body.className.replace('no-js','js');
-	</script>
+	<?php
+	wp_print_inline_script_tag( "document.body.className = document.body.className.replace('no-js','js');" );
+	?>
+
 	<?php
 	/**
 	 * Fires in the login page header after the body tag is opened.
@@ -184,10 +191,16 @@ function login_header( $title = 'Log In', $message = '', $wp_error = null ) {
 	 * @since 4.6.0
 	 */
 	do_action( 'login_header' );
-
+	?>
+	<?php
+	if ( 'confirm_admin_email' !== $action && ! empty( $title ) ) :
+		?>
+		<h1 class="screen-reader-text"><?php echo $title; ?></h1>
+		<?php
+	endif;
 	?>
 	<div id="login">
-		<h1><a href="<?php echo esc_url( $login_header_url ); ?>"><?php echo $login_header_text; ?></a></h1>
+		<h1 role="presentation" class="wp-login-logo"><a href="<?php echo esc_url( $login_header_url ); ?>"><?php echo $login_header_text; ?></a></h1>
 	<?php
 	/**
 	 * Filters the message to display above the login form.
@@ -209,29 +222,52 @@ function login_header( $title = 'Log In', $message = '', $wp_error = null ) {
 	}
 
 	if ( $wp_error->has_errors() ) {
-		$errors   = '';
-		$messages = '';
+		$error_list = array();
+		$messages   = '';
 
 		foreach ( $wp_error->get_error_codes() as $code ) {
 			$severity = $wp_error->get_error_data( $code );
 			foreach ( $wp_error->get_error_messages( $code ) as $error_message ) {
 				if ( 'message' === $severity ) {
-					$messages .= '	' . $error_message . "<br />\n";
+					$messages .= '<p>' . $error_message . '</p>';
 				} else {
-					$errors .= '	' . $error_message . "<br />\n";
+					$error_list[] = $error_message;
 				}
 			}
 		}
 
-		if ( ! empty( $errors ) ) {
+		if ( ! empty( $error_list ) ) {
+			$errors = '';
+
+			if ( count( $error_list ) > 1 ) {
+				$errors .= '<ul class="login-error-list">';
+
+				foreach ( $error_list as $item ) {
+					$errors .= '<li>' . $item . '</li>';
+				}
+
+				$errors .= '</ul>';
+			} else {
+				$errors .= '<p>' . $error_list[0] . '</p>';
+			}
+
 			/**
 			 * Filters the error messages displayed above the login form.
 			 *
 			 * @since 2.1.0
 			 *
-			 * @param string $errors Login error message.
+			 * @param string $errors Login error messages.
 			 */
-			echo '<div id="login_error">' . apply_filters( 'login_errors', $errors ) . "</div>\n";
+			$errors = apply_filters( 'login_errors', $errors );
+
+			wp_admin_notice(
+				$errors,
+				array(
+					'type'           => 'error',
+					'id'             => 'login_error',
+					'paragraph_wrap' => false,
+				)
+			);
 		}
 
 		if ( ! empty( $messages ) ) {
@@ -242,7 +278,17 @@ function login_header( $title = 'Log In', $message = '', $wp_error = null ) {
 			 *
 			 * @param string $messages Login messages.
 			 */
-			echo '<p class="message">' . apply_filters( 'login_messages', $messages ) . "</p>\n";
+			$messages = apply_filters( 'login_messages', $messages );
+
+			wp_admin_notice(
+				$messages,
+				array(
+					'type'               => 'info',
+					'id'                 => 'login-message',
+					'additional_classes' => array( 'message' ),
+					'paragraph_wrap'     => false,
+				)
+			);
 		}
 	}
 } // End of login_header().
@@ -254,6 +300,6 @@ function login_header( $title = 'Log In', $message = '', $wp_error = null ) {
  */
 function wp_login_viewport_meta() {
 	?>
-	<meta name="viewport" content="width=device-width" />
+	<meta name="viewport" content="width=device-width, initial-scale=1.0" />
 	<?php
 }

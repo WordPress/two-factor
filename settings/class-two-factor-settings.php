@@ -32,12 +32,19 @@ class Two_Factor_Settings {
 		if ( isset( $_POST['two_factor_settings_submit'] ) ) {
 			check_admin_referer( 'two_factor_save_settings', 'two_factor_settings_nonce' );
 
-			$posted = isset( $_POST['two_factor_enabled_providers'] ) && is_array( $_POST['two_factor_enabled_providers'] ) ? wp_unslash( $_POST['two_factor_enabled_providers'] ) : array();
+			$posted = isset( $_POST['two_factor_enabled_providers'] ) && is_array( $_POST['two_factor_enabled_providers'] ) ? wp_unslash( $_POST['two_factor_enabled_providers'] ) : array(); // phpcs:ignore WordPress.Security.NonceVerification.Missing, WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- Nonce verified above; array values sanitized immediately below.
 
 			// Sanitize posted values immediately.
 			$posted = array_map( 'sanitize_text_field', (array) $posted );
 			// Remove empty values.
-			$enabled = array_values( array_filter( $posted, 'strlen' ) );
+			$enabled = array_values(
+				array_filter(
+					$posted,
+					static function ( $value ) {
+						return '' !== $value;
+					}
+				)
+			);
 
 			update_option( Two_Factor_Core::ENABLED_PROVIDERS_OPTION_KEY, array_values( array_unique( $enabled ) ) );
 
@@ -45,12 +52,9 @@ class Two_Factor_Settings {
 		}
 
 		// Build provider list for display using public core API.
-		$provider_instances = array();
-		if ( class_exists( 'Two_Factor_Core' ) && method_exists( 'Two_Factor_Core', 'get_providers' ) ) {
-			$provider_instances = Two_Factor_Core::get_providers();
-			if ( ! is_array( $provider_instances ) ) {
-				$provider_instances = array();
-			}
+		$provider_instances = Two_Factor_Core::get_providers();
+		if ( ! is_array( $provider_instances ) ) {
+			$provider_instances = array();
 		}
 
 		// Default to all providers enabled when the option has never been saved.
@@ -77,7 +81,7 @@ class Two_Factor_Settings {
 				$label = method_exists( $instance, 'get_label' ) ? $instance->get_label() : $provider_key;
 
 				echo '<p class="provider-item"><label for="provider_' . esc_attr( $provider_key ) . '">';
-				echo '<input type="checkbox" name="two_factor_enabled_providers[]" id="provider_' . esc_attr( $provider_key ) . '" value="' . esc_attr( $provider_key ) . '" ' . checked( in_array( $provider_key, (array) $saved_enabled, true ), true, false ) . ' /> ';
+				echo '<input type="checkbox" name="two_factor_enabled_providers[]" id="provider_' . esc_attr( $provider_key ) . '" value="' . esc_attr( $provider_key ) . '" ' . checked( in_array( $provider_key, (array) $saved_enabled, true ), true, false ) . '> ';
 				echo esc_html( $label );
 				echo '</label></p>';
 			}
