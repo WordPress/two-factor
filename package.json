@@ -32,7 +32,7 @@
   "author": "georgestephanis",
   "license": "GPL-2.0-or-later",
   "dependencies": {
-    "qrcode-generator": "^1.4.4"
+    "qrcode-generator": "^2.0.4"
   },
   "devDependencies": {
     "@wordpress/env": "^11.16.0",
