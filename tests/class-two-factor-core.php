@@ -392,6 +392,9 @@ class Test_ClassTwoFactorCore extends WP_UnitTestCase {
 			)
 		);
 
+		// Mark the user as verified for Two_Factor_Email.
+		update_user_meta( $user->ID, Two_Factor_Email::VERIFIED_META_KEY, $user->user_email );
+
 		// This should fail back to `Two_Factor_Email` then.
 		$this->assertEquals(
 			array(
@@ -2242,6 +2245,9 @@ class Test_ClassTwoFactorCore extends WP_UnitTestCase {
 		$session_manager->create( time() + DAY_IN_SECONDS );
 		$this->assertCount( 2, $session_manager->get_all(), 'Failed to create another session' );
 
+		// Set the email provider as verified so it can be enabled.
+		update_user_meta( $user->ID, Two_Factor_Email::VERIFIED_META_KEY, true );
+
 		$_POST[ Two_Factor_Core::ENABLED_PROVIDERS_USER_META_KEY ] = array(
 			'Two_Factor_Dummy' => 'Two_Factor_Dummy',
 			'Two_Factor_Email' => 'Two_Factor_Email',
@@ -3024,6 +3030,9 @@ class Test_ClassTwoFactorCore extends WP_UnitTestCase {
 
 		update_user_meta( $user->ID, Two_Factor_Core::ENABLED_PROVIDERS_USER_META_KEY, array( 'Two_Factor_Missing' ) );
 
+		// The Email provider is only available once the user has verified their address.
+		update_user_meta( $user->ID, Two_Factor_Email::VERIFIED_META_KEY, true );
+
 		$available = Two_Factor_Core::get_available_providers_for_user( $user->ID );
 
 		$this->assertCount( 1, $available, 'Email fallback remains active when configured providers are missing' );
@@ -3350,5 +3359,7 @@ class Test_ClassTwoFactorCore extends WP_UnitTestCase {
 		$this->assertStringContainsString( '<a', $first );
 		$this->assertStringContainsString( 'Settings', $first );
 		$this->assertStringContainsString( 'options-general.php', $first );
+
+		wp_set_current_user( 0 );
 	}
 }
