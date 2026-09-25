@@ -663,13 +663,13 @@ class Two_Factor_Email extends Two_Factor_Provider {
 		<?php if ( ! $is_verified ) : ?>
 			<p>
 				<button type="button" class="button" id="two-factor-email-send-code">
-					<?php esc_html_e( 'Verify your e-mail address', 'two-factor' ); ?>
+					<?php esc_html_e( 'Verify your email address', 'two-factor' ); ?>
 				</button>
 			</p>
 			<div id="two-factor-email-verification-form" style="display:none; margin-top: 10px;">
 				<p>
 					<label for="two-factor-email-code-input"><?php esc_html_e( 'Verification Code:', 'two-factor' ); ?></label>
-					<input type="text" id="two-factor-email-code-input" class="input" size="20" autocomplete="off" />
+					<input type="text" id="two-factor-email-code-input" class="input" size="20" autocomplete="off">
 					<button type="button" class="button" id="two-factor-email-verify-code">
 						<?php esc_html_e( 'Verify', 'two-factor' ); ?>
 					</button>
@@ -705,7 +705,7 @@ class Two_Factor_Email extends Two_Factor_Provider {
 	}
 
 	/**
-	 * Returns the key of the user meta. keys to delete during plugin uninstall.
+	 * Return user meta keys to delete during plugin uninstall.
 	 *
 	 * @since 0.10.0
 	 *

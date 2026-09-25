@@ -3030,6 +3030,9 @@ class Test_ClassTwoFactorCore extends WP_UnitTestCase {
 
 		update_user_meta( $user->ID, Two_Factor_Core::ENABLED_PROVIDERS_USER_META_KEY, array( 'Two_Factor_Missing' ) );
 
+		// The Email provider is only available once the user has verified their address.
+		update_user_meta( $user->ID, Two_Factor_Email::VERIFIED_META_KEY, true );
+
 		$available = Two_Factor_Core::get_available_providers_for_user( $user->ID );
 
 		$this->assertCount( 1, $available, 'Email fallback remains active when configured providers are missing' );

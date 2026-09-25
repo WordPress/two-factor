@@ -1,4 +1,4 @@
-/* global twoFactorEmailAdmin, wp, jQuery */
+/* global twoFactorEmailAdmin, jQuery */
 ( function( $ ) {
 	$( '#two-factor-email-send-code' ).on( 'click', function( e ) {
 		var $btn = $( this );
@@ -20,7 +20,7 @@
 			var msg = ( response.responseJSON && response.responseJSON.message ) ? response.responseJSON.message : 'Error sending email';
 
 			// eslint-disable-next-line no-alert
-			alert( msg );
+			window.alert( msg );
 			$btn.prop( 'disabled', false );
 		} );
 	} );
@@ -49,7 +49,7 @@
 			var msg = ( response.responseJSON && response.responseJSON.message ) ? response.responseJSON.message : 'Error verifying code';
 
 			// eslint-disable-next-line no-alert
-			alert( msg );
+			window.alert( msg );
 			$btn.prop( 'disabled', false );
 		} );
 	} );
