@@ -157,10 +157,17 @@ function two_factor_filter_enabled_providers( $providers ) {
 		return $providers;
 	}
 
+	global $pagenow;
+
 	// On the settings page itself, show all providers so admins can change the selection.
 	$page = isset( $_GET['page'] ) ? sanitize_key( wp_unslash( $_GET['page'] ) ) : ''; // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Reading the current admin page slug only; no state change occurs here.
-	if ( is_admin() && 'two-factor-settings' === $page ) {
-		return $providers;
+	if ( is_admin() && 'two-factor-settings' === $page && current_user_can( 'manage_options' ) && ( ! isset( $pagenow ) || 'options-general.php' === $pagenow ) ) {
+		$screen             = function_exists( 'get_current_screen' ) ? get_current_screen() : null;
+		$is_settings_screen = ! $screen || in_array( $screen->id, array( 'options-general', 'settings_page_two-factor-settings' ), true ) || 'options-general' === $screen->parent_base;
+
+		if ( $is_settings_screen ) {
+			return $providers;
+		}
 	}
 
 	foreach ( $providers as $key => $path ) {
