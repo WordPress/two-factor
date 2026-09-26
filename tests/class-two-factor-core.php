@@ -431,12 +431,253 @@ class Test_ClassTwoFactorCore extends WP_UnitTestCase {
 	}
 
 	/**
+	 * Malformed `_two_factor_provider` meta (array or object) must not fatal when the
+	 * primary provider is resolved; resolution fails closed to an available provider.
+	 *
+	 * @see https://github.com/WordPress/two-factor/issues/944
+	 *
+	 * @covers Two_Factor_Core::get_primary_provider_for_user
+	 * @covers Two_Factor_Core::get_primary_provider_key_selected_for_user
+	 *
+	 * @dataProvider data_malformed_primary_provider_meta
+	 *
+	 * @param mixed $malformed Malformed stored primary-provider value.
+	 */
+	public function test_get_primary_provider_for_user_handles_malformed_primary_meta( $malformed ) {
+		$user = new WP_User( self::factory()->user->create() );
+
+		// Two available providers are needed to reach the stored-primary lookup; with only one,
+		// resolution short-circuits to that provider and never touches the malformed value.
+		Two_Factor_Totp::get_instance()->set_user_totp_key( $user->ID, 'foo' );
+		Two_Factor_Core::enable_provider_for_user( $user->ID, 'Two_Factor_Totp' );
+		Two_Factor_Core::enable_provider_for_user( $user->ID, 'Two_Factor_Email' );
+
+		$this->assertCount( 2, Two_Factor_Core::get_available_providers_for_user( $user ), 'Two providers are available.' );
+
+		update_user_meta( $user->ID, Two_Factor_Core::PROVIDER_USER_META_KEY, $malformed );
+
+		$provider = Two_Factor_Core::get_primary_provider_for_user( $user->ID );
+
+		$this->assertNotWPError( $provider, 'Malformed primary meta does not surface an error.' );
+		$this->assertInstanceOf( Two_Factor_Provider::class, $provider, 'Resolution falls back to an available provider.' );
+		$this->assertContains(
+			$provider->get_key(),
+			array( 'Two_Factor_Totp', 'Two_Factor_Email' ),
+			'The fallback is one of the available providers.'
+		);
+	}
+
+	/**
+	 * Data provider of malformed non-scalar primary-provider meta values.
+	 *
+	 * @return array[]
+	 */
+	public function data_malformed_primary_provider_meta() {
+		return array(
+			'array'        => array( array( 'Two_Factor_Totp' ) ),
+			'nested array' => array( array( array( 'Two_Factor_Totp' ) ) ),
+			'object'       => array( (object) array( 'key' => 'Two_Factor_Totp' ) ),
+		);
+	}
+
+	/**
+	 * Malformed `_two_factor_enabled_providers` meta (scalar or object) must not fatal
+	 * when enabled providers are resolved; it normalizes to an empty list.
+	 *
+	 * @see https://github.com/WordPress/two-factor/issues/941
+	 *
+	 * @covers Two_Factor_Core::get_enabled_providers_for_user
+	 *
+	 * @dataProvider data_malformed_enabled_providers_meta
+	 *
+	 * @param mixed $malformed Malformed stored enabled-providers value.
+	 */
+	public function test_get_enabled_providers_for_user_handles_malformed_stored_meta( $malformed ) {
+		$user = new WP_User( self::factory()->user->create() );
+
+		update_user_meta( $user->ID, Two_Factor_Core::ENABLED_PROVIDERS_USER_META_KEY, $malformed );
+
+		$enabled = Two_Factor_Core::get_enabled_providers_for_user( $user->ID );
+
+		$this->assertIsArray( $enabled, 'Enabled providers resolve to an array.' );
+		$this->assertEmpty( $enabled, 'A malformed stored value yields no enabled providers.' );
+	}
+
+	/**
+	 * Data provider of malformed enabled-providers meta values.
+	 *
+	 * @return array[]
+	 */
+	public function data_malformed_enabled_providers_meta() {
+		return array(
+			'string'  => array( 'Two_Factor_Email' ),
+			'integer' => array( 12345 ),
+			'object'  => array( (object) array( 'x' => 1 ) ),
+		);
+	}
+
+	/**
 	 * Verify not-logged-in-user is using two facator.
 	 *
 	 * @covers Two_Factor_Core::is_user_using_two_factor
 	 */
 	public function test_is_user_using_two_factor_not_logged_in() {
 		$this->assertFalse( Two_Factor_Core::is_user_using_two_factor() );
+	}
+
+	/**
+	 * The two_factor_is_required_for_user filter can bypass an enabled provider.
+	 *
+	 * @covers Two_Factor_Core::is_user_using_two_factor
+	 */
+	public function test_is_user_using_two_factor_filter_can_bypass() {
+		$user = $this->get_dummy_user();
+
+		$this->assertTrue( Two_Factor_Core::is_user_using_two_factor( $user->ID ), 'Default is true when a provider is enabled.' );
+
+		add_filter( 'two_factor_is_required_for_user', '__return_false' );
+		$this->assertFalse( Two_Factor_Core::is_user_using_two_factor( $user->ID ), 'Filter returning false bypasses two-factor.' );
+		remove_filter( 'two_factor_is_required_for_user', '__return_false' );
+
+		$this->assertTrue( Two_Factor_Core::is_user_using_two_factor( $user->ID ), 'Behavior restored after removing the filter.' );
+
+		$this->clean_dummy_user();
+	}
+
+	/**
+	 * The two_factor_is_required_for_user filter can force the requirement on.
+	 *
+	 * @covers Two_Factor_Core::is_user_using_two_factor
+	 */
+	public function test_is_user_using_two_factor_filter_can_require() {
+		$user_id = self::factory()->user->create();
+
+		$this->assertFalse( Two_Factor_Core::is_user_using_two_factor( $user_id ), 'Default is false without a provider.' );
+
+		add_filter( 'two_factor_is_required_for_user', '__return_true' );
+		$this->assertTrue( Two_Factor_Core::is_user_using_two_factor( $user_id ), 'Filter returning true forces the requirement.' );
+		remove_filter( 'two_factor_is_required_for_user', '__return_true' );
+	}
+
+	/**
+	 * A user without any provider is not using two-factor by default.
+	 *
+	 * @covers Two_Factor_Core::is_user_using_two_factor
+	 */
+	public function test_is_user_using_two_factor_without_provider() {
+		$user_id = self::factory()->user->create();
+
+		$this->assertFalse( Two_Factor_Core::is_user_using_two_factor( $user_id ), 'Default is false without a provider.' );
+	}
+
+	/**
+	 * The filter receives the resolved WP_User and the provider-based default.
+	 *
+	 * @covers Two_Factor_Core::is_user_using_two_factor
+	 */
+	public function test_is_user_using_two_factor_filter_args() {
+		$user          = $this->get_dummy_user();
+		$plain_user_id = self::factory()->user->create();
+
+		$received = null;
+		$callback = function ( $is_required, $filter_user ) use ( &$received ) {
+			$received = array( $is_required, $filter_user );
+			return $is_required;
+		};
+
+		add_filter( 'two_factor_is_required_for_user', $callback, 10, 2 );
+		Two_Factor_Core::is_user_using_two_factor( $user->ID ); // Called with an ID on purpose.
+
+		$this->assertNotNull( $received, 'Filter was applied.' );
+		$this->assertTrue( $received[0], 'Default reflects the enabled provider.' );
+		$this->assertInstanceOf( WP_User::class, $received[1], 'Second argument is a WP_User even when called with an ID.' );
+		$this->assertSame( $user->ID, $received[1]->ID );
+
+		Two_Factor_Core::is_user_using_two_factor( $plain_user_id );
+		remove_filter( 'two_factor_is_required_for_user', $callback, 10 );
+
+		$this->assertFalse( $received[0], 'Default reflects the missing provider.' );
+		$this->assertInstanceOf( WP_User::class, $received[1], 'Second argument is still a WP_User for users without providers.' );
+		$this->assertSame( $plain_user_id, $received[1]->ID );
+
+		$this->clean_dummy_user();
+	}
+
+	/**
+	 * The filter is not applied when no user can be resolved.
+	 *
+	 * @covers Two_Factor_Core::is_user_using_two_factor
+	 */
+	public function test_is_user_using_two_factor_filter_not_applied_without_user() {
+		wp_set_current_user( 0 );
+
+		$filter_calls = 0;
+		$callback     = function ( $is_required ) use ( &$filter_calls ) {
+			++$filter_calls;
+			return $is_required;
+		};
+
+		add_filter( 'two_factor_is_required_for_user', $callback, 10, 2 );
+		$this->assertFalse( Two_Factor_Core::is_user_using_two_factor(), 'No user resolves to false regardless of the filter.' );
+		remove_filter( 'two_factor_is_required_for_user', $callback, 10 );
+
+		$this->assertSame( 0, $filter_calls, 'Filter is short-circuited when no user resolves.' );
+	}
+
+	/**
+	 * Bypassing via the filter carries through the login flow.
+	 *
+	 * Asserts both directions: without the filter a 2FA user has auth cookies
+	 * blocked (so the second factor can be completed first), and with the bypass
+	 * filter that block is never installed, so the login proceeds without 2FA.
+	 *
+	 * @covers Two_Factor_Core::filter_authenticate
+	 * @covers Two_Factor_Core::is_user_using_two_factor
+	 */
+	public function test_filter_authenticate_respects_bypass_filter() {
+		$user_2fa_enabled = $this->get_dummy_user();
+
+		// The WP test framework registers __return_false on send_auth_cookies at priority 10 to
+		// prevent real cookies from being set during tests. Check for the plugin's specific
+		// __return_false callback at PHP_INT_MAX (see Two_Factor_Core::filter_authenticate).
+		$has_plugin_cookie_block = function () {
+			global $wp_filter;
+
+			if (
+				! isset( $wp_filter['send_auth_cookies'] ) ||
+				! $wp_filter['send_auth_cookies'] instanceof WP_Hook ||
+				empty( $wp_filter['send_auth_cookies']->callbacks[ PHP_INT_MAX ] )
+			) {
+				return false;
+			}
+
+			foreach ( $wp_filter['send_auth_cookies']->callbacks[ PHP_INT_MAX ] as $cb ) {
+				if ( '__return_false' === $cb['function'] ) {
+					return true;
+				}
+			}
+			return false;
+		};
+
+		// Control: without the bypass filter, a 2FA user should have auth cookies blocked.
+		Two_Factor_Core::filter_authenticate( $user_2fa_enabled );
+		$this->assertTrue(
+			$has_plugin_cookie_block(),
+			'Without the bypass filter, a 2FA user should have auth cookies blocked.'
+		);
+		remove_filter( 'send_auth_cookies', '__return_false', PHP_INT_MAX );
+
+		// With the bypass filter, the block is never installed and login proceeds without 2FA.
+		add_filter( 'two_factor_is_required_for_user', '__return_false' );
+		Two_Factor_Core::filter_authenticate( $user_2fa_enabled );
+		remove_filter( 'two_factor_is_required_for_user', '__return_false' );
+
+		$this->assertFalse(
+			$has_plugin_cookie_block(),
+			'Bypassed user login should not block auth cookies.'
+		);
+
+		$this->clean_dummy_user();
 	}
 
 	/**
@@ -498,6 +739,75 @@ class Test_ClassTwoFactorCore extends WP_UnitTestCase {
 
 		// Undo all filters.
 		remove_all_filters( 'two_factor_user_api_login_enable', 10 );
+	}
+
+	/**
+	 * Verify user API login is enabled for the user authenticated via an application password.
+	 *
+	 * @covers Two_Factor_Core::is_user_api_login_enabled
+	 * @covers Two_Factor_Core::app_password_did_authenticate
+	 */
+	public function test_user_api_login_enabled_for_app_password_user() {
+		$user_id = self::factory()->user->create();
+
+		do_action( 'application_password_did_authenticate', new WP_User( $user_id ), array() );
+
+		$this->assertTrue(
+			Two_Factor_Core::is_user_api_login_enabled( $user_id ),
+			'API login is enabled for the user authenticated via an application password'
+		);
+	}
+
+	/**
+	 * Verify user API login stays disabled for users that were not authenticated
+	 * via an application password.
+	 *
+	 * @covers Two_Factor_Core::is_user_api_login_enabled
+	 * @covers Two_Factor_Core::app_password_did_authenticate
+	 */
+	public function test_user_api_login_not_enabled_for_other_users() {
+		$user_id       = self::factory()->user->create();
+		$other_user_id = self::factory()->user->create();
+
+		do_action( 'application_password_did_authenticate', new WP_User( $user_id ), array() );
+
+		$this->assertFalse(
+			Two_Factor_Core::is_user_api_login_enabled( $other_user_id ),
+			'An application password authentication does not enable API login for other users'
+		);
+	}
+
+	/**
+	 * Verify API request authentication for users authenticated via an application password.
+	 *
+	 * @covers Two_Factor_Core::filter_authenticate
+	 * @covers Two_Factor_Core::is_user_api_login_enabled
+	 * @runInSeparateProcess
+	 * @preserveGlobalState disabled
+	 */
+	public function test_filter_authenticate_api_with_app_password() {
+		$user_2fa_enabled = $this->get_dummy_user(); // User with a dummy two-factor method enabled.
+		$user_other       = $this->get_dummy_user();
+
+		// TODO: Get Two_Factor_Core away from static methods to allow mocking this.
+		// Guard against re-definition if the constant is already set in this process.
+		if ( ! defined( 'XMLRPC_REQUEST' ) ) {
+			define( 'XMLRPC_REQUEST', true );
+		}
+
+		do_action( 'application_password_did_authenticate', $user_2fa_enabled, array() );
+
+		$this->assertInstanceOf(
+			WP_User::class,
+			Two_Factor_Core::filter_authenticate( $user_2fa_enabled ),
+			'2FA user authenticated via an application password should be able to authenticate during API requests'
+		);
+
+		$this->assertInstanceOf(
+			WP_Error::class,
+			Two_Factor_Core::filter_authenticate( $user_other ),
+			'2FA user without an application password authentication should not be able to authenticate during API requests'
+		);
 	}
 
 	/**
@@ -1012,6 +1322,30 @@ class Test_ClassTwoFactorCore extends WP_UnitTestCase {
 	}
 
 	/**
+	 * Test that clearing the login rate limit removes the throttle state.
+	 *
+	 * @covers Two_Factor_Core::clear_login_rate_limit
+	 */
+	public function test_clear_login_rate_limit() {
+		$user = $this->get_dummy_user();
+
+		// Put the user into a rate-limited state.
+		update_user_meta( $user->ID, Two_Factor_Core::USER_FAILED_LOGIN_ATTEMPTS_KEY, 5 );
+		update_user_meta( $user->ID, Two_Factor_Core::USER_RATE_LIMIT_KEY, time() );
+		$this->assertTrue( Two_Factor_Core::is_user_rate_limited( $user ) );
+
+		Two_Factor_Core::clear_login_rate_limit( $user );
+
+		$this->assertFalse( Two_Factor_Core::is_user_rate_limited( $user ) );
+		$this->assertEmpty( get_user_meta( $user->ID, Two_Factor_Core::USER_RATE_LIMIT_KEY, true ) );
+		$this->assertEmpty( get_user_meta( $user->ID, Two_Factor_Core::USER_FAILED_LOGIN_ATTEMPTS_KEY, true ) );
+
+		// Clearing an already-clean user is a harmless no-op.
+		Two_Factor_Core::clear_login_rate_limit( $user );
+		$this->assertFalse( Two_Factor_Core::is_user_rate_limited( $user ) );
+	}
+
+	/**
 	 * Test that the "invalid login attempts have occurred" login notice works as expected.
 	 *
 	 * @covers Two_Factor_Core::maybe_show_last_login_failure_notice()
@@ -1035,9 +1369,10 @@ class Test_ClassTwoFactorCore extends WP_UnitTestCase {
 		$contents = ob_get_clean();
 
 		$this->assertNotEmpty( $contents );
-		$this->assertStringNotContainsString( '1 times', $contents );
-		$this->assertStringContainsString( 'attempted to login', $contents );
-		$this->assertStringContainsString( 'without providing a valid two factor token', $contents );
+		// A single failure uses the singular form; assert the plural is absent, since
+		// "attempt" alone also matches "attempts".
+		$this->assertStringContainsString( '1 failed verification code attempt on this account', $contents );
+		$this->assertStringNotContainsString( 'failed verification code attempts', $contents );
 
 		// 5 failed login attempts 5 hours ago - User should be informed.
 		$five_hours_ago = time() - 5 * HOUR_IN_SECONDS;
@@ -1048,8 +1383,34 @@ class Test_ClassTwoFactorCore extends WP_UnitTestCase {
 		$contents = ob_get_clean();
 
 		$this->assertNotEmpty( $contents );
-		$this->assertStringContainsString( '5 times', $contents );
+		$this->assertStringContainsString( '5 failed verification code attempts on this account', $contents );
 		$this->assertStringContainsString( human_time_diff( $five_hours_ago ), $contents );
+	}
+
+	/**
+	 * Test that the login failure notice uses calm, informational language.
+	 *
+	 * @covers Two_Factor_Core::maybe_show_last_login_failure_notice()
+	 */
+	public function test_login_failure_notice_language_is_calm_and_informational() {
+		$user           = $this->get_dummy_user();
+		$one_minute_ago = time() - MINUTE_IN_SECONDS;
+		update_user_meta( $user->ID, Two_Factor_Core::USER_FAILED_LOGIN_ATTEMPTS_KEY, 3 );
+		update_user_meta( $user->ID, Two_Factor_Core::USER_RATE_LIMIT_KEY, $one_minute_ago );
+
+		ob_start();
+		Two_Factor_Core::maybe_show_last_login_failure_notice( $user );
+		$contents = ob_get_clean();
+
+		$this->assertStringNotContainsString( 'WARNING', $contents );
+		$this->assertStringNotContainsString( "wasn't you", $contents );
+		$this->assertStringContainsString( 'failed verification code', $contents );
+		$this->assertStringContainsString( 'someone else may know your password', $contents );
+		$this->assertStringContainsString( 'Change your password after you log in', $contents );
+		$this->assertStringContainsString(
+			'The last attempt was ' . human_time_diff( $one_minute_ago ) . ' ago',
+			$contents
+		);
 	}
 
 	/**
@@ -1340,7 +1701,7 @@ class Test_ClassTwoFactorCore extends WP_UnitTestCase {
 		$totp_disabled     = Two_Factor_Core::disable_provider_for_user( $user->ID, 'Two_Factor_Totp' );
 		$enabled_providers = Two_Factor_Core::get_enabled_providers_for_user( $user->ID );
 		$this->assertTrue( $totp_disabled, 'Can disable a provider that is enabled' );
-		$this->assertSame( array( 1 => 'Two_Factor_Dummy' ), $enabled_providers, 'The other providers are kept enabled' );
+		$this->assertSame( array( 'Two_Factor_Dummy' ), $enabled_providers, 'The other providers are kept enabled' );
 		$this->assertSame( 'Two_Factor_Dummy', Two_Factor_Core::get_primary_provider_for_user( $user->ID )->get_key(), 'Primary is updated to the first available' );
 	}
 
@@ -2436,6 +2797,63 @@ class Test_ClassTwoFactorCore extends WP_UnitTestCase {
 	}
 
 	/**
+	 * Verify get_primary_provider_for_user() returns a WP_Error instead of
+	 * calling wp_die() when the user's only configured provider is no longer
+	 * registered and no fallback is available.
+	 *
+	 * @covers Two_Factor_Core::get_primary_provider_for_user
+	 */
+	public function test_get_primary_provider_for_user_returns_wp_error_when_deregistered() {
+		$user = self::factory()->user->create_and_get();
+
+		update_user_meta( $user->ID, Two_Factor_Core::ENABLED_PROVIDERS_USER_META_KEY, array( 'Two_Factor_Missing' ) );
+		update_user_meta( $user->ID, Two_Factor_Core::PROVIDER_USER_META_KEY, 'Two_Factor_Missing' );
+
+		$filter = function () {
+			return 'Two_Factor_Nonexistent';
+		};
+
+		add_filter( 'two_factor_fallback_provider_for_user', $filter );
+
+		try {
+			$primary = Two_Factor_Core::get_primary_provider_for_user( $user->ID );
+
+			$this->assertInstanceOf( WP_Error::class, $primary, 'A deregistered provider with no fallback results in a WP_Error, not a fatal' );
+			$this->assertTrue( Two_Factor_Core::is_user_using_two_factor( $user->ID ), 'User is still treated as using two-factor (fail closed)' );
+		} finally {
+			remove_filter( 'two_factor_fallback_provider_for_user', $filter );
+		}
+	}
+
+	/**
+	 * Verify manage_users_custom_column() renders a non-fatal error indicator,
+	 * instead of fataling the whole Users list table, when a user's provider
+	 * has been deregistered.
+	 *
+	 * @covers Two_Factor_Core::manage_users_custom_column
+	 */
+	public function test_manage_users_custom_column_deregistered_provider() {
+		$user = self::factory()->user->create_and_get();
+
+		update_user_meta( $user->ID, Two_Factor_Core::ENABLED_PROVIDERS_USER_META_KEY, array( 'Two_Factor_Missing' ) );
+		update_user_meta( $user->ID, Two_Factor_Core::PROVIDER_USER_META_KEY, 'Two_Factor_Missing' );
+
+		$filter = function () {
+			return 'Two_Factor_Nonexistent';
+		};
+
+		add_filter( 'two_factor_fallback_provider_for_user', $filter );
+
+		try {
+			$result = Two_Factor_Core::manage_users_custom_column( '', 'two-factor', $user->ID );
+
+			$this->assertStringContainsString( 'legacy 2FA method', $result, 'Deregistered provider renders a legacy/error indicator instead of fataling' );
+		} finally {
+			remove_filter( 'two_factor_fallback_provider_for_user', $filter );
+		}
+	}
+
+	/**
 	 * Test show_two_factor_login displays login form.
 	 *
 	 * @covers Two_Factor_Core::show_two_factor_login
@@ -2653,6 +3071,77 @@ class Test_ClassTwoFactorCore extends WP_UnitTestCase {
 		Two_Factor_Core::enable_provider_for_user( $user->ID, 'Two_Factor_Dummy' );
 		$available = Two_Factor_Core::get_available_providers_for_user( $user->ID );
 		$this->assertCount( 2, $available, 'Two providers are available' );
+	}
+
+	/**
+	 * Ensure an intentionally emptied provider list is respected.
+	 *
+	 * @covers Two_Factor_Core::get_available_providers_for_user
+	 */
+	public function test_get_available_providers_for_user_respects_filter_cleared_list() {
+		$user = self::factory()->user->create_and_get();
+
+		update_user_meta( $user->ID, Two_Factor_Core::ENABLED_PROVIDERS_USER_META_KEY, array( 'Two_Factor_Email' ) );
+
+		$filter = function ( $enabled_providers, $user_id ) use ( $user ) {
+			$this->assertSame( $user->ID, $user_id, 'Filter received expected user ID' );
+			return array();
+		};
+
+		add_filter( 'two_factor_enabled_providers_for_user', $filter, 10, 2 );
+
+		try {
+			$this->assertEmpty(
+				Two_Factor_Core::get_available_providers_for_user( $user->ID ),
+				'No fallback provider is forced when the filter intentionally returns an empty list'
+			);
+		} finally {
+			remove_filter( 'two_factor_enabled_providers_for_user', $filter, 10 );
+		}
+	}
+
+	/**
+	 * Ensure fallback still applies when configured providers are no longer registered.
+	 *
+	 * @covers Two_Factor_Core::get_available_providers_for_user
+	 */
+	public function test_get_available_providers_for_user_falls_back_when_configured_providers_are_missing() {
+		$user = self::factory()->user->create_and_get();
+
+		update_user_meta( $user->ID, Two_Factor_Core::ENABLED_PROVIDERS_USER_META_KEY, array( 'Two_Factor_Missing' ) );
+
+		$available = Two_Factor_Core::get_available_providers_for_user( $user->ID );
+
+		$this->assertCount( 1, $available, 'Email fallback remains active when configured providers are missing' );
+		$this->assertArrayHasKey( 'Two_Factor_Email', $available, 'Emailed codes are forced on for missing configured providers' );
+	}
+
+	/**
+	 * Ensure an unregistered `two_factor_fallback_provider_for_user` return value fails closed
+	 * instead of silently letting the user through with no second factor.
+	 *
+	 * @covers Two_Factor_Core::get_available_providers_for_user
+	 */
+	public function test_get_available_providers_for_user_fails_closed_on_invalid_fallback_provider() {
+		$user = self::factory()->user->create_and_get();
+
+		update_user_meta( $user->ID, Two_Factor_Core::ENABLED_PROVIDERS_USER_META_KEY, array( 'Two_Factor_Missing' ) );
+
+		$filter = function () {
+			return 'Two_Factor_Nonexistent';
+		};
+
+		add_filter( 'two_factor_fallback_provider_for_user', $filter );
+
+		try {
+			$result = Two_Factor_Core::get_available_providers_for_user( $user->ID );
+
+			$this->assertInstanceOf( WP_Error::class, $result, 'An unregistered fallback provider results in a WP_Error' );
+			$this->assertSame( 'no_available_2fa_methods', $result->get_error_code() );
+			$this->assertSame( 'Two_Factor_Nonexistent', $result->get_error_data()['fallback_provider'], 'Error data records the rejected fallback provider' );
+		} finally {
+			remove_filter( 'two_factor_fallback_provider_for_user', $filter );
+		}
 	}
 
 	/**

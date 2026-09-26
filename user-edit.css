@@ -8,6 +8,10 @@
 	font-weight: 700;
 }
 
+.two-factor-methods-table .two-factor-method-label > strong {
+	font-weight: 400;
+}
+
 .two-factor-methods-table .two-factor-method-recommended {
 	font-size: 0.8rem;
 	line-height: 1;
