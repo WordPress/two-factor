@@ -353,6 +353,7 @@ class Two_Factor_Email extends Two_Factor_Provider {
 				$this->generate_and_email_token( $user );
 			}
 		}
+		$has_valid_token = $this->user_has_token( $user->ID ) && ! $this->user_token_has_expired( $user->ID );
 
 		$token_length      = $this->get_token_length();
 		$token_placeholder = str_repeat( 'X', $token_length );
@@ -363,7 +364,7 @@ class Two_Factor_Email extends Two_Factor_Provider {
 		/** This action is documented in providers/class-two-factor-backup-codes.php */
 		do_action( 'two_factor_before_authentication_prompt', $this );
 		?>
-		<?php if ( ! $is_rate_limited ) : ?>
+		<?php if ( $has_valid_token ) : ?>
 		<p class="two-factor-prompt"><?php esc_html_e( 'A verification code has been sent to the email address associated with your account.', 'two-factor' ); ?></p>
 		<?php endif; ?>
 		<?php
@@ -378,12 +379,10 @@ class Two_Factor_Email extends Two_Factor_Provider {
 		/** This action is documented in providers/class-two-factor-backup-codes.php */
 		do_action( 'two_factor_after_authentication_input', $this );
 		?>
-		<?php submit_button( __( 'Verify', 'two-factor' ) ); ?>
-		<?php if ( ! $is_rate_limited ) : ?>
+		<?php submit_button( __( 'Verify', 'two-factor' ), 'primary', 'submit', true, $is_rate_limited ? 'disabled="disabled"' : '' ); ?>
 		<p class="two-factor-email-resend">
-			<input type="submit" class="button" name="<?php echo esc_attr( self::INPUT_NAME_RESEND_CODE ); ?>" value="<?php esc_attr_e( 'Resend Code', 'two-factor' ); ?>">
+			<input type="submit" class="button" name="<?php echo esc_attr( self::INPUT_NAME_RESEND_CODE ); ?>" value="<?php esc_attr_e( 'Resend Code', 'two-factor' ); ?>" <?php disabled( $is_rate_limited ); ?>>
 		</p>
-		<?php endif; ?>
 		<?php wp_enqueue_script( 'two-factor-login' ); ?>
 		<?php
 	}
