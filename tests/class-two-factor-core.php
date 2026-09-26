@@ -1321,6 +1321,7 @@ class Test_ClassTwoFactorCore extends WP_UnitTestCase {
 		$this->assertFalse( Two_Factor_Core::is_user_rate_limited( $user ) );
 	}
 
+	/**
 	 * Test that clearing the login rate limit removes the throttle state.
 	 *
 	 * @covers Two_Factor_Core::clear_login_rate_limit
@@ -1370,11 +1371,11 @@ class Test_ClassTwoFactorCore extends WP_UnitTestCase {
 	}
 
 	/**
-	 * Test that rate limiting invalidates the email token on validation attempts.
+	 * Test that rate limiting preserves the email token on validation attempts.
 	 *
 	 * @covers Two_Factor_Core::process_provider()
 	 */
-	public function test_process_provider_invalidates_email_token_when_rate_limited() {
+	public function test_process_provider_preserves_email_token_when_rate_limited() {
 		$user     = $this->get_dummy_user( array( 'Two_Factor_Email' => 'Two_Factor_Email' ) );
 		$provider = Two_Factor_Email::get_instance();
 
@@ -1397,11 +1398,11 @@ class Test_ClassTwoFactorCore extends WP_UnitTestCase {
 	 * Test that switching providers while rate-limited preserves the email token.
 	 *
 	 * If a user fails on TOTP triggering rate limiting, then switches back
-	 * to email, the rate-limit gate should invalidate the email token.
+	 * to email, the rate-limit gate should preserve the email token.
 	 *
 	 * @covers Two_Factor_Core::process_provider()
 	 */
-	public function test_process_provider_invalidates_email_token_on_provider_switch_while_rate_limited() {
+	public function test_process_provider_preserves_email_token_on_provider_switch_while_rate_limited() {
 		$user          = $this->get_dummy_user( array( 'Two_Factor_Email' => 'Two_Factor_Email' ) );
 		$email_provider = Two_Factor_Email::get_instance();
 
