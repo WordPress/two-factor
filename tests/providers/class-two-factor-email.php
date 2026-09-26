@@ -527,4 +527,64 @@ class Tests_Two_Factor_Email extends WP_UnitTestCase {
 		$this->assertContains( Two_Factor_Email::TOKEN_META_KEY, $keys );
 		$this->assertContains( Two_Factor_Email::TOKEN_META_KEY_TIMESTAMP, $keys );
 	}
+
+	/**
+	 * Verify privacy_eraser_user_meta_keys returns both short-lived keys.
+	 *
+	 * @covers Two_Factor_Email::privacy_eraser_user_meta_keys
+	 */
+	public function test_privacy_eraser_user_meta_keys() {
+		$this->assertSame(
+			array( Two_Factor_Email::TOKEN_META_KEY, Two_Factor_Email::TOKEN_META_KEY_TIMESTAMP ),
+			Two_Factor_Email::privacy_eraser_user_meta_keys()
+		);
+	}
+
+	/**
+	 * Verify privacy_export_data reports nothing for a user without a token.
+	 *
+	 * @covers Two_Factor_Email::privacy_export_data
+	 */
+	public function test_privacy_export_data_without_token() {
+		$user = self::factory()->user->create_and_get();
+
+		$this->assertSame( array(), $this->provider->privacy_export_data( $user ) );
+	}
+
+	/**
+	 * Verify privacy_export_data reports when the code was sent, not the hash.
+	 *
+	 * @covers Two_Factor_Email::privacy_export_data
+	 */
+	public function test_privacy_export_data_with_token() {
+		$user  = self::factory()->user->create_and_get();
+		$token = $this->provider->generate_token( $user->ID );
+
+		$data = $this->provider->privacy_export_data( $user );
+
+		$this->assertCount( 1, $data );
+		$this->assertSame( 'Email login code', $data[0]['name'] );
+		$this->assertStringContainsString( 'was sent on', $data[0]['value'] );
+
+		$payload = wp_json_encode( $data );
+		$this->assertStringNotContainsString( $token, $payload );
+		$this->assertStringNotContainsString( wp_hash( $token ), $payload );
+	}
+
+	/**
+	 * Verify privacy_export_data still reports the send time after the
+	 * token was consumed, because the timestamp meta stays stored.
+	 *
+	 * @covers Two_Factor_Email::privacy_export_data
+	 */
+	public function test_privacy_export_data_after_token_deleted() {
+		$user = self::factory()->user->create_and_get();
+		$this->provider->generate_token( $user->ID );
+		$this->provider->delete_token( $user->ID );
+
+		$data = $this->provider->privacy_export_data( $user );
+
+		$this->assertCount( 1, $data );
+		$this->assertStringContainsString( 'was sent on', $data[0]['value'] );
+	}
 }

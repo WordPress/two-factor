@@ -533,4 +533,33 @@ class Two_Factor_Backup_Codes extends Two_Factor_Provider {
 			self::BACKUP_CODES_META_KEY,
 		);
 	}
+
+	/**
+	 * Return the personal data stored for a user for the exporter.
+	 *
+	 * The codes and their hashes are never included, only how many are left.
+	 *
+	 * @since 0.17.0
+	 *
+	 * @param WP_User $user WP_User object of the user.
+	 * @return array
+	 */
+	public function privacy_export_data( $user ) {
+		$remaining = self::codes_remaining_for_user( $user );
+
+		if ( ! $remaining ) {
+			return array();
+		}
+
+		return array(
+			array(
+				'name'  => __( 'Recovery codes', 'two-factor' ),
+				'value' => sprintf(
+					/* translators: %d: number of unused codes */
+					_n( '%d unused code', '%d unused codes', $remaining, 'two-factor' ),
+					$remaining
+				),
+			),
+		);
+	}
 }

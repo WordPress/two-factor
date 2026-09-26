@@ -472,4 +472,51 @@ class Two_Factor_Email extends Two_Factor_Provider {
 			self::TOKEN_META_KEY_TIMESTAMP,
 		);
 	}
+
+	/**
+	 * Return the user meta keys that the personal data eraser should delete.
+	 *
+	 * Both keys hold short-lived data about a pending code.
+	 *
+	 * @since 0.17.0
+	 *
+	 * @return array
+	 */
+	public static function privacy_eraser_user_meta_keys() {
+		return array(
+			self::TOKEN_META_KEY,
+			self::TOKEN_META_KEY_TIMESTAMP,
+		);
+	}
+
+	/**
+	 * Return the personal data stored for a user for the exporter.
+	 *
+	 * The hashed token is never included, only when the code was sent.
+	 * The timestamp outlives the token after the code is consumed, so it
+	 * is reported on its own.
+	 *
+	 * @since 0.17.0
+	 *
+	 * @param WP_User $user WP_User object of the user.
+	 * @return array
+	 */
+	public function privacy_export_data( $user ) {
+		$timestamp = (int) get_user_meta( $user->ID, self::TOKEN_META_KEY_TIMESTAMP, true );
+
+		if ( ! $timestamp ) {
+			return array();
+		}
+
+		return array(
+			array(
+				'name'  => __( 'Email login code', 'two-factor' ),
+				'value' => sprintf(
+					/* translators: %s: date and time */
+					__( 'A code was sent on %s.', 'two-factor' ),
+					Two_Factor_Core::format_privacy_timestamp( $timestamp )
+				),
+			),
+		);
+	}
 }

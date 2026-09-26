@@ -902,4 +902,53 @@ class Two_Factor_Totp extends Two_Factor_Provider {
 			self::LAST_SUCCESSFUL_LOGIN_META_KEY,
 		);
 	}
+
+	/**
+	 * Return the user meta keys that the personal data eraser should delete.
+	 *
+	 * The secret key is kept because erasing it would disable the provider
+	 * on an account that still exists.
+	 *
+	 * @since 0.17.0
+	 *
+	 * @return array
+	 */
+	public static function privacy_eraser_user_meta_keys() {
+		return array(
+			self::LAST_SUCCESSFUL_LOGIN_META_KEY,
+		);
+	}
+
+	/**
+	 * Return the personal data stored for a user for the exporter.
+	 *
+	 * The secret key is never included, the credential is only described.
+	 *
+	 * @since 0.17.0
+	 *
+	 * @param WP_User $user WP_User object of the user.
+	 * @return array
+	 */
+	public function privacy_export_data( $user ) {
+		$data = array();
+
+		if ( ! $this->get_user_totp_key( $user->ID ) ) {
+			return $data;
+		}
+
+		$data[] = array(
+			'name'  => __( 'Authenticator app (TOTP)', 'two-factor' ),
+			'value' => __( 'Configured', 'two-factor' ),
+		);
+
+		$last_login = (int) get_user_meta( $user->ID, self::LAST_SUCCESSFUL_LOGIN_META_KEY, true );
+		if ( $last_login ) {
+			$data[] = array(
+				'name'  => __( 'Last successful login', 'two-factor' ),
+				'value' => Two_Factor_Core::format_privacy_timestamp( $last_login ),
+			);
+		}
+
+		return $data;
+	}
 }
