@@ -3155,9 +3155,26 @@ class Two_Factor_Core {
 			}
 		}
 
-		if ( ! empty( self::get_enabled_providers_for_user( $user ) ) ) {
-			$response['items_retained'] = true;
-			$response['messages'][]     = __( 'Two-factor authentication credentials were retained so that two-factor login stays active on this account. They are removed when the account is deleted.', 'two-factor' );
+		// Provider settings and credential meta remain in place. Check stored
+		// meta rather than enabled providers, since a configured provider may be
+		// disabled while its credential is still retained.
+		$retained_meta_keys = array(
+			self::PROVIDER_USER_META_KEY,
+			self::ENABLED_PROVIDERS_USER_META_KEY,
+		);
+
+		foreach ( self::get_providers() as $provider ) {
+			$provider_meta_keys = $provider::uninstall_user_meta_keys();
+			$erased_meta_keys   = $provider::privacy_eraser_user_meta_keys();
+			$retained_meta_keys = array_merge( $retained_meta_keys, array_diff( $provider_meta_keys, $erased_meta_keys ) );
+		}
+
+		foreach ( array_unique( $retained_meta_keys ) as $meta_key ) {
+			if ( metadata_exists( 'user', $user->ID, $meta_key ) ) {
+				$response['items_retained'] = true;
+				$response['messages'][]     = __( "Two-factor authentication credentials or settings were retained to avoid changing this account's authentication as part of a personal data erasure request. They are removed when the account is deleted.", 'two-factor' );
+				break;
+			}
 		}
 
 		return $response;

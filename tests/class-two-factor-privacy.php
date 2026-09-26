@@ -267,4 +267,19 @@ class Test_Two_Factor_Privacy extends WP_UnitTestCase {
 		$this->assertSame( $secret, $totp->get_user_totp_key( $this->user->ID ) );
 		$this->assertContains( 'Two_Factor_Totp', Two_Factor_Core::get_enabled_providers_for_user( $this->user ) );
 	}
+
+	/**
+	 * Erasure reports credentials retained even when their provider is disabled.
+	 */
+	public function test_erase_reports_retained_credentials_for_a_disabled_provider() {
+		$totp   = Two_Factor_Totp::get_instance();
+		$secret = Two_Factor_Totp::generate_key();
+		$totp->set_user_totp_key( $this->user->ID, $secret );
+
+		$response = $this->erase();
+
+		$this->assertTrue( $response['items_retained'] );
+		$this->assertNotEmpty( $response['messages'] );
+		$this->assertSame( $secret, $totp->get_user_totp_key( $this->user->ID ) );
+	}
 }
