@@ -1387,15 +1387,10 @@ class Two_Factor_Core {
 			$params = array();
 		}
 
+		$url = wp_login_url( '', false );
+		$url = set_url_scheme( $url, $scheme );
+
 		$params = urlencode_deep( $params );
-
-		// Compat: Match WordPress's usage of `site_url( wp-login.php )` by always passing the action if known.
-		if ( isset( $params['action'] ) ) {
-			$url = site_url( 'wp-login.php?action=' . $params['action'], $scheme );
-		} else {
-			$url = site_url( 'wp-login.php', $scheme );
-		}
-
 		if ( $params ) {
 			$url = add_query_arg( $params, $url );
 		}
