@@ -875,7 +875,10 @@ class Two_Factor_Core {
 			return null;
 		}
 
-		if ( ! empty( $primary_provider ) && ! empty( $available_providers[ $primary_provider ] ) ) {
+		// Persisted meta is untrusted: malformed (array/object) values must not reach array-key
+		// access, which fatals on PHP 8 and warns on 7.x. Fail closed to "no selection" so the
+		// caller falls back to the first available provider instead of letting the user through.
+		if ( is_string( $primary_provider ) && ! empty( $available_providers[ $primary_provider ] ) ) {
 			return $primary_provider;
 		}
 
