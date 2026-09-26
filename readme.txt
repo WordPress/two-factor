@@ -114,7 +114,7 @@ The plugin includes a `wp two-factor` WP-CLI namespace for managing two-factor a
 * `wp two-factor status <user>` — Shows a user's current 2FA status (read-only). Supports `--format=json`.
 * `wp two-factor list-providers` — Lists all registered two-factor providers.
 * `wp two-factor enable <user> <provider>` — Enables a provider for a user. Providers that require a shared secret (like TOTP) can't be enabled this way and will point you to the profile page instead.
-* `wp two-factor disable <user> [<provider>]` — Disables a single provider, or performs a full reset of all 2FA for the user when no provider is given. Full reset prompts for confirmation unless `--yes` is passed.
+* `wp two-factor disable <user> [<provider>]` — Disables a single provider, or performs a full reset of all 2FA for the user when no provider is given. Both forms prompt for confirmation unless `--yes` is passed.
 * `wp two-factor backup-codes generate <user> [--count=<n>]` — Generates a fresh set of backup codes for a user, replacing any existing ones. Defaults to 10 codes.
 * `wp two-factor unlock <user>` — Clears a user's login rate-limit/throttle without changing their 2FA configuration.
 
