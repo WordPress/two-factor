@@ -887,7 +887,13 @@ class Test_ClassTwoFactorCore extends WP_UnitTestCase {
 
 		remove_filter( 'user_has_cap', $strip_read );
 
-		$this->assertSame( home_url(), $result );
+		// Core sends users without the read capability to the front end on
+		// single site, and to their network dashboard on multisite.
+		if ( is_multisite() ) {
+			$this->assertSame( get_dashboard_url( $user_id ), $result );
+		} else {
+			$this->assertSame( home_url(), $result );
+		}
 	}
 
 	/**
