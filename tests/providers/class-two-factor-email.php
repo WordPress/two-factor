@@ -498,6 +498,63 @@ class Tests_Two_Factor_Email extends WP_UnitTestCase {
 	}
 
 	/**
+	 * Verify the email form remains visible with disabled controls during a lockout.
+	 *
+	 * Showing an interactive resend button during a lockout misleads the user
+	 * into thinking it will work.
+	 *
+	 * @covers Two_Factor_Email::authentication_page
+	 */
+	public function test_authentication_page_disables_controls_when_rate_limited() {
+		$user = self::factory()->user->create_and_get();
+		$this->provider->generate_token( $user->ID );
+
+		update_user_meta( $user->ID, Two_Factor_Core::USER_FAILED_LOGIN_ATTEMPTS_KEY, 3 );
+		update_user_meta( $user->ID, Two_Factor_Core::USER_RATE_LIMIT_KEY, time() );
+
+		ob_start();
+		$this->provider->authentication_page( $user );
+		$output = ob_get_clean();
+
+		$this->assertStringContainsString( 'A verification code has been sent', $output );
+		$this->assertSame(
+			1,
+			preg_match( '/<input[^>]*name="submit"[^>]*disabled/', $output ),
+			'Verify button must remain visible and be disabled during the lockout'
+		);
+		$this->assertSame(
+			1,
+			preg_match( '/<input[^>]*name="' . preg_quote( Two_Factor_Email::INPUT_NAME_RESEND_CODE, '/' ) . '"[^>]*disabled/', $output ),
+			'Resend Code button must remain visible and be disabled during the lockout'
+		);
+	}
+
+	/**
+	 * Verify no email is sent when authentication_page() is called while rate-limited and no token exists.
+	 *
+	 * @covers Two_Factor_Email::authentication_page
+	 */
+	public function test_authentication_page_does_not_send_email_when_rate_limited_and_no_token() {
+		$user = self::factory()->user->create_and_get();
+
+		update_user_meta( $user->ID, Two_Factor_Core::USER_FAILED_LOGIN_ATTEMPTS_KEY, 3 );
+		update_user_meta( $user->ID, Two_Factor_Core::USER_RATE_LIMIT_KEY, time() );
+		$this->assertFalse( $this->provider->user_has_token( $user->ID ) );
+
+		$emails_before = count( self::$mockmailer->mock_sent );
+		ob_start();
+		$this->provider->authentication_page( $user );
+		$output = ob_get_clean();
+
+		$this->assertCount(
+			$emails_before,
+			self::$mockmailer->mock_sent,
+			'No email must be sent when authentication_page() is called while rate-limited'
+		);
+		$this->assertStringNotContainsString( 'A verification code has been sent', $output );
+	}
+
+	/**
 	 * Verify that a rate-limited POST does not trigger a new email when login_html()
 	 * re-renders the form via authentication_page().
 	 *
@@ -537,6 +594,28 @@ class Tests_Two_Factor_Email extends WP_UnitTestCase {
 			self::$mockmailer->mock_sent,
 			'No new email must be sent when re-rendering the form after a rate-limited POST'
 		);
+	}
+
+	/**
+	 * Verify expired email codes are not described as available during a lockout.
+	 *
+	 * @covers Two_Factor_Email::authentication_page
+	 */
+	public function test_authentication_page_does_not_show_sent_code_prompt_for_expired_token_while_rate_limited() {
+		$user = self::factory()->user->create_and_get();
+		$this->provider->generate_token( $user->ID );
+		update_user_meta( $user->ID, Two_Factor_Email::TOKEN_META_KEY_TIMESTAMP, time() - ( 20 * MINUTE_IN_SECONDS ) );
+
+		update_user_meta( $user->ID, Two_Factor_Core::USER_FAILED_LOGIN_ATTEMPTS_KEY, 3 );
+		update_user_meta( $user->ID, Two_Factor_Core::USER_RATE_LIMIT_KEY, time() );
+
+		$emails_before = count( self::$mockmailer->mock_sent );
+		ob_start();
+		$this->provider->authentication_page( $user );
+		$output = ob_get_clean();
+
+		$this->assertStringNotContainsString( 'A verification code has been sent', $output );
+		$this->assertSame( $emails_before, count( self::$mockmailer->mock_sent ), 'No new code is sent during the lockout' );
 	}
 
 	/**
