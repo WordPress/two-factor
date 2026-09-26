@@ -699,6 +699,105 @@ class Test_ClassTwoFactorCore extends WP_UnitTestCase {
 	}
 
 	/**
+	 * Verify that login_url() adds the passed parameters to the resulting
+	 * URL exactly as expected — and only when they are present.
+	 *
+	 * Each data set is a pair of (params, expected exact URL).
+	 *
+	 * @covers Two_Factor_Core::login_url
+	 * @dataProvider data_login_url_with_params
+	 *
+	 * @param array  $params         Query args to pass.
+	 * @param string $expected_url   The exact URL expected back.
+	 */
+	public function test_login_url_with_params( $params, $expected_url ) {
+		$this->assertSame( $expected_url, Two_Factor_Core::login_url( $params ) );
+	}
+
+	/**
+	 * Data provider for test_login_url_with_params.
+	 *
+	 * Note: values are encoded by login_url() itself, so the expected URLs
+	 * contain the encoded form of each value.
+	 *
+	 * @return array[]
+	 */
+	public function data_login_url_with_params() {
+		// Derive the base URL at runtime so the test is portable across environments.
+		$base = Two_Factor_Core::login_url();
+
+		return array(
+			'no params'                  => array(
+				array(),
+				$base,
+			),
+			'action only'                => array(
+				array( 'action' => 'validate_2fa' ),
+				$base . '?action=validate_2fa',
+			),
+			'redirect_to only'           => array(
+				array( 'redirect_to' => 'https://example.org/wp-admin/' ),
+				$base . '?redirect_to=https%3A%2F%2Fexample.org%2Fwp-admin%2F',
+			),
+			'action and redirect_to'     => array(
+				array(
+					'action'      => 'validate_2fa',
+					'redirect_to' => 'https://example.org/wp-admin/',
+				),
+				$base . '?action=validate_2fa&redirect_to=https%3A%2F%2Fexample.org%2Fwp-admin%2F',
+			),
+			'redirect_to with own query' => array(
+				array( 'redirect_to' => 'https://example.org/target/?foo=1&bar=2' ),
+				$base . '?redirect_to=https%3A%2F%2Fexample.org%2Ftarget%2F%3Ffoo%3D1%26bar%3D2',
+			),
+			'values with special chars'  => array(
+				array(
+					'wp_nonce' => 'abc123',
+					'token'    => 'a b+c/d=',
+				),
+				$base . '?wp_nonce=abc123&token=a+b%2Bc%2Fd%3D',
+			),
+			'rememberme and provider'    => array(
+				array(
+					'rememberme' => '1',
+					'provider'   => 'Two_Factor_Backup_Codes',
+				),
+				$base . '?rememberme=1&provider=Two_Factor_Backup_Codes',
+			),
+			'params order is preserved'  => array(
+				array(
+					'provider' => 'Two_Factor_Email',
+					'wp_nonce' => 'abc123',
+				),
+				$base . '?provider=Two_Factor_Email&wp_nonce=abc123',
+			),
+		);
+	}
+
+	/**
+	 * Verify the login URL includes redirect_to only when passed.
+	 *
+	 * @covers Two_Factor_Core::login_url
+	 */
+	public function test_login_url_adds_redirect_to_when_present() {
+		$redirect_to = 'https://example.org/some/target/?foo=1';
+
+		$url = Two_Factor_Core::login_url(
+			array(
+				'action'      => 'validate_2fa',
+				'redirect_to' => $redirect_to,
+			)
+		);
+
+		$this->assertStringContainsString( 'wp-login.php', $url );
+		$this->assertStringContainsString( 'action=validate_2fa', $url );
+		$this->assertStringContainsString( 'redirect_to=' . rawurlencode( $redirect_to ), $url );
+
+		// Without params, no redirect_to should be present.
+		$this->assertStringNotContainsString( 'redirect_to', Two_Factor_Core::login_url() );
+	}
+
+	/**
 	 * Verify user API log is enabled (when disabled by default).
 	 *
 	 * @covers Two_Factor_Core::is_user_api_login_enabled
