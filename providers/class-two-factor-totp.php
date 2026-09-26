@@ -366,7 +366,7 @@ class Two_Factor_Totp extends Two_Factor_Provider {
 			$key      = $this->generate_key();
 			$totp_url = $this->generate_qr_code_url( $user, $key );
 			?>
-			<p>
+			<p class="description">
 				<?php esc_html_e( 'Please follow these steps in order to complete setup:', 'two-factor' ); ?>
 			</p>
 			<ol class="totp-steps">
@@ -435,7 +435,7 @@ class Two_Factor_Totp extends Two_Factor_Provider {
 			wp_enqueue_script( 'two-factor-totp-qrcode' );
 			?>
 		<?php else : ?>
-			<p class="success">
+			<p class="description success">
 				<?php esc_html_e( 'An authenticator app is currently configured. You will need to re-scan the QR code on all devices if reset.', 'two-factor' ); ?>
 			</p>
 			<p>
