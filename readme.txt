@@ -107,6 +107,19 @@ Here is a list of action and filter hooks provided by the plugin:
 - `two_factor_login_nonce_failed` action which fires when a login nonce fails verification. Provides the ID of the user the nonce was presented for as the first argument, and the reason as the second: `no_nonce_stored`, `expired`, or `mismatch`.
 - `two_factor_log_login_nonce_failures` filter overrides whether a failed login nonce verification is written to the PHP error log. Defaults to true for `expired` and `mismatch`, and false for `no_nonce_stored`, which any unauthenticated request can reach. Provides the user ID as the second argument and the reason as the third.
 
+== WP-CLI Commands ==
+
+The plugin includes a `wp two-factor` WP-CLI namespace for managing two-factor authentication from the command line. All commands accept a user by ID, login, or email.
+
+* `wp two-factor status <user>` — Shows a user's current 2FA status (read-only). Supports `--format=json`.
+* `wp two-factor list-providers` — Lists all registered two-factor providers.
+* `wp two-factor enable <user> <provider>` — Enables a provider for a user. Providers that require a shared secret (like TOTP) can't be enabled this way and will point you to the profile page instead.
+* `wp two-factor disable <user> [<provider>]` — Disables a single provider, or performs a full reset of all 2FA for the user when no provider is given. Full reset prompts for confirmation unless `--yes` is passed.
+* `wp two-factor backup-codes generate <user> [--count=<n>]` — Generates a fresh set of backup codes for a user, replacing any existing ones. Defaults to 10 codes.
+* `wp two-factor unlock <user>` — Clears a user's login rate-limit/throttle without changing their 2FA configuration.
+
+Run `wp help two-factor` for the full list, or `wp help two-factor <command>` for options and examples for a specific command.
+
 == Redirect After the Two-Factor Challenge ==
 
 To redirect users to a specific URL after completing the two-factor challenge, use WordPress Core built-in login_redirect filter. The filter works the same way as in a standard WordPress login flow:
@@ -149,7 +162,7 @@ Yes. The Two-Factor plugin is compatible with WordPress Multisite. Each user con
 
 = How do I disable 2FA for a user who is locked out? =
 
-As an administrator, go to **Users → All Users** in the WordPress admin, click **Edit** on the affected user's profile, scroll down to the **Two-Factor Options** section, and uncheck all enabled methods, then click **Update User**. This will remove 2FA for that user, allowing them to log in with their password alone. You can also do this via WP-CLI with `wp user meta delete <user_id> _two_factor_enabled_providers`. Once they're back in, encourage them to re-enable 2FA and generate fresh backup codes.
+As an administrator, go to **Users → All Users** in the WordPress admin, click **Edit** on the affected user's profile, scroll down to the **Two-Factor Options** section, and uncheck all enabled methods, then click **Update User**. This will remove 2FA for that user, allowing them to log in with their password alone. You can also do this via WP-CLI with wp two-factor disable <user_id> --yes, which performs a full reset (see the WP-CLI Commands section above). Once they're back in, encourage them to re-enable 2FA and generate fresh backup codes.
 
 = Can I require 2FA for all users or specific roles? =
 
