@@ -92,6 +92,8 @@ Here is a list of action and filter hooks provided by the plugin:
 - `two_factor_providers` filter overrides the available two-factor providers such as email and time-based one-time passwords. Array values are PHP classnames of the two-factor providers.
 - `two_factor_providers_for_user` filter overrides the available two-factor providers for a specific user. Array values are instances of provider classes and the user object `WP_User` is available as the second argument.
 - `two_factor_enabled_providers_for_user` filter overrides the list of two-factor providers enabled for a user. First argument is an array of enabled provider classnames as values, the second argument is the user ID.
+- `two_factor_is_required_for_user` filter controls whether two-factor authentication is required for a user. Return `false` to bypass the two-factor flow (e.g. for trusted IP addresses). First argument is a boolean (whether the user has a primary provider configured), the second argument is the `WP_User` object.
+- `two_factor_fallback_provider_for_user` filter overrides the provider forced on when none of a user's stored two-factor providers are still registered (e.g. after a provider plugin is deactivated). Defaults to `Two_Factor_Email`. First argument is the provider classname, the second is the user ID, the third is the array of provider classnames that were stored for the user but are no longer registered. The returned provider must be registered and available to the user (`is_available_for_user()`), or the user is shown an error instead of being let through with a fallback.
 - `two_factor_user_authenticated` action which receives the logged in `WP_User` object as the first argument for determining the logged in user right after the authentication workflow.
 - `two_factor_user_api_login_enable` filter restricts authentication for REST API and XML-RPC to application passwords only. Provides the user ID as the second argument.
 - `two_factor_email_token_ttl` filter overrides the time interval in seconds that an email token is considered after generation. Accepts the time in seconds as the first argument and the ID of the `WP_User` object being authenticated.
@@ -104,6 +106,19 @@ Here is a list of action and filter hooks provided by the plugin:
 - `two_factor_login_backup_links` filters the backup links displayed on the two-factor login form.
 - `two_factor_login_nonce_failed` action which fires when a login nonce fails verification. Provides the ID of the user the nonce was presented for as the first argument, and the reason as the second: `no_nonce_stored`, `expired`, or `mismatch`.
 - `two_factor_log_login_nonce_failures` filter overrides whether a failed login nonce verification is written to the PHP error log. Defaults to true for `expired` and `mismatch`, and false for `no_nonce_stored`, which any unauthenticated request can reach. Provides the user ID as the second argument and the reason as the third.
+
+== WP-CLI Commands ==
+
+The plugin includes a `wp two-factor` WP-CLI namespace for managing two-factor authentication from the command line. All commands accept a user by ID, login, or email.
+
+* `wp two-factor status <user>` — Shows a user's current 2FA status (read-only). Supports `--format=json`.
+* `wp two-factor list-providers` — Lists all registered two-factor providers.
+* `wp two-factor enable <user> <provider>` — Enables a provider for a user. Providers that require a shared secret (like TOTP) can't be enabled this way and will point you to the profile page instead.
+* `wp two-factor disable <user> [<provider>]` — Disables a single provider, or performs a full reset of all 2FA for the user when no provider is given. Both forms prompt for confirmation unless `--yes` is passed.
+* `wp two-factor backup-codes generate <user> [--count=<n>]` — Generates a fresh set of backup codes for a user, replacing any existing ones. Defaults to 10 codes.
+* `wp two-factor unlock <user>` — Clears a user's login rate-limit/throttle without changing their 2FA configuration.
+
+Run `wp help two-factor` for the full list, or `wp help two-factor <command>` for options and examples for a specific command.
 
 == Redirect After the Two-Factor Challenge ==
 
@@ -142,15 +157,15 @@ The plugin previously supported FIDO U2F, which was a predecessor to WebAuthn. T
 Yes. For passkeys and hardware security keys, you can install the [Two-Factor Provider: WebAuthn plugin](https://wordpress.org/plugins/two-factor-provider-webauthn/). It integrates directly with Two-Factor and adds WebAuthn-based authentication as an additional two-factor option for users.
 
 = Does this plugin work on WordPress Multisite? =
- 
+
 Yes. The Two-Factor plugin is compatible with WordPress Multisite. Each user configures their own 2FA settings via their profile, and because authentication codes are stored in WordPress user meta, the configuration is tied to the user account and valid across all sites in the network. However, there are no network-wide settings — a super admin cannot enforce or configure 2FA globally from the Network Admin dashboard. To manage 2FA for a specific user, edit their profile on any site where they have an account.
- 
+
 = How do I disable 2FA for a user who is locked out? =
- 
-As an administrator, go to **Users → All Users** in the WordPress admin, click **Edit** on the affected user's profile, scroll down to the **Two-Factor Options** section, and uncheck all enabled methods, then click **Update User**. This will remove 2FA for that user, allowing them to log in with their password alone. You can also do this via WP-CLI with `wp user meta delete <user_id> _two_factor_enabled_providers`. Once they're back in, encourage them to re-enable 2FA and generate fresh backup codes.
- 
+
+As an administrator, go to **Users → All Users** in the WordPress admin, click **Edit** on the affected user's profile, scroll down to the **Two-Factor Options** section, and uncheck all enabled methods, then click **Update User**. This will remove 2FA for that user, allowing them to log in with their password alone. You can also do this via WP-CLI with wp two-factor disable <user_id> --yes, which performs a full reset (see the WP-CLI Commands section above). Once they're back in, encourage them to re-enable 2FA and generate fresh backup codes.
+
 = Can I require 2FA for all users or specific roles? =
- 
+
 Not through the plugin's interface — there are no built-in enforcement settings. However, developers can use the `two_factor_providers_for_user` filter to control which providers are available per user or role, and combine it with custom logic to redirect users who haven't set up 2FA. Native enforcement support is a known and tracked feature request — follow the discussion at [GitHub issue #255](https://github.com/WordPress/two-factor/issues/255).
 
 
@@ -269,5 +284,4 @@ Bumps WordPress minimum supported version to 6.3 and PHP minimum to 7.2.
 
 = 0.9.0 =
 Users are now asked to re-authenticate with their two-factor before making changes to their two-factor settings. This associates each login session with the two-factor login meta data for improved handling of that session.
-
 
