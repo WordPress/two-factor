@@ -254,6 +254,10 @@ class Two_Factor_Totp extends Two_Factor_Provider {
 			return new WP_Error( 'db_error', __( 'Unable to enable TOTP provider for this user.', 'two-factor' ), array( 'status' => 500 ) );
 		}
 
+		// The submitted code proves possession of the secret that was just saved, so this
+		// session has now satisfied a second factor and should not be asked to revalidate.
+		Two_Factor_Core::maybe_mark_current_session_two_factor( $user_id, 'Two_Factor_Totp' );
+
 		ob_start();
 		$this->user_two_factor_options( $user );
 		$html = ob_get_clean();

@@ -1706,6 +1706,84 @@ class Test_ClassTwoFactorCore extends WP_UnitTestCase {
 	}
 
 	/**
+	 * Validate that configuring a provider flags the current session as two-factor.
+	 *
+	 * @covers Two_Factor_Core::maybe_mark_current_session_two_factor()
+	 */
+	public function test_maybe_mark_current_session_two_factor() {
+		$user = self::factory()->user->create_and_get();
+
+		wp_set_current_user( $user->ID );
+		wp_set_auth_cookie( $user->ID );
+
+		// The session is not two-factor yet, and the user has no provider.
+		$this->assertFalse( Two_Factor_Core::is_current_user_session_two_factor() );
+		$this->assertFalse( Two_Factor_Core::maybe_mark_current_session_two_factor( $user->ID, 'Two_Factor_Dummy' ) );
+
+		// Enable and configure a provider for the user.
+		Two_Factor_Core::enable_provider_for_user( $user->ID, 'Two_Factor_Dummy' );
+
+		$this->assertTrue( Two_Factor_Core::maybe_mark_current_session_two_factor( $user->ID, 'Two_Factor_Dummy' ) );
+
+		$session = Two_Factor_Core::get_current_user_session();
+		$this->assertArrayHasKey( 'two-factor-login', $session );
+		$this->assertEquals( 'Two_Factor_Dummy', $session['two-factor-provider'] );
+		$this->assertGreaterThan( time() - MINUTE_IN_SECONDS, $session['two-factor-login'] );
+
+		// The user can now update their settings without revalidating.
+		$this->assertTrue( Two_Factor_Core::current_user_can_update_two_factor_options() );
+		$this->assertTrue( Two_Factor_Core::current_user_can_update_two_factor_options( 'save' ) );
+	}
+
+	/**
+	 * Validate that another user's session is never flagged.
+	 *
+	 * @covers Two_Factor_Core::maybe_mark_current_session_two_factor()
+	 */
+	public function test_maybe_mark_current_session_two_factor_ignores_other_users() {
+		$current_user = self::factory()->user->create_and_get();
+		$other_user   = self::factory()->user->create_and_get();
+
+		wp_set_current_user( $current_user->ID );
+		wp_set_auth_cookie( $current_user->ID );
+
+		Two_Factor_Core::enable_provider_for_user( $other_user->ID, 'Two_Factor_Dummy' );
+
+		$this->assertFalse( Two_Factor_Core::maybe_mark_current_session_two_factor( $other_user->ID, 'Two_Factor_Dummy' ) );
+		$this->assertFalse( Two_Factor_Core::is_current_user_session_two_factor() );
+	}
+
+	/**
+	 * Validate that an existing two-factor session keeps its original timestamp.
+	 *
+	 * @covers Two_Factor_Core::maybe_mark_current_session_two_factor()
+	 */
+	public function test_maybe_mark_current_session_two_factor_keeps_existing_time() {
+		$user = self::factory()->user->create_and_get();
+
+		wp_set_current_user( $user->ID );
+		wp_set_auth_cookie( $user->ID );
+
+		Two_Factor_Core::enable_provider_for_user( $user->ID, 'Two_Factor_Dummy' );
+		Two_Factor_Core::update_current_user_session(
+			array(
+				'two-factor-provider' => 'Two_Factor_Dummy',
+				'two-factor-login'    => time() - HOUR_IN_SECONDS,
+			)
+		);
+
+		$existing_time = Two_Factor_Core::is_current_user_session_two_factor();
+
+		$this->assertFalse( Two_Factor_Core::maybe_mark_current_session_two_factor( $user->ID, 'Two_Factor_Dummy' ) );
+
+		// The grace period is not extended by a repeated setup request.
+		$this->assertEquals( $existing_time, Two_Factor_Core::is_current_user_session_two_factor() );
+
+		$session = Two_Factor_Core::get_current_user_session();
+		$this->assertEquals( 'Two_Factor_Dummy', $session['two-factor-provider'] );
+	}
+
+	/**
 	 * Validate that a non-2fa login doesn't set the session two-factor data.
 	 *
 	 * @covers Two_Factor_Core::is_current_user_session_two_factor()
