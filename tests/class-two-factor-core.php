@@ -723,8 +723,9 @@ class Test_ClassTwoFactorCore extends WP_UnitTestCase {
 	 * @return array[]
 	 */
 	public function data_login_url_with_params() {
-		// Derive the base URL at runtime so the test is portable across environments.
-		$base = Two_Factor_Core::login_url();
+		// Derive the base from core's wp_login_url() so the test is portable
+		// across environments and follows the same filter chain as login_url().
+		$base = wp_login_url();
 
 		return array(
 			'no params'                  => array(
@@ -795,6 +796,87 @@ class Test_ClassTwoFactorCore extends WP_UnitTestCase {
 
 		// Without params, no redirect_to should be present.
 		$this->assertStringNotContainsString( 'redirect_to', Two_Factor_Core::login_url() );
+	}
+
+	/**
+	 * Verify that a successful 2FA validation with no redirect_to falls back to
+	 * the admin URL, mirroring the core wp-login.php default.
+	 *
+	 * @covers Two_Factor_Core::validate_login_form_2fa
+	 */
+	public function test_validate_2fa_redirect_falls_back_to_admin_url() {
+		$user        = $this->get_dummy_user( array( 'Two_Factor_Dummy' => 'Two_Factor_Dummy' ) );
+		$login_nonce = Two_Factor_Core::create_login_nonce( $user->ID );
+		$this->assertNotFalse( $login_nonce );
+
+		$redirect_url = $this->do_redirect_callable(
+			function () use ( $user, $login_nonce ) {
+				Two_Factor_Core::validate_login_form_2fa( $user, $login_nonce['key'], 'Two_Factor_Dummy', '', true );
+			}
+		);
+
+		$this->assertSame( admin_url(), $redirect_url, 'Empty redirect_to should fall back to the admin URL.' );
+
+		$this->clean_dummy_user();
+	}
+
+	/**
+	 * Verify that the core login_redirect filter decides the final destination
+	 * after 2FA, even when no redirect_to was passed.
+	 *
+	 * @covers Two_Factor_Core::validate_login_form_2fa
+	 */
+	public function test_validate_2fa_redirect_respects_login_redirect_filter() {
+		$custom_destination = 'https://example.org/custom-destination/';
+
+		add_filter(
+			'login_redirect',
+			static function () use ( $custom_destination ) {
+				return $custom_destination;
+			},
+			10,
+			3
+		);
+
+		$user        = $this->get_dummy_user( array( 'Two_Factor_Dummy' => 'Two_Factor_Dummy' ) );
+		$login_nonce = Two_Factor_Core::create_login_nonce( $user->ID );
+		$this->assertNotFalse( $login_nonce );
+
+		$redirect_url = $this->do_redirect_callable(
+			function () use ( $user, $login_nonce ) {
+				Two_Factor_Core::validate_login_form_2fa( $user, $login_nonce['key'], 'Two_Factor_Dummy', '', true );
+			}
+		);
+
+		remove_all_filters( 'login_redirect' );
+
+		$this->assertSame( $custom_destination, $redirect_url, 'The login_redirect filter should decide the destination.' );
+
+		$this->clean_dummy_user();
+	}
+
+	/**
+	 * Verify that revalidation without redirect_to falls back to the admin URL.
+	 *
+	 * @covers Two_Factor_Core::revalidate_login_form_2fa
+	 */
+	public function test_revalidate_2fa_redirect_falls_back_to_admin_url() {
+		$user = $this->get_dummy_user( array( 'Two_Factor_Dummy' => 'Two_Factor_Dummy' ) );
+
+		wp_set_current_user( $user->ID );
+		wp_set_auth_cookie( $user->ID );
+
+		$login_nonce = wp_create_nonce( 'two_factor_revalidate_' . $user->ID );
+
+		$redirect_url = $this->do_redirect_callable(
+			function () use ( $login_nonce ) {
+				Two_Factor_Core::revalidate_login_form_2fa( $login_nonce, 'Two_Factor_Dummy', '', true );
+			}
+		);
+
+		$this->assertSame( admin_url(), $redirect_url, 'Empty redirect_to should fall back to the admin URL.' );
+
+		$this->clean_dummy_user();
 	}
 
 	/**

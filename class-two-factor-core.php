@@ -1938,6 +1938,13 @@ class Two_Factor_Core {
 		}
 
 		$redirect_to = apply_filters( 'login_redirect', $redirect_to, $redirect_to, $user ); // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedHooknameFound -- Core WordPress filter.
+
+		if ( ! $redirect_to ) {
+			// Mirror the wp-login.php fallback: without it, an empty destination
+			// would issue no redirect at all and leave the user stranded.
+			$redirect_to = admin_url();
+		}
+
 		wp_safe_redirect( $redirect_to );
 		exit;
 	}
@@ -2071,6 +2078,13 @@ class Two_Factor_Core {
 		}
 
 		$redirect_to = apply_filters( 'login_redirect', $redirect_to, $redirect_to, $user ); // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedHooknameFound -- Core WordPress filter.
+
+		if ( ! $redirect_to ) {
+			// Mirror the wp-login.php fallback: without it, an empty destination
+			// would issue no redirect at all and leave the user stranded.
+			$redirect_to = admin_url();
+		}
+
 		wp_safe_redirect( $redirect_to );
 		exit;
 	}
