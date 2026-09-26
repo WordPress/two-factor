@@ -1978,7 +1978,7 @@ class Two_Factor_Core {
 	public static function login_form_revalidate_2fa() {
 		$nonce           = ( isset( $_REQUEST['wp-auth-nonce'] ) && is_scalar( $_REQUEST['wp-auth-nonce'] ) ) ? sanitize_text_field( wp_unslash( (string) $_REQUEST['wp-auth-nonce'] ) ) : ''; // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Nonce verified in revalidate_login_form_2fa() for POST before processing.
 		$provider        = ! empty( $_REQUEST['provider'] ) ? sanitize_text_field( wp_unslash( $_REQUEST['provider'] ) ) : false; // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Nonce verified in revalidate_login_form_2fa() for POST before processing.
-		$redirect_to     = ! empty( $_REQUEST['redirect_to'] ) ? esc_url_raw( wp_unslash( $_REQUEST['redirect_to'] ) ) : admin_url(); // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Nonce verified in revalidate_login_form_2fa() for POST before processing.
+		$redirect_to     = ! empty( $_REQUEST['redirect_to'] ) ? esc_url_raw( wp_unslash( $_REQUEST['redirect_to'] ) ) : ''; // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Nonce verified in revalidate_login_form_2fa() for POST before processing.
 		$is_post_request = isset( $_SERVER['REQUEST_METHOD'] ) && 'POST' === strtoupper( $_SERVER['REQUEST_METHOD'] ); // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.MissingUnslash, WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- REQUEST_METHOD is not user input.
 
 		self::revalidate_login_form_2fa( $nonce, $provider, $redirect_to, $is_post_request );
