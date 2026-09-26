@@ -21,10 +21,16 @@ Coverage reports are written to `tests/logs/clover.xml` and `tests/logs/html/`. 
 ### Multisite
 
 The default run executes against a single site. To run the full suite against a multisite
-install (`tests/phpunit/multisite.xml`):
+install (`phpunit-multisite.xml`):
 
 ```bash
 npm run test:multisite
+```
+
+Watch mode has a multisite variant as well:
+
+```bash
+npm run test:watch:multisite
 ```
 
 Note: some tests unrelated to core login flow currently fail under multisite due to

@@ -44,6 +44,10 @@
       "Composer\\Config::disableProcessTimeout",
       "phpunit-watcher watch --no-coverage"
     ],
+    "test-watch-multisite": [
+      "Composer\\Config::disableProcessTimeout",
+      "phpunit-watcher watch --no-coverage --config phpunit-multisite.xml"
+    ],
     "format": "phpcbf"
   }
 }
