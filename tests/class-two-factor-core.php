@@ -799,12 +799,105 @@ class Test_ClassTwoFactorCore extends WP_UnitTestCase {
 	}
 
 	/**
-	 * Verify that a successful 2FA validation with no redirect_to falls back to
-	 * the admin URL, mirroring the core wp-login.php default.
+	 * Call the private get_login_redirect_fallback() via reflection.
+	 *
+	 * @param string  $redirect_to The requested redirect destination.
+	 * @param WP_User $user        The user to decide the fallback for.
+	 * @return string The final redirect destination.
+	 */
+	private function call_login_redirect_fallback( $redirect_to, WP_User $user ) {
+		$method = new ReflectionMethod( Two_Factor_Core::class, 'get_login_redirect_fallback' );
+		if ( PHP_VERSION_ID < 80100 ) {
+			$method->setAccessible( true );
+		}
+		return $method->invoke( null, $redirect_to, $user );
+	}
+
+	/**
+	 * Verify that the post-2FA redirect mirrors the wp-login.php decision.
+	 *
+	 * @covers Two_Factor_Core::get_login_redirect_fallback
+	 * @dataProvider data_get_login_redirect_fallback
+	 *
+	 * @param string $redirect_to The requested redirect destination.
+	 * @param string $role        The role to create the test user with.
+	 * @param string $expected    The expected final redirect destination.
+	 */
+	public function test_get_login_redirect_fallback( $redirect_to, $role, $expected ) {
+		$user_id = self::factory()->user->create( array( 'role' => $role ) );
+		$user    = new WP_User( $user_id );
+
+		$this->assertSame( $expected, $this->call_login_redirect_fallback( $redirect_to, $user ) );
+	}
+
+	/**
+	 * Data provider for test_get_login_redirect_fallback.
+	 *
+	 * Mirrors the capability-based fallback from wp-login.php.
+	 *
+	 * @return array[]
+	 */
+	public function data_get_login_redirect_fallback() {
+		return array(
+			'author, empty redirect'         => array(
+				'',
+				'author',
+				admin_url(),
+			),
+			'subscriber, empty redirect'     => array(
+				'',
+				'subscriber',
+				admin_url( 'profile.php' ),
+			),
+			'subscriber, wp-admin/ redirect' => array(
+				'wp-admin/',
+				'subscriber',
+				'wp-admin/',
+			),
+			'subscriber, plain admin URL'    => array(
+				admin_url(),
+				'subscriber',
+				admin_url(),
+			),
+			'author, custom URL kept'        => array(
+				'https://example.org/custom/',
+				'author',
+				'https://example.org/custom/',
+			),
+		);
+	}
+
+	/**
+	 * Verify that users without the read capability are sent to the front end.
+	 *
+	 * @covers Two_Factor_Core::get_login_redirect_fallback
+	 */
+	public function test_get_login_redirect_fallback_without_read_cap() {
+		$user_id = self::factory()->user->create( array( 'role' => 'subscriber' ) );
+		$user    = new WP_User( $user_id );
+
+		// Strip the role-granted read capability for this check.
+		$strip_read = static function ( $caps ) {
+			unset( $caps['read'] );
+			return $caps;
+		};
+		add_filter( 'user_has_cap', $strip_read );
+
+		$result = $this->call_login_redirect_fallback( '', $user );
+
+		remove_filter( 'user_has_cap', $strip_read );
+
+		$this->assertSame( home_url(), $result );
+	}
+
+	/**
+	 * Verify that a successful 2FA validation with no redirect_to uses the
+	 * wp-login.php capability-based fallback for the final destination.
 	 *
 	 * @covers Two_Factor_Core::validate_login_form_2fa
 	 */
-	public function test_validate_2fa_redirect_falls_back_to_admin_url() {
+	public function test_validate_2fa_redirect_uses_login_redirect_fallback() {
+		// get_dummy_user() creates a subscriber: no edit_posts, but read.
 		$user        = $this->get_dummy_user( array( 'Two_Factor_Dummy' => 'Two_Factor_Dummy' ) );
 		$login_nonce = Two_Factor_Core::create_login_nonce( $user->ID );
 		$this->assertNotFalse( $login_nonce );
@@ -815,7 +908,7 @@ class Test_ClassTwoFactorCore extends WP_UnitTestCase {
 			}
 		);
 
-		$this->assertSame( admin_url(), $redirect_url, 'Empty redirect_to should fall back to the admin URL.' );
+		$this->assertSame( admin_url( 'profile.php' ), $redirect_url, 'A subscriber should be sent to their profile, mirroring core.' );
 
 		$this->clean_dummy_user();
 	}
@@ -856,11 +949,13 @@ class Test_ClassTwoFactorCore extends WP_UnitTestCase {
 	}
 
 	/**
-	 * Verify that revalidation without redirect_to falls back to the admin URL.
+	 * Verify that revalidation without redirect_to uses the wp-login.php
+	 * capability-based fallback for the final destination.
 	 *
 	 * @covers Two_Factor_Core::revalidate_login_form_2fa
 	 */
-	public function test_revalidate_2fa_redirect_falls_back_to_admin_url() {
+	public function test_revalidate_2fa_redirect_uses_login_redirect_fallback() {
+		// get_dummy_user() creates a subscriber: no edit_posts, but read.
 		$user = $this->get_dummy_user( array( 'Two_Factor_Dummy' => 'Two_Factor_Dummy' ) );
 
 		wp_set_current_user( $user->ID );
@@ -874,7 +969,7 @@ class Test_ClassTwoFactorCore extends WP_UnitTestCase {
 			}
 		);
 
-		$this->assertSame( admin_url(), $redirect_url, 'Empty redirect_to should fall back to the admin URL.' );
+		$this->assertSame( admin_url( 'profile.php' ), $redirect_url, 'A subscriber should be sent to their profile, mirroring core.' );
 
 		$this->clean_dummy_user();
 	}

@@ -1937,16 +1937,41 @@ class Two_Factor_Core {
 			return;
 		}
 
+		$redirect_to = self::get_login_redirect_fallback( $redirect_to, $user );
+		wp_safe_redirect( $redirect_to );
+		exit;
+	}
+
+	/**
+	 * Determine the final redirect destination after two-factor authentication.
+	 *
+	 * Mirrors the decision made by wp-login.php: the `login_redirect` filter
+	 * decides the destination, and when it is empty, users without dashboard
+	 * access are sent to their profile or the front end instead, just like a
+	 * non-two-factor login would.
+	 *
+	 * @param string  $redirect_to The requested redirect destination.
+	 * @param WP_User $user        The authenticated user.
+	 * @return string The final redirect destination.
+	 */
+	private static function get_login_redirect_fallback( $redirect_to, $user ) {
 		$redirect_to = apply_filters( 'login_redirect', $redirect_to, $redirect_to, $user ); // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedHooknameFound -- Core WordPress filter.
 
 		if ( ! $redirect_to ) {
-			// Mirror the wp-login.php fallback: without it, an empty destination
-			// would issue no redirect at all and leave the user stranded.
-			$redirect_to = admin_url();
+			// Mirrors the capability-based fallback from the `case 'login'` block
+			// in wp-login.php, applied when no redirect was requested or filtered.
+			if ( is_multisite() && ! get_active_blog_for_user( $user->ID ) && ! is_super_admin( $user->ID ) ) {
+				$redirect_to = user_admin_url();
+			} elseif ( is_multisite() && ! $user->has_cap( 'read' ) ) {
+				$redirect_to = get_dashboard_url( $user->ID );
+			} elseif ( ! $user->has_cap( 'edit_posts' ) ) {
+				$redirect_to = $user->has_cap( 'read' ) ? admin_url( 'profile.php' ) : home_url();
+			} else {
+				$redirect_to = admin_url();
+			}
 		}
 
-		wp_safe_redirect( $redirect_to );
-		exit;
+		return $redirect_to;
 	}
 
 	/**
@@ -2077,14 +2102,7 @@ class Two_Factor_Core {
 			return;
 		}
 
-		$redirect_to = apply_filters( 'login_redirect', $redirect_to, $redirect_to, $user ); // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedHooknameFound -- Core WordPress filter.
-
-		if ( ! $redirect_to ) {
-			// Mirror the wp-login.php fallback: without it, an empty destination
-			// would issue no redirect at all and leave the user stranded.
-			$redirect_to = admin_url();
-		}
-
+		$redirect_to = self::get_login_redirect_fallback( $redirect_to, $user );
 		wp_safe_redirect( $redirect_to );
 		exit;
 	}
