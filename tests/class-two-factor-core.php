@@ -1403,7 +1403,7 @@ class Test_ClassTwoFactorCore extends WP_UnitTestCase {
 	 * @covers Two_Factor_Core::process_provider()
 	 */
 	public function test_process_provider_preserves_email_token_on_provider_switch_while_rate_limited() {
-		$user          = $this->get_dummy_user( array( 'Two_Factor_Email' => 'Two_Factor_Email' ) );
+		$user           = $this->get_dummy_user( array( 'Two_Factor_Email' => 'Two_Factor_Email' ) );
 		$email_provider = Two_Factor_Email::get_instance();
 
 		// Generate an email token.
