@@ -39,9 +39,14 @@
     "lint-compat": "phpcs -p --standard=PHPCompatibilityWP --runtime-set testVersion 7.2- --extensions=php --ignore='tests/,dist/,includes/Yubico/,vendor/,node_modules/' .",
     "lint-phpstan": "phpstan analyse --verbose --memory-limit=1G",
     "test": "phpunit --coverage-text",
+    "test-multisite": "phpunit --coverage-text -c phpunit-multisite.xml",
     "test:watch": [
       "Composer\\Config::disableProcessTimeout",
       "phpunit-watcher watch --no-coverage"
+    ],
+    "test-watch-multisite": [
+      "Composer\\Config::disableProcessTimeout",
+      "phpunit-watcher watch --no-coverage --config phpunit-multisite.xml"
     ],
     "format": "phpcbf"
   }

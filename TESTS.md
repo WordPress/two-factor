@@ -18,6 +18,25 @@ npm test
 
 Coverage reports are written to `tests/logs/clover.xml` and `tests/logs/html/`. Open `tests/logs/html/index.html` in a browser to view the HTML report.
 
+### Multisite
+
+The default run executes against a single site. To run the full suite against a multisite
+install (`phpunit-multisite.xml`):
+
+```bash
+npm run test:multisite
+```
+
+Watch mode has a multisite variant as well:
+
+```bash
+npm run test:watch:multisite
+```
+
+Note: some tests unrelated to core login flow currently fail under multisite due to
+network-level capability differences (`test_current_user_being_edited`, and the
+backup-codes/TOTP REST API admin tests).
+
 ### Filtering
 
 Pass PHPUnit arguments through the `composer` wrapper:

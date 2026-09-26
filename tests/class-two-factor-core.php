@@ -699,6 +699,288 @@ class Test_ClassTwoFactorCore extends WP_UnitTestCase {
 	}
 
 	/**
+	 * Verify that login_url() adds the passed parameters to the resulting
+	 * URL exactly as expected — and only when they are present.
+	 *
+	 * Each data set is a pair of (params, expected exact URL).
+	 *
+	 * @covers Two_Factor_Core::login_url
+	 * @dataProvider data_login_url_with_params
+	 *
+	 * @param array  $params         Query args to pass.
+	 * @param string $expected_url   The exact URL expected back.
+	 */
+	public function test_login_url_with_params( $params, $expected_url ) {
+		$this->assertSame( $expected_url, Two_Factor_Core::login_url( $params ) );
+	}
+
+	/**
+	 * Data provider for test_login_url_with_params.
+	 *
+	 * Note: values are encoded by login_url() itself, so the expected URLs
+	 * contain the encoded form of each value.
+	 *
+	 * @return array[]
+	 */
+	public function data_login_url_with_params() {
+		// Derive the base from core's wp_login_url() so the test is portable
+		// across environments and follows the same filter chain as login_url().
+		$base = wp_login_url();
+
+		return array(
+			'no params'                  => array(
+				array(),
+				$base,
+			),
+			'action only'                => array(
+				array( 'action' => 'validate_2fa' ),
+				$base . '?action=validate_2fa',
+			),
+			'redirect_to only'           => array(
+				array( 'redirect_to' => 'https://example.org/wp-admin/' ),
+				$base . '?redirect_to=https%3A%2F%2Fexample.org%2Fwp-admin%2F',
+			),
+			'action and redirect_to'     => array(
+				array(
+					'action'      => 'validate_2fa',
+					'redirect_to' => 'https://example.org/wp-admin/',
+				),
+				$base . '?action=validate_2fa&redirect_to=https%3A%2F%2Fexample.org%2Fwp-admin%2F',
+			),
+			'redirect_to with own query' => array(
+				array( 'redirect_to' => 'https://example.org/target/?foo=1&bar=2' ),
+				$base . '?redirect_to=https%3A%2F%2Fexample.org%2Ftarget%2F%3Ffoo%3D1%26bar%3D2',
+			),
+			'values with special chars'  => array(
+				array(
+					'wp_nonce' => 'abc123',
+					'token'    => 'a b+c/d=',
+				),
+				$base . '?wp_nonce=abc123&token=a+b%2Bc%2Fd%3D',
+			),
+			'rememberme and provider'    => array(
+				array(
+					'rememberme' => '1',
+					'provider'   => 'Two_Factor_Backup_Codes',
+				),
+				$base . '?rememberme=1&provider=Two_Factor_Backup_Codes',
+			),
+			'params order is preserved'  => array(
+				array(
+					'provider' => 'Two_Factor_Email',
+					'wp_nonce' => 'abc123',
+				),
+				$base . '?provider=Two_Factor_Email&wp_nonce=abc123',
+			),
+		);
+	}
+
+	/**
+	 * Verify the login URL includes redirect_to only when passed.
+	 *
+	 * @covers Two_Factor_Core::login_url
+	 */
+	public function test_login_url_adds_redirect_to_when_present() {
+		$redirect_to = 'https://example.org/some/target/?foo=1';
+
+		$url = Two_Factor_Core::login_url(
+			array(
+				'action'      => 'validate_2fa',
+				'redirect_to' => $redirect_to,
+			)
+		);
+
+		$this->assertStringContainsString( 'wp-login.php', $url );
+		$this->assertStringContainsString( 'action=validate_2fa', $url );
+		$this->assertStringContainsString( 'redirect_to=' . rawurlencode( $redirect_to ), $url );
+
+		// Without params, no redirect_to should be present.
+		$this->assertStringNotContainsString( 'redirect_to', Two_Factor_Core::login_url() );
+	}
+
+	/**
+	 * Call the private get_login_redirect_fallback() via reflection.
+	 *
+	 * @param string  $redirect_to The requested redirect destination.
+	 * @param WP_User $user        The user to decide the fallback for.
+	 * @return string The final redirect destination.
+	 */
+	private function call_login_redirect_fallback( $redirect_to, WP_User $user ) {
+		$method = new ReflectionMethod( Two_Factor_Core::class, 'get_login_redirect_fallback' );
+		if ( PHP_VERSION_ID < 80100 ) {
+			$method->setAccessible( true );
+		}
+		return $method->invoke( null, $redirect_to, $user );
+	}
+
+	/**
+	 * Verify that the post-2FA redirect mirrors the wp-login.php decision.
+	 *
+	 * @covers Two_Factor_Core::get_login_redirect_fallback
+	 * @dataProvider data_get_login_redirect_fallback
+	 *
+	 * @param string $redirect_to The requested redirect destination.
+	 * @param string $role        The role to create the test user with.
+	 * @param string $expected    The expected final redirect destination.
+	 */
+	public function test_get_login_redirect_fallback( $redirect_to, $role, $expected ) {
+		$user_id = self::factory()->user->create( array( 'role' => $role ) );
+		$user    = new WP_User( $user_id );
+
+		$this->assertSame( $expected, $this->call_login_redirect_fallback( $redirect_to, $user ) );
+	}
+
+	/**
+	 * Data provider for test_get_login_redirect_fallback.
+	 *
+	 * Mirrors the capability-based fallback from wp-login.php.
+	 *
+	 * @return array[]
+	 */
+	public function data_get_login_redirect_fallback() {
+		return array(
+			'author, empty redirect'         => array(
+				'',
+				'author',
+				admin_url(),
+			),
+			'subscriber, empty redirect'     => array(
+				'',
+				'subscriber',
+				admin_url( 'profile.php' ),
+			),
+			'subscriber, wp-admin/ redirect' => array(
+				'wp-admin/',
+				'subscriber',
+				'wp-admin/',
+			),
+			'subscriber, plain admin URL'    => array(
+				admin_url(),
+				'subscriber',
+				admin_url(),
+			),
+			'author, custom URL kept'        => array(
+				'https://example.org/custom/',
+				'author',
+				'https://example.org/custom/',
+			),
+		);
+	}
+
+	/**
+	 * Verify that users without the read capability are sent to the front end.
+	 *
+	 * @covers Two_Factor_Core::get_login_redirect_fallback
+	 */
+	public function test_get_login_redirect_fallback_without_read_cap() {
+		$user_id = self::factory()->user->create( array( 'role' => 'subscriber' ) );
+		$user    = new WP_User( $user_id );
+
+		// Strip the role-granted read capability for this check.
+		$strip_read = static function ( $caps ) {
+			unset( $caps['read'] );
+			return $caps;
+		};
+		add_filter( 'user_has_cap', $strip_read );
+
+		$result = $this->call_login_redirect_fallback( '', $user );
+
+		remove_filter( 'user_has_cap', $strip_read );
+
+		// Core sends users without the read capability to the front end on
+		// single site, and to their network dashboard on multisite.
+		if ( is_multisite() ) {
+			$this->assertSame( get_dashboard_url( $user_id ), $result );
+		} else {
+			$this->assertSame( home_url(), $result );
+		}
+	}
+
+	/**
+	 * Verify that a successful 2FA validation with no redirect_to uses the
+	 * wp-login.php capability-based fallback for the final destination.
+	 *
+	 * @covers Two_Factor_Core::validate_login_form_2fa
+	 */
+	public function test_validate_2fa_redirect_uses_login_redirect_fallback() {
+		// get_dummy_user() creates a subscriber: no edit_posts, but read.
+		$user        = $this->get_dummy_user( array( 'Two_Factor_Dummy' => 'Two_Factor_Dummy' ) );
+		$login_nonce = Two_Factor_Core::create_login_nonce( $user->ID );
+		$this->assertNotFalse( $login_nonce );
+
+		$redirect_url = $this->do_redirect_callable(
+			function () use ( $user, $login_nonce ) {
+				Two_Factor_Core::validate_login_form_2fa( $user, $login_nonce['key'], 'Two_Factor_Dummy', '', true );
+			}
+		);
+
+		$this->assertSame( admin_url( 'profile.php' ), $redirect_url, 'A subscriber should be sent to their profile, mirroring core.' );
+
+		$this->clean_dummy_user();
+	}
+
+	/**
+	 * Verify that the core login_redirect filter decides the final destination
+	 * after 2FA, even when no redirect_to was passed.
+	 *
+	 * @covers Two_Factor_Core::validate_login_form_2fa
+	 */
+	public function test_validate_2fa_redirect_respects_login_redirect_filter() {
+		$custom_destination = 'https://example.org/custom-destination/';
+
+		add_filter(
+			'login_redirect',
+			static function () use ( $custom_destination ) {
+				return $custom_destination;
+			},
+			10,
+			3
+		);
+
+		$user        = $this->get_dummy_user( array( 'Two_Factor_Dummy' => 'Two_Factor_Dummy' ) );
+		$login_nonce = Two_Factor_Core::create_login_nonce( $user->ID );
+		$this->assertNotFalse( $login_nonce );
+
+		$redirect_url = $this->do_redirect_callable(
+			function () use ( $user, $login_nonce ) {
+				Two_Factor_Core::validate_login_form_2fa( $user, $login_nonce['key'], 'Two_Factor_Dummy', '', true );
+			}
+		);
+
+		remove_all_filters( 'login_redirect' );
+
+		$this->assertSame( $custom_destination, $redirect_url, 'The login_redirect filter should decide the destination.' );
+
+		$this->clean_dummy_user();
+	}
+
+	/**
+	 * Verify that revalidation without redirect_to uses the wp-login.php
+	 * capability-based fallback for the final destination.
+	 *
+	 * @covers Two_Factor_Core::revalidate_login_form_2fa
+	 */
+	public function test_revalidate_2fa_redirect_uses_login_redirect_fallback() {
+		// get_dummy_user() creates a subscriber: no edit_posts, but read.
+		$user = $this->get_dummy_user( array( 'Two_Factor_Dummy' => 'Two_Factor_Dummy' ) );
+
+		wp_set_current_user( $user->ID );
+		wp_set_auth_cookie( $user->ID );
+
+		$login_nonce = wp_create_nonce( 'two_factor_revalidate_' . $user->ID );
+
+		$redirect_url = $this->do_redirect_callable(
+			function () use ( $login_nonce ) {
+				Two_Factor_Core::revalidate_login_form_2fa( $login_nonce, 'Two_Factor_Dummy', '', true );
+			}
+		);
+
+		$this->assertSame( admin_url( 'profile.php' ), $redirect_url, 'A subscriber should be sent to their profile, mirroring core.' );
+
+		$this->clean_dummy_user();
+	}
+
+	/**
 	 * Verify user API log is enabled (when disabled by default).
 	 *
 	 * @covers Two_Factor_Core::is_user_api_login_enabled
