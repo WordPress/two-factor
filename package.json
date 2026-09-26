@@ -20,6 +20,7 @@
     "format:js": "npm run lint:js -- --fix",
     "format:css": "npm run lint:css -- --fix",
     "test": "npm run composer test",
+    "test:multisite": "npm run composer test-multisite",
     "test:watch": "npm run composer test:watch",
     "composer": "wp-env run tests-cli --env-cwd=wp-content/plugins/two-factor composer --",
     "preinstall": "composer install",
