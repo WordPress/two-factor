@@ -1950,6 +1950,8 @@ class Two_Factor_Core {
 	 * access are sent to their profile or the front end instead, just like a
 	 * non-two-factor login would.
 	 *
+	 * @since 0.18.0
+	 *
 	 * @param string  $redirect_to The requested redirect destination.
 	 * @param WP_User $user        The authenticated user.
 	 * @return string The final redirect destination.
