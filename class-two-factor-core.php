@@ -1959,7 +1959,7 @@ class Two_Factor_Core {
 	private static function get_login_redirect_fallback( string $redirect_to, WP_User $user ): string {
 		$redirect_to = apply_filters( 'login_redirect', $redirect_to, $redirect_to, $user ); // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedHooknameFound -- Core WordPress filter.
 
-		if ( wp_http_validate_url( $redirect_to ) ) {
+		if ( is_string( $redirect_to ) && ! empty( $redirect_to ) ) {
 			return $redirect_to;
 		}
 
