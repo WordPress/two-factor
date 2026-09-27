@@ -361,15 +361,18 @@ class Two_Factor_Backup_Codes extends Two_Factor_Provider {
 			home_url( '/' )
 		);
 
-		// Generate download content.
-		$download_link  = 'data:application/text;charset=utf-8,';
-		$download_link .= rawurlencode( "{$title}\r\n\r\n" );
-
-		$i = 1;
+		// Generate the codes text, shared by the copy and download actions.
+		$codes_text = "{$title}\r\n\r\n";
+		$i          = 1;
 		foreach ( $codes as $code ) {
-			$download_link .= rawurlencode( "{$i}. {$code}\r\n" );
+			$codes_text .= "{$i}. {$code}\r\n";
 			++$i;
 		}
+		$codes_text .= "\r\n";
+		$codes_text .= __( 'Each code can only be used once.', 'two-factor' ) . "\r\n";
+		$codes_text .= __( 'These codes are the only way to recover your account if you lose access to your phone, authentication app, or other two-factor method.', 'two-factor' ) . "\r\n";
+
+		$download_link = 'data:application/text;charset=utf-8,' . rawurlencode( $codes_text );
 
 		$i18n = array(
 			/* translators: %s: count */
@@ -382,6 +385,7 @@ class Two_Factor_Backup_Codes extends Two_Factor_Provider {
 
 		return array(
 			'codes'         => $codes,
+			'codes_text'    => $codes_text,
 			'download_link' => $download_link,
 			'remaining'     => $count,
 			'i18n'          => $i18n,
