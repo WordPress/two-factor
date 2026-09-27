@@ -2852,6 +2852,11 @@ class Test_ClassTwoFactorCore extends WP_UnitTestCase {
 	public function test_user_notified_when_own_two_factor_settings_change() {
 		$user = self::factory()->user->create_and_get();
 		wp_set_current_user( $user->ID );
+		// A real session token is required: once the first call below enables the user's first
+		// provider, current_user_can_update_two_factor_options( 'save' ) requires a two-factor-
+		// validated session for every call after that, or user_two_factor_options_update() bails
+		// out before doing anything -- including sending mail.
+		wp_set_auth_cookie( $user->ID );
 
 		$mailer = tests_retrieve_phpmailer_instance();
 
