@@ -72,11 +72,15 @@ npm run composer -- test -- tests/providers/class-two-factor-totp.php
 
 ### Plugin Bootstrap — `tests/two-factor.php`
 
-**Class:** `Tests_Two_Factor` Smoke tests that the plugin loaded correctly: the `TWO_FACTOR_DIR` constant is defined and the core classes exist.
+**Class:** `Tests_Two_Factor`
+
+Smoke tests that the plugin loaded correctly: the `TWO_FACTOR_DIR` constant is defined and the core classes exist.
 
 ### Core — `tests/class-two-factor-core.php`
 
-**Class:** `Test_ClassTwoFactorCore` · **Group:** `core` The largest test file. Covers the full authentication lifecycle managed by `Two_Factor_Core`:
+**Class:** `Test_ClassTwoFactorCore` · **Group:** `core`
+
+The largest test file. Covers the full authentication lifecycle managed by `Two_Factor_Core`:
 
 - Hook registration (`add_hooks`)
 - Provider registration and retrieval (`get_providers`, `get_enabled_providers_for_user`, `get_available_providers_for_user`, `get_primary_provider_for_user`)
@@ -93,7 +97,9 @@ npm run composer -- test -- tests/providers/class-two-factor-totp.php
 
 ### Provider Base Class — `tests/providers/class-two-factor-provider.php`
 
-**Class:** `Tests_Two_Factor_Provider` · **Group:** `providers` Tests the abstract `Two_Factor_Provider` base class:
+**Class:** `Tests_Two_Factor_Provider` · **Group:** `providers`
+
+Tests the abstract `Two_Factor_Provider` base class:
 
 - Singleton pattern (`get_instance`)
 - Code generation (`get_code`) and request sanitization (`sanitize_code_from_request`)
@@ -103,7 +109,9 @@ npm run composer -- test -- tests/providers/class-two-factor-totp.php
 
 ### TOTP Provider — `tests/providers/class-two-factor-totp.php`
 
-**Class:** `Tests_Two_Factor_Totp` · **Groups:** `providers`, `totp` Tests `Two_Factor_Totp`:
+**Class:** `Tests_Two_Factor_Totp` · **Groups:** `providers`, `totp`
+
+Tests `Two_Factor_Totp`:
 
 - Base32 encode/decode (including invalid input exception)
 - QR code URL generation
@@ -115,7 +123,9 @@ npm run composer -- test -- tests/providers/class-two-factor-totp.php
 
 ### TOTP REST API — `tests/providers/class-two-factor-totp-rest-api.php`
 
-**Class:** `Tests_Two_Factor_Totp_REST_API` · **Groups:** `providers`, `totp` Extends `WP_Test_REST_TestCase`. Tests the TOTP REST endpoints:
+**Class:** `Tests_Two_Factor_Totp_REST_API` · **Groups:** `providers`, `totp`
+
+Extends `WP_Test_REST_TestCase`. Tests the TOTP REST endpoints:
 
 - Setting a TOTP key with a valid/invalid/missing auth code
 - Updating an existing TOTP key
@@ -125,7 +135,9 @@ npm run composer -- test -- tests/providers/class-two-factor-totp.php
 
 ### Email Provider — `tests/providers/class-two-factor-email.php`
 
-**Class:** `Tests_Two_Factor_Email` · **Groups:** `providers`, `email` Tests `Two_Factor_Email`:
+**Class:** `Tests_Two_Factor_Email` · **Groups:** `providers`, `email`
+
+Tests `Two_Factor_Email`:
 
 - Token generation and validation (same user, different user, deleted token)
 - Email delivery (`generate_and_email_token`)
@@ -140,7 +152,9 @@ npm run composer -- test -- tests/providers/class-two-factor-totp.php
 
 ### Backup Codes Provider — `tests/providers/class-two-factor-backup-codes.php`
 
-**Class:** `Tests_Two_Factor_Backup_Codes` · **Groups:** `providers`, `backup-codes` Tests `Two_Factor_Backup_Codes`:
+**Class:** `Tests_Two_Factor_Backup_Codes` · **Groups:** `providers`, `backup-codes`
+
+Tests `Two_Factor_Backup_Codes`:
 
 - Code generation and validation
 - Replay prevention (code invalidated after use)
@@ -152,7 +166,9 @@ npm run composer -- test -- tests/providers/class-two-factor-totp.php
 
 ### Backup Codes REST API — `tests/providers/class-two-factor-backup-codes-rest-api.php`
 
-**Class:** `Tests_Two_Factor_Backup_Codes_REST_API` · **Groups:** `providers`, `backup-codes` Extends `WP_Test_REST_TestCase`. Tests the backup codes REST endpoints:
+**Class:** `Tests_Two_Factor_Backup_Codes_REST_API` · **Groups:** `providers`, `backup-codes`
+
+Extends `WP_Test_REST_TestCase`. Tests the backup codes REST endpoints:
 
 - Generate codes and validate the downloadable file contents
 - User cannot generate codes for a different user
@@ -160,13 +176,17 @@ npm run composer -- test -- tests/providers/class-two-factor-totp.php
 
 ### Dummy Provider — `tests/providers/class-two-factor-dummy.php`
 
-**Class:** `Tests_Two_Factor_Dummy` · **Groups:** `providers`, `dummy` Tests the `Two_Factor_Dummy` provider (always passes authentication — used as a test fixture):
+**Class:** `Tests_Two_Factor_Dummy` · **Groups:** `providers`, `dummy`
+
+Tests the `Two_Factor_Dummy` provider (always passes authentication — used as a test fixture):
 
 - `get_instance`, `get_label`, `authentication_page`, `validate_authentication`, `is_available_for_user`
 
 ### Dummy Secure Provider — `tests/providers/class-two-factor-dummy-secure.php`
 
-**Class:** `Tests_Two_Factor_Dummy_Secure` · **Groups:** `providers`, `dummy` Tests `Two_Factor_Dummy_Secure` (a fixture that always _fails_ authentication, used to test the provider class name filter):
+**Class:** `Tests_Two_Factor_Dummy_Secure` · **Groups:** `providers`, `dummy`
+
+Tests `Two_Factor_Dummy_Secure` (a fixture that always _fails_ authentication, used to test the provider class name filter):
 
 - `get_key` override returns `Two_Factor_Dummy`
 - Authentication page rendering
@@ -175,7 +195,9 @@ npm run composer -- test -- tests/providers/class-two-factor-totp.php
 
 ### WP-CLI Commands — `tests/cli/class-two-factor-cli-command.php`
 
-**Class:** `Tests_Two_Factor_CLI_Command` · **Group:** `cli` Tests the `Two_Factor_CLI_Command` WP-CLI command class. The WP-CLI runtime is not loaded during PHPUnit, so the suite loads lightweight test doubles for `WP_CLI`, `WP_CLI_Command`, and the `WP_CLI\Utils` helpers (see Test Helpers) that capture output for assertions and throw on `error()`/`confirm()`:
+**Class:** `Tests_Two_Factor_CLI_Command` · **Group:** `cli`
+
+Tests the `Two_Factor_CLI_Command` WP-CLI command class. The WP-CLI runtime is not loaded during PHPUnit, so the suite loads lightweight test doubles for `WP_CLI`, `WP_CLI_Command`, and the `WP_CLI\Utils` helpers (see Test Helpers) that capture output for assertions and throw on `error()`/`confirm()`:
 
 - User resolution by ID, login, and email; "user not found" errors
 - `status` — output for users with and without 2FA, backup-code count, `--format` passthrough
