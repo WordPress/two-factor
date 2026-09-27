@@ -21,7 +21,9 @@ npm run env start -- --xdebug=coverage
 npm test
 ```
 
-Coverage reports are written to `tests/logs/clover.xml` and `tests/logs/html/`. Open `tests/logs/html/index.html` in a browser to view the HTML report.
+Each suite writes its own coverage reports, so neither overwrites the other: single site to `tests/logs/clover.xml` and `tests/logs/html/`, multisite to `tests/logs/clover-multisite.xml` and `tests/logs/html-multisite/`. Open the `index.html` inside either HTML directory to view that suite's report.
+
+The coverage whitelist is duplicated between `phpunit.xml.dist` and `phpunit-multisite.xml` because PHPUnit has no mechanism for sharing that block; keep the two in sync when adding source directories. CI uploads both Clover reports to Codecov, which merges them — the multisite suite is the only one that reaches the `is_multisite()` branches.
 
 ### Multisite
 
