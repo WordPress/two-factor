@@ -3081,6 +3081,13 @@ class Test_ClassTwoFactorCore extends WP_UnitTestCase {
 
 		// Test with admin editing another user.
 		$admin_id = self::factory()->user->create( array( 'role' => 'administrator' ) );
+
+		// On multisite, `edit_users` is reserved for network super admins, so a
+		// plain site administrator cannot edit another user.
+		if ( is_multisite() ) {
+			grant_super_admin( $admin_id );
+		}
+
 		wp_set_current_user( $admin_id );
 		$_REQUEST['user_id'] = $user_id;
 

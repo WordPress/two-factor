@@ -47,6 +47,12 @@ class Tests_Two_Factor_Backup_Codes_REST_API extends WP_Test_REST_TestCase {
 			)
 		);
 
+		// On multisite, `edit_users` is reserved for network super admins, so a
+		// plain site administrator cannot manage another user's options.
+		if ( is_multisite() ) {
+			grant_super_admin( self::$admin_id );
+		}
+
 		self::$editor_id = $factory->user->create(
 			array(
 				'role' => 'editor',
