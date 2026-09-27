@@ -1956,24 +1956,24 @@ class Two_Factor_Core {
 	 * @param WP_User $user        The authenticated user.
 	 * @return string The final redirect destination.
 	 */
-	private static function get_login_redirect_fallback( $redirect_to, $user ) {
+	private static function get_login_redirect_fallback( ?string $redirect_to, WP_User $user ): string {
 		$redirect_to = apply_filters( 'login_redirect', $redirect_to, $redirect_to, $user ); // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedHooknameFound -- Core WordPress filter.
 
-		if ( ! $redirect_to ) {
-			// Mirrors the capability-based fallback from the `case 'login'` block
-			// in wp-login.php, applied when no redirect was requested or filtered.
-			if ( is_multisite() && ! get_active_blog_for_user( $user->ID ) && ! is_super_admin( $user->ID ) ) {
-				$redirect_to = user_admin_url();
-			} elseif ( is_multisite() && ! $user->has_cap( 'read' ) ) {
-				$redirect_to = get_dashboard_url( $user->ID );
-			} elseif ( ! $user->has_cap( 'edit_posts' ) ) {
-				$redirect_to = $user->has_cap( 'read' ) ? admin_url( 'profile.php' ) : home_url();
-			} else {
-				$redirect_to = admin_url();
-			}
+		if ( wp_http_validate_url( $redirect_to ) ) {
+			return $redirect_to;
 		}
 
-		return $redirect_to;
+		// Mirrors the capability-based fallback from the `case 'login'` block
+		// in wp-login.php, applied when no redirect was requested or filtered.
+		if ( is_multisite() && ! get_active_blog_for_user( $user->ID ) && ! is_super_admin( $user->ID ) ) {
+			return user_admin_url();
+		} elseif ( is_multisite() && ! $user->has_cap( 'read' ) ) {
+			return get_dashboard_url( $user->ID );
+		} elseif ( ! $user->has_cap( 'edit_posts' ) ) {
+			return $user->has_cap( 'read' ) ? admin_url( 'profile.php' ) : home_url();
+		}
+
+		return admin_url();
 	}
 
 	/**
@@ -1995,7 +1995,6 @@ class Two_Factor_Core {
 	public static function _login_form_validate_2fa( $user, $nonce = '', $provider = '', $redirect_to = '', $is_post_request = false ) { // phpcs:ignore PSR2.Methods.MethodDeclaration.Underscore -- Backward-compatible wrapper for the legacy public method name.
 		self::validate_login_form_2fa( $user, $nonce, $provider, $redirect_to, $is_post_request );
 	}
-
 
 	/**
 	 * Display the "Revalidate Two Factor" page.
