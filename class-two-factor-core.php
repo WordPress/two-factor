@@ -2400,19 +2400,30 @@ class Two_Factor_Core {
 		$site_name = wp_specialchars_decode( get_bloginfo( 'name' ), ENT_QUOTES );
 
 		$message = sprintf(
-			/* translators: 1: username, 2: site URL, 3: list of changes, 4: URL to the account's security settings. */
+			/* translators: 1: username, 2: site URL, 3: list of changes, 4: URL to the account's security settings, 5: site name. */
 			__(
-				'Hello %1$s, the two-factor authentication methods on your account at %2$s were just changed.
-				%3$s
-				If you made this change yourself, no further action is needed.
-				If you did NOT make this change, someone else may have access to your account. Please review your security settings at %4$s and change your password immediately.
-				This is an automated notification. If you would like to speak to a site administrator, please contact them directly.',
+				'Hello %1$s,
+
+This notice confirms that the two-factor authentication methods on your account at %2$s were just changed.
+
+%3$s
+
+If you made this change yourself, no further action is needed.
+
+If you did NOT make this change, someone else may have access to your account. Please review your security settings at %4$s and change your password immediately.
+
+This is an automated notification. If you would like to speak to a site administrator, please contact them directly.
+
+Regards,
+All at %5$s
+%2$s',
 				'two-factor'
 			),
 			esc_html( $user->user_login ),
 			home_url(),
 			implode( "\n", $changes ),
-			admin_url( 'profile.php' )
+			admin_url( 'profile.php' ),
+			$site_name
 		);
 		$message = str_replace( "\t", '', $message );
 
