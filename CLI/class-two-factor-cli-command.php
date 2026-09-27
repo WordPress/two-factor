@@ -49,14 +49,16 @@ class Two_Factor_CLI_Command extends WP_CLI_Command {
 	}
 
 	/**
-	 * Destroy all of a user's sessions when their enabled providers changed.
+	 * Destroy all of a user's sessions and notify them when their enabled providers changed.
 	 *
-	 * Mirrors the session invalidation the profile-page path performs (see
-	 * Two_Factor_Core::user_two_factor_options_update()) when 2FA settings
-	 * change. A configuration change made out-of-band via the CLI should take
-	 * effect immediately and force any active session to re-authenticate.
+	 * Mirrors the session invalidation and email notification that the profile-page path
+	 * performs (see Two_Factor_Core::user_two_factor_options_update()) when 2FA settings
+	 * change. A configuration change made out-of-band via the CLI should take effect
+	 * immediately, force any active session to re-authenticate, and be reported to the
+	 * account owner the same way a change made through the UI would be.
 	 *
 	 * @since 0.17.0
+	 * @since 0.18.0 Also emails the account owner via Two_Factor_Core::notify_user_two_factor_settings_changed().
 	 *
 	 * @param WP_User $user             Target user.
 	 * @param array   $providers_before Enabled provider keys captured before the change.
@@ -64,12 +66,16 @@ class Two_Factor_CLI_Command extends WP_CLI_Command {
 	private function destroy_sessions_if_providers_changed( $user, $providers_before ) {
 		$providers_after = Two_Factor_Core::get_enabled_providers_for_user( $user );
 
-		sort( $providers_before );
-		sort( $providers_after );
+		$before_sorted = $providers_before;
+		$after_sorted  = $providers_after;
+		sort( $before_sorted );
+		sort( $after_sorted );
 
-		if ( $providers_before !== $providers_after ) {
+		if ( $before_sorted !== $after_sorted ) {
 			WP_Session_Tokens::get_instance( $user->ID )->destroy_all();
 		}
+
+		Two_Factor_Core::notify_user_two_factor_settings_changed( $user, $providers_after, $providers_before );
 	}
 
 	/**
