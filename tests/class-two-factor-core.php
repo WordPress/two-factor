@@ -57,6 +57,13 @@ class Test_ClassTwoFactorCore extends WP_UnitTestCase {
 		// Remove the plugin's send_auth_cookies block that filter_authenticate installs,
 		// so it does not leak into subsequent tests that expect cookies to be settable.
 		remove_filter( 'send_auth_cookies', '__return_false', PHP_INT_MAX );
+
+		// get_dummy_user() -- used throughout this file purely as a fixture helper --
+		// goes through user_two_factor_options_update(), which now always emails the
+		// account owner. Without this, mail sent as a side effect of unrelated fixture
+		// setup piles up in the shared mock_sent log and inflates the count for whichever
+		// later test happens to assert on it.
+		reset_phpmailer_instance();
 	}
 
 	/**
