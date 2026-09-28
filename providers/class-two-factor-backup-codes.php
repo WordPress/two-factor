@@ -358,8 +358,18 @@ class Two_Factor_Backup_Codes extends Two_Factor_Provider {
 		$title = sprintf(
 			/* translators: %s: the site's domain */
 			__( 'Two-Factor Recovery Codes for %s', 'two-factor' ),
-			home_url( '/' )
+			str_replace( array( 'http://', 'https://' ), '', home_url() ) // Account for sub-directory multisites by not using wp_parse_url() to extract the hostname.
 		);
+
+		/**
+		 * Filters the title in the backup codes download file.
+		 *
+		 * @since 0.17.0
+		 *
+		 * @param string  $title Title for the backup codes download file.
+		 * @param WP_User $user  User for whom the backup codes were generated.
+		 */
+		$title = apply_filters( 'two_factor_backup_codes_download_title', $title, $user );
 
 		// Generate the codes text, shared by the copy and download actions.
 		$codes_text = "{$title}\r\n\r\n";
@@ -445,7 +455,7 @@ class Two_Factor_Backup_Codes extends Two_Factor_Provider {
 		?>
 		<p>
 			<label for="authcode"><?php esc_html_e( 'Recovery Code:', 'two-factor' ); ?></label>
-			<input type="text" inputmode="numeric" name="two-factor-backup-code" id="authcode" class="input authcode" value="" size="20" pattern="[0-9 ]*" placeholder="<?php echo esc_attr( $code_placeholder ); ?>" data-digits="<?php echo esc_attr( (string) $code_length ); ?>">
+			<input type="text" inputmode="numeric" name="two-factor-backup-code" id="authcode" class="input authcode" value="" size="20" pattern="[0-9 ]*" placeholder="<?php echo esc_attr( $code_placeholder ); ?>" autocomplete="one-time-code" data-digits="<?php echo esc_attr( (string) $code_length ); ?>">
 		</p>
 		<?php
 		/**
