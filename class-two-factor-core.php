@@ -1734,9 +1734,7 @@ class Two_Factor_Core {
 	 *                             empty string when the setup itself did not verify a factor.
 	 * @return bool True if the session was updated, false otherwise.
 	 */
-	public static function maybe_mark_current_session_two_factor( $user_id, $provider_key = '' ) {
-		$user_id = absint( $user_id );
-
+	public static function maybe_mark_current_session_two_factor( int $user_id, string $provider_key = '' ): bool {
 		// Never alter the session of a different user, or of a logged out request.
 		if ( ! $user_id || get_current_user_id() !== $user_id ) {
 			return false;
@@ -1754,7 +1752,7 @@ class Two_Factor_Core {
 
 		self::update_current_user_session(
 			array(
-				'two-factor-provider' => sanitize_text_field( (string) $provider_key ),
+				'two-factor-provider' => sanitize_text_field( $provider_key ),
 				'two-factor-login'    => time(),
 			)
 		);
@@ -2706,6 +2704,11 @@ class Two_Factor_Core {
 	 *
 	 * The caller is responsible for checking the user has permission to do this.
 	 *
+	 * When the provider ends up enabled for the current user, their session is
+	 * flagged as two-factor authenticated, so a user setting up two-factor for
+	 * themselves is not immediately asked to revalidate. See
+	 * maybe_mark_current_session_two_factor().
+	 *
 	 * @since 0.8.0
 	 *
 	 * @param int    $user_id      The ID of the user.
@@ -2723,12 +2726,20 @@ class Two_Factor_Core {
 
 		// Check if this is enabled already.
 		if ( in_array( $new_provider, $enabled_providers ) ) {
+			self::maybe_mark_current_session_two_factor( $user_id );
+
 			return true;
 		}
 
 		$enabled_providers[] = $new_provider;
 
-		return (bool) update_user_meta( $user_id, self::ENABLED_PROVIDERS_USER_META_KEY, $enabled_providers );
+		if ( ! update_user_meta( $user_id, self::ENABLED_PROVIDERS_USER_META_KEY, $enabled_providers ) ) {
+			return false;
+		}
+
+		self::maybe_mark_current_session_two_factor( $user_id );
+
+		return true;
 	}
 
 	/**

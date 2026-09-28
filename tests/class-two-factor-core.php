@@ -1720,8 +1720,13 @@ class Test_ClassTwoFactorCore extends WP_UnitTestCase {
 		$this->assertFalse( Two_Factor_Core::is_current_user_session_two_factor() );
 		$this->assertFalse( Two_Factor_Core::maybe_mark_current_session_two_factor( $user->ID, 'Two_Factor_Dummy' ) );
 
-		// Enable and configure a provider for the user.
+		// Enable the provider outside of the user's own session, since enabling a
+		// provider for the current user flags their session on its own.
+		wp_set_current_user( 0 );
 		Two_Factor_Core::enable_provider_for_user( $user->ID, 'Two_Factor_Dummy' );
+
+		wp_set_current_user( $user->ID );
+		wp_set_auth_cookie( $user->ID );
 
 		$this->assertTrue( Two_Factor_Core::maybe_mark_current_session_two_factor( $user->ID, 'Two_Factor_Dummy' ) );
 
@@ -1729,6 +1734,35 @@ class Test_ClassTwoFactorCore extends WP_UnitTestCase {
 		$this->assertArrayHasKey( 'two-factor-login', $session );
 		$this->assertEquals( 'Two_Factor_Dummy', $session['two-factor-provider'] );
 		$this->assertGreaterThan( time() - MINUTE_IN_SECONDS, $session['two-factor-login'] );
+
+		// The user can now update their settings without revalidating.
+		$this->assertTrue( Two_Factor_Core::current_user_can_update_two_factor_options() );
+		$this->assertTrue( Two_Factor_Core::current_user_can_update_two_factor_options( 'save' ) );
+	}
+
+	/**
+	 * Validate that enabling a provider for the current user flags their session
+	 * as two-factor without recording a validated provider.
+	 *
+	 * @covers Two_Factor_Core::enable_provider_for_user()
+	 * @covers Two_Factor_Core::maybe_mark_current_session_two_factor()
+	 */
+	public function test_enable_provider_for_user_marks_current_session_two_factor() {
+		$user = self::factory()->user->create_and_get();
+
+		wp_set_current_user( $user->ID );
+		wp_set_auth_cookie( $user->ID );
+
+		$this->assertFalse( Two_Factor_Core::is_current_user_session_two_factor() );
+
+		Two_Factor_Core::enable_provider_for_user( $user->ID, 'Two_Factor_Dummy' );
+
+		$session = Two_Factor_Core::get_current_user_session();
+		$this->assertArrayHasKey( 'two-factor-login', $session );
+		$this->assertGreaterThan( time() - MINUTE_IN_SECONDS, $session['two-factor-login'] );
+
+		// No factor is validated by enabling a provider, so none is recorded.
+		$this->assertEquals( '', $session['two-factor-provider'] );
 
 		// The user can now update their settings without revalidating.
 		$this->assertTrue( Two_Factor_Core::current_user_can_update_two_factor_options() );
@@ -1994,8 +2028,14 @@ class Test_ClassTwoFactorCore extends WP_UnitTestCase {
 		// Logged in, no 2FA setup.
 		$this->assertTrue( Two_Factor_Core::current_user_can_update_two_factor_options() );
 
-		// Manually setup 2FA, but not through the User Options API, such that the above session is not-2fa.
+		// Manually setup 2FA, but not through the User Options API, such that the
+		// next session below is not-2fa. Enabling a provider for the current user
+		// flags their session on its own, so this happens before the session starts.
+		wp_set_current_user( 0 );
 		Two_Factor_Core::enable_provider_for_user( $user->ID, 'Two_Factor_Dummy' );
+
+		wp_set_current_user( $user->ID );
+		wp_set_auth_cookie( $user->ID );
 
 		// Logged in, user has 2FA, session has no 2FA.
 		$this->assertFalse( Two_Factor_Core::current_user_can_update_two_factor_options() );
@@ -3281,12 +3321,14 @@ class Test_ClassTwoFactorCore extends WP_UnitTestCase {
 	 */
 	public function test_rest_api_can_edit_user_revalidation_required() {
 		$user = self::factory()->user->create_and_get();
+
+		// Enable 2FA before the user's session starts, so the session carries no
+		// two-factor metadata and current_user_can_update_two_factor_options( 'save' )
+		// returns false. Enabling for the current user would flag their session.
+		Two_Factor_Core::enable_provider_for_user( $user->ID, 'Two_Factor_Dummy' );
+
 		wp_set_current_user( $user->ID );
 		wp_set_auth_cookie( $user->ID );
-
-		// Enable 2FA, but the session carries no two-factor metadata →
-		// current_user_can_update_two_factor_options( 'save' ) returns false.
-		Two_Factor_Core::enable_provider_for_user( $user->ID, 'Two_Factor_Dummy' );
 
 		$result = Two_Factor_Core::rest_api_can_edit_user_and_update_two_factor_options( $user->ID );
 

@@ -232,7 +232,7 @@ class Tests_Two_Factor_Totp_REST_API extends WP_Test_REST_TestCase {
 		$this->assertNotFalse( Two_Factor_Core::is_current_user_session_two_factor() );
 
 		$session = Two_Factor_Core::get_current_user_session();
-		$this->assertEquals( 'Two_Factor_Totp', $session['two-factor-provider'] );
+		$this->assertEquals( '', $session['two-factor-provider'] );
 
 		$this->assertTrue( Two_Factor_Core::current_user_can_update_two_factor_options( 'save' ) );
 	}
