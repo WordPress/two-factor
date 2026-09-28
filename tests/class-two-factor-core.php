@@ -3997,4 +3997,169 @@ class Test_ClassTwoFactorCore extends WP_UnitTestCase {
 		$this->assertStringContainsString( 'Settings', $first );
 		$this->assertStringContainsString( 'options-general.php', $first );
 	}
+
+	/**
+	 * Test that save_user_two_factor_options saves the enabled providers and the primary provider.
+	 *
+	 * @covers Two_Factor_Core::save_user_two_factor_options
+	 */
+	public function test_save_user_two_factor_options_saves_enabled_providers() {
+		$user = self::factory()->user->create_and_get();
+		wp_set_current_user( $user->ID );
+
+		// TOTP is only available once a secret key exists for the user.
+		Two_Factor_Totp::get_instance()->set_user_totp_key( $user->ID, 'foo' );
+
+		$_POST[ Two_Factor_Core::ENABLED_PROVIDERS_USER_META_KEY ] = array(
+			'Two_Factor_Dummy' => 'Two_Factor_Dummy',
+			'Two_Factor_Totp'  => 'Two_Factor_Totp',
+		);
+		$_POST[ Two_Factor_Core::PROVIDER_USER_META_KEY ]          = 'Two_Factor_Totp';
+
+		$this->assertTrue( Two_Factor_Core::save_user_two_factor_options( $user->ID ) );
+		$this->assertEqualSets(
+			array( 'Two_Factor_Dummy', 'Two_Factor_Totp' ),
+			Two_Factor_Core::get_enabled_providers_for_user( $user->ID )
+		);
+
+		// Checked against the raw meta because get_primary_provider_for_user() falls back to the first available provider when nothing is stored.
+		$this->assertSame( 'Two_Factor_Totp', get_user_meta( $user->ID, Two_Factor_Core::PROVIDER_USER_META_KEY, true ) );
+		$this->assertSame( 'Two_Factor_Totp', Two_Factor_Core::get_primary_provider_for_user( $user->ID )->get_key() );
+
+		// Cleanup.
+		unset( $_POST[ Two_Factor_Core::ENABLED_PROVIDERS_USER_META_KEY ] );
+		unset( $_POST[ Two_Factor_Core::PROVIDER_USER_META_KEY ] );
+	}
+
+	/**
+	 * Test that save_user_two_factor_options skips providers that are not supported or not configured.
+	 *
+	 * @covers Two_Factor_Core::save_user_two_factor_options
+	 */
+	public function test_save_user_two_factor_options_ignores_unavailable_providers() {
+		$user = self::factory()->user->create_and_get();
+		wp_set_current_user( $user->ID );
+
+		// Seed a primary provider so the save can be shown to clear it.
+		update_user_meta( $user->ID, Two_Factor_Core::PROVIDER_USER_META_KEY, 'Two_Factor_Totp' );
+
+		$_POST[ Two_Factor_Core::ENABLED_PROVIDERS_USER_META_KEY ] = array(
+			'Two_Factor_Dummy' => 'Two_Factor_Dummy',
+			'Two_Factor_Totp'  => 'Two_Factor_Totp', // Supported, but has no secret key for this user.
+			'Two_Factor_Fake'  => 'Two_Factor_Fake', // Not a registered provider.
+		);
+		$_POST[ Two_Factor_Core::PROVIDER_USER_META_KEY ]          = 'Two_Factor_Fake';
+
+		$this->reset_profile_errors();
+
+		$this->assertTrue( Two_Factor_Core::save_user_two_factor_options( $user->ID ) );
+
+		$this->assertEqualSets(
+			array( 'Two_Factor_Dummy' ),
+			Two_Factor_Core::get_enabled_providers_for_user( $user->ID )
+		);
+
+		// The requested primary provider is not enabled, so the stored primary provider is cleared.
+		$this->assertSame( '', get_user_meta( $user->ID, Two_Factor_Core::PROVIDER_USER_META_KEY, true ) );
+
+		// The unconfigured provider registers an error for the profile update flow.
+		$errors = new WP_Error();
+		Two_Factor_Core::action_user_profile_update_errors( $errors );
+		$this->assertContains( 'two_factor_provider_not_configured_Two_Factor_Totp', $errors->get_error_codes() );
+
+		// Cleanup.
+		$this->reset_profile_errors();
+		unset( $_POST[ Two_Factor_Core::ENABLED_PROVIDERS_USER_META_KEY ] );
+		unset( $_POST[ Two_Factor_Core::PROVIDER_USER_META_KEY ] );
+	}
+
+	/**
+	 * Test that save_user_two_factor_options bails when the request has no provider data.
+	 *
+	 * @covers Two_Factor_Core::save_user_two_factor_options
+	 */
+	public function test_save_user_two_factor_options_returns_false_without_form_fields() {
+		$user = self::factory()->user->create_and_get();
+		wp_set_current_user( $user->ID );
+
+		unset( $_POST[ Two_Factor_Core::ENABLED_PROVIDERS_USER_META_KEY ] );
+
+		$this->assertFalse( Two_Factor_Core::save_user_two_factor_options( $user->ID ) );
+		$this->assertEmpty( Two_Factor_Core::get_enabled_providers_for_user( $user->ID ) );
+	}
+
+	/**
+	 * Test that save_user_two_factor_options bails for a user ID that does not exist.
+	 *
+	 * @covers Two_Factor_Core::save_user_two_factor_options
+	 */
+	public function test_save_user_two_factor_options_returns_false_for_invalid_user() {
+		$user = self::factory()->user->create_and_get();
+		wp_set_current_user( $user->ID );
+
+		$_POST[ Two_Factor_Core::ENABLED_PROVIDERS_USER_META_KEY ] = array(
+			'Two_Factor_Dummy' => 'Two_Factor_Dummy',
+		);
+
+		$this->assertFalse( Two_Factor_Core::save_user_two_factor_options( 999999999 ) );
+
+		// Cleanup.
+		unset( $_POST[ Two_Factor_Core::ENABLED_PROVIDERS_USER_META_KEY ] );
+	}
+
+	/**
+	 * Test that save_user_two_factor_options requires a revalidated session once two-factor is in use.
+	 *
+	 * @covers Two_Factor_Core::save_user_two_factor_options
+	 * @covers Two_Factor_Core::current_user_can_update_two_factor_options
+	 */
+	public function test_save_user_two_factor_options_requires_revalidated_session() {
+		// Enables Two_Factor_Dummy for a fresh user, making the user use two-factor.
+		$user = $this->get_dummy_user();
+
+		// The current session is not a two-factor session, so further saves are refused.
+		$_POST[ Two_Factor_Core::ENABLED_PROVIDERS_USER_META_KEY ] = array(
+			'Two_Factor_Totp' => 'Two_Factor_Totp',
+		);
+
+		$this->assertFalse( Two_Factor_Core::save_user_two_factor_options( $user->ID ) );
+		$this->assertEqualSets(
+			array( 'Two_Factor_Dummy' ),
+			Two_Factor_Core::get_enabled_providers_for_user( $user->ID )
+		);
+
+		// Cleanup.
+		$this->clean_dummy_user();
+	}
+
+	/**
+	 * Test that the user settings page URL can be filtered by integrations.
+	 *
+	 * @covers Two_Factor_Core::get_user_settings_page_url
+	 */
+	public function test_user_settings_page_url_filter() {
+		$user = self::factory()->user->create_and_get();
+
+		$reflection = new ReflectionClass( Two_Factor_Core::class );
+		$method     = $reflection->getMethod( 'get_user_settings_page_url' );
+		if ( PHP_VERSION_ID < 80100 ) {
+			$method->setAccessible( true );
+		}
+
+		// Without a filter, the URL points at the wp-admin user editing screen.
+		$default_url = $method->invoke( null, $user->ID );
+		$this->assertStringContainsString( 'user-edit.php', $default_url );
+		$this->assertStringContainsString( 'user_id=' . $user->ID, $default_url );
+
+		// Integrations rendering the settings outside of wp-admin can point the links at their own screen.
+		$callback = function ( $url, $filtered_user_id ) use ( $user ) {
+			$this->assertSame( $user->ID, $filtered_user_id );
+			return 'https://example.com/account/two-factor/';
+		};
+		add_filter( 'two_factor_user_settings_page_url', $callback, 10, 2 );
+
+		$this->assertSame( 'https://example.com/account/two-factor/', $method->invoke( null, $user->ID ) );
+
+		remove_filter( 'two_factor_user_settings_page_url', $callback, 10 );
+	}
 }
