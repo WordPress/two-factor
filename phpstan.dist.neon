@@ -1,11 +1,15 @@
 includes:
 	- vendor/szepeviktor/phpstan-wordpress/extension.neon
 parameters:
-	level: 2
+	level: 5
+	# Runtime values in WordPress are not guaranteed to match the documented types.
+	treatPhpDocTypesAsCertain: false
 	paths:
-		- includes
+		- CLI
 		- providers
 		- settings
 		- class-two-factor-compat.php
 		- class-two-factor-core.php
 		- two-factor.php
+	scanFiles:
+		- vendor/php-stubs/wp-cli-stubs/wp-cli-stubs.php

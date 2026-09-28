@@ -240,7 +240,7 @@ class Two_Factor_Backup_Codes extends Two_Factor_Provider {
 		$count = self::codes_remaining_for_user( $user );
 		?>
 		<div id="two-factor-backup-codes">
-			<p class="two-factor-backup-codes-count">
+			<p class="description two-factor-backup-codes-count">
 			<?php
 				echo esc_html(
 					sprintf(
@@ -265,8 +265,8 @@ class Two_Factor_Backup_Codes extends Two_Factor_Provider {
 			</div>
 			<p class="description"><?php esc_html_e( 'Write these down! Once you navigate away from this page, you will not be able to view these codes again.', 'two-factor' ); ?></p>
 			<p>
-				<a class="button button-two-factor-backup-codes-copy button-secondary hide-if-no-js" href="javascript:void(0);" id="two-factor-backup-codes-copy-link"><?php esc_html_e( 'Copy Codes', 'two-factor' ); ?></a>
-				<a class="button button-two-factor-backup-codes-download button-secondary hide-if-no-js" href="javascript:void(0);" id="two-factor-backup-codes-download-link" download="two-factor-backup-codes.txt"><?php esc_html_e( 'Download Codes', 'two-factor' ); ?></a>
+				<button type="button" class="button button-two-factor-backup-codes-copy button-secondary hide-if-no-js" id="two-factor-backup-codes-copy-link"><?php esc_html_e( 'Copy Codes', 'two-factor' ); ?></button>
+				<a class="button button-two-factor-backup-codes-download button-secondary hide-if-no-js" href="#" id="two-factor-backup-codes-download-link" download="two-factor-backup-codes.txt"><?php esc_html_e( 'Download Codes', 'two-factor' ); ?></a>
 			</p>
 		</div>
 		<?php
@@ -359,18 +359,31 @@ class Two_Factor_Backup_Codes extends Two_Factor_Provider {
 		$title = sprintf(
 			/* translators: %s: the site's domain */
 			__( 'Two-Factor Recovery Codes for %s', 'two-factor' ),
-			home_url( '/' )
+			str_replace( array( 'http://', 'https://' ), '', home_url() ) // Account for sub-directory multisites by not using wp_parse_url() to extract the hostname.
 		);
 
-		// Generate download content.
-		$download_link  = 'data:application/text;charset=utf-8,';
-		$download_link .= rawurlencode( "{$title}\r\n\r\n" );
+		/**
+		 * Filters the title in the backup codes download file.
+		 *
+		 * @since 0.17.0
+		 *
+		 * @param string  $title Title for the backup codes download file.
+		 * @param WP_User $user  User for whom the backup codes were generated.
+		 */
+		$title = apply_filters( 'two_factor_backup_codes_download_title', $title, $user );
 
-		$i = 1;
+		// Generate the codes text, shared by the copy and download actions.
+		$codes_text = "{$title}\r\n\r\n";
+		$i          = 1;
 		foreach ( $codes as $code ) {
-			$download_link .= rawurlencode( "{$i}. {$code}\r\n" );
+			$codes_text .= "{$i}. {$code}\r\n";
 			++$i;
 		}
+		$codes_text .= "\r\n";
+		$codes_text .= __( 'Each code can only be used once.', 'two-factor' ) . "\r\n";
+		$codes_text .= __( 'These codes are the only way to recover your account if you lose access to your authentication app, or other two-factor method.', 'two-factor' ) . "\r\n";
+
+		$download_link = 'data:application/text;charset=utf-8,' . rawurlencode( $codes_text );
 
 		$i18n = array(
 			/* translators: %s: count */
@@ -383,6 +396,7 @@ class Two_Factor_Backup_Codes extends Two_Factor_Provider {
 
 		return array(
 			'codes'         => $codes,
+			'codes_text'    => $codes_text,
 			'download_link' => $download_link,
 			'remaining'     => $count,
 			'i18n'          => $i18n,
@@ -442,7 +456,7 @@ class Two_Factor_Backup_Codes extends Two_Factor_Provider {
 		?>
 		<p>
 			<label for="authcode"><?php esc_html_e( 'Recovery Code:', 'two-factor' ); ?></label>
-			<input type="text" inputmode="numeric" name="two-factor-backup-code" id="authcode" class="input authcode" value="" size="20" pattern="[0-9 ]*" placeholder="<?php echo esc_attr( $code_placeholder ); ?>" data-digits="<?php echo esc_attr( $code_length ); ?>" />
+			<input type="text" inputmode="numeric" name="two-factor-backup-code" id="authcode" class="input authcode" value="" size="20" pattern="[0-9 ]*" placeholder="<?php echo esc_attr( $code_placeholder ); ?>" autocomplete="one-time-code" data-digits="<?php echo esc_attr( (string) $code_length ); ?>">
 		</p>
 		<?php
 		/**
@@ -485,7 +499,7 @@ class Two_Factor_Backup_Codes extends Two_Factor_Provider {
 	 * @since 0.1-dev
 	 *
 	 * @param WP_User $user WP_User object of the logged-in user.
-	 * @param int     $code The backup code.
+	 * @param string  $code The backup code.
 	 * @return boolean
 	 */
 	public function validate_code( $user, $code ) {
