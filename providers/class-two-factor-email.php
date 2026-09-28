@@ -478,7 +478,7 @@ class Two_Factor_Email extends Two_Factor_Provider {
 	 *
 	 * Both keys hold short-lived data about a pending code.
 	 *
-	 * @since 0.17.0
+	 * @since 0.18.0
 	 *
 	 * @return array
 	 */
@@ -496,7 +496,7 @@ class Two_Factor_Email extends Two_Factor_Provider {
 	 * The timestamp outlives the token after the code is consumed, so it
 	 * is reported on its own.
 	 *
-	 * @since 0.17.0
+	 * @since 0.18.0
 	 *
 	 * @param WP_User $user WP_User object of the user.
 	 * @return array

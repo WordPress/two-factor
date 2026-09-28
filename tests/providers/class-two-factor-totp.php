@@ -527,15 +527,17 @@ class Tests_Two_Factor_Totp extends WP_UnitTestCase {
 	}
 
 	/**
-	 * Verify privacy_eraser_user_meta_keys() returns only the replay timestamp.
+	 * Verify privacy_eraser_user_meta_keys() erases nothing.
 	 *
-	 * The secret key is kept so the provider stays configured.
+	 * The secret is kept so the provider stays configured, and the last
+	 * successful login timestamp is kept with it because it still blocks
+	 * reuse of the most recent code after erasure.
 	 *
 	 * @covers Two_Factor_Totp::privacy_eraser_user_meta_keys
 	 */
 	public function test_privacy_eraser_user_meta_keys() {
 		$this->assertSame(
-			array( Two_Factor_Totp::LAST_SUCCESSFUL_LOGIN_META_KEY ),
+			array(),
 			Two_Factor_Totp::privacy_eraser_user_meta_keys()
 		);
 	}

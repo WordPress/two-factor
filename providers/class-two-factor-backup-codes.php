@@ -539,7 +539,7 @@ class Two_Factor_Backup_Codes extends Two_Factor_Provider {
 	 *
 	 * The codes and their hashes are never included, only how many are left.
 	 *
-	 * @since 0.17.0
+	 * @since 0.18.0
 	 *
 	 * @param WP_User $user WP_User object of the user.
 	 * @return array

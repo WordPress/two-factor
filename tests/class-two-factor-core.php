@@ -3539,6 +3539,26 @@ class Test_ClassTwoFactorCore extends WP_UnitTestCase {
 	}
 
 	/**
+	 * Verify the exporter includes providers that are disabled in the
+	 * site-wide settings.
+	 *
+	 * @covers Two_Factor_Core::personal_data_exporter
+	 */
+	public function test_personal_data_exporter_includes_site_disabled_providers() {
+		update_option( Two_Factor_Core::ENABLED_PROVIDERS_OPTION_KEY, array( 'Two_Factor_Email' ) );
+
+		$setup    = $this->get_fully_configured_user();
+		$user     = $setup['user'];
+		$response = Two_Factor_Core::personal_data_exporter( $user->user_email );
+
+		$items = $response['data'][0]['data'];
+		$names = wp_list_pluck( $items, 'name' );
+
+		$this->assertContains( 'Authenticator app (TOTP)', $names );
+		$this->assertContains( 'Recovery codes', $names );
+	}
+
+	/**
 	 * Verify the eraser does nothing for an unknown email address.
 	 *
 	 * @covers Two_Factor_Core::personal_data_eraser
@@ -3568,7 +3588,8 @@ class Test_ClassTwoFactorCore extends WP_UnitTestCase {
 
 	/**
 	 * Verify the eraser removes the short-lived records, including the
-	 * TOTP replay timestamp and the pending email code.
+	 * pending email code. The TOTP replay timestamp is not removed, it
+	 * still blocks reuse of the most recent code.
 	 *
 	 * @covers Two_Factor_Core::personal_data_eraser
 	 */
@@ -3584,9 +3605,11 @@ class Test_ClassTwoFactorCore extends WP_UnitTestCase {
 		$this->assertEmpty( get_user_meta( $user->ID, Two_Factor_Core::USER_RATE_LIMIT_KEY, true ) );
 		$this->assertEmpty( get_user_meta( $user->ID, Two_Factor_Core::USER_FAILED_LOGIN_ATTEMPTS_KEY, true ) );
 		$this->assertEmpty( get_user_meta( $user->ID, Two_Factor_Core::USER_PASSWORD_WAS_RESET_KEY, true ) );
-		$this->assertEmpty( get_user_meta( $user->ID, Two_Factor_Totp::LAST_SUCCESSFUL_LOGIN_META_KEY, true ) );
 		$this->assertEmpty( get_user_meta( $user->ID, Two_Factor_Email::TOKEN_META_KEY, true ) );
 		$this->assertEmpty( get_user_meta( $user->ID, Two_Factor_Email::TOKEN_META_KEY_TIMESTAMP, true ) );
+
+		// The TOTP replay timestamp is retained to keep blocking code reuse.
+		$this->assertNotEmpty( get_user_meta( $user->ID, Two_Factor_Totp::LAST_SUCCESSFUL_LOGIN_META_KEY, true ) );
 	}
 
 	/**
@@ -3605,6 +3628,7 @@ class Test_ClassTwoFactorCore extends WP_UnitTestCase {
 		);
 		$this->assertSame( 'Two_Factor_Totp', get_user_meta( $user->ID, Two_Factor_Core::PROVIDER_USER_META_KEY, true ) );
 		$this->assertNotEmpty( Two_Factor_Totp::get_instance()->get_user_totp_key( $user->ID ) );
+		$this->assertNotEmpty( get_user_meta( $user->ID, Two_Factor_Totp::LAST_SUCCESSFUL_LOGIN_META_KEY, true ) );
 		$this->assertNotEmpty( get_user_meta( $user->ID, Two_Factor_Backup_Codes::BACKUP_CODES_META_KEY, true ) );
 	}
 
@@ -3621,6 +3645,23 @@ class Test_ClassTwoFactorCore extends WP_UnitTestCase {
 		$this->assertTrue( $response['items_retained'] );
 		$this->assertNotEmpty( $response['messages'] );
 		$this->assertStringContainsString( 'Two Factor', $response['messages'][0] );
+	}
+
+	/**
+	 * Verify the eraser processes the keys of providers that are disabled
+	 * in the site-wide settings.
+	 *
+	 * @covers Two_Factor_Core::personal_data_eraser
+	 */
+	public function test_personal_data_eraser_covers_site_disabled_providers() {
+		update_option( Two_Factor_Core::ENABLED_PROVIDERS_OPTION_KEY, array( 'Two_Factor_Backup_Codes' ) );
+
+		$setup    = $this->get_fully_configured_user();
+		$user     = $setup['user'];
+		$response = Two_Factor_Core::personal_data_eraser( $user->user_email );
+
+		$this->assertTrue( $response['items_removed'] );
+		$this->assertEmpty( get_user_meta( $user->ID, Two_Factor_Email::TOKEN_META_KEY, true ) );
 	}
 
 	/**

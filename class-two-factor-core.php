@@ -2972,7 +2972,7 @@ class Two_Factor_Core {
 	/**
 	 * Registers the personal data exporter.
 	 *
-	 * @since 0.17.0
+	 * @since 0.18.0
 	 *
 	 * @param array $exporters List of personal data exporters.
 	 * @return array
@@ -2989,7 +2989,7 @@ class Two_Factor_Core {
 	/**
 	 * Registers the personal data eraser.
 	 *
-	 * @since 0.17.0
+	 * @since 0.18.0
 	 *
 	 * @param array $erasers List of personal data erasers.
 	 * @return array
@@ -3010,7 +3010,7 @@ class Two_Factor_Core {
 	 * codes and the email token hash stay out of the export file so that it
 	 * remains safe to share.
 	 *
-	 * @since 0.17.0
+	 * @since 0.18.0
 	 *
 	 * @param string $email_address The email address of the user.
 	 * @param int    $page          The page of data being requested.
@@ -3060,7 +3060,7 @@ class Two_Factor_Core {
 			);
 		}
 
-		foreach ( self::get_providers() as $provider ) {
+		foreach ( self::get_privacy_providers() as $provider ) {
 			$provider_data = $provider->privacy_export_data( $user );
 
 			if ( ! empty( $provider_data ) ) {
@@ -3096,7 +3096,7 @@ class Two_Factor_Core {
 	 * are kept, because the erasure tool does not delete the user account and
 	 * removing the credentials would leave it protected by a password only.
 	 *
-	 * @since 0.17.0
+	 * @since 0.18.0
 	 *
 	 * @param string $email_address The email address of the user.
 	 * @param int    $page          The page of data being processed.
@@ -3126,7 +3126,7 @@ class Two_Factor_Core {
 			self::ENABLED_PROVIDERS_USER_META_KEY,
 		);
 
-		foreach ( self::get_providers() as $provider ) {
+		foreach ( self::get_privacy_providers() as $provider ) {
 			$eraser_keys = $provider::privacy_eraser_user_meta_keys();
 
 			$meta_keys = array_merge( $meta_keys, $eraser_keys );
@@ -3167,9 +3167,46 @@ class Two_Factor_Core {
 	}
 
 	/**
+	 * Get all registered providers for the personal data exporter and eraser.
+	 *
+	 * Same as get_providers(), but providers that are disabled in the
+	 * site-wide settings are not removed from the list. Data stored for a
+	 * user must be exported and erased even while its provider is disabled.
+	 *
+	 * @since 0.18.0
+	 *
+	 * @return Two_Factor_Provider[] List of provider instances indexed by provider key.
+	 */
+	private static function get_privacy_providers() {
+		$providers = self::get_default_providers();
+
+		/** This filter is documented in the get_providers() method */
+		$additional_providers = apply_filters( 'two_factor_providers', $providers );
+
+		// Merge them with the default providers so that providers removed
+		// by the site-wide setting are still included.
+		if ( ! empty( $additional_providers ) ) {
+			$providers = array_merge( $providers, $additional_providers );
+		}
+
+		// Map provider keys to classes so that we can instantiate them.
+		$providers = self::get_providers_classes( $providers );
+
+		foreach ( $providers as $provider_key => $provider_class ) {
+			try {
+				$providers[ $provider_key ] = call_user_func( array( $provider_class, 'get_instance' ) );
+			} catch ( Exception $e ) {
+				unset( $providers[ $provider_key ] );
+			}
+		}
+
+		return $providers;
+	}
+
+	/**
 	 * Formats a timestamp for the export and erasure reports.
 	 *
-	 * @since 0.17.0
+	 * @since 0.18.0
 	 *
 	 * @param int|string $timestamp Unix timestamp to format.
 	 * @return string Formatted date and time, or an empty string when no timestamp is set.

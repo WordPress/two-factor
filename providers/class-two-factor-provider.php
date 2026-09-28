@@ -219,7 +219,7 @@ abstract class Two_Factor_Provider {
 	 * are kept, because the erasure tool does not delete the user account and
 	 * removing them would leave the account protected by a password only.
 	 *
-	 * @since 0.17.0
+	 * @since 0.18.0
 	 *
 	 * Note: this method doesn't have access to the instantiated provider object.
 	 *
@@ -236,7 +236,7 @@ abstract class Two_Factor_Provider {
 	 * hashes must not be included, describe the credential instead so that
 	 * the export file stays safe to share.
 	 *
-	 * @since 0.17.0
+	 * @since 0.18.0
 	 *
 	 * @param WP_User $user WP_User object of the user.
 	 * @return array
