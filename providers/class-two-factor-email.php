@@ -262,11 +262,13 @@ class Two_Factor_Email extends Two_Factor_Provider {
 	 * @return string|null
 	 */
 	private function get_client_ip() {
-		if ( ! empty( $_SERVER['REMOTE_ADDR'] ) ) { // phpcs:ignore WordPressVIPMinimum.Variables.ServerVariables.UserControlledHeaders -- don't have more reliable option for now.
-			return preg_replace( '/[^0-9a-fA-F:., ]/', '', $_SERVER['REMOTE_ADDR'] ); // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized, WordPressVIPMinimum.Variables.ServerVariables.UserControlledHeaders, WordPressVIPMinimum.Variables.RestrictedVariables.cache_constraints___SERVER__REMOTE_ADDR__ -- we're limit the allowed characters.
+		if ( empty( $_SERVER['REMOTE_ADDR'] ) ) { // phpcs:ignore WordPressVIPMinimum.Variables.ServerVariables.UserControlledHeaders -- don't have more reliable option for now.
+			return null;
 		}
 
-		return null;
+		$remote_addr = filter_var( wp_unslash( $_SERVER['REMOTE_ADDR'] ), FILTER_VALIDATE_IP ); // phpcs:ignore WordPressVIPMinimum.Variables.ServerVariables.UserControlledHeaders, WordPressVIPMinimum.Variables.RestrictedVariables.cache_constraints___SERVER__REMOTE_ADDR__ -- Validated as an IP; informational only, not used for caching or authorization.
+
+		return $remote_addr ? $remote_addr : null;
 	}
 
 	/**
@@ -337,16 +339,21 @@ class Two_Factor_Email extends Two_Factor_Provider {
 	 *
 	 * @since 0.1-dev
 	 *
-	 * @param WP_User $user WP_User object of the logged-in user.
+	 * @param WP_User|false $user WP_User object of the logged-in user.
 	 */
 	public function authentication_page( $user ) {
-		if ( ! $user ) {
+		if ( ! ( $user instanceof WP_User ) ) {
 			return;
 		}
 
-		if ( ! $this->user_has_token( $user->ID ) || $this->user_token_has_expired( $user->ID ) ) {
-			$this->generate_and_email_token( $user );
+		$is_rate_limited = Two_Factor_Core::is_user_rate_limited( $user );
+
+		if ( ! $is_rate_limited ) {
+			if ( ! $this->user_has_token( $user->ID ) || $this->user_token_has_expired( $user->ID ) ) {
+				$this->generate_and_email_token( $user );
+			}
 		}
+		$has_valid_token = $this->user_has_token( $user->ID ) && ! $this->user_token_has_expired( $user->ID );
 
 		$token_length      = $this->get_token_length();
 		$token_placeholder = str_repeat( 'X', $token_length );
@@ -357,22 +364,24 @@ class Two_Factor_Email extends Two_Factor_Provider {
 		/** This action is documented in providers/class-two-factor-backup-codes.php */
 		do_action( 'two_factor_before_authentication_prompt', $this );
 		?>
+		<?php if ( $has_valid_token ) : ?>
 		<p class="two-factor-prompt"><?php esc_html_e( 'A verification code has been sent to the email address associated with your account.', 'two-factor' ); ?></p>
+		<?php endif; ?>
 		<?php
 		/** This action is documented in providers/class-two-factor-backup-codes.php */
 		do_action( 'two_factor_after_authentication_prompt', $this );
 		?>
 		<p>
 			<label for="authcode"><?php esc_html_e( 'Verification Code:', 'two-factor' ); ?></label>
-			<input type="text" inputmode="numeric" name="two-factor-email-code" id="authcode" class="input authcode" value="" size="20" pattern="[0-9 ]*" autocomplete="one-time-code" placeholder="<?php echo esc_attr( $token_placeholder ); ?>" data-digits="<?php echo esc_attr( $token_length ); ?>" />
+			<input type="text" inputmode="numeric" name="two-factor-email-code" id="authcode" class="input authcode" value="" size="20" pattern="[0-9 ]*" autocomplete="one-time-code" placeholder="<?php echo esc_attr( $token_placeholder ); ?>" data-digits="<?php echo esc_attr( (string) $token_length ); ?>">
 		</p>
 		<?php
 		/** This action is documented in providers/class-two-factor-backup-codes.php */
 		do_action( 'two_factor_after_authentication_input', $this );
 		?>
-		<?php submit_button( __( 'Verify', 'two-factor' ) ); ?>
+		<?php submit_button( __( 'Verify', 'two-factor' ), 'primary', 'submit', true, $is_rate_limited ? 'disabled="disabled"' : '' ); ?>
 		<p class="two-factor-email-resend">
-			<input type="submit" class="button" name="<?php echo esc_attr( self::INPUT_NAME_RESEND_CODE ); ?>" value="<?php esc_attr_e( 'Resend Code', 'two-factor' ); ?>" />
+			<input type="submit" class="button" name="<?php echo esc_attr( self::INPUT_NAME_RESEND_CODE ); ?>" value="<?php esc_attr_e( 'Resend Code', 'two-factor' ); ?>" <?php disabled( $is_rate_limited ); ?>>
 		</p>
 		<?php
 	}
@@ -383,11 +392,15 @@ class Two_Factor_Email extends Two_Factor_Provider {
 	 *
 	 * @since 0.2.0
 	 *
-	 * @param  WP_User $user WP_User object of the logged-in user.
+	 * @param WP_User|false $user WP_User object of the logged-in user.
 	 * @return boolean
 	 */
 	public function pre_process_authentication( $user ) {
-		if ( isset( $user->ID ) && isset( $_REQUEST[ self::INPUT_NAME_RESEND_CODE ] ) ) { // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- non-distructive option that relies on user state.
+		if ( ! ( $user instanceof WP_User ) ) {
+			return false;
+		}
+
+		if ( isset( $_REQUEST[ self::INPUT_NAME_RESEND_CODE ] ) ) { // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- non-destructive option that relies on user state.
 			$this->generate_and_email_token( $user );
 			return true;
 		}
@@ -400,12 +413,16 @@ class Two_Factor_Email extends Two_Factor_Provider {
 	 *
 	 * @since 0.1-dev
 	 *
-	 * @param WP_User $user WP_User object of the logged-in user.
+	 * @param WP_User|false $user WP_User object of the logged-in user.
 	 * @return boolean
 	 */
 	public function validate_authentication( $user ) {
+		if ( ! ( $user instanceof WP_User ) ) {
+			return false;
+		}
+
 		$code = $this->sanitize_code_from_request( 'two-factor-email-code' );
-		if ( ! isset( $user->ID ) || ! $code ) {
+		if ( ! $code ) {
 			return false;
 		}
 
@@ -434,7 +451,7 @@ class Two_Factor_Email extends Two_Factor_Provider {
 	public function user_options( $user ) {
 		$email = $user->user_email;
 		?>
-		<p>
+		<p class="description">
 			<?php
 			echo esc_html(
 				sprintf(

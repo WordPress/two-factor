@@ -9,12 +9,21 @@
 	<!-- Lint all PHP files by default. -->
 	<file>.</file>
 
-	<!-- Ensure all PHP code is compatible with PHP 7.2 and higher (see upgrade policy in README). -->
+	<!-- Ensure all PHP code is compatible with PHP 7.4 and higher (see upgrade policy in README). -->
 	<rule ref="PHPCompatibilityWP" />
-	<config name="testVersion" value="7.2-"/>
+	<config name="testVersion" value="7.4-"/>
 
 	<rule ref="WordPress" />
 	<rule ref="WordPress-VIP-Go" />
+
+	<!--
+	The WP-CLI command class correctly extends WP_CLI_Command. The VIP-Go
+	ruleset's suggestion to extend WPCOM_VIP_CLI_Command instead only applies
+	to code running on VIP-managed hosting, which this plugin is not.
+	-->
+	<rule ref="WordPressVIPMinimum.Classes.RestrictedExtendClasses">
+		<exclude-pattern>CLI/*.php</exclude-pattern>
+	</rule>
 
 	<!-- disable nonce checks on tests -->
 	<rule ref="WordPress.Security.NonceVerification">

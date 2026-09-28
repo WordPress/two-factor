@@ -12,7 +12,7 @@
   "config": {
     "sort-packages": true,
     "platform": {
-      "php": "7.2.24"
+      "php": "7.4.0"
     },
     "allow-plugins": {
       "dealerdirect/phpcodesniffer-composer-installer": true
@@ -21,15 +21,16 @@
   "minimum-stability": "dev",
   "prefer-stable" : true,
   "require": {
-    "php": ">=7.2.24|^8"
+    "php": ">=7.4"
   },
   "require-dev": {
     "automattic/vipwpcs": "^3.0",
     "dealerdirect/phpcodesniffer-composer-installer": "^1.0",
+    "php-stubs/wp-cli-stubs": "dev-master",
     "phpcompatibility/phpcompatibility-wp": "3.0.0-alpha2",
     "phpunit/phpunit": "^8.5|^9.6",
     "spatie/phpunit-watcher": "^1.23",
-    "szepeviktor/phpstan-wordpress": "^1.3",
+    "szepeviktor/phpstan-wordpress": "^2.0",
     "wp-coding-standards/wpcs": "^3.3",
     "yoast/phpunit-polyfills": "^4.0"
   },
@@ -37,10 +38,19 @@
     "lint": "phpcs",
     "lint-compat": "phpcs -p --standard=PHPCompatibilityWP --runtime-set testVersion 7.2- --extensions=php --ignore='tests/,dist/,includes/Yubico/,vendor/,node_modules/' .",
     "lint-phpstan": "phpstan analyse --verbose --memory-limit=1G",
-    "test": "phpunit --coverage-text",
-    "test:watch": [
+    "test-single": "phpunit --coverage-text",
+    "test-multisite": "phpunit --coverage-text --config phpunit-multisite.xml",
+    "test": [
+      "@test-single",
+      "@test-multisite"
+    ],
+    "test-watch-single": [
       "Composer\\Config::disableProcessTimeout",
       "phpunit-watcher watch --no-coverage"
+    ],
+    "test-watch-multisite": [
+      "Composer\\Config::disableProcessTimeout",
+      "phpunit-watcher watch --no-coverage --config phpunit-multisite.xml"
     ],
     "format": "phpcbf"
   }

@@ -29,6 +29,14 @@ class Two_Factor_Backup_Codes extends Two_Factor_Provider {
 	const NUMBER_OF_CODES = 10;
 
 	/**
+	 * The default number of remaining codes at or below which the user is
+	 * warned to regenerate, before they run out entirely.
+	 *
+	 * @type int
+	 */
+	const LOW_CODES_THRESHOLD = 2;
+
+	/**
 	 * Class constructor.
 	 *
 	 * @since 0.1-dev
@@ -97,7 +105,7 @@ class Two_Factor_Backup_Codes extends Two_Factor_Provider {
 	}
 
 	/**
-	 * Displays an admin notice when backup codes have run out.
+	 * Displays an admin notice when backup codes have run out, or are running low.
 	 *
 	 * @since 0.1-dev
 	 *
@@ -111,28 +119,70 @@ class Two_Factor_Backup_Codes extends Two_Factor_Provider {
 			return;
 		}
 
-		// Return if we are not out of codes.
-		if ( $this->is_available_for_user( $user ) ) {
+		$count          = self::codes_remaining_for_user( $user );
+		$regenerate_url = esc_url( get_edit_user_link( $user->ID ) . '#two-factor-backup-codes' );
+
+		// Out of codes: show an error and bail.
+		if ( 0 === $count ) {
+			?>
+			<div class="error">
+				<p>
+					<span>
+						<?php
+						echo wp_kses(
+							sprintf(
+							/* translators: %s: URL for code regeneration */
+								__( 'Two-Factor: You are out of recovery codes and need to <a href="%s">regenerate!</a>', 'two-factor' ),
+								$regenerate_url
+							),
+							array( 'a' => array( 'href' => true ) )
+						);
+						?>
+					</span>
+				</p>
+			</div>
+			<?php
 			return;
 		}
-		?>
-		<div class="error">
-			<p>
-				<span>
-					<?php
-					echo wp_kses(
-						sprintf(
-						/* translators: %s: URL for code regeneration */
-							__( 'Two-Factor: You are out of recovery codes and need to <a href="%s">regenerate!</a>', 'two-factor' ),
-							esc_url( get_edit_user_link( $user->ID ) . '#two-factor-backup-codes' )
-						),
-						array( 'a' => array( 'href' => true ) )
-					);
-					?>
-				</span>
-			</p>
-		</div>
-		<?php
+
+		/**
+		 * Filters the number of remaining recovery codes at or below which the
+		 * user is warned to regenerate, before they run out entirely.
+		 *
+		 * @since 0.17.0
+		 *
+		 * @param int     $threshold Number of remaining codes that triggers the warning. Default 2.
+		 * @param WP_User $user      User object.
+		 */
+		$threshold = (int) apply_filters( 'two_factor_backup_codes_low_threshold', self::LOW_CODES_THRESHOLD, $user );
+
+		// Running low: warn the user before they hit zero.
+		if ( $count <= $threshold ) {
+			?>
+			<div class="notice notice-warning">
+				<p>
+					<span>
+						<?php
+						echo wp_kses(
+							sprintf(
+							/* translators: 1: number of recovery codes remaining, 2: URL for code regeneration */
+								_n(
+									'Two-Factor: You only have %1$s recovery code left. <a href="%2$s">Regenerate your codes</a> now before you run out.',
+									'Two-Factor: You only have %1$s recovery codes left. <a href="%2$s">Regenerate your codes</a> now before you run out.',
+									$count,
+									'two-factor'
+								),
+								number_format_i18n( $count ),
+								$regenerate_url
+							),
+							array( 'a' => array( 'href' => true ) )
+						);
+						?>
+					</span>
+				</p>
+			</div>
+			<?php
+		}
 	}
 
 	/**
@@ -190,7 +240,7 @@ class Two_Factor_Backup_Codes extends Two_Factor_Provider {
 		$count = self::codes_remaining_for_user( $user );
 		?>
 		<div id="two-factor-backup-codes">
-			<p class="two-factor-backup-codes-count">
+			<p class="description two-factor-backup-codes-count">
 			<?php
 				echo esc_html(
 					sprintf(
@@ -215,8 +265,8 @@ class Two_Factor_Backup_Codes extends Two_Factor_Provider {
 			</div>
 			<p class="description"><?php esc_html_e( 'Write these down! Once you navigate away from this page, you will not be able to view these codes again.', 'two-factor' ); ?></p>
 			<p>
-				<a class="button button-two-factor-backup-codes-copy button-secondary hide-if-no-js" href="javascript:void(0);" id="two-factor-backup-codes-copy-link"><?php esc_html_e( 'Copy Codes', 'two-factor' ); ?></a>
-				<a class="button button-two-factor-backup-codes-download button-secondary hide-if-no-js" href="javascript:void(0);" id="two-factor-backup-codes-download-link" download="two-factor-backup-codes.txt"><?php esc_html_e( 'Download Codes', 'two-factor' ); ?></a>
+				<button type="button" class="button button-two-factor-backup-codes-copy button-secondary hide-if-no-js" id="two-factor-backup-codes-copy-link"><?php esc_html_e( 'Copy Codes', 'two-factor' ); ?></button>
+				<a class="button button-two-factor-backup-codes-download button-secondary hide-if-no-js" href="#" id="two-factor-backup-codes-download-link" download="two-factor-backup-codes.txt"><?php esc_html_e( 'Download Codes', 'two-factor' ); ?></a>
 			</p>
 		</div>
 		<?php
@@ -391,7 +441,7 @@ class Two_Factor_Backup_Codes extends Two_Factor_Provider {
 		?>
 		<p>
 			<label for="authcode"><?php esc_html_e( 'Recovery Code:', 'two-factor' ); ?></label>
-			<input type="text" inputmode="numeric" name="two-factor-backup-code" id="authcode" class="input authcode" value="" size="20" pattern="[0-9 ]*" placeholder="<?php echo esc_attr( $code_placeholder ); ?>" autocomplete="one-time-code" data-digits="<?php echo esc_attr( $code_length ); ?>" />
+			<input type="text" inputmode="numeric" name="two-factor-backup-code" id="authcode" class="input authcode" value="" size="20" pattern="[0-9 ]*" placeholder="<?php echo esc_attr( $code_placeholder ); ?>" autocomplete="one-time-code" data-digits="<?php echo esc_attr( (string) $code_length ); ?>">
 		</p>
 		<?php
 		/**
@@ -434,7 +484,7 @@ class Two_Factor_Backup_Codes extends Two_Factor_Provider {
 	 * @since 0.1-dev
 	 *
 	 * @param WP_User $user WP_User object of the logged-in user.
-	 * @param int     $code The backup code.
+	 * @param string  $code The backup code.
 	 * @return boolean
 	 */
 	public function validate_code( $user, $code ) {
