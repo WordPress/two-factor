@@ -105,6 +105,7 @@ Here is a list of action and filter hooks provided by the plugin:
 - `two_factor_after_authentication_input` action which receives the provider object and fires after the input shown on the authentication input form (if form contains no input, action fires immediately after `two_factor_after_authentication_prompt`).
 - `two_factor_login_backup_links` filters the backup links displayed on the two-factor login form.
 - `two_factor_login_nonce_failed` action which fires when a login nonce fails verification. Provides the ID of the user the nonce was presented for as the first argument, and the reason as the second: `no_nonce_stored`, `expired`, or `mismatch`.
+- `two_factor_revalidate_time` filter overrides the grace window during which a session that recently passed two-factor verification may view or edit two-factor settings. Defaults to 10 minutes for displaying settings and double that (20 minutes) for saving them. Accepts the time in seconds as the first argument, the user ID as the second, and the context (`display` or `save`) as the third. Return a falsey value (false or 0) to never require revalidation.
 - `two_factor_log_login_nonce_failures` filter overrides whether a failed login nonce verification is written to the PHP error log. Defaults to true for `expired` and `mismatch`, and false for `no_nonce_stored`, which any unauthenticated request can reach. Provides the user ID as the second argument and the reason as the third.
 
 == WP-CLI Commands ==
