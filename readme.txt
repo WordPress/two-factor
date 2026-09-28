@@ -149,6 +149,12 @@ To report a security issue, please visit the [WordPress HackerOne](https://hacke
 
 If you have backup codes enabled, you can use one of those to regain access. If you don't have backup codes or have used them all, you'll need to contact your site administrator to reset your account. This is why it's important to always enable backup codes and keep them in a secure location.
 
+= Why do I need to re-verify my two-factor method when changing two-factor settings? =
+
+Once two-factor is enabled on your account, the section of your profile where you manage it is treated as security-sensitive. To change it, the plugin checks that your current login session passed two-factor verification recently — within about 10 minutes for viewing the settings, or twice that for saving changes. If it hasn't, you'll be asked to verify your code (or other method) again before proceeding.
+
+This protects you if a session is ever taken over without your password — for example, via a copied session cookie from a shared or infected computer. Someone in that position is already "logged in" as you, but they cannot disable your two-factor methods or register their own device, because their session never passed the second verification step. The re-verification prompt is a good sign: it means the check is doing its job. After completing the prompt you'll have a fresh grace window. You won't be asked to re-verify right after setting up a method for the first time, or if you're editing the two-factor settings of another user.
+
 = Can I use this plugin with WebAuthn? =
 
 The plugin previously supported FIDO U2F, which was a predecessor to WebAuthn. There is an open issue to [add WebAuthn support here](https://github.com/WordPress/two-factor/pull/427).
