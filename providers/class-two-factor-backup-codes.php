@@ -358,7 +358,7 @@ class Two_Factor_Backup_Codes extends Two_Factor_Provider {
 		$title = sprintf(
 			/* translators: %s: the site's domain */
 			__( 'Two-Factor Recovery Codes for %s', 'two-factor' ),
-			wp_parse_url( home_url(), PHP_URL_HOST )
+			str_replace( array( 'http://', 'https://' ), '', home_url() ) // Account for sub-directory multisites by not using wp_parse_url() to extract the hostname.
 		);
 
 		/**
