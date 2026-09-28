@@ -775,6 +775,8 @@ class Two_Factor_Totp extends Two_Factor_Provider {
 	 */
 	public function authentication_page( $user ) {
 		require_once ABSPATH . '/wp-admin/includes/template.php';
+
+		$auto_submit_authcode = $this->is_authcode_auto_submit_enabled();
 		?>
 		<?php
 		/** This action is documented in providers/class-two-factor-backup-codes.php */
@@ -789,7 +791,7 @@ class Two_Factor_Totp extends Two_Factor_Provider {
 		?>
 		<p>
 			<label for="authcode"><?php esc_html_e( 'Authentication Code:', 'two-factor' ); ?></label>
-			<input type="text" inputmode="numeric" name="authcode" id="authcode" class="input authcode" value="" size="20" pattern="[0-9 ]*" placeholder="123 456" autocomplete="one-time-code" data-digits="<?php echo esc_attr( (string) self::DEFAULT_DIGIT_COUNT ); ?>">
+			<input type="text" inputmode="numeric" name="authcode" id="authcode" class="input authcode" value="" size="20" pattern="[0-9 ]*" placeholder="123 456" autocomplete="one-time-code" data-digits="<?php echo esc_attr( (string) self::DEFAULT_DIGIT_COUNT ); ?>"<?php echo esc_attr( $auto_submit_authcode ? ' data-auto-submit' : '' ); ?>>
 		</p>
 		<?php
 		/** This action is documented in providers/class-two-factor-backup-codes.php */
