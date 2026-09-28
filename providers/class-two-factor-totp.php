@@ -20,6 +20,42 @@ class Two_Factor_Totp extends Two_Factor_Provider {
 	const SECRET_META_KEY = '_two_factor_totp_key';
 
 	/**
+	 * The user meta key marking which network holds the user's secret in the Secrets API.
+	 *
+	 * @since 0.18.0
+	 *
+	 * @var string
+	 */
+	const SECRET_NETWORK_META_KEY = '_two_factor_totp_key_network';
+
+	/**
+	 * The slug used for this provider's entries in the Secrets API.
+	 *
+	 * @since 0.18.0
+	 *
+	 * @var string
+	 */
+	const SECRET_SLUG = 'totp';
+
+	/**
+	 * The site transient caching whether any user has a secret that is currently unreachable.
+	 *
+	 * @since 0.18.0
+	 *
+	 * @var string
+	 */
+	const AFFECTED_USERS_TRANSIENT = 'two_factor_totp_affected_users';
+
+	/**
+	 * How long, in seconds, the affected-users result is cached.
+	 *
+	 * @since 0.18.0
+	 *
+	 * @var int
+	 */
+	const AFFECTED_USERS_CACHE_TTL = 300;
+
+	/**
 	 * The user meta key for the last successful TOTP token timestamp logged in with.
 	 *
 	 * @var string
@@ -53,6 +89,32 @@ class Two_Factor_Totp extends Two_Factor_Provider {
 		add_action( 'two_factor_user_options_' . __CLASS__, array( $this, 'user_two_factor_options' ) );
 
 		parent::__construct();
+	}
+
+	/**
+	 * Register the hooks that manage stored secrets for the lifetime of a user.
+	 *
+	 * These run whether or not TOTP is enabled on the site: a site that turns TOTP off
+	 * after users enrolled still holds their secrets, and must still delete them with
+	 * the user, warn about unreachable ones and report their storage in Site Health.
+	 * They are static so that registering them does not instantiate the provider,
+	 * which would expose its REST routes while it is disabled.
+	 *
+	 * @since 0.18.0
+	 *
+	 * @return void
+	 */
+	public static function register_secret_lifecycle_hooks() {
+		add_filter( 'site_status_tests', array( __CLASS__, 'register_site_health_test' ) );
+		add_action( 'admin_notices', array( __CLASS__, 'admin_notice_secrets_api_missing' ) );
+		add_action( 'network_admin_notices', array( __CLASS__, 'admin_notice_secrets_api_missing' ) );
+
+		// On multisite, `delete_user` also fires when a user is only removed from one site, so wait for the network-level deletion.
+		if ( is_multisite() ) {
+			add_action( 'wpmu_delete_user', array( __CLASS__, 'delete_user_secrets_on_user_deletion' ) );
+		} else {
+			add_action( 'delete_user', array( __CLASS__, 'delete_user_secrets_on_user_deletion' ) );
+		}
 	}
 
 	/**
@@ -346,7 +408,13 @@ class Two_Factor_Totp extends Two_Factor_Provider {
 			return;
 		}
 
-		$key = $this->get_user_totp_key( $user->ID );
+		$state = $this->get_user_totp_key_state( $user->ID );
+
+		if ( is_wp_error( $state ) ) {
+			$this->report_unavailable( $user->ID, $state );
+		}
+
+		$key = is_string( $state ) ? $state : '';
 
 		wp_localize_script(
 			'two-factor-totp-admin',
@@ -362,7 +430,22 @@ class Two_Factor_Totp extends Two_Factor_Provider {
 		?>
 		<div id="two-factor-totp-options">
 		<?php
-		if ( empty( $key ) ) :
+		if ( is_wp_error( $state ) ) :
+			wp_admin_notice(
+				esc_html__( 'The stored authenticator app secret cannot be read. Reset the authenticator app to set it up again.', 'two-factor' ),
+				array(
+					'type'               => 'error',
+					'additional_classes' => array( 'inline' ),
+				)
+			);
+			?>
+			<p>
+				<button type="button" class="button button-secondary reset-totp-key hide-if-no-js">
+					<?php esc_html_e( 'Reset authenticator app', 'two-factor' ); ?>
+				</button>
+			</p>
+			<?php
+		elseif ( empty( $key ) ) :
 			$key      = $this->generate_key();
 			$totp_url = $this->generate_qr_code_url( $user, $key );
 			?>
@@ -435,6 +518,7 @@ class Two_Factor_Totp extends Two_Factor_Provider {
 			wp_enqueue_script( 'two-factor-totp-qrcode' );
 			?>
 		<?php else : ?>
+			<?php Two_Factor_Secrets::memzero( $key ); ?>
 			<p class="description success">
 				<?php esc_html_e( 'An authenticator app is currently configured. You will need to re-scan the QR code on all devices if reset.', 'two-factor' ); ?>
 			</p>
@@ -451,6 +535,9 @@ class Two_Factor_Totp extends Two_Factor_Provider {
 	/**
 	 * Get the TOTP secret key for a user.
 	 *
+	 * Returns an empty string when there is no usable key. Use get_user_totp_key_state() to tell
+	 * "no key" apart from "a key exists but cannot be read".
+	 *
 	 * @since 0.2.0
 	 *
 	 * @param  int $user_id User ID.
@@ -458,21 +545,232 @@ class Two_Factor_Totp extends Two_Factor_Provider {
 	 * @return string
 	 */
 	public function get_user_totp_key( $user_id ) {
-		return (string) get_user_meta( $user_id, self::SECRET_META_KEY, true );
+		$state = $this->get_user_totp_key_state( $user_id );
+
+		return is_string( $state ) ? $state : '';
+	}
+
+	/**
+	 * Get the TOTP secret key for a user, distinguishing "none" from "unreadable".
+	 *
+	 * Precedence: a plaintext user meta value wins (and is lazily migrated when the Secrets API can
+	 * be written to); otherwise the Secrets API is consulted when the user has a location marker.
+	 *
+	 * @since 0.18.0
+	 *
+	 * @param int  $user_id User ID.
+	 * @param bool $migrate Optional. Whether to lazily migrate a plaintext key. Default true.
+	 *
+	 * @return string|null|WP_Error The key, null when the user has none, or a WP_Error when a key exists but cannot be read.
+	 */
+	public function get_user_totp_key_state( $user_id, $migrate = true ) {
+		$plaintext = (string) get_user_meta( $user_id, self::SECRET_META_KEY, true );
+
+		if ( '' !== $plaintext ) {
+			if ( $migrate && Two_Factor_Secrets::can_write( $user_id ) ) {
+				$this->migrate_user_totp_key( $user_id );
+			}
+
+			return $plaintext;
+		}
+
+		if ( '' === (string) get_user_meta( $user_id, self::SECRET_NETWORK_META_KEY, true ) ) {
+			return null;
+		}
+
+		return Two_Factor_Secrets::get_user_secret( $user_id, self::SECRET_SLUG );
+	}
+
+	/**
+	 * Move a plaintext TOTP key into the Secrets API.
+	 *
+	 * The plaintext is removed only after the stored secret has been read back and matches.
+	 *
+	 * @since 0.18.0
+	 *
+	 * @param int $user_id User ID.
+	 *
+	 * @return true|null|WP_Error True when migrated, null when there is nothing to migrate, WP_Error on failure.
+	 */
+	public function migrate_user_totp_key( $user_id ) {
+		$plaintext = (string) get_user_meta( $user_id, self::SECRET_META_KEY, true );
+
+		if ( '' === $plaintext ) {
+			return null;
+		}
+
+		if ( ! Two_Factor_Secrets::can_write( $user_id ) ) {
+			return new WP_Error(
+				'two_factor_secrets_not_writable',
+				__( 'The Secrets API cannot be written to, so the secret was not migrated.', 'two-factor' )
+			);
+		}
+
+		$result = Two_Factor_Secrets::set_user_secret( $user_id, self::SECRET_SLUG, $plaintext );
+
+		if ( is_wp_error( $result ) ) {
+			$this->fire_migration_failed( $user_id, $result );
+			return $result;
+		}
+
+		$readback = Two_Factor_Secrets::get_user_secret( $user_id, self::SECRET_SLUG );
+
+		if ( ! is_string( $readback ) || ! hash_equals( $plaintext, $readback ) ) {
+			$error = is_wp_error( $readback )
+				? $readback
+				: new WP_Error(
+					'two_factor_secrets_migration_mismatch',
+					__( 'The stored secret did not match the original, so the migration was rolled back.', 'two-factor' )
+				);
+
+			Two_Factor_Secrets::delete_user_secret( $user_id, self::SECRET_SLUG );
+			$this->fire_migration_failed( $user_id, $error );
+
+			return $error;
+		}
+
+		delete_user_meta( $user_id, self::SECRET_META_KEY );
+		Two_Factor_Secrets::memzero( $readback );
+		self::clear_affected_users_cache();
+
+		/**
+		 * Fires after a user's TOTP secret was moved into the Secrets API.
+		 *
+		 * @since 0.18.0
+		 *
+		 * @param int    $user_id User ID.
+		 * @param string $slug    Secret slug, "totp".
+		 */
+		do_action( 'two_factor_secrets_migrated', $user_id, self::SECRET_SLUG );
+
+		return true;
+	}
+
+	/**
+	 * Move a TOTP key from the Secrets API back into user meta.
+	 *
+	 * Used when decommissioning the Secrets API. The Secrets API copy is removed only after the
+	 * plaintext copy has been read back and matches.
+	 *
+	 * @since 0.18.0
+	 *
+	 * @param int $user_id User ID.
+	 *
+	 * @return true|null|WP_Error True when exported, null when there is nothing to export, WP_Error on failure.
+	 */
+	public function export_user_totp_key( $user_id ) {
+		if ( '' !== (string) get_user_meta( $user_id, self::SECRET_META_KEY, true ) ) {
+			return null;
+		}
+
+		if ( '' === (string) get_user_meta( $user_id, self::SECRET_NETWORK_META_KEY, true ) ) {
+			return null;
+		}
+
+		$secret = Two_Factor_Secrets::get_user_secret( $user_id, self::SECRET_SLUG );
+
+		if ( is_wp_error( $secret ) ) {
+			return $secret;
+		}
+
+		if ( ! is_string( $secret ) ) {
+			return null;
+		}
+
+		update_user_meta( $user_id, self::SECRET_META_KEY, $secret );
+		$readback = (string) get_user_meta( $user_id, self::SECRET_META_KEY, true );
+
+		if ( ! hash_equals( $secret, $readback ) ) {
+			delete_user_meta( $user_id, self::SECRET_META_KEY );
+			Two_Factor_Secrets::memzero( $secret );
+			Two_Factor_Secrets::memzero( $readback );
+
+			return new WP_Error(
+				'two_factor_secrets_export_mismatch',
+				__( 'The exported secret did not match the original, so the export was rolled back.', 'two-factor' )
+			);
+		}
+
+		Two_Factor_Secrets::delete_user_secret( $user_id, self::SECRET_SLUG );
+		Two_Factor_Secrets::memzero( $secret );
+		Two_Factor_Secrets::memzero( $readback );
+		self::clear_affected_users_cache();
+
+		return true;
+	}
+
+	/**
+	 * Fire the migration failure action.
+	 *
+	 * @since 0.18.0
+	 *
+	 * @param int      $user_id User ID.
+	 * @param WP_Error $error   The failure.
+	 *
+	 * @return void
+	 */
+	private function fire_migration_failed( $user_id, $error ) {
+		/**
+		 * Fires when moving a user's TOTP secret into the Secrets API failed.
+		 *
+		 * The plaintext copy is kept, so the user can still log in. The error never contains the secret.
+		 *
+		 * @since 0.18.0
+		 *
+		 * @param int      $user_id User ID.
+		 * @param string   $slug    Secret slug, "totp".
+		 * @param WP_Error $error   The failure.
+		 */
+		do_action( 'two_factor_secrets_migration_failed', $user_id, self::SECRET_SLUG, $error );
 	}
 
 	/**
 	 * Set the TOTP secret key for a user.
+	 *
+	 * Stores into the Secrets API when it is available and writable, verifying by read-back; falls
+	 * back to user meta only when the Secrets API is not usable. A Secrets API failure never
+	 * results in a plaintext write.
 	 *
 	 * @since 0.2.0
 	 *
 	 * @param int    $user_id User ID.
 	 * @param string $key TOTP secret key.
 	 *
-	 * @return int|bool Meta ID if the key did not exist, true on update, false on failure.
+	 * @return int|bool Meta ID if the key did not exist, true on update or Secrets API write, false on failure.
 	 */
 	public function set_user_totp_key( $user_id, $key ) {
-		return update_user_meta( $user_id, self::SECRET_META_KEY, $key );
+		if ( '' === (string) $key ) {
+			return $this->delete_user_totp_key( $user_id );
+		}
+
+		if ( Two_Factor_Secrets::can_write( $user_id ) ) {
+			$result = Two_Factor_Secrets::set_user_secret( $user_id, self::SECRET_SLUG, $key );
+
+			if ( is_wp_error( $result ) ) {
+				return false;
+			}
+
+			$readback = Two_Factor_Secrets::get_user_secret( $user_id, self::SECRET_SLUG );
+
+			if ( ! is_string( $readback ) || ! hash_equals( (string) $key, $readback ) ) {
+				Two_Factor_Secrets::delete_user_secret( $user_id, self::SECRET_SLUG );
+				return false;
+			}
+
+			Two_Factor_Secrets::memzero( $readback );
+			delete_user_meta( $user_id, self::SECRET_META_KEY );
+			self::clear_affected_users_cache();
+
+			return true;
+		}
+
+		$result = update_user_meta( $user_id, self::SECRET_META_KEY, $key );
+
+		// Clear any stale marker or secret so the plaintext value is unambiguous.
+		Two_Factor_Secrets::delete_user_secret( $user_id, self::SECRET_SLUG );
+		self::clear_affected_users_cache();
+
+		return $result;
 	}
 
 	/**
@@ -486,7 +784,306 @@ class Two_Factor_Totp extends Two_Factor_Provider {
 	 */
 	public function delete_user_totp_key( $user_id ) {
 		delete_user_meta( $user_id, self::LAST_SUCCESSFUL_LOGIN_META_KEY );
-		return delete_user_meta( $user_id, self::SECRET_META_KEY );
+		delete_user_meta( $user_id, self::SECRET_META_KEY );
+
+		$secret = Two_Factor_Secrets::delete_user_secret( $user_id, self::SECRET_SLUG );
+		self::clear_affected_users_cache();
+
+		return true === $secret
+			&& '' === (string) get_user_meta( $user_id, self::SECRET_META_KEY, true )
+			&& '' === (string) get_user_meta( $user_id, self::SECRET_NETWORK_META_KEY, true );
+	}
+
+	/**
+	 * Delete a user's TOTP data when the user account is deleted.
+	 *
+	 * Wrapper around delete_user_totp_key() so the deletion actions get a callback that returns nothing.
+	 *
+	 * @since 0.18.0
+	 *
+	 * @param int $user_id ID of the user being deleted.
+	 *
+	 * @return void
+	 */
+	public static function delete_user_secrets_on_user_deletion( $user_id ) {
+		self::get_instance()->delete_user_totp_key( $user_id );
+	}
+
+	/**
+	 * Whether any user has a secret in the Secrets API that this site cannot currently reach.
+	 *
+	 * The result is cached briefly in a site transient.
+	 *
+	 * @since 0.18.0
+	 *
+	 * @return bool
+	 */
+	public static function has_affected_users() {
+		$cached = get_site_transient( self::AFFECTED_USERS_TRANSIENT );
+
+		if ( 'yes' === $cached || 'no' === $cached ) {
+			return 'yes' === $cached;
+		}
+
+		$args = array(
+			'blog_id'      => 0,
+			'meta_key'     => self::SECRET_NETWORK_META_KEY, // phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_meta_key -- Single-row lookup, result cached.
+			'meta_compare' => 'EXISTS',
+			'number'       => 1,
+			'fields'       => 'ID',
+			'count_total'  => false,
+		);
+
+		if ( Two_Factor_Secrets::is_api_present() ) {
+			if ( is_multisite() ) {
+				$args['meta_value']   = (string) get_current_network_id(); // phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_meta_value -- Single-row lookup, result cached.
+				$args['meta_compare'] = '!=';
+				$affected             = ! empty( get_users( $args ) );
+			} else {
+				$affected = false;
+			}
+		} else {
+			$affected = ! empty( get_users( $args ) );
+		}
+
+		set_site_transient( self::AFFECTED_USERS_TRANSIENT, $affected ? 'yes' : 'no', self::AFFECTED_USERS_CACHE_TTL );
+
+		return $affected;
+	}
+
+	/**
+	 * Forget the cached affected-users result.
+	 *
+	 * @since 0.18.0
+	 *
+	 * @return void
+	 */
+	public static function clear_affected_users_cache() {
+		delete_site_transient( self::AFFECTED_USERS_TRANSIENT );
+	}
+
+	/**
+	 * Warn administrators that some users' authenticator secrets are unreachable.
+	 *
+	 * @since 0.18.0
+	 *
+	 * @return void
+	 */
+	public static function admin_notice_secrets_api_missing() {
+		$capability = is_network_admin() ? 'manage_network_options' : 'manage_options';
+
+		if ( ! current_user_can( $capability ) || ! self::has_affected_users() ) {
+			return;
+		}
+
+		wp_admin_notice(
+			sprintf(
+				/* translators: 1: WP-CLI export command, 2: WP-CLI migrate command. */
+				esc_html__( 'Authenticator app secrets for one or more users were stored with the WordPress Secrets API, which is no longer available on this site. Those users cannot use their authenticator app until it is restored. Re-activate the Secrets API, or run %1$s before removing it and %2$s after restoring it.', 'two-factor' ),
+				'<code>wp two-factor secrets export</code>',
+				'<code>wp two-factor secrets migrate</code>'
+			),
+			array(
+				'type'        => 'error',
+				'dismissible' => false,
+			)
+		);
+	}
+
+	/**
+	 * Register the Site Health test for TOTP secret storage.
+	 *
+	 * @since 0.18.0
+	 *
+	 * @param array $tests Site Health tests.
+	 *
+	 * @return array
+	 */
+	public static function register_site_health_test( $tests ) {
+		$tests['direct']['two_factor_totp_secret_storage'] = array(
+			'label' => __( 'Authenticator app secret storage', 'two-factor' ),
+			'test'  => array( __CLASS__, 'site_health_secret_storage' ),
+		);
+
+		return $tests;
+	}
+
+	/**
+	 * Whether any user still has a plaintext TOTP secret in user meta.
+	 *
+	 * Not cached.
+	 *
+	 * @since 0.18.0
+	 *
+	 * @return bool
+	 */
+	public static function has_plaintext_users() {
+		$users = get_users(
+			array(
+				'blog_id'      => 0,
+				'meta_key'     => self::SECRET_META_KEY, // phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_meta_key -- Single-row lookup for Site Health.
+				'meta_value'   => '', // phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_meta_value -- Single-row lookup for Site Health.
+				'meta_compare' => '!=',
+				'number'       => 1,
+				'fields'       => 'ID',
+				'count_total'  => false,
+			)
+		);
+
+		return ! empty( $users );
+	}
+
+	/**
+	 * Site Health test result for TOTP secret storage.
+	 *
+	 * @since 0.18.0
+	 *
+	 * @return array
+	 */
+	public static function site_health_secret_storage() {
+		$result = array(
+			'label'       => '',
+			'status'      => 'good',
+			'badge'       => array(
+				'label' => __( 'Security', 'two-factor' ),
+				'color' => 'blue',
+			),
+			'description' => '',
+			'actions'     => '',
+			'test'        => 'two_factor_totp_secret_storage',
+		);
+
+		if ( self::has_affected_users() ) {
+			$result['label']          = __( 'Some authenticator app secrets are unavailable', 'two-factor' );
+			$result['status']         = 'critical';
+			$result['badge']['color'] = 'red';
+			$result['description']    = sprintf(
+				'<p>%s</p>',
+				sprintf(
+					/* translators: %s: WP-CLI export command. */
+					esc_html__( 'Some users\' authenticator app secrets were stored with the WordPress Secrets API, which this site cannot currently reach. Those users cannot use their authenticator app. Re-activate the Secrets API, or run %s before deactivating it.', 'two-factor' ),
+					'<code>wp two-factor secrets export</code>'
+				)
+			);
+
+			return $result;
+		}
+
+		if ( ! Two_Factor_Secrets::is_api_present() ) {
+			$result['label']       = __( 'Authenticator app secrets are stored in user meta', 'two-factor' );
+			$result['description'] = sprintf(
+				'<p>%s</p>',
+				esc_html__( 'TOTP secrets are stored in user meta; the WordPress Secrets API, when available, will be used automatically.', 'two-factor' )
+			);
+
+			return $result;
+		}
+
+		if ( ! self::has_plaintext_users() ) {
+			$result['label']       = __( 'Authenticator app secrets are stored securely', 'two-factor' );
+			$result['description'] = sprintf(
+				'<p>%s</p>',
+				sprintf(
+					/* translators: %s: name of the secrets storage provider. */
+					esc_html__( 'Authenticator app secrets are stored with the WordPress Secrets API (%s).', 'two-factor' ),
+					esc_html( Two_Factor_Secrets::provider_label() )
+				)
+			);
+
+			return $result;
+		}
+
+		if ( Two_Factor_Secrets::can_write() ) {
+			$result['label']          = __( 'Some authenticator app secrets are not yet migrated', 'two-factor' );
+			$result['status']         = 'recommended';
+			$result['badge']['color'] = 'orange';
+			$result['description']    = sprintf(
+				'<p>%s</p>',
+				sprintf(
+					/* translators: %s: WP-CLI migrate command. */
+					esc_html__( 'Some authenticator app secrets are still stored in user meta. They move to the WordPress Secrets API when those users next log in, or you can run %s to migrate them all now.', 'two-factor' ),
+					'<code>wp two-factor secrets migrate</code>'
+				)
+			);
+
+			return $result;
+		}
+
+		$result['label']       = __( 'Authenticator app secrets remain in user meta', 'two-factor' );
+		$result['description'] = sprintf(
+			'<p>%s</p>',
+			esc_html__( 'Migration to the WordPress Secrets API is disabled by the two_factor_use_secrets_api filter or a read-only secrets provider, so authenticator app secrets remain in user meta.', 'two-factor' )
+		);
+
+		return $result;
+	}
+
+	/**
+	 * Count users by where their TOTP key is stored.
+	 *
+	 * @since 0.18.0
+	 *
+	 * @return array{plaintext: int, migrated: int, affected: int}
+	 */
+	public static function count_users_by_storage() {
+		$count = function ( $meta_key, $compare, $value = null ) {
+			$args = array(
+				'blog_id'      => 0,
+				'fields'       => 'ID',
+				'number'       => 1,
+				'count_total'  => true,
+				'meta_key'     => $meta_key, // phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_meta_key -- CLI reporting.
+				'meta_compare' => $compare,
+			);
+
+			if ( null !== $value ) {
+				$args['meta_value'] = $value; // phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_meta_value -- CLI reporting.
+			}
+
+			$query = new WP_User_Query( $args );
+
+			return (int) $query->get_total();
+		};
+
+		$affected = Two_Factor_Secrets::is_api_present()
+			? $count( self::SECRET_NETWORK_META_KEY, '!=', (string) get_current_network_id() )
+			: $count( self::SECRET_NETWORK_META_KEY, 'EXISTS' );
+
+		return array(
+			'plaintext' => $count( self::SECRET_META_KEY, '!=', '' ),
+			'migrated'  => $count( self::SECRET_NETWORK_META_KEY, 'EXISTS' ),
+			'affected'  => $affected,
+		);
+	}
+
+	/**
+	 * Get where a user's TOTP key is stored.
+	 *
+	 * Never migrates.
+	 *
+	 * @since 0.18.0
+	 *
+	 * @param int $user_id User ID.
+	 *
+	 * @return string One of 'plaintext', 'secrets-api', 'unavailable' or 'none'.
+	 */
+	public function get_user_totp_key_storage( $user_id ) {
+		if ( '' !== (string) get_user_meta( $user_id, self::SECRET_META_KEY, true ) ) {
+			return 'plaintext';
+		}
+
+		if ( '' === (string) get_user_meta( $user_id, self::SECRET_NETWORK_META_KEY, true ) ) {
+			return 'none';
+		}
+
+		$secret = Two_Factor_Secrets::get_user_secret( $user_id, self::SECRET_SLUG );
+
+		if ( is_string( $secret ) ) {
+			Two_Factor_Secrets::memzero( $secret );
+			return 'secrets-api';
+		}
+
+		return 'unavailable';
 	}
 
 	/**
@@ -537,10 +1134,20 @@ class Two_Factor_Totp extends Two_Factor_Provider {
 	 * @return bool Whether the code is valid for the user and a newer code has not been used.
 	 */
 	public function validate_code_for_user( $user, $code ) {
-		$valid_timestamp = $this->get_authcode_valid_ticktime(
-			$this->get_user_totp_key( $user->ID ),
-			$code
-		);
+		$key = $this->get_user_totp_key_state( $user->ID );
+
+		if ( is_wp_error( $key ) ) {
+			$this->report_unavailable( $user->ID, $key );
+			return false;
+		}
+
+		if ( null === $key || '' === $key ) {
+			return false;
+		}
+
+		$valid_timestamp = $this->get_authcode_valid_ticktime( $key, $code );
+
+		Two_Factor_Secrets::memzero( $key );
 
 		if ( ! $valid_timestamp ) {
 			return false;
@@ -758,10 +1365,67 @@ class Two_Factor_Totp extends Two_Factor_Provider {
 	 * @return boolean
 	 */
 	public function is_available_for_user( $user ) {
-		// Only available if the secret key has been saved for the user.
-		$key = $this->get_user_totp_key( $user->ID );
+		// Available if a plaintext key is saved, or the key lives in a Secrets API network we can reach.
+		if ( '' !== (string) get_user_meta( $user->ID, self::SECRET_META_KEY, true ) ) {
+			return true;
+		}
 
-		return ! empty( $key );
+		$marker = (string) get_user_meta( $user->ID, self::SECRET_NETWORK_META_KEY, true );
+
+		return '' !== $marker
+			&& Two_Factor_Secrets::is_api_present()
+			&& get_current_network_id() === (int) $marker;
+	}
+
+	/**
+	 * Whether the user enrolled this provider but the stored key cannot currently be used.
+	 *
+	 * True when the key lives in the Secrets API and the API is missing, or the key belongs to a
+	 * different network. Does not decrypt anything.
+	 *
+	 * @since 0.18.0
+	 *
+	 * @param WP_User $user WP_User object of the user.
+	 *
+	 * @return boolean
+	 */
+	public function is_enrolled_but_unavailable_for_user( $user ) {
+		if ( '' !== (string) get_user_meta( $user->ID, self::SECRET_META_KEY, true ) ) {
+			return false;
+		}
+
+		$marker = (string) get_user_meta( $user->ID, self::SECRET_NETWORK_META_KEY, true );
+
+		if ( '' === $marker ) {
+			return false;
+		}
+
+		return ! Two_Factor_Secrets::is_api_present() || get_current_network_id() !== (int) $marker;
+	}
+
+	/**
+	 * Announce that a user's stored secret cannot be used.
+	 *
+	 * @since 0.18.0
+	 *
+	 * @param int      $user_id User ID.
+	 * @param WP_Error $error   Why the secret is unavailable.
+	 *
+	 * @return void
+	 */
+	private function report_unavailable( $user_id, WP_Error $error ) {
+		/**
+		 * Fires when a user's TOTP secret exists but cannot be read.
+		 *
+		 * Neither the secret nor its plaintext is passed to listeners.
+		 *
+		 * @since 0.18.0
+		 *
+		 * @param int      $user_id User ID.
+		 * @param string   $slug    Secret slug, "totp".
+		 * @param WP_Error $error   Why the secret is unavailable.
+		 */
+		do_action( 'two_factor_secret_unavailable', (int) $user_id, self::SECRET_SLUG, $error );
 	}
 
 	/**
@@ -775,10 +1439,31 @@ class Two_Factor_Totp extends Two_Factor_Provider {
 	 */
 	public function authentication_page( $user ) {
 		require_once ABSPATH . '/wp-admin/includes/template.php';
+
+		$state = $this->get_user_totp_key_state( $user->ID );
+
+		if ( is_wp_error( $state ) ) {
+			$this->report_unavailable( $user->ID, $state );
+		} elseif ( is_string( $state ) ) {
+			Two_Factor_Secrets::memzero( $state );
+		}
 		?>
 		<?php
 		/** This action is documented in providers/class-two-factor-backup-codes.php */
 		do_action( 'two_factor_before_authentication_prompt', $this );
+
+		if ( is_wp_error( $state ) ) {
+			/** This action is documented in providers/class-two-factor-backup-codes.php */
+			do_action( 'two_factor_after_authentication_prompt', $this );
+			?>
+			<p class="two-factor-prompt two-factor-totp-unavailable">
+				<?php esc_html_e( 'Your authenticator app secret is currently unavailable on this site. Please use another method, such as a recovery code, or contact a site administrator.', 'two-factor' ); ?>
+			</p>
+			<?php
+			/** This action is documented in providers/class-two-factor-backup-codes.php */
+			do_action( 'two_factor_after_authentication_input', $this );
+			return;
+		}
 		?>
 		<p class="two-factor-prompt">
 			<?php esc_html_e( 'Enter the code generated by your authenticator app.', 'two-factor' ); ?>
@@ -890,6 +1575,47 @@ class Two_Factor_Totp extends Two_Factor_Provider {
 	}
 
 	/**
+	 * Delete every user's TOTP secret held in the Secrets API during plugin uninstall.
+	 *
+	 * When the Secrets API is absent at uninstall time the secrets are orphaned in the store, which
+	 * is acceptable because they cannot be reached from here.
+	 *
+	 * @since 0.18.0
+	 *
+	 * @return void
+	 */
+	public static function uninstall_user_data() {
+		if ( ! Two_Factor_Secrets::is_api_present() ) {
+			return;
+		}
+
+		$seen = array();
+
+		do {
+			// The marker is removed with each secret, so the same offset always yields the next page.
+			$user_ids = ( new WP_User_Query(
+				array(
+					'blog_id'      => 0,
+					'fields'       => 'ID',
+					'number'       => 100,
+					'offset'       => 0,
+					'orderby'      => 'ID',
+					'meta_key'     => self::SECRET_NETWORK_META_KEY, // phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_meta_key -- Uninstall only.
+					'meta_compare' => 'EXISTS',
+					'count_total'  => false,
+				)
+			) )->get_results();
+
+			$new_ids = array_diff( array_map( 'intval', $user_ids ), $seen );
+
+			foreach ( $new_ids as $user_id ) {
+				$seen[] = $user_id;
+				Two_Factor_Secrets::delete_user_secret( $user_id, self::SECRET_SLUG );
+			}
+		} while ( ! empty( $new_ids ) );
+	}
+
+	/**
 	 * Return user meta keys to delete during plugin uninstall.
 	 *
 	 * @since 0.10.0
@@ -899,6 +1625,7 @@ class Two_Factor_Totp extends Two_Factor_Provider {
 	public static function uninstall_user_meta_keys() {
 		return array(
 			self::SECRET_META_KEY,
+			self::SECRET_NETWORK_META_KEY,
 			self::LAST_SUCCESSFUL_LOGIN_META_KEY,
 		);
 	}

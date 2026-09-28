@@ -211,4 +211,32 @@ abstract class Two_Factor_Provider {
 	public static function uninstall_options() {
 		return array();
 	}
+
+	/**
+	 * Whether the user has enrolled this provider but its stored credential cannot currently be used.
+	 *
+	 * True when the user has enrolled this provider but its stored credential cannot currently be used,
+	 * for example because an external store is unavailable; core then forces the fallback provider
+	 * instead of dropping to single factor.
+	 *
+	 * @since 0.18.0
+	 *
+	 * @param WP_User $user WP_User object of the user.
+	 * @return bool
+	 */
+	public function is_enrolled_but_unavailable_for_user( $user ) { // phpcs:ignore Generic.CodeAnalysis.UnusedFunctionParameter.Found -- Base implementation keeps the provider interface signature but does not use the user.
+		return false;
+	}
+
+	/**
+	 * Delete per-user data held outside user meta.
+	 *
+	 * Called once during uninstall before user meta is deleted so implementations can still use
+	 * their own meta to find affected users.
+	 *
+	 * @since 0.18.0
+	 *
+	 * @return void
+	 */
+	public static function uninstall_user_data() {}
 }

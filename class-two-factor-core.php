@@ -195,6 +195,9 @@ class Two_Factor_Core {
 	/**
 	 * Delete all plugin data on uninstall.
 	 *
+	 * Secrets held in the Secrets API are removed by the providers, but are orphaned in the store
+	 * if the Secrets API is absent when the plugin is uninstalled.
+	 *
 	 * @since 0.10.0
 	 *
 	 * @return void
@@ -233,6 +236,14 @@ class Two_Factor_Core {
 						$user_meta_keys,
 						call_user_func( array( $provider_class, 'uninstall_user_meta_keys' ) )
 					);
+				} catch ( Exception $e ) { // phpcs:ignore Generic.CodeAnalysis.EmptyStatement.DetectedCatch -- Intentionally empty, provider may not implement this method.
+				}
+			}
+
+			// Let the provider delete per-user data held outside user meta, while its own meta still exists.
+			if ( method_exists( $provider_class, 'uninstall_user_data' ) ) {
+				try {
+					call_user_func( array( $provider_class, 'uninstall_user_data' ) );
 				} catch ( Exception $e ) { // phpcs:ignore Generic.CodeAnalysis.EmptyStatement.DetectedCatch -- Intentionally empty, provider may not implement this method.
 				}
 			}
@@ -755,41 +766,10 @@ class Two_Factor_Core {
 			$still_registered = array_intersect( $stored_providers, array_keys( $providers ) );
 
 			if ( empty( $still_registered ) ) {
-				/**
-				 * Filter the provider forced on when none of a user's stored providers are still registered.
-				 *
-				 * Returning a key that is not registered, or that the provider itself reports as unavailable
-				 * for this user, is treated as "no fallback": the method returns a `no_available_2fa_methods`
-				 * WP_Error rather than allowing the user through with one factor.
-				 *
-				 * The returned provider must be usable without any prior per-user setup (like the email
-				 * provider is), since the user has no working provider left to configure it through:
-				 *
-				 *     add_filter( 'two_factor_fallback_provider_for_user', function() {
-				 *         return 'Two_Factor_Backup_Codes'; // Wrong: requires codes to already be generated.
-				 *     } );
-				 *
-				 * A fallback that is not already available for the user resolves to the WP_Error branch,
-				 * not to a silent single-factor login.
-				 *
-				 * @since 0.17.0
-				 *
-				 * @param string   $fallback_provider Provider key to force on. Default 'Two_Factor_Email'.
-				 * @param int      $user_id           The user ID.
-				 * @param string[] $stored_providers  Provider keys stored for the user, none of which are registered.
-				 */
-				$fallback_provider = apply_filters(
-					'two_factor_fallback_provider_for_user',
-					'Two_Factor_Email',
-					$user->ID,
-					$stored_providers
-				);
+				$fallback_filtered = null;
+				$fallback_provider = self::resolve_fallback_provider_for_user( $user, $providers, $stored_providers, $fallback_filtered );
 
-				if (
-					is_string( $fallback_provider )
-					&& isset( $providers[ $fallback_provider ] )
-					&& $providers[ $fallback_provider ]->is_available_for_user( $user )
-				) {
+				if ( null !== $fallback_provider ) {
 					// Force the fallback provider to 'on'.
 					$enabled_providers[] = $fallback_provider;
 				} else {
@@ -801,7 +781,7 @@ class Two_Factor_Core {
 						array(
 							'user_providers_raw'  => $stored_providers,
 							'available_providers' => array_keys( $providers ),
-							'fallback_provider'   => $fallback_provider,
+							'fallback_provider'   => $fallback_filtered,
 						)
 					);
 				}
@@ -814,7 +794,95 @@ class Two_Factor_Core {
 			}
 		}
 
+		/**
+		 * A provider the user enrolled can be unusable right now (for example when its secret store is
+		 * unavailable). Dropping it would leave the user with no second factor, so force the fallback
+		 * provider on, or fail closed when there is none.
+		 */
+		if ( empty( $configured_providers ) && ! empty( $enabled_providers ) ) {
+			$unavailable_providers = array();
+
+			foreach ( $enabled_providers as $provider_key ) {
+				if ( isset( $providers[ $provider_key ] ) && $providers[ $provider_key ]->is_enrolled_but_unavailable_for_user( $user ) ) {
+					$unavailable_providers[] = $provider_key;
+				}
+			}
+
+			if ( ! empty( $unavailable_providers ) ) {
+				$fallback_filtered = null;
+				$fallback_provider = self::resolve_fallback_provider_for_user( $user, $providers, $unavailable_providers, $fallback_filtered );
+
+				if ( null === $fallback_provider ) {
+					return new WP_Error(
+						'no_available_2fa_methods',
+						__( 'Error: Your two-factor method is currently unavailable and no fallback method could be used. Please contact a site administrator for assistance.', 'two-factor' ),
+						array(
+							'user_providers_raw'    => $stored_providers,
+							'available_providers'   => array_keys( $providers ),
+							'fallback_provider'     => $fallback_filtered,
+							'unavailable_providers' => $unavailable_providers,
+						)
+					);
+				}
+
+				$configured_providers[ $fallback_provider ] = $providers[ $fallback_provider ];
+			}
+		}
+
 		return $configured_providers;
+	}
+
+	/**
+	 * Resolve the fallback provider to force on for a user.
+	 *
+	 * @since 0.18.0
+	 *
+	 * @param WP_User  $user             The user.
+	 * @param array    $providers        Registered provider instances indexed by key.
+	 * @param string[] $stored_providers Provider keys stored for the user.
+	 * @param mixed    $filtered         Optional. Receives the raw value returned by the fallback filter.
+	 * @return string|null The fallback provider key, or null when it is not a registered, available provider.
+	 */
+	private static function resolve_fallback_provider_for_user( WP_User $user, array $providers, array $stored_providers, &$filtered = null ) {
+		/**
+		 * Filter the provider forced on when none of a user's stored providers are still registered.
+		 *
+		 * Returning a key that is not registered, or that the provider itself reports as unavailable
+		 * for this user, is treated as "no fallback": the method returns a `no_available_2fa_methods`
+		 * WP_Error rather than allowing the user through with one factor.
+		 *
+		 * The returned provider must be usable without any prior per-user setup (like the email
+		 * provider is), since the user has no working provider left to configure it through:
+		 *
+		 *     add_filter( 'two_factor_fallback_provider_for_user', function() {
+		 *         return 'Two_Factor_Backup_Codes'; // Wrong: requires codes to already be generated.
+		 *     } );
+		 *
+		 * A fallback that is not already available for the user resolves to the WP_Error branch,
+		 * not to a silent single-factor login.
+		 *
+		 * @since 0.17.0
+		 *
+		 * @param string   $fallback_provider Provider key to force on. Default 'Two_Factor_Email'.
+		 * @param int      $user_id           The user ID.
+		 * @param string[] $stored_providers  Provider keys stored for the user, none of which are registered.
+		 */
+		$filtered = apply_filters(
+			'two_factor_fallback_provider_for_user',
+			'Two_Factor_Email',
+			$user->ID,
+			$stored_providers
+		);
+
+		if (
+			is_string( $filtered )
+			&& isset( $providers[ $filtered ] )
+			&& $providers[ $filtered ]->is_available_for_user( $user )
+		) {
+			return $filtered;
+		}
+
+		return null;
 	}
 
 	/**

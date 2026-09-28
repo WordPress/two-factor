@@ -9,7 +9,9 @@ parameters:
 		- providers
 		- settings
 		- class-two-factor-compat.php
+		- class-two-factor-secrets.php
 		- class-two-factor-core.php
 		- two-factor.php
 	scanFiles:
 		- vendor/php-stubs/wp-cli-stubs/wp-cli-stubs.php
+		- tests/phpstan/secrets-api-stubs.php

@@ -28,6 +28,15 @@ class Two_Factor_CLI_Command extends WP_CLI_Command {
 	const BACKUP_CODES_MAX_GENERATE_COUNT = 100;
 
 	/**
+	 * Default number of users processed per batch by the secrets migrate and export commands.
+	 *
+	 * @since 0.18.0
+	 *
+	 * @var int
+	 */
+	const SECRETS_DEFAULT_BATCH_SIZE = 100;
+
+	/**
 	 * Resolve a user from an ID, login, or email address.
 	 *
 	 * Resolution order is ID, then login, then email.
@@ -125,6 +134,11 @@ class Two_Factor_CLI_Command extends WP_CLI_Command {
 			$backup_codes_remaining = Two_Factor_Backup_Codes::codes_remaining_for_user( $user );
 		}
 
+		$totp_storage = 'none';
+		if ( class_exists( 'Two_Factor_Totp' ) ) {
+			$totp_storage = Two_Factor_Totp::get_instance()->get_user_totp_key_storage( $user->ID );
+		}
+
 		$items = array(
 			array(
 				'user_id'                => $user->ID,
@@ -133,6 +147,7 @@ class Two_Factor_CLI_Command extends WP_CLI_Command {
 				'primary_provider'       => $primary ? $primary->get_key() : '',
 				'enabled_providers'      => implode( ', ', $enabled_providers ),
 				'backup_codes_remaining' => $backup_codes_remaining,
+				'totp_storage'           => $totp_storage,
 			),
 		);
 
@@ -140,7 +155,7 @@ class Two_Factor_CLI_Command extends WP_CLI_Command {
 		WP_CLI\Utils\format_items(
 			$format,
 			$items,
-			array( 'user_id', 'user_login', 'using_2fa', 'primary_provider', 'enabled_providers', 'backup_codes_remaining' )
+			array( 'user_id', 'user_login', 'using_2fa', 'primary_provider', 'enabled_providers', 'backup_codes_remaining', 'totp_storage' )
 		);
 	}
 
@@ -708,5 +723,347 @@ class Two_Factor_CLI_Command extends WP_CLI_Command {
 				)
 			);
 		}
+	}
+
+	/**
+	 * Inspect and manage where authenticator app secrets are stored.
+	 *
+	 * ## OPTIONS
+	 *
+	 * <action>
+	 * : Action to perform. Supported: status, migrate, export.
+	 *
+	 * [--user=<user>]
+	 * : For migrate and export, only handle this user (ID, login, or email).
+	 *
+	 * [--batch-size=<n>]
+	 * : For migrate and export, number of users to process per batch. Defaults to 100.
+	 *
+	 * [--dry-run]
+	 * : For migrate, report what would be migrated without changing anything.
+	 *
+	 * [--yes]
+	 * : For export, skip the confirmation prompt.
+	 *
+	 * [--format=<format>]
+	 * : Output format for status.
+	 * ---
+	 * default: table
+	 * options:
+	 *   - table
+	 *   - json
+	 *   - csv
+	 *   - yaml
+	 * ---
+	 *
+	 * ## EXAMPLES
+	 *
+	 *     # Show Secrets API availability and user counts
+	 *     $ wp two-factor secrets status
+	 *
+	 *     # Move all plaintext authenticator app secrets into the Secrets API
+	 *     $ wp two-factor secrets migrate
+	 *
+	 *     # Preview the migration
+	 *     $ wp two-factor secrets migrate --dry-run
+	 *
+	 *     # Move all secrets back into user meta before removing the Secrets API.
+	 *     # Opt out of the Secrets API first (return false from the
+	 *     # two_factor_use_secrets_api filter), otherwise reads migrate the
+	 *     # secrets straight back. Deactivate the Secrets API afterwards.
+	 *     $ wp two-factor secrets export --yes
+	 *
+	 * @since 0.18.0
+	 *
+	 * @param array $args       Positional arguments: action.
+	 * @param array $assoc_args Associative arguments.
+	 */
+	public function secrets( $args, $assoc_args ) {
+		$action = isset( $args[0] ) ? $args[0] : '';
+
+		switch ( $action ) {
+			case 'status':
+				$this->secrets_status( $assoc_args );
+				break;
+
+			case 'migrate':
+				$this->secrets_migrate( $assoc_args );
+				break;
+
+			case 'export':
+				$this->secrets_export( $assoc_args );
+				break;
+
+			default:
+				WP_CLI::error(
+					sprintf(
+						/* translators: %s: provided action */
+						__( 'Unknown action "%s". Use: wp two-factor secrets <status|migrate|export>', 'two-factor' ),
+						(string) $action
+					)
+				);
+		}
+	}
+
+	/**
+	 * Report Secrets API availability and how many users are in each storage state.
+	 *
+	 * @since 0.18.0
+	 *
+	 * @param array $assoc_args Associative arguments.
+	 */
+	private function secrets_status( $assoc_args ) {
+		$counts = Two_Factor_Totp::count_users_by_storage();
+
+		$items = array(
+			array(
+				'api_present'     => Two_Factor_Secrets::is_api_present() ? 'true' : 'false',
+				'provider'        => Two_Factor_Secrets::provider_label(),
+				'writable'        => Two_Factor_Secrets::is_provider_writable() ? 'true' : 'false',
+				'filter_enabled'  => (bool) apply_filters( 'two_factor_use_secrets_api', true, 0 ) ? 'true' : 'false',
+				'plaintext_users' => $counts['plaintext'],
+				'migrated_users'  => $counts['migrated'],
+				'affected_users'  => $counts['affected'],
+			),
+		);
+
+		$format = WP_CLI\Utils\get_flag_value( $assoc_args, 'format', 'table' );
+		WP_CLI\Utils\format_items(
+			$format,
+			$items,
+			array( 'api_present', 'provider', 'writable', 'filter_enabled', 'plaintext_users', 'migrated_users', 'affected_users' )
+		);
+	}
+
+	/**
+	 * Parse the --batch-size flag.
+	 *
+	 * @since 0.18.0
+	 *
+	 * @param array $assoc_args Associative arguments.
+	 * @return int
+	 */
+	private function get_secrets_batch_size( $assoc_args ) {
+		$raw = WP_CLI\Utils\get_flag_value( $assoc_args, 'batch-size', (string) self::SECRETS_DEFAULT_BATCH_SIZE );
+
+		if ( ! is_scalar( $raw ) || ! preg_match( '/^\d+$/', trim( (string) $raw ) ) || (int) trim( (string) $raw ) < 1 ) {
+			WP_CLI::error(
+				sprintf(
+					/* translators: %s: provided batch size */
+					__( 'Invalid value for --batch-size: %s. It must be a decimal integer of at least 1.', 'two-factor' ),
+					wp_json_encode( $raw )
+				)
+			);
+		}
+
+		return (int) trim( (string) $raw );
+	}
+
+	/**
+	 * Migrate plaintext TOTP secrets into the Secrets API.
+	 *
+	 * @since 0.18.0
+	 *
+	 * @param array $assoc_args Associative arguments.
+	 */
+	private function secrets_migrate( $assoc_args ) {
+		$batch   = $this->get_secrets_batch_size( $assoc_args );
+		$dry_run = (bool) WP_CLI\Utils\get_flag_value( $assoc_args, 'dry-run', false );
+
+		if ( ! Two_Factor_Secrets::can_write() ) {
+			WP_CLI::error( __( 'The Secrets API is not available for writing (missing, read-only, or disabled by the two_factor_use_secrets_api filter). Nothing was migrated.', 'two-factor' ) );
+		}
+
+		$totp     = Two_Factor_Totp::get_instance();
+		$migrated = 0;
+		$failed   = 0;
+		$skipped  = 0;
+
+		$migrate_one = function ( $user_id ) use ( $totp, $dry_run, &$migrated, &$failed, &$skipped ) {
+			if ( $dry_run ) {
+				WP_CLI::log( sprintf( 'Would migrate user %d', $user_id ) );
+				++$skipped;
+				return 'skipped';
+			}
+
+			$result = $totp->migrate_user_totp_key( $user_id );
+
+			if ( true === $result ) {
+				++$migrated;
+				return 'migrated';
+			}
+
+			if ( is_wp_error( $result ) ) {
+				++$failed;
+				WP_CLI::warning( sprintf( 'User %d: %s', $user_id, $result->get_error_message() ) );
+				return 'failed';
+			}
+
+			++$skipped;
+			return 'skipped';
+		};
+
+		$user_identifier = WP_CLI\Utils\get_flag_value( $assoc_args, 'user', null );
+
+		if ( null !== $user_identifier ) {
+			$user = $this->resolve_user( (string) $user_identifier );
+			if ( ! $user ) {
+				WP_CLI::error(
+					sprintf(
+						/* translators: %s: user identifier */
+						__( 'User not found: %s', 'two-factor' ),
+						$user_identifier
+					)
+				);
+			}
+
+			$migrate_one( $user->ID );
+		} else {
+			$offset = 0;
+
+			do {
+				$query = new WP_User_Query(
+					array(
+						'blog_id'      => 0,
+						'fields'       => 'ID',
+						'number'       => $batch,
+						'offset'       => $offset,
+						'orderby'      => 'ID',
+						'order'        => 'ASC',
+						'meta_key'     => Two_Factor_Totp::SECRET_META_KEY, // phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_meta_key -- One-off CLI migration.
+						'meta_value'   => '', // phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_meta_value -- One-off CLI migration.
+						'meta_compare' => '!=',
+						'count_total'  => false,
+					)
+				);
+				$ids   = array_map( 'intval', $query->get_results() );
+
+				// Migrated users drop out of the result set; skipped and failed ones stay, so step past them.
+				$stayed = 0;
+				foreach ( $ids as $user_id ) {
+					if ( 'migrated' !== $migrate_one( $user_id ) ) {
+						++$stayed;
+					}
+				}
+
+				$offset += $stayed;
+			} while ( ! empty( $ids ) );
+		}
+
+		Two_Factor_Totp::clear_affected_users_cache();
+
+		$message = sprintf(
+			/* translators: 1: number migrated, 2: number failed, 3: number skipped */
+			__( 'Migrated %1$d, failed %2$d, skipped %3$d.', 'two-factor' ),
+			$migrated,
+			$failed,
+			$skipped
+		);
+
+		WP_CLI::success( $dry_run ? __( 'Dry run: ', 'two-factor' ) . $message : $message );
+	}
+
+	/**
+	 * Export TOTP secrets from the Secrets API back into user meta.
+	 *
+	 * @since 0.18.0
+	 *
+	 * @param array $assoc_args Associative arguments.
+	 */
+	private function secrets_export( $assoc_args ) {
+		$batch = $this->get_secrets_batch_size( $assoc_args );
+
+		if ( ! Two_Factor_Secrets::is_api_present() ) {
+			WP_CLI::error( __( 'The Secrets API is not available; there is nothing to read the secrets from.', 'two-factor' ) );
+		}
+
+		WP_CLI::confirm( __( 'This will store authenticator app (TOTP) secrets unencrypted in user meta. Continue?', 'two-factor' ), $assoc_args );
+
+		$totp     = Two_Factor_Totp::get_instance();
+		$exported = 0;
+		$errors   = 0;
+		$skipped  = 0;
+
+		$export_one = function ( $user_id ) use ( $totp, &$exported, &$errors, &$skipped ) {
+			$result = $totp->export_user_totp_key( $user_id );
+
+			if ( true === $result ) {
+				++$exported;
+				return 'exported';
+			}
+
+			if ( is_wp_error( $result ) ) {
+				++$errors;
+				WP_CLI::warning(
+					sprintf(
+						'User %d: secret is unreadable and was left untouched (%s).',
+						$user_id,
+						$result->get_error_code()
+					)
+				);
+				return 'error';
+			}
+
+			++$skipped;
+			return 'skipped';
+		};
+
+		$user_identifier = WP_CLI\Utils\get_flag_value( $assoc_args, 'user', null );
+
+		if ( null !== $user_identifier ) {
+			$user = $this->resolve_user( (string) $user_identifier );
+			if ( ! $user ) {
+				WP_CLI::error(
+					sprintf(
+						/* translators: %s: user identifier */
+						__( 'User not found: %s', 'two-factor' ),
+						$user_identifier
+					)
+				);
+			}
+
+			$export_one( $user->ID );
+		} else {
+			$offset = 0;
+
+			do {
+				$query = new WP_User_Query(
+					array(
+						'blog_id'      => 0,
+						'fields'       => 'ID',
+						'number'       => $batch,
+						'offset'       => $offset,
+						'orderby'      => 'ID',
+						'order'        => 'ASC',
+						'meta_key'     => Two_Factor_Totp::SECRET_NETWORK_META_KEY, // phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_meta_key -- One-off CLI export.
+						'meta_compare' => 'EXISTS',
+						'count_total'  => false,
+					)
+				);
+				$ids   = array_map( 'intval', $query->get_results() );
+
+				// Exported users lose their marker and drop out; step past the ones that stayed.
+				$stayed = 0;
+				foreach ( $ids as $user_id ) {
+					if ( 'exported' !== $export_one( $user_id ) ) {
+						++$stayed;
+					}
+				}
+
+				$offset += $stayed;
+			} while ( ! empty( $ids ) );
+		}
+
+		Two_Factor_Totp::clear_affected_users_cache();
+
+		WP_CLI::success(
+			sprintf(
+				/* translators: 1: number exported, 2: number unreadable, 3: number skipped */
+				__( 'Exported %1$d, unreadable %2$d, skipped %3$d.', 'two-factor' ),
+				$exported,
+				$errors,
+				$skipped
+			)
+		);
 	}
 }

@@ -15,6 +15,7 @@
 	<testsuites>
 		<testsuite name="multisite">
 			<directory suffix=".php">tests</directory>
+			<exclude>tests/phpstan</exclude>
 		</testsuite>
 	</testsuites>
 
@@ -26,6 +27,7 @@
 			<directory suffix=".php">settings</directory>
 			<file>class-two-factor-compat.php</file>
 			<file>class-two-factor-core.php</file>
+			<file>class-two-factor-secrets.php</file>
 			<file>two-factor.php</file>
 			<exclude>
 				<file>includes/function.login-footer.php</file>
