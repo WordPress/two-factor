@@ -5,18 +5,47 @@ The test suite uses PHPUnit and runs inside the Docker-based `@wordpress/env` en
 ## Running Tests
 
 ```bash
-# Full test suite
+# Full test suite: every test:* script, single site then multisite
 npm test
 
+# One suite at a time
+npm run test:single
+npm run test:multisite
+
 # Watch mode (re-runs on file changes, no coverage)
-npm run test:watch
+npm run test-watch:single
+npm run test-watch:multisite
 
 # Full test suite with coverage (requires xdebug-enabled env)
 npm run env start -- --xdebug=coverage
 npm test
 ```
 
-Coverage reports are written to `tests/logs/clover.xml` and `tests/logs/html/`. Open `tests/logs/html/index.html` in a browser to view the HTML report.
+Each suite writes its own coverage reports, so neither overwrites the other: single site to `tests/logs/clover.xml` and `tests/logs/html/`, multisite to `tests/logs/clover-multisite.xml` and `tests/logs/html-multisite/`. Open the `index.html` inside either HTML directory to view that suite's report.
+
+The coverage whitelist is duplicated between `phpunit.xml.dist` and `phpunit-multisite.xml` because PHPUnit has no mechanism for sharing that block; keep the two in sync when adding source directories. CI uploads both Clover reports to Codecov, which merges them — the multisite suite is the only one that reaches the `is_multisite()` branches.
+
+### Multisite
+
+`npm test` is `npm-run-all test:*`, so it runs `test:single` and then `test:multisite` (`phpunit-multisite.xml`) in sequence. To run just one:
+
+```bash
+npm run test:single
+npm run test:multisite
+```
+
+The watch scripts are deliberately named `test-watch:*` rather than `test:watch-*` so the `test:*` glob does not match them — otherwise `npm test` would launch a watcher and never exit. A single watcher process cannot drive both configs, so there is one script per suite:
+
+```bash
+npm run test-watch:single
+npm run test-watch:multisite
+```
+
+Run the suites sequentially, not concurrently. Two simultaneous `wp-env run` invocations race on wp-env's own initialization and can leave the environment needing `npm run env start` again. To overlap them, start both PHPUnit processes inside a single container invocation instead.
+
+Both suites share the one `tests-wordpress` database, and multisite needs extra columns on `wp_users` (`spam`, `deleted`) that single site does not have. The multisite config therefore isolates its tables behind a separate prefix via `WORDPRESS_TABLE_PREFIX` (see `phpunit-multisite.xml`), so the two schemas can coexist and the suites can run in either order. Without that, whichever suite ran second would fail against the other's schema.
+
+Tests that depend on editing *another* user must account for `edit_users` being reserved for network super admins on multisite; the fixtures call `grant_super_admin()` under `is_multisite()` for this reason.
 
 ### Filtering
 
@@ -46,11 +75,13 @@ npm run composer -- test -- tests/providers/class-two-factor-totp.php
 ### Plugin Bootstrap — `tests/two-factor.php`
 
 **Class:** `Tests_Two_Factor`
+
 Smoke tests that the plugin loaded correctly: the `TWO_FACTOR_DIR` constant is defined and the core classes exist.
 
 ### Core — `tests/class-two-factor-core.php`
 
 **Class:** `Test_ClassTwoFactorCore` · **Group:** `core`
+
 The largest test file. Covers the full authentication lifecycle managed by `Two_Factor_Core`:
 
 - Hook registration (`add_hooks`)
@@ -69,6 +100,7 @@ The largest test file. Covers the full authentication lifecycle managed by `Two_
 ### Provider Base Class — `tests/providers/class-two-factor-provider.php`
 
 **Class:** `Tests_Two_Factor_Provider` · **Group:** `providers`
+
 Tests the abstract `Two_Factor_Provider` base class:
 
 - Singleton pattern (`get_instance`)
@@ -80,6 +112,7 @@ Tests the abstract `Two_Factor_Provider` base class:
 ### TOTP Provider — `tests/providers/class-two-factor-totp.php`
 
 **Class:** `Tests_Two_Factor_Totp` · **Groups:** `providers`, `totp`
+
 Tests `Two_Factor_Totp`:
 
 - Base32 encode/decode (including invalid input exception)
@@ -93,6 +126,7 @@ Tests `Two_Factor_Totp`:
 ### TOTP REST API — `tests/providers/class-two-factor-totp-rest-api.php`
 
 **Class:** `Tests_Two_Factor_Totp_REST_API` · **Groups:** `providers`, `totp`
+
 Extends `WP_Test_REST_TestCase`. Tests the TOTP REST endpoints:
 
 - Setting a TOTP key with a valid/invalid/missing auth code
@@ -104,6 +138,7 @@ Extends `WP_Test_REST_TestCase`. Tests the TOTP REST endpoints:
 ### Email Provider — `tests/providers/class-two-factor-email.php`
 
 **Class:** `Tests_Two_Factor_Email` · **Groups:** `providers`, `email`
+
 Tests `Two_Factor_Email`:
 
 - Token generation and validation (same user, different user, deleted token)
@@ -120,6 +155,7 @@ Tests `Two_Factor_Email`:
 ### Backup Codes Provider — `tests/providers/class-two-factor-backup-codes.php`
 
 **Class:** `Tests_Two_Factor_Backup_Codes` · **Groups:** `providers`, `backup-codes`
+
 Tests `Two_Factor_Backup_Codes`:
 
 - Code generation and validation
@@ -133,6 +169,7 @@ Tests `Two_Factor_Backup_Codes`:
 ### Backup Codes REST API — `tests/providers/class-two-factor-backup-codes-rest-api.php`
 
 **Class:** `Tests_Two_Factor_Backup_Codes_REST_API` · **Groups:** `providers`, `backup-codes`
+
 Extends `WP_Test_REST_TestCase`. Tests the backup codes REST endpoints:
 
 - Generate codes and validate the downloadable file contents
@@ -142,6 +179,7 @@ Extends `WP_Test_REST_TestCase`. Tests the backup codes REST endpoints:
 ### Dummy Provider — `tests/providers/class-two-factor-dummy.php`
 
 **Class:** `Tests_Two_Factor_Dummy` · **Groups:** `providers`, `dummy`
+
 Tests the `Two_Factor_Dummy` provider (always passes authentication — used as a test fixture):
 
 - `get_instance`, `get_label`, `authentication_page`, `validate_authentication`, `is_available_for_user`
@@ -149,6 +187,7 @@ Tests the `Two_Factor_Dummy` provider (always passes authentication — used as 
 ### Dummy Secure Provider — `tests/providers/class-two-factor-dummy-secure.php`
 
 **Class:** `Tests_Two_Factor_Dummy_Secure` · **Groups:** `providers`, `dummy`
+
 Tests `Two_Factor_Dummy_Secure` (a fixture that always _fails_ authentication, used to test the provider class name filter):
 
 - `get_key` override returns `Two_Factor_Dummy`
@@ -159,10 +198,8 @@ Tests `Two_Factor_Dummy_Secure` (a fixture that always _fails_ authentication, u
 ### WP-CLI Commands — `tests/cli/class-two-factor-cli-command.php`
 
 **Class:** `Tests_Two_Factor_CLI_Command` · **Group:** `cli`
-Tests the `Two_Factor_CLI_Command` WP-CLI command class. The WP-CLI runtime is
-not loaded during PHPUnit, so the suite loads lightweight test doubles for
-`WP_CLI`, `WP_CLI_Command`, and the `WP_CLI\Utils` helpers (see Test Helpers)
-that capture output for assertions and throw on `error()`/`confirm()`:
+
+Tests the `Two_Factor_CLI_Command` WP-CLI command class. The WP-CLI runtime is not loaded during PHPUnit, so the suite loads lightweight test doubles for `WP_CLI`, `WP_CLI_Command`, and the `WP_CLI\Utils` helpers (see Test Helpers) that capture output for assertions and throw on `error()`/`confirm()`:
 
 - User resolution by ID, login, and email; "user not found" errors
 - `status` — output for users with and without 2FA, backup-code count, `--format` passthrough
