@@ -405,9 +405,16 @@ class Two_Factor_Backup_Codes extends Two_Factor_Provider {
 	/**
 	 * Get the sanitized list of hashed backup codes for a user.
 	 *
+	 * Earlier versions could store an empty string entry in the hashed codes
+	 * list, e.g. when appending codes for a user with no existing codes. Such
+	 * entries can never match a real code and only pollute the stored list:
+	 * they inflate codes_remaining_for_user() and keep the provider offered
+	 * at login without any usable code backing it. This filters them out on
+	 * every read so the counts and availability are always accurate.
+	 *
 	 * @since 0.18.0
 	 *
-	 * @param int $user_id User object.
+	 * @param int $user_id User ID.
 	 * @return array List of hashed backup codes without empty entries.
 	 */
 	private static function get_backup_codes_for_user( int $user_id ) {
