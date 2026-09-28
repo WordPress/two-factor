@@ -370,7 +370,7 @@ class Two_Factor_Backup_Codes extends Two_Factor_Provider {
 		}
 		$codes_text .= "\r\n";
 		$codes_text .= __( 'Each code can only be used once.', 'two-factor' ) . "\r\n";
-		$codes_text .= __( 'These codes are the only way to recover your account if you lose access to your phone, authentication app, or other two-factor method.', 'two-factor' ) . "\r\n";
+		$codes_text .= __( 'These codes are the only way to recover your account if you lose access to your authentication app, or other two-factor method.', 'two-factor' ) . "\r\n";
 
 		$download_link = 'data:application/text;charset=utf-8,' . rawurlencode( $codes_text );
 
