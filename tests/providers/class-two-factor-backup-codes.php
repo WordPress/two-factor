@@ -229,13 +229,13 @@ class Tests_Two_Factor_Backup_Codes extends WP_UnitTestCase {
 	}
 
 	/**
-	 * Verify appending codes prunes pre-existing empty entries from the stored list.
+	 * Verify appending codes ignores pre-existing empty entries in the stored list.
 	 *
 	 * @covers Two_Factor_Backup_Codes::generate_codes
 	 * @covers Two_Factor_Backup_Codes::get_backup_codes_for_user
 	 * @covers Two_Factor_Backup_Codes::codes_remaining_for_user
 	 */
-	public function test_generate_codes_append_prunes_existing_empty_entries() {
+	public function test_generate_codes_append_ignores_existing_empty_entries() {
 		$user = new WP_User( self::factory()->user->create() );
 
 		$update = update_user_meta(
@@ -269,12 +269,15 @@ class Tests_Two_Factor_Backup_Codes extends WP_UnitTestCase {
 	}
 
 	/**
-	 * Verify codes_remaining_for_user() self-heals a stored list containing empty entries.
+	 * Verify codes_remaining_for_user() ignores empty entries in the stored list.
+	 *
+	 * Phantom empty entries left behind by earlier versions must not count
+	 * toward the remaining codes or keep the provider "available".
 	 *
 	 * @covers Two_Factor_Backup_Codes::codes_remaining_for_user
 	 * @covers Two_Factor_Backup_Codes::get_backup_codes_for_user
 	 */
-	public function test_codes_remaining_prunes_existing_empty_entries() {
+	public function test_codes_remaining_ignores_empty_entries() {
 		$user = new WP_User( self::factory()->user->create() );
 
 		$update = update_user_meta(
@@ -288,40 +291,65 @@ class Tests_Two_Factor_Backup_Codes extends WP_UnitTestCase {
 		);
 		$this->assertTrue( (bool) $update );
 
+		// Only the real entry counts.
 		$this->assertEquals( 1, $this->provider->codes_remaining_for_user( $user ) );
 
-		$backup_codes = get_user_meta( $user->ID, Two_Factor_Backup_Codes::BACKUP_CODES_META_KEY, true );
-
-		$this->assertIsArray( $backup_codes );
-		$this->assertEquals( array( 'valid-hash' ), $backup_codes );
+		// The provider is not available when only empty entries remain.
+		update_user_meta(
+			$user->ID,
+			Two_Factor_Backup_Codes::BACKUP_CODES_META_KEY,
+			array( '', '  ' )
+		);
+		$this->assertEquals( 0, $this->provider->codes_remaining_for_user( $user ) );
+		$this->assertFalse( $this->provider->is_available_for_user( $user ) );
 	}
 
 	/**
-	 * Verify get_backup_codes_for_user() normalizes non-array meta and empty entries.
+	 * Verify codes_remaining_for_user() handles non-array (corrupt) meta.
 	 *
+	 * @covers Two_Factor_Backup_Codes::codes_remaining_for_user
 	 * @covers Two_Factor_Backup_Codes::get_backup_codes_for_user
 	 */
-	public function test_get_backup_codes_for_user() {
+	public function test_codes_remaining_ignores_corrupt_meta() {
 		$user = new WP_User( self::factory()->user->create() );
 
 		// No meta at all.
-		$this->assertSame( array(), $this->provider->get_backup_codes_for_user( $user ) );
+		$this->assertEquals( 0, $this->provider->codes_remaining_for_user( $user ) );
 
 		// Meta holding a non-array corrupt value.
 		update_user_meta( $user->ID, Two_Factor_Backup_Codes::BACKUP_CODES_META_KEY, '' );
-		$this->assertSame( array(), $this->provider->get_backup_codes_for_user( $user ) );
+		$this->assertEquals( 0, $this->provider->codes_remaining_for_user( $user ) );
+	}
 
-		// Meta holding an array with mixed empty entries.
-		update_user_meta(
+	/**
+	 * Verify get_backup_codes_for_user() returns the sanitized stored list.
+	 *
+	 * @covers Two_Factor_Backup_Codes::get_backup_codes_for_user
+	 */
+	public function test_get_backup_codes_for_user_returns_sanitized_list() {
+		$user = new WP_User( self::factory()->user->create() );
+
+		// No meta at all.
+		$this->assertSame( array(), $this->provider->get_backup_codes_for_user( $user->ID ) );
+
+		// Meta holding a non-array corrupt value.
+		update_user_meta( $user->ID, Two_Factor_Backup_Codes::BACKUP_CODES_META_KEY, '' );
+		$this->assertSame( array(), $this->provider->get_backup_codes_for_user( $user->ID ) );
+
+		// Meta holding an array with empty and non-string entries mixed in.
+		$update = update_user_meta(
 			$user->ID,
 			Two_Factor_Backup_Codes::BACKUP_CODES_META_KEY,
 			array(
 				'',
 				'valid-hash',
 				'  ',
+				array( 'nested' ),
 			)
 		);
-		$this->assertSame( array( 'valid-hash' ), $this->provider->get_backup_codes_for_user( $user ) );
+		$this->assertTrue( (bool) $update );
+
+		$this->assertSame( array( 'valid-hash' ), $this->provider->get_backup_codes_for_user( $user->ID ) );
 	}
 
 	/**

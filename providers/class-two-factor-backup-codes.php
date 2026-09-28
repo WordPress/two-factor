@@ -444,9 +444,7 @@ class Two_Factor_Backup_Codes extends Two_Factor_Provider {
 	 * @return int $int  The number of unused codes remaining
 	 */
 	public static function codes_remaining_for_user( $user ): int {
-		$codes = self::get_backup_codes_for_user( $user->ID );
-
-		return count( $codes );
+		return count( self::get_backup_codes_for_user( $user->ID ) );
 	}
 
 	/**
