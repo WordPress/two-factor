@@ -600,8 +600,8 @@ class Two_Factor_CLI_Command extends WP_CLI_Command {
 			);
 		}
 
-		$existing_codes     = get_user_meta( $user->ID, Two_Factor_Backup_Codes::BACKUP_CODES_META_KEY, true );
-		$has_existing_codes = is_array( $existing_codes ) && ! empty( $existing_codes );
+		$existing_codes     = Two_Factor_Backup_Codes::get_backup_codes_for_user( $user->ID );
+		$has_existing_codes = ! empty( $existing_codes );
 		if ( $has_existing_codes ) {
 			WP_CLI::confirm(
 				sprintf(

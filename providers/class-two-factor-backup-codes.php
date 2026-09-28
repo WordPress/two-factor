@@ -317,7 +317,7 @@ class Two_Factor_Backup_Codes extends Two_Factor_Provider {
 
 		// Append or replace (default).
 		if ( isset( $args['method'] ) && 'append' === $args['method'] ) {
-			$codes_hashed = (array) get_user_meta( $user->ID, self::BACKUP_CODES_META_KEY, true );
+			$codes_hashed = self::get_backup_codes_for_user( $user->ID );
 		}
 
 		$code_length = $this->get_backup_code_length( $user );
@@ -403,6 +403,39 @@ class Two_Factor_Backup_Codes extends Two_Factor_Provider {
 	}
 
 	/**
+	 * Get the sanitized list of hashed backup codes for a user.
+	 *
+	 * Earlier versions could store an empty string entry in the hashed codes
+	 * list, e.g. when appending codes for a user with no existing codes. Such
+	 * entries can never match a real code and only pollute the stored list:
+	 * they inflate codes_remaining_for_user() and keep the provider offered
+	 * at login without any usable code backing it. This filters them out on
+	 * every read so the counts and availability are always accurate.
+	 *
+	 * @since 0.18.0
+	 *
+	 * @param int $user_id User ID.
+	 * @return array List of hashed backup codes without empty entries.
+	 */
+	public static function get_backup_codes_for_user( int $user_id ) {
+		$backup_codes = get_user_meta( $user_id, self::BACKUP_CODES_META_KEY, true );
+
+		if ( ! is_array( $backup_codes ) ) {
+			return array();
+		}
+
+		// Remove any empty or non-string entries from the backup codes list.
+		$backup_codes = array_filter(
+			$backup_codes,
+			static function ( $code ) {
+				return is_string( $code ) && '' !== trim( $code );
+			}
+		);
+
+		return array_values( $backup_codes );
+	}
+
+	/**
 	 * Returns the number of unused codes for the specified user
 	 *
 	 * @since 0.2.0
@@ -410,12 +443,8 @@ class Two_Factor_Backup_Codes extends Two_Factor_Provider {
 	 * @param WP_User $user WP_User object of the logged-in user.
 	 * @return int $int  The number of unused codes remaining
 	 */
-	public static function codes_remaining_for_user( $user ) {
-		$backup_codes = get_user_meta( $user->ID, self::BACKUP_CODES_META_KEY, true );
-		if ( is_array( $backup_codes ) && ! empty( $backup_codes ) ) {
-			return count( $backup_codes );
-		}
-		return 0;
+	public static function codes_remaining_for_user( $user ): int {
+		return count( self::get_backup_codes_for_user( $user->ID ) );
 	}
 
 	/**
@@ -502,16 +531,16 @@ class Two_Factor_Backup_Codes extends Two_Factor_Provider {
 	 * @return boolean
 	 */
 	public function validate_code( $user, $code ) {
-		$backup_codes = get_user_meta( $user->ID, self::BACKUP_CODES_META_KEY, true );
+		$backup_codes = self::get_backup_codes_for_user( $user->ID );
 
-		if ( is_array( $backup_codes ) && ! empty( $backup_codes ) ) {
-			foreach ( $backup_codes as $code_index => $code_hashed ) {
-				if ( wp_check_password( $code, $code_hashed, $user->ID ) ) {
-					$this->delete_code( $user, $code_hashed );
-					return true;
-				}
+		foreach ( $backup_codes as $code_hashed ) {
+			if ( wp_check_password( $code, $code_hashed, $user->ID ) ) {
+				$this->delete_code( $user, $code_hashed );
+
+				return true;
 			}
 		}
+
 		return false;
 	}
 
@@ -524,7 +553,7 @@ class Two_Factor_Backup_Codes extends Two_Factor_Provider {
 	 * @param string  $code_hashed The hashed the backup code.
 	 */
 	public function delete_code( $user, $code_hashed ) {
-		$backup_codes = get_user_meta( $user->ID, self::BACKUP_CODES_META_KEY, true );
+		$backup_codes = self::get_backup_codes_for_user( $user->ID );
 
 		// Delete the current code from the list since it's been used.
 		$backup_codes = array_flip( $backup_codes );
