@@ -733,8 +733,9 @@ class Two_Factor_CLI_Command extends WP_CLI_Command {
 	 * <action>
 	 * : Action to perform. Supported: status, migrate, export.
 	 *
-	 * [--user=<user>]
+	 * [<user>]
 	 * : For migrate and export, only handle this user (ID, login, or email).
+	 * This is positional because `--user` is a WP-CLI global parameter.
 	 *
 	 * [--batch-size=<n>]
 	 * : For migrate and export, number of users to process per batch. Defaults to 100.
@@ -767,6 +768,9 @@ class Two_Factor_CLI_Command extends WP_CLI_Command {
 	 *     # Preview the migration
 	 *     $ wp two-factor secrets migrate --dry-run
 	 *
+	 *     # Migrate a single user
+	 *     $ wp two-factor secrets migrate admin
+	 *
 	 *     # Move all secrets back into user meta before removing the Secrets API.
 	 *     # Opt out of the Secrets API first (return false from the
 	 *     # two_factor_use_secrets_api filter), otherwise reads migrate the
@@ -775,11 +779,12 @@ class Two_Factor_CLI_Command extends WP_CLI_Command {
 	 *
 	 * @since 0.18.0
 	 *
-	 * @param array $args       Positional arguments: action.
+	 * @param array $args       Positional arguments: action, and optionally a user for migrate and export.
 	 * @param array $assoc_args Associative arguments.
 	 */
 	public function secrets( $args, $assoc_args ) {
-		$action = isset( $args[0] ) ? $args[0] : '';
+		$action          = isset( $args[0] ) ? $args[0] : '';
+		$user_identifier = isset( $args[1] ) ? (string) $args[1] : null;
 
 		switch ( $action ) {
 			case 'status':
@@ -787,11 +792,11 @@ class Two_Factor_CLI_Command extends WP_CLI_Command {
 				break;
 
 			case 'migrate':
-				$this->secrets_migrate( $assoc_args );
+				$this->secrets_migrate( $user_identifier, $assoc_args );
 				break;
 
 			case 'export':
-				$this->secrets_export( $assoc_args );
+				$this->secrets_export( $user_identifier, $assoc_args );
 				break;
 
 			default:
@@ -864,9 +869,10 @@ class Two_Factor_CLI_Command extends WP_CLI_Command {
 	 *
 	 * @since 0.18.0
 	 *
-	 * @param array $assoc_args Associative arguments.
+	 * @param string|null $user_identifier Optional user ID, login, or email to handle alone.
+	 * @param array       $assoc_args      Associative arguments.
 	 */
-	private function secrets_migrate( $assoc_args ) {
+	private function secrets_migrate( $user_identifier, $assoc_args ) {
 		$batch   = $this->get_secrets_batch_size( $assoc_args );
 		$dry_run = (bool) WP_CLI\Utils\get_flag_value( $assoc_args, 'dry-run', false );
 
@@ -902,8 +908,6 @@ class Two_Factor_CLI_Command extends WP_CLI_Command {
 			++$skipped;
 			return 'skipped';
 		};
-
-		$user_identifier = WP_CLI\Utils\get_flag_value( $assoc_args, 'user', null );
 
 		if ( null !== $user_identifier ) {
 			$user = $this->resolve_user( (string) $user_identifier );
@@ -968,9 +972,10 @@ class Two_Factor_CLI_Command extends WP_CLI_Command {
 	 *
 	 * @since 0.18.0
 	 *
-	 * @param array $assoc_args Associative arguments.
+	 * @param string|null $user_identifier Optional user ID, login, or email to handle alone.
+	 * @param array       $assoc_args      Associative arguments.
 	 */
-	private function secrets_export( $assoc_args ) {
+	private function secrets_export( $user_identifier, $assoc_args ) {
 		$batch = $this->get_secrets_batch_size( $assoc_args );
 
 		if ( ! Two_Factor_Secrets::is_api_present() ) {
@@ -1007,8 +1012,6 @@ class Two_Factor_CLI_Command extends WP_CLI_Command {
 			++$skipped;
 			return 'skipped';
 		};
-
-		$user_identifier = WP_CLI\Utils\get_flag_value( $assoc_args, 'user', null );
 
 		if ( null !== $user_identifier ) {
 			$user = $this->resolve_user( (string) $user_identifier );

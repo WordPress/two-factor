@@ -461,7 +461,7 @@ class Tests_Two_Factor_CLI_Command extends WP_UnitTestCase {
 		$this->require_secrets_api();
 		$this->seed_plaintext_key( $this->user->ID );
 
-		$this->command->secrets( array( 'migrate' ), array( 'user' => 'cli_test_user' ) );
+		$this->command->secrets( array( 'migrate', 'cli_test_user' ), array() );
 
 		$this->assertSame( '', (string) get_user_meta( $this->user->ID, Two_Factor_Totp::SECRET_META_KEY, true ) );
 		$this->assertSame( (string) get_current_network_id(), get_user_meta( $this->user->ID, Two_Factor_Totp::SECRET_NETWORK_META_KEY, true ) );
@@ -589,7 +589,7 @@ class Tests_Two_Factor_CLI_Command extends WP_UnitTestCase {
 
 		$message = $this->assert_command_aborts(
 			function () {
-				$this->command->secrets( array( 'migrate' ), array( 'user' => 'nobody-here' ) );
+				$this->command->secrets( array( 'migrate', 'nobody-here' ), array() );
 			}
 		);
 
@@ -624,17 +624,18 @@ class Tests_Two_Factor_CLI_Command extends WP_UnitTestCase {
 	public function test_secrets_export_single_user_round_trip() {
 		$this->require_secrets_api();
 		Two_Factor_Totp::get_instance()->set_user_totp_key( $this->user->ID, 'ABCDEFGH' );
+		$other_user = self::factory()->user->create();
+		Two_Factor_Totp::get_instance()->set_user_totp_key( $other_user, 'IJKLMNOP' );
 
-		$this->command->secrets(
-			array( 'export' ),
-			array(
-				'user' => 'cli_test_user',
-				'yes'  => true,
-			) 
-		);
+		// The user is positional: `--user` is a WP-CLI global parameter and never reaches the command.
+		$this->command->secrets( array( 'export', 'cli_test_user' ), array( 'yes' => true ) );
 
 		$this->assertSame( 'ABCDEFGH', get_user_meta( $this->user->ID, Two_Factor_Totp::SECRET_META_KEY, true ) );
 		$this->assertSame( '', (string) get_user_meta( $this->user->ID, Two_Factor_Totp::SECRET_NETWORK_META_KEY, true ) );
+
+		// Only the named user is exported.
+		$this->assertSame( '', (string) get_user_meta( $other_user, Two_Factor_Totp::SECRET_META_KEY, true ) );
+		$this->assertSame( (string) get_current_network_id(), get_user_meta( $other_user, Two_Factor_Totp::SECRET_NETWORK_META_KEY, true ) );
 
 		add_filter( 'two_factor_use_secrets_api', '__return_false' );
 		$this->command->status( array( 'cli_test_user' ), array() );
