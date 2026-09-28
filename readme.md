@@ -38,10 +38,11 @@ When you're ready, open [a pull request](https://help.github.com/articles/creati
 
 ## Testing
 
-1. Run `npm test` or `npm run test:watch`.
+1. Run `npm test` to execute the single site and multisite suites in sequence, or `npm run test-watch:single` and `npm run test-watch:multisite` to watch one suite at a time. See [TESTS.md](TESTS.md) for the full set of runners.
 
 To generate a code coverage report, be sure to start the testing environment with coverage support enabled:
-npm run env start -- --xdebug=coverage
+
+    npm run env start -- --xdebug=coverage
 
 To view the code coverage report, you can open a web browser, go to `File > Open file...`, and then select `{path to two-factor}/tests/logs/html/index.html`.
 
@@ -50,10 +51,6 @@ To view the code coverage report, you can open a web browser, go to `File > Open
 Deployments [to WP.org plugin repository](https://wordpress.org/plugins/two-factor/) are handled automatically by the GitHub action [.github/workflows/deploy.yml](.github/workflows/deploy.yml). Versioned releases are deployed from [Git tags](https://github.com/WordPress/two-factor/tags) [under the `tags` directory](https://plugins.trac.wordpress.org/browser/two-factor/tags). See the workflow for current branch/release conditions used for readme and asset updates.
 
 [View release documentation →](RELEASING.md)
-
-## Known Issues
-
-- PHP codebase doesn't pass the WordPress coding standard checks, see [#437](https://github.com/WordPress/two-factor/issues/437).
 
 ## Changelog
 

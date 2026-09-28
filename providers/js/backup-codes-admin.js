@@ -1,7 +1,9 @@
-/* global twoFactorBackupCodes, wp, navigator, document, jQuery */
+/* global twoFactorBackupCodes, jQuery */
 ( function( $ ) {
 	$( '.button-two-factor-backup-codes-copy' ).click( function() {
-		var csvCodes = $( '.two-factor-backup-codes-wrapper' ).data( 'codesCsv' ),
+		var csvCodes = $( '.two-factor-backup-codes-wrapper' ).data(
+				'codesCsv'
+			),
 			$temp;
 
 		if ( ! csvCodes ) {
@@ -13,9 +15,11 @@
 			return;
 		}
 
-		$temp = $( '<textarea>' ).val( csvCodes ).css( { position: 'absolute', left: '-9999px' } );
+		$temp = $( '<textarea>' )
+			.val( csvCodes )
+			.css( { position: 'absolute', left: '-9999px' } );
 		$( 'body' ).append( $temp );
-		$temp[0].select();
+		$temp[ 0 ].select();
 		document.execCommand( 'copy' );
 		$temp.remove();
 	} );
@@ -33,17 +37,31 @@
 
 			$( '.two-factor-backup-codes-wrapper' ).show();
 			$codesList.html( '' );
-			$codesList.css( { 'column-count': 2, 'column-gap': '80px', 'max-width': '420px' } );
-			$( '.two-factor-backup-codes-wrapper' ).data( 'codesCsv', response.codes.join( ',' ) );
+			$codesList.css( {
+				'column-count': 2,
+				'column-gap': '80px',
+				'max-width': '420px'
+			} );
+			$( '.two-factor-backup-codes-wrapper' ).data(
+				'codesCsv',
+				response.codes.join( ',' )
+			);
 
 			// Append the codes.
 			for ( i = 0; i < response.codes.length; i++ ) {
-				$codesList.append( '<li class="two-factor-backup-codes-token">' + response.codes[ i ] + '</li>' );
+				$codesList.append(
+					'<li class="two-factor-backup-codes-token">' +
+						response.codes[ i ] +
+						'</li>'
+				);
 			}
 
 			// Update counter.
 			$( '.two-factor-backup-codes-count' ).html( response.i18n.count );
-			$( '#two-factor-backup-codes-download-link' ).attr( 'href', response.download_link );
+			$( '#two-factor-backup-codes-download-link' ).attr(
+				'href',
+				response.download_link
+			);
 		} );
 	} );
 }( jQuery ) );
