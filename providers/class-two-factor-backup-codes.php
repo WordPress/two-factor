@@ -417,7 +417,7 @@ class Two_Factor_Backup_Codes extends Two_Factor_Provider {
 	 * @param int $user_id User ID.
 	 * @return array List of hashed backup codes without empty entries.
 	 */
-	private static function get_backup_codes_for_user( int $user_id ) {
+	public static function get_backup_codes_for_user( int $user_id ) {
 		$backup_codes = get_user_meta( $user_id, self::BACKUP_CODES_META_KEY, true );
 
 		if ( ! is_array( $backup_codes ) ) {
