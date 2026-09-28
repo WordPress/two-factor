@@ -2,7 +2,7 @@
 Contributors: georgestephanis, kasparsd, masteradhoc, valendesigns, stevenkword, jeffpaul, extendwings, sgrant, aaroncampbell, johnbillion, stevegrunwell, netweb, alihusnainarshad, passoniate
 Tags:         2fa, mfa, totp, authentication, security
 Tested up to: 7.1
-Stable tag:   0.16.0
+Stable tag:   0.17.0
 License:      GPL-2.0-or-later
 License URI:  https://spdx.org/licenses/GPL-2.0-or-later.html
 
@@ -105,6 +105,7 @@ Here is a list of action and filter hooks provided by the plugin:
 - `two_factor_after_authentication_input` action which receives the provider object and fires after the input shown on the authentication input form (if form contains no input, action fires immediately after `two_factor_after_authentication_prompt`).
 - `two_factor_login_backup_links` filters the backup links displayed on the two-factor login form.
 - `two_factor_login_nonce_failed` action which fires when a login nonce fails verification. Provides the ID of the user the nonce was presented for as the first argument, and the reason as the second: `no_nonce_stored`, `expired`, or `mismatch`.
+- `two_factor_revalidate_time` filter overrides the grace window during which a session that recently passed two-factor verification may view or edit two-factor settings. Defaults to 10 minutes for displaying settings and double that (20 minutes) for saving them. Accepts the time in seconds as the first argument, the user ID as the second, and the context (`display` or `save`) as the third. Return a falsey value (false or 0) to never require revalidation.
 - `two_factor_log_login_nonce_failures` filter overrides whether a failed login nonce verification is written to the PHP error log. Defaults to true for `expired` and `mismatch`, and false for `no_nonce_stored`, which any unauthenticated request can reach. Provides the user ID as the second argument and the reason as the third.
 
 == WP-CLI Commands ==
@@ -148,6 +149,12 @@ To report a security issue, please visit the [WordPress HackerOne](https://hacke
 
 If you have backup codes enabled, you can use one of those to regain access. If you don't have backup codes or have used them all, you'll need to contact your site administrator to reset your account. This is why it's important to always enable backup codes and keep them in a secure location.
 
+= Why do I need to re-verify my two-factor method when changing two-factor settings? =
+
+Once two-factor is enabled on your account, the section of your profile where you manage it is treated as security-sensitive. To change it, the plugin checks that your current login session passed two-factor verification recently — within about 10 minutes for viewing the settings, or twice that for saving changes. If it hasn't, you'll be asked to verify your code (or other method) again before proceeding.
+
+This protects you if a session is ever taken over without your password — for example, via a copied session cookie from a shared or infected computer. Someone in that position is already "logged in" as you, but they cannot disable your two-factor methods or register their own device, because their session never passed the second verification step. The re-verification prompt is a good sign: it means the check is doing its job. After completing the prompt you'll have a fresh grace window. You won't be asked to re-verify right after setting up a method for the first time, or if you're editing the two-factor settings of another user.
+
 = Can I use this plugin with WebAuthn? =
 
 The plugin previously supported FIDO U2F, which was a predecessor to WebAuthn. There is an open issue to [add WebAuthn support here](https://github.com/WordPress/two-factor/pull/427).
@@ -177,6 +184,45 @@ Not through the plugin's interface — there are no built-in enforcement setting
 4. Backup codes generation and management - Shows the backup codes interface for generating and managing emergency access codes.
 
 == Changelog ==
+
+= 0.17.0 - 2026-09-25 =
+
+* **Security Fixes:** Ensure that regular passwords can't bypass the two-factor requirement for REST API and XML-RPC requests by @faisalahammad in [#989](https://github.com/WordPress/two-factor/pull/989). Thanks mqrble for responsibly reporting the issue.
+* **Security Fixes:** Add diagnostics for failed login nonce verification by @georgestephanis in [#973](https://github.com/WordPress/two-factor/pull/973). Thanks Ananda Dhakal (Patchstack) for responsibly reporting the issue.
+* **New Features:** Add WP-CLI support with `wp two-factor` commands by @masteradhoc in [#905](https://github.com/WordPress/two-factor/pull/905)
+* **New Features:** Respect intentional bypass via the `two_factor_is_required_for_user` filter by @masteradhoc in [#882](https://github.com/WordPress/two-factor/pull/882)
+* **New Features:** Add a `two_factor_fallback_provider_for_user` filter for when a user's stored providers are no longer registered by @masteradhoc in [#882](https://github.com/WordPress/two-factor/pull/882)
+* **New Features:** Add early notice for soon exhausting recovery codes by @masteradhoc in [#907](https://github.com/WordPress/two-factor/pull/907)
+* **New Features:** Add privacy policy content registration by @masteradhoc in [#869](https://github.com/WordPress/two-factor/pull/869)
+* **Bug Fixes:** Fail closed when CSPRNG is unavailable during nonce generation by @dknauss in [#877](https://github.com/WordPress/two-factor/pull/877)
+* **Bug Fixes:** Only clear the login nonce once it has expired by @georgestephanis in [#980](https://github.com/WordPress/two-factor/pull/980)
+* **Bug Fixes:** Fix unslashed `REMOTE_ADDR` warning in email provider by @masteradhoc in [#975](https://github.com/WordPress/two-factor/pull/975)
+* **Bug Fixes:** Fix TOTP verify button after resetting authenticator app by @lakrisgubben in [#979](https://github.com/WordPress/two-factor/pull/979)
+* **Bug Fixes:** Remove `two_factor_enabled_providers` option on uninstall by @faisalahammad in [#903](https://github.com/WordPress/two-factor/pull/903)
+* **Bug Fixes:** Fix misleading notice by @masteradhoc in [#858](https://github.com/WordPress/two-factor/pull/858)
+* **Bug Fixes:** Reword mixed-audience login failure notice to be informational by @dknauss in [#922](https://github.com/WordPress/two-factor/pull/922)
+* **Bug Fixes:** Rework fail-safe by @masteradhoc in [#927](https://github.com/WordPress/two-factor/pull/927)
+* **Bug Fixes:** Add coverage for provider-specific fallback notices by @dknauss in [#923](https://github.com/WordPress/two-factor/pull/923)
+* **Bug Fixes:** Fix HTML5 validation issues by @masteradhoc in [#910](https://github.com/WordPress/two-factor/pull/910)
+* **Bug Fixes:** Fix users list table fatals (`wp_die`) when a user's 2FA provider is deregistered by @masteradhoc in [#933](https://github.com/WordPress/two-factor/pull/933)
+* **Development Updates:** Prepare for the WordPress 7.0 release by @masteradhoc in [#834](https://github.com/WordPress/two-factor/pull/834)
+* **Development Updates:** Prepare for the WordPress 7.1 release by @masteradhoc in [#900](https://github.com/WordPress/two-factor/pull/900)
+* **Development Updates:** Sync `login_header()` and `login_footer()` with WP 7.1 by @masteradhoc in [#963](https://github.com/WordPress/two-factor/pull/963)
+* **Development Updates:** Update PHPStan to 2.x and exclude `includes/` from analysis by @masteradhoc in [#972](https://github.com/WordPress/two-factor/pull/972)
+* **Development Updates:** Validate against PHPStan version 3, 4 and 5 by @masteradhoc in [#948](https://github.com/WordPress/two-factor/pull/948)
+* **Development Updates:** Update `wp-coding-standards/wpcs` to 3.4.1 by @obenland in [#947](https://github.com/WordPress/two-factor/pull/947)
+* **Development Updates:** Fix PHPCS and PHPStan issues across multiple files by @aslamdoctor in [#818](https://github.com/WordPress/two-factor/pull/818)
+* **Development Updates:** Remove `ReflectionProperty::setAccessible()` and `ReflectionMethod::setAccessible()` calls in the test suite by @masteradhoc in [#942](https://github.com/WordPress/two-factor/pull/942)
+* **Development Updates:** Fix Codecov badge by adding OIDC permission for tokenless upload by @nimesh-xecurify in [#856](https://github.com/WordPress/two-factor/pull/856)
+* **Development Updates:** Update GitHub Actions workflows by @johnbillion in [#892](https://github.com/WordPress/two-factor/pull/892)
+* **Development Updates:** Update Playground PR preview action to v4 by @obenland in [#985](https://github.com/WordPress/two-factor/pull/985)
+* **Development Updates:** Add FAQ entries for Multisite, locked-out users, and role enforcement by @masteradhoc in [#881](https://github.com/WordPress/two-factor/pull/881)
+* **Development Updates:** Update `.md` files with the latest two-factor changes and requirements by @masteradhoc in [#929](https://github.com/WordPress/two-factor/pull/929)
+* **Development Updates:** Update PR template by @masteradhoc in [#870](https://github.com/WordPress/two-factor/pull/870)
+* **Development Updates:** Unbreak CI: PHPStan false positive and matrix fail-fast by @georgestephanis in [#974](https://github.com/WordPress/two-factor/pull/974)
+* **Dependency Updates:** Bump the `qrcode-generator` runtime dependency by @kasparsd
+* **Dependency Updates:** Bump `qs` and `express` by @dependabot[bot] in [#895](https://github.com/WordPress/two-factor/pull/895)
+* **Dependency Updates:** Bump adm-zip and `@wordpress/scripts` by @dependabot[bot] in [#988](https://github.com/WordPress/two-factor/pull/988)
 
 = 0.16.0 - 2026-03-27 =
 
