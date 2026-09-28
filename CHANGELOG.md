@@ -2,6 +2,59 @@
 
 All notable changes to this project will be documented in this file, per [the Keep a Changelog standard](http://keepachangelog.com/), and will adhere to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.17.0] - 2026-09-25
+
+### Security Fixes
+
+- Ensure that regular passwords can't bypass the two-factor requirement for REST API and XML-RPC requests by @faisalahammad in [#989](https://github.com/WordPress/two-factor/pull/989). Thanks mqrble for responsibly reporting the issue.
+- Add diagnostics for failed login nonce verification by @georgestephanis in [#973](https://github.com/WordPress/two-factor/pull/973). Thanks Ananda Dhakal (Patchstack) for responsibly reporting the issue.
+
+### New Features
+
+- Add WP-CLI support with `wp two-factor` commands by @masteradhoc in [#905](https://github.com/WordPress/two-factor/pull/905)
+- Respect intentional bypass via the `two_factor_is_required_for_user` filter by @masteradhoc in [#882](https://github.com/WordPress/two-factor/pull/882)
+- Add a `two_factor_fallback_provider_for_user` filter for when a user's stored providers are no longer registered by @masteradhoc in [#882](https://github.com/WordPress/two-factor/pull/882)
+- Add early notice for soon exhausting recovery codes by @masteradhoc in [#907](https://github.com/WordPress/two-factor/pull/907)
+- Add privacy policy content registration by @masteradhoc in [#869](https://github.com/WordPress/two-factor/pull/869)
+
+### Bug Fixes
+
+- Fail closed when CSPRNG is unavailable during nonce generation by @dknauss in [#877](https://github.com/WordPress/two-factor/pull/877)
+- Only clear the login nonce once it has expired by @georgestephanis in [#980](https://github.com/WordPress/two-factor/pull/980)
+- Fix unslashed `REMOTE_ADDR` warning in email provider by @masteradhoc in [#975](https://github.com/WordPress/two-factor/pull/975)
+- Fix TOTP verify button after resetting authenticator app by @lakrisgubben in [#979](https://github.com/WordPress/two-factor/pull/979)
+- Remove `two_factor_enabled_providers` option on uninstall by @faisalahammad in [#903](https://github.com/WordPress/two-factor/pull/903)
+- Fix misleading notice by @masteradhoc in [#858](https://github.com/WordPress/two-factor/pull/858)
+- Reword mixed-audience login failure notice to be informational by @dknauss in [#922](https://github.com/WordPress/two-factor/pull/922)
+- Rework fail-safe by @masteradhoc in [#927](https://github.com/WordPress/two-factor/pull/927)
+- Add coverage for provider-specific fallback notices by @dknauss in [#923](https://github.com/WordPress/two-factor/pull/923)
+- Fix HTML5 validation issues by @masteradhoc in [#910](https://github.com/WordPress/two-factor/pull/910)
+- Fix users list table fatals (`wp_die`) when a user's 2FA provider is deregistered by @masteradhoc in [#933](https://github.com/WordPress/two-factor/pull/933)
+
+### Development Updates
+
+- Prepare for the WordPress 7.0 release by @masteradhoc in [#834](https://github.com/WordPress/two-factor/pull/834)
+- Prepare for the WordPress 7.1 release by @masteradhoc in [#900](https://github.com/WordPress/two-factor/pull/900)
+- Sync `login_header()` and `login_footer()` with WP 7.1 by @masteradhoc in [#963](https://github.com/WordPress/two-factor/pull/963)
+- Update PHPStan to 2.x and exclude `includes/` from analysis by @masteradhoc in [#972](https://github.com/WordPress/two-factor/pull/972)
+- Validate against PHPStan version 3, 4 and 5 by @masteradhoc in [#948](https://github.com/WordPress/two-factor/pull/948)
+- Update `wp-coding-standards/wpcs` to 3.4.1 by @obenland in [#947](https://github.com/WordPress/two-factor/pull/947)
+- Fix PHPCS and PHPStan issues across multiple files by @aslamdoctor in [#818](https://github.com/WordPress/two-factor/pull/818)
+- Remove `ReflectionProperty::setAccessible()` and `ReflectionMethod::setAccessible()` calls in the test suite by @masteradhoc in [#942](https://github.com/WordPress/two-factor/pull/942)
+- Fix Codecov badge by adding OIDC permission for tokenless upload by @nimesh-xecurify in [#856](https://github.com/WordPress/two-factor/pull/856)
+- Update GitHub Actions workflows by @johnbillion in [#892](https://github.com/WordPress/two-factor/pull/892)
+- Update Playground PR preview action to v4 by @obenland in [#985](https://github.com/WordPress/two-factor/pull/985)
+- Add FAQ entries for Multisite, locked-out users, and role enforcement by @masteradhoc in [#881](https://github.com/WordPress/two-factor/pull/881)
+- Update `.md` files with the latest two-factor changes and requirements by @masteradhoc in [#929](https://github.com/WordPress/two-factor/pull/929)
+- Update PR template by @masteradhoc in [#870](https://github.com/WordPress/two-factor/pull/870)
+- Unbreak CI: PHPStan false positive and matrix fail-fast by @georgestephanis in [#974](https://github.com/WordPress/two-factor/pull/974)
+
+### Dependency Updates
+
+- Bump the `qrcode-generator` runtime dependency by @kasparsd
+- Bump `qs` and `express` by @dependabot[bot] in [#895](https://github.com/WordPress/two-factor/pull/895)
+- Bump adm-zip and `@wordpress/scripts` by @dependabot[bot] in [#988](https://github.com/WordPress/two-factor/pull/988)
+
 ## [0.16.0] - 2026-03-27
 
 ### Breaking Changes
@@ -344,6 +397,8 @@ All notable changes to this project will be documented in this file, per [the Ke
 
 - Add developer tools for deploying to WP.org manually.
 
+[0.17.0]: https://github.com/WordPress/two-factor/compare/0.16.0...0.17.0
+[0.16.0]: https://github.com/WordPress/two-factor/compare/0.15.0...0.16.0
 [0.15.0]: https://github.com/WordPress/two-factor/compare/0.14.1...0.15.0
 [0.14.2]: https://github.com/WordPress/two-factor/compare/0.14.1...0.14.2
 [0.14.1]: https://github.com/WordPress/two-factor/compare/0.14.0...0.14.1
