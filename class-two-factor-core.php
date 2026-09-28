@@ -176,6 +176,14 @@ class Two_Factor_Core {
 		$environment_prefix = file_exists( TWO_FACTOR_DIR . '/dist' ) ? '/dist' : '';
 
 		wp_register_script(
+			'two-factor-login',
+			plugins_url( $environment_prefix . '/providers/js/two-factor-login.js', __FILE__ ),
+			array(),
+			TWO_FACTOR_VERSION,
+			true
+		);
+
+		wp_register_script(
 			'two-factor-login-authcode',
 			plugins_url( $environment_prefix . '/providers/js/two-factor-login-authcode.js', __FILE__ ),
 			array(),

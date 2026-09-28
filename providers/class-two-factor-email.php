@@ -379,6 +379,7 @@ class Two_Factor_Email extends Two_Factor_Provider {
 		/** This action is documented in providers/class-two-factor-backup-codes.php */
 		do_action( 'two_factor_after_authentication_input', $this );
 		?>
+		<?php wp_enqueue_script( 'two-factor-login' ); ?>
 		<?php submit_button( __( 'Verify', 'two-factor' ), 'primary', 'submit', true, $is_rate_limited ? 'disabled="disabled"' : '' ); ?>
 		<p class="two-factor-email-resend">
 			<input type="submit" class="button" name="<?php echo esc_attr( self::INPUT_NAME_RESEND_CODE ); ?>" value="<?php esc_attr_e( 'Resend Code', 'two-factor' ); ?>" <?php disabled( $is_rate_limited ); ?>>
