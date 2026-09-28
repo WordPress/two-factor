@@ -105,6 +105,7 @@ Here is a list of action and filter hooks provided by the plugin:
 - `two_factor_after_authentication_input` action which receives the provider object and fires after the input shown on the authentication input form (if form contains no input, action fires immediately after `two_factor_after_authentication_prompt`).
 - `two_factor_login_backup_links` filters the backup links displayed on the two-factor login form.
 - `two_factor_login_nonce_failed` action which fires when a login nonce fails verification. Provides the ID of the user the nonce was presented for as the first argument, and the reason as the second: `no_nonce_stored`, `expired`, or `mismatch`.
+- `two_factor_revalidate_time` filter overrides the grace window during which a session that recently passed two-factor verification may view or edit two-factor settings. Defaults to 10 minutes for displaying settings and double that (20 minutes) for saving them. Accepts the time in seconds as the first argument, the user ID as the second, and the context (`display` or `save`) as the third. Return a falsey value (false or 0) to never require revalidation.
 - `two_factor_log_login_nonce_failures` filter overrides whether a failed login nonce verification is written to the PHP error log. Defaults to true for `expired` and `mismatch`, and false for `no_nonce_stored`, which any unauthenticated request can reach. Provides the user ID as the second argument and the reason as the third.
 
 == WP-CLI Commands ==
@@ -147,6 +148,12 @@ To report a security issue, please visit the [WordPress HackerOne](https://hacke
 = What if I lose access to all my authentication methods? =
 
 If you have backup codes enabled, you can use one of those to regain access. If you don't have backup codes or have used them all, you'll need to contact your site administrator to reset your account. This is why it's important to always enable backup codes and keep them in a secure location.
+
+= Why do I need to re-verify my two-factor method when changing two-factor settings? =
+
+Once two-factor is enabled on your account, the section of your profile where you manage it is treated as security-sensitive. To change it, the plugin checks that your current login session passed two-factor verification recently — within about 10 minutes for viewing the settings, or twice that for saving changes. If it hasn't, you'll be asked to verify your code (or other method) again before proceeding.
+
+This protects you if a session is ever taken over without your password — for example, via a copied session cookie from a shared or infected computer. Someone in that position is already "logged in" as you, but they cannot disable your two-factor methods or register their own device, because their session never passed the second verification step. The re-verification prompt is a good sign: it means the check is doing its job. After completing the prompt you'll have a fresh grace window. You won't be asked to re-verify right after setting up a method for the first time, or if you're editing the two-factor settings of another user.
 
 = Can I use this plugin with WebAuthn? =
 
