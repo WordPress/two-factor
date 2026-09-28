@@ -229,6 +229,102 @@ class Tests_Two_Factor_Backup_Codes extends WP_UnitTestCase {
 	}
 
 	/**
+	 * Verify appending codes prunes pre-existing empty entries from the stored list.
+	 *
+	 * @covers Two_Factor_Backup_Codes::generate_codes
+	 * @covers Two_Factor_Backup_Codes::get_backup_codes_for_user
+	 * @covers Two_Factor_Backup_Codes::codes_remaining_for_user
+	 */
+	public function test_generate_codes_append_prunes_existing_empty_entries() {
+		$user = new WP_User( self::factory()->user->create() );
+
+		$update = update_user_meta(
+			$user->ID,
+			Two_Factor_Backup_Codes::BACKUP_CODES_META_KEY,
+			array(
+				'   ',
+				'valid-hash',
+				'',
+			)
+		);
+		$this->assertTrue( (bool) $update );
+
+		$codes = $this->provider->generate_codes(
+			$user,
+			array(
+				'number' => 2,
+				'method' => 'append',
+			)
+		);
+
+		$this->assertCount( 2, $codes );
+
+		$backup_codes = get_user_meta( $user->ID, Two_Factor_Backup_Codes::BACKUP_CODES_META_KEY, true );
+
+		$this->assertIsArray( $backup_codes );
+		$this->assertNotContains( '', $backup_codes );
+		$this->assertContains( 'valid-hash', $backup_codes );
+		$this->assertCount( 3, $backup_codes );
+		$this->assertEquals( 3, $this->provider->codes_remaining_for_user( $user ) );
+	}
+
+	/**
+	 * Verify codes_remaining_for_user() self-heals a stored list containing empty entries.
+	 *
+	 * @covers Two_Factor_Backup_Codes::codes_remaining_for_user
+	 * @covers Two_Factor_Backup_Codes::get_backup_codes_for_user
+	 */
+	public function test_codes_remaining_prunes_existing_empty_entries() {
+		$user = new WP_User( self::factory()->user->create() );
+
+		$update = update_user_meta(
+			$user->ID,
+			Two_Factor_Backup_Codes::BACKUP_CODES_META_KEY,
+			array(
+				'   ',
+				'valid-hash',
+				'',
+			)
+		);
+		$this->assertTrue( (bool) $update );
+
+		$this->assertEquals( 1, $this->provider->codes_remaining_for_user( $user ) );
+
+		$backup_codes = get_user_meta( $user->ID, Two_Factor_Backup_Codes::BACKUP_CODES_META_KEY, true );
+
+		$this->assertIsArray( $backup_codes );
+		$this->assertEquals( array( 'valid-hash' ), $backup_codes );
+	}
+
+	/**
+	 * Verify get_backup_codes_for_user() normalizes non-array meta and empty entries.
+	 *
+	 * @covers Two_Factor_Backup_Codes::get_backup_codes_for_user
+	 */
+	public function test_get_backup_codes_for_user() {
+		$user = new WP_User( self::factory()->user->create() );
+
+		// No meta at all.
+		$this->assertSame( array(), $this->provider->get_backup_codes_for_user( $user ) );
+
+		// Meta holding a non-array corrupt value.
+		update_user_meta( $user->ID, Two_Factor_Backup_Codes::BACKUP_CODES_META_KEY, '' );
+		$this->assertSame( array(), $this->provider->get_backup_codes_for_user( $user ) );
+
+		// Meta holding an array with mixed empty entries.
+		update_user_meta(
+			$user->ID,
+			Two_Factor_Backup_Codes::BACKUP_CODES_META_KEY,
+			array(
+				'',
+				'valid-hash',
+				'  ',
+			)
+		);
+		$this->assertSame( array( 'valid-hash' ), $this->provider->get_backup_codes_for_user( $user ) );
+	}
+
+	/**
 	 * Test backup code length filter.
 	 */
 	public function test_backup_code_length_filter() {
