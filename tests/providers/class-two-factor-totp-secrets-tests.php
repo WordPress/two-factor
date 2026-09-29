@@ -303,24 +303,20 @@ class Two_Factor_Totp_Secrets_Tests extends Two_Factor_Secrets_UnitTestCase {
 	}
 
 	/**
-	 * Export is undone by lazy migration unless the filter opts out first.
+	 * Migration is one-directional: opting out never moves a migrated secret back to plaintext.
 	 */
-	public function test_exported_secret_is_remigrated_on_read_unless_filter_opts_out() {
+	public function test_opt_out_never_moves_migrated_secret_back_to_plaintext() {
 		$this->require_secrets_api();
 		$user_id = $this->user();
 		$this->provider->set_user_totp_key( $user_id, 'ABCDEFGH' );
 
-		$this->assertTrue( $this->provider->export_user_totp_key( $user_id ) );
-		$this->assertSame( 'ABCDEFGH', $this->plaintext( $user_id ) );
+		add_filter( 'two_factor_use_secrets_api', '__return_false' );
+
 		$this->assertSame( 'ABCDEFGH', $this->provider->get_user_totp_key( $user_id ) );
+		$this->assertNull( $this->provider->migrate_user_totp_key( $user_id ) );
 		$this->assertSame( '', $this->plaintext( $user_id ) );
 		$this->assertSame( (string) get_current_network_id(), $this->marker( $user_id ) );
-
-		add_filter( 'two_factor_use_secrets_api', '__return_false' );
-		$this->assertTrue( $this->provider->export_user_totp_key( $user_id ) );
-		$this->assertSame( 'ABCDEFGH', $this->provider->get_user_totp_key( $user_id ) );
-		$this->assertSame( 'ABCDEFGH', $this->plaintext( $user_id ) );
-		$this->assertSame( '', $this->marker( $user_id ) );
+		$this->assertFalse( method_exists( $this->provider, 'export_user_totp_key' ) );
 	}
 
 	/**
@@ -964,8 +960,8 @@ class Two_Factor_Totp_Secrets_Tests extends Two_Factor_Secrets_UnitTestCase {
 			}
 		);
 
-		$this->assertStringContainsString( 'wp two-factor secrets export', $html );
-		$this->assertStringContainsString( 'wp two-factor secrets migrate', $html );
+		$this->assertStringContainsString( 'reset those users', $html );
+		$this->assertStringNotContainsString( 'export', $html );
 		$this->assertStringContainsString( 'notice-error', $html );
 		$this->assertStringNotContainsString( 'is-dismissible', $html );
 	}
@@ -1031,7 +1027,7 @@ class Two_Factor_Totp_Secrets_Tests extends Two_Factor_Secrets_UnitTestCase {
 
 			grant_super_admin( get_current_user_id() );
 			$this->assertStringContainsString(
-				'wp two-factor secrets export',
+				'reset those users',
 				$this->capture(
 					function () {
 						$this->provider->admin_notice_secrets_api_missing();
@@ -1063,7 +1059,8 @@ class Two_Factor_Totp_Secrets_Tests extends Two_Factor_Secrets_UnitTestCase {
 
 		$this->assertSame( 'critical', $result['status'] );
 		$this->assertSame( 'red', $result['badge']['color'] );
-		$this->assertStringContainsString( 'wp two-factor secrets export', $result['description'] );
+		$this->assertStringContainsString( 'reset those users', $result['description'] );
+		$this->assertStringNotContainsString( 'export', $result['description'] );
 		$this->assertSame( 'two_factor_totp_secret_storage', $result['test'] );
 	}
 
@@ -1121,68 +1118,5 @@ class Two_Factor_Totp_Secrets_Tests extends Two_Factor_Secrets_UnitTestCase {
 			'<p>TOTP secrets are stored in user meta; the WordPress Secrets API, when available, will be used automatically.</p>',
 			$result['description']
 		);
-	}
-
-	/**
-	 * Export moves a key back to user meta.
-	 */
-	public function test_export_user_totp_key_round_trip() {
-		$this->require_secrets_api();
-		$user_id = $this->user();
-		$this->provider->set_user_totp_key( $user_id, 'ABCDEFGH' );
-
-		$this->assertTrue( $this->provider->export_user_totp_key( $user_id ) );
-		$this->assertSame( 'ABCDEFGH', $this->plaintext( $user_id ) );
-		$this->assertSame( '', $this->marker( $user_id ) );
-		$this->assertNull( wp_get_network_secret( "two-factor/totp-{$user_id}" ) );
-	}
-
-	/**
-	 * Nothing to export returns null.
-	 */
-	public function test_export_user_totp_key_null_when_plaintext_or_absent() {
-		$user_id = $this->user();
-		$this->assertNull( $this->provider->export_user_totp_key( $user_id ) );
-
-		update_user_meta( $user_id, Two_Factor_Totp::SECRET_META_KEY, 'ABCDEFGH' );
-		update_user_meta( $user_id, Two_Factor_Totp::SECRET_NETWORK_META_KEY, (string) get_current_network_id() );
-		$this->assertNull( $this->provider->export_user_totp_key( $user_id ) );
-	}
-
-	/**
-	 * An unreadable secret is left untouched.
-	 */
-	public function test_export_user_totp_key_error_when_unreadable() {
-		$this->require_secrets_api();
-		$user_id = $this->user();
-		$this->provider->set_user_totp_key( $user_id, 'ABCDEFGH' );
-		$this->make_unreadable();
-
-		$this->assertWPError( $this->provider->export_user_totp_key( $user_id ) );
-		$this->assertSame( '', $this->plaintext( $user_id ) );
-		$this->assertSame( (string) get_current_network_id(), $this->marker( $user_id ) );
-	}
-
-	/**
-	 * A plaintext write mismatch rolls back.
-	 */
-	public function test_export_user_totp_key_mismatch_cleans_up() {
-		$this->require_secrets_api();
-		$user_id = $this->user();
-		$this->provider->set_user_totp_key( $user_id, 'ABCDEFGH' );
-		add_filter(
-			'update_user_metadata',
-			function ( $check, $object_id, $meta_key ) {
-				return Two_Factor_Totp::SECRET_META_KEY === $meta_key ? true : $check;
-			},
-			10,
-			3
-		);
-
-		$result = $this->provider->export_user_totp_key( $user_id );
-
-		$this->assertWPError( $result );
-		$this->assertSame( 'two_factor_secrets_export_mismatch', $result->get_error_code() );
-		$this->assertSame( (string) get_current_network_id(), $this->marker( $user_id ) );
 	}
 }

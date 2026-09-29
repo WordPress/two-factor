@@ -597,117 +597,13 @@ class Tests_Two_Factor_CLI_Command extends WP_UnitTestCase {
 	}
 
 	/**
-	 * Export needs confirmation.
+	 * There is no export action: secrets never leave the Secrets API.
 	 *
 	 * @covers Two_Factor_CLI_Command::secrets
 	 */
-	public function test_secrets_export_requires_confirmation() {
+	public function test_secrets_export_is_not_an_action() {
 		$this->require_secrets_api();
 		Two_Factor_Totp::get_instance()->set_user_totp_key( $this->user->ID, 'ABCDEFGH' );
-
-		$message = $this->assert_command_aborts(
-			function () {
-				$this->command->secrets( array( 'export' ), array() );
-			}
-		);
-
-		$this->assertStringContainsString( 'confirmation declined', $message );
-		$this->assertSame( '', (string) get_user_meta( $this->user->ID, Two_Factor_Totp::SECRET_META_KEY, true ) );
-		$this->assertSame( (string) get_current_network_id(), get_user_meta( $this->user->ID, Two_Factor_Totp::SECRET_NETWORK_META_KEY, true ) );
-	}
-
-	/**
-	 * Exporting a single user round-trips.
-	 *
-	 * @covers Two_Factor_CLI_Command::secrets
-	 */
-	public function test_secrets_export_single_user_round_trip() {
-		$this->require_secrets_api();
-		Two_Factor_Totp::get_instance()->set_user_totp_key( $this->user->ID, 'ABCDEFGH' );
-		$other_user = self::factory()->user->create();
-		Two_Factor_Totp::get_instance()->set_user_totp_key( $other_user, 'IJKLMNOP' );
-
-		// The user is positional: `--user` is a WP-CLI global parameter and never reaches the command.
-		$this->command->secrets( array( 'export', 'cli_test_user' ), array( 'yes' => true ) );
-
-		$this->assertSame( 'ABCDEFGH', get_user_meta( $this->user->ID, Two_Factor_Totp::SECRET_META_KEY, true ) );
-		$this->assertSame( '', (string) get_user_meta( $this->user->ID, Two_Factor_Totp::SECRET_NETWORK_META_KEY, true ) );
-
-		// Only the named user is exported.
-		$this->assertSame( '', (string) get_user_meta( $other_user, Two_Factor_Totp::SECRET_META_KEY, true ) );
-		$this->assertSame( (string) get_current_network_id(), get_user_meta( $other_user, Two_Factor_Totp::SECRET_NETWORK_META_KEY, true ) );
-
-		add_filter( 'two_factor_use_secrets_api', '__return_false' );
-		$this->command->status( array( 'cli_test_user' ), array() );
-		$this->assertSame( 'plaintext', $this->last_format()['items'][0]['totp_storage'] );
-	}
-
-	/**
-	 * Exporting all users pages through batches.
-	 *
-	 * @covers Two_Factor_CLI_Command::secrets
-	 */
-	public function test_secrets_export_all_users_in_batches() {
-		$this->require_secrets_api();
-		$ids = array( $this->user->ID, self::factory()->user->create(), self::factory()->user->create() );
-		foreach ( $ids as $id ) {
-			Two_Factor_Totp::get_instance()->set_user_totp_key( $id, 'ABCDEFGH' );
-		}
-
-		$this->command->secrets(
-			array( 'export' ),
-			array(
-				'yes'        => true,
-				'batch-size' => '2',
-			) 
-		);
-
-		foreach ( $ids as $id ) {
-			$this->assertSame( 'ABCDEFGH', get_user_meta( $id, Two_Factor_Totp::SECRET_META_KEY, true ) );
-		}
-		$this->assertSame( 'Exported 3, unreadable 0, skipped 0.', $this->last_message( 'success' ) );
-	}
-
-	/**
-	 * An unreadable secret is skipped with a warning.
-	 *
-	 * @covers Two_Factor_CLI_Command::secrets
-	 */
-	public function test_secrets_export_skips_unreadable_secret() {
-		$this->require_secrets_api();
-		$bad = self::factory()->user->create();
-		$ids = array( $this->user->ID, $bad, self::factory()->user->create() );
-		foreach ( $ids as $id ) {
-			Two_Factor_Totp::get_instance()->set_user_totp_key( $id, 'ABCDEFGH' );
-		}
-		Two_Factor_Secrets::$test_overrides['get'] = function ( $name ) use ( $bad ) {
-			if ( "two-factor/totp-{$bad}" === $name ) {
-				return new WP_Error( 'secret_decryption_failed' );
-			}
-			$secret = wp_get_network_secret( $name );
-			return $secret ? $secret->reveal() : null;
-		};
-
-		$this->command->secrets(
-			array( 'export' ),
-			array(
-				'yes'        => true,
-				'batch-size' => '2',
-			) 
-		);
-
-		$this->assertSame( 'Exported 2, unreadable 1, skipped 0.', $this->last_message( 'success' ) );
-		$this->assertStringContainsString( "User {$bad}:", $this->last_message( 'warning' ) );
-		$this->assertSame( (string) get_current_network_id(), get_user_meta( $bad, Two_Factor_Totp::SECRET_NETWORK_META_KEY, true ) );
-	}
-
-	/**
-	 * Exporting without the API errors.
-	 *
-	 * @covers Two_Factor_CLI_Command::secrets
-	 */
-	public function test_secrets_export_errors_when_api_absent() {
-		add_filter( 'two_factor_secrets_api_present', '__return_false' );
 
 		$message = $this->assert_command_aborts(
 			function () {
@@ -715,7 +611,9 @@ class Tests_Two_Factor_CLI_Command extends WP_UnitTestCase {
 			}
 		);
 
-		$this->assertStringContainsString( 'nothing to read the secrets from', $message );
+		$this->assertStringContainsString( 'Unknown action "export"', $message );
+		$this->assertSame( '', (string) get_user_meta( $this->user->ID, Two_Factor_Totp::SECRET_META_KEY, true ) );
+		$this->assertSame( (string) get_current_network_id(), get_user_meta( $this->user->ID, Two_Factor_Totp::SECRET_NETWORK_META_KEY, true ) );
 	}
 
 	/*

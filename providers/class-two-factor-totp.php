@@ -647,59 +647,6 @@ class Two_Factor_Totp extends Two_Factor_Provider {
 	}
 
 	/**
-	 * Move a TOTP key from the Secrets API back into user meta.
-	 *
-	 * Used when decommissioning the Secrets API. The Secrets API copy is removed only after the
-	 * plaintext copy has been read back and matches.
-	 *
-	 * @since 0.18.0
-	 *
-	 * @param int $user_id User ID.
-	 *
-	 * @return true|null|WP_Error True when exported, null when there is nothing to export, WP_Error on failure.
-	 */
-	public function export_user_totp_key( $user_id ) {
-		if ( '' !== (string) get_user_meta( $user_id, self::SECRET_META_KEY, true ) ) {
-			return null;
-		}
-
-		if ( '' === (string) get_user_meta( $user_id, self::SECRET_NETWORK_META_KEY, true ) ) {
-			return null;
-		}
-
-		$secret = Two_Factor_Secrets::get_user_secret( $user_id, self::SECRET_SLUG );
-
-		if ( is_wp_error( $secret ) ) {
-			return $secret;
-		}
-
-		if ( ! is_string( $secret ) ) {
-			return null;
-		}
-
-		update_user_meta( $user_id, self::SECRET_META_KEY, $secret );
-		$readback = (string) get_user_meta( $user_id, self::SECRET_META_KEY, true );
-
-		if ( ! hash_equals( $secret, $readback ) ) {
-			delete_user_meta( $user_id, self::SECRET_META_KEY );
-			Two_Factor_Secrets::memzero( $secret );
-			Two_Factor_Secrets::memzero( $readback );
-
-			return new WP_Error(
-				'two_factor_secrets_export_mismatch',
-				__( 'The exported secret did not match the original, so the export was rolled back.', 'two-factor' )
-			);
-		}
-
-		Two_Factor_Secrets::delete_user_secret( $user_id, self::SECRET_SLUG );
-		Two_Factor_Secrets::memzero( $secret );
-		Two_Factor_Secrets::memzero( $readback );
-		self::clear_affected_users_cache();
-
-		return true;
-	}
-
-	/**
 	 * Fire the migration failure action.
 	 *
 	 * @since 0.18.0
@@ -877,12 +824,7 @@ class Two_Factor_Totp extends Two_Factor_Provider {
 		}
 
 		wp_admin_notice(
-			sprintf(
-				/* translators: 1: WP-CLI export command, 2: WP-CLI migrate command. */
-				esc_html__( 'Authenticator app secrets for one or more users were stored with the WordPress Secrets API, which is no longer available on this site. Those users cannot use their authenticator app until it is restored. Re-activate the Secrets API, or run %1$s before removing it and %2$s after restoring it.', 'two-factor' ),
-				'<code>wp two-factor secrets export</code>',
-				'<code>wp two-factor secrets migrate</code>'
-			),
+			esc_html__( 'Authenticator app secrets for one or more users were stored with the WordPress Secrets API, which is no longer available on this site. Those users cannot use their authenticator app until it is restored. Re-activate the Secrets API, or reset those users\' authenticator app so they can set it up again.', 'two-factor' ),
 			array(
 				'type'        => 'error',
 				'dismissible' => false,
@@ -959,11 +901,7 @@ class Two_Factor_Totp extends Two_Factor_Provider {
 			$result['badge']['color'] = 'red';
 			$result['description']    = sprintf(
 				'<p>%s</p>',
-				sprintf(
-					/* translators: %s: WP-CLI export command. */
-					esc_html__( 'Some users\' authenticator app secrets were stored with the WordPress Secrets API, which this site cannot currently reach. Those users cannot use their authenticator app. Re-activate the Secrets API, or run %s before deactivating it.', 'two-factor' ),
-					'<code>wp two-factor secrets export</code>'
-				)
+				esc_html__( 'Some users\' authenticator app secrets were stored with the WordPress Secrets API, which this site cannot currently reach. Those users cannot use their authenticator app. Re-activate the Secrets API, or reset those users\' authenticator app so they can set it up again. Secrets are never moved back out of the Secrets API.', 'two-factor' )
 			);
 
 			return $result;

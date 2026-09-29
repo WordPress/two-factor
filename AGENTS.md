@@ -120,7 +120,7 @@ No hook ever receives a plaintext secret.
 
 ### WP-CLI
 
-`CLI/class-two-factor-cli-command.php` registers the `wp two-factor` commands. `status` includes a `totp_storage` field (`plaintext`, `secrets-api`, `unavailable` or `none`). The `secrets` subcommand has `status`, `migrate` and `export` actions.
+`CLI/class-two-factor-cli-command.php` registers the `wp two-factor` commands. `status` includes a `totp_storage` field (`plaintext`, `secrets-api`, `unavailable` or `none`). The `secrets` subcommand has `status` and `migrate` actions. There is deliberately no export: migration is one-directional, and secrets never leave the Secrets API.
 
 ### REST API
 

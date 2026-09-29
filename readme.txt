@@ -123,7 +123,6 @@ The plugin includes a `wp two-factor` WP-CLI namespace for managing two-factor a
 * `wp two-factor backup-codes generate <user> [--count=<n>]` — Generates a fresh set of backup codes for a user, replacing any existing ones. Defaults to 10 codes.
 * `wp two-factor secrets status` — Shows whether the WordPress Secrets API is available and how many users have authenticator app secrets in user meta, in the Secrets API, or unreachable. Supports `--format=json`.
 * `wp two-factor secrets migrate [<user>] [--batch-size=<n>] [--dry-run]` — Moves plaintext authenticator app secrets into the Secrets API.
-* `wp two-factor secrets export [<user>] [--batch-size=<n>] [--yes]` — Moves authenticator app secrets from the Secrets API back into user meta, for example before removing the Secrets API.
 * `wp two-factor unlock <user>` — Clears a user's login rate-limit/throttle without changing their 2FA configuration.
 
 Run `wp help two-factor` for the full list, or `wp help two-factor <command>` for options and examples for a specific command.
@@ -184,7 +183,7 @@ By default, and on WordPress versions without the Secrets API, they are stored i
 
 Define `WP_SECRETS_KEY` (the base64 encoding of 32 random bytes) in `wp-config.php` so encryption does not depend on your salts. Without it, rotating `LOGGED_IN_KEY` or `LOGGED_IN_SALT` makes stored secrets unreadable. Affected users can't use their authenticator app, and if it was their only method they are locked out until an administrator resets their two-factor settings. The fallback method is only forced when the Secrets API is missing or the secret belongs to another network.
 
-Do not deactivate the Secrets API while users have migrated secrets: those users can't use their authenticator app until it is restored, and an administrator notice and Site Health check will warn you. To move secrets back into user meta before removing it, first return false from the `two_factor_use_secrets_api` filter (otherwise secrets are migrated straight back on the next read), run `wp two-factor secrets export`, then deactivate the Secrets API. If the Secrets API is already gone, run `wp two-factor secrets migrate` after restoring it. Secrets left in the store when the Secrets API is absent at the time the plugin is uninstalled are not removed.
+Migration is one-directional: Two-Factor never moves a secret back out of the Secrets API into user meta. Do not deactivate the Secrets API while users have migrated secrets: those users can't use their authenticator app until it is restored, and an administrator notice and Site Health check will warn you. If you do remove it, reset the affected users' authenticator app so they can set it up again. Secrets left in the store when the Secrets API is absent at the time the plugin is uninstalled are not removed.
 
 = Can I require 2FA for all users or specific roles? =
 
