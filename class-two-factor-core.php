@@ -632,7 +632,7 @@ class Two_Factor_Core {
 			}
 
 			$reauth_url = self::get_user_two_factor_revalidate_url();
-			$reauth_url = add_query_arg( 'redirect_to', urlencode( $redirect_to ), $reauth_url );
+			$reauth_url = add_query_arg( 'redirect_to', $redirect_to, $reauth_url );
 
 			wp_safe_redirect( $reauth_url );
 			exit;
