@@ -269,6 +269,16 @@ class Two_Factor_Totp extends Two_Factor_Provider {
 		$user_id = $request['user_id'];
 		$user    = get_user_by( 'id', $user_id );
 
+		// A reset cannot be followed by re-enrollment while the Secrets API key is unusable,
+		// and it would leave the user without a second factor in the meantime.
+		if ( Two_Factor_Secrets::is_key_unavailable_error( $this->get_user_totp_key_state( $user_id, false ) ) ) {
+			return new WP_Error(
+				'two_factor_secrets_key_unavailable',
+				__( 'The authenticator app cannot be reset because the WordPress Secrets API cannot use its encryption key. Restore the site\'s original secrets key (WP_SECRETS_KEY) first.', 'two-factor' ),
+				array( 'status' => 503 )
+			);
+		}
+
 		if ( ! Two_Factor_Core::disable_provider_for_user( $user_id, 'Two_Factor_Totp' ) ) {
 			return new WP_Error( 'db_error', __( 'Unable to disable TOTP provider for this user.', 'two-factor' ), array( 'status' => 500 ) );
 		}
@@ -308,7 +318,25 @@ class Two_Factor_Totp extends Two_Factor_Provider {
 			return new WP_Error( 'invalid_key_code', __( 'Invalid Two Factor Authentication code.', 'two-factor' ), array( 'status' => 400 ) );
 		}
 
-		if ( ! $this->set_user_totp_key( $user_id, $key ) ) {
+		$saved = $this->save_user_totp_key( $user_id, $key );
+
+		if ( Two_Factor_Secrets::is_key_unavailable_error( $saved ) ) {
+			return new WP_Error(
+				'two_factor_secrets_key_unavailable',
+				__( 'The authenticator app could not be set up because the WordPress Secrets API cannot use its encryption key. Nothing was saved. An administrator needs to restore the site\'s original secrets key (WP_SECRETS_KEY) before authenticator apps can be set up.', 'two-factor' ),
+				array( 'status' => 503 )
+			);
+		}
+
+		if ( is_wp_error( $saved ) ) {
+			return new WP_Error(
+				'two_factor_secrets_write_failed',
+				__( 'The authenticator app could not be set up because the WordPress Secrets API could not store its secret. Nothing was saved. Please try again, or ask an administrator to check the Secrets API.', 'two-factor' ),
+				array( 'status' => 503 )
+			);
+		}
+
+		if ( ! $saved ) {
 			return new WP_Error( 'db_error', __( 'Unable to save Two Factor Authentication code. Please re-scan the QR code and enter the code provided by your application.', 'two-factor' ), array( 'status' => 500 ) );
 		}
 
@@ -430,7 +458,17 @@ class Two_Factor_Totp extends Two_Factor_Provider {
 		?>
 		<div id="two-factor-totp-options">
 		<?php
-		if ( is_wp_error( $state ) ) :
+		if ( Two_Factor_Secrets::is_key_unavailable_error( $state ) ) :
+			// Resetting cannot help: no new secret can be stored until the key is restored,
+			// and the reset would leave the user without a second factor meanwhile.
+			wp_admin_notice(
+				esc_html__( 'The stored authenticator app secret cannot be read because the WordPress Secrets API cannot use its encryption key. An administrator needs to restore the site\'s original secrets key (WP_SECRETS_KEY). Resetting the authenticator app will not help until then.', 'two-factor' ),
+				array(
+					'type'               => 'error',
+					'additional_classes' => array( 'inline', 'two-factor-totp-key-unavailable' ),
+				)
+			);
+		elseif ( is_wp_error( $state ) ) :
 			wp_admin_notice(
 				esc_html__( 'The stored authenticator app secret cannot be read. Reset the authenticator app to set it up again.', 'two-factor' ),
 				array(
@@ -686,6 +724,24 @@ class Two_Factor_Totp extends Two_Factor_Provider {
 	 * @return int|bool Meta ID if the key did not exist, true on update or Secrets API write, false on failure.
 	 */
 	public function set_user_totp_key( $user_id, $key ) {
+		$result = $this->save_user_totp_key( $user_id, $key );
+
+		return is_wp_error( $result ) ? false : $result;
+	}
+
+	/**
+	 * Store the TOTP secret key for a user, reporting why a Secrets API write failed.
+	 *
+	 * Same behavior as set_user_totp_key(), which wraps it.
+	 *
+	 * @since 0.18.0
+	 *
+	 * @param int    $user_id User ID.
+	 * @param string $key     TOTP secret key.
+	 *
+	 * @return int|bool|WP_Error As set_user_totp_key(), or a WP_Error when the Secrets API write or its read-back failed.
+	 */
+	private function save_user_totp_key( $user_id, $key ) {
 		if ( '' === (string) $key ) {
 			return $this->delete_user_totp_key( $user_id );
 		}
@@ -694,14 +750,20 @@ class Two_Factor_Totp extends Two_Factor_Provider {
 			$result = Two_Factor_Secrets::set_user_secret( $user_id, self::SECRET_SLUG, $key );
 
 			if ( is_wp_error( $result ) ) {
-				return false;
+				return $result;
 			}
 
 			$readback = Two_Factor_Secrets::get_user_secret( $user_id, self::SECRET_SLUG );
 
 			if ( ! is_string( $readback ) || ! hash_equals( (string) $key, $readback ) ) {
 				Two_Factor_Secrets::delete_user_secret( $user_id, self::SECRET_SLUG );
-				return false;
+
+				return is_wp_error( $readback )
+					? $readback
+					: new WP_Error(
+						'two_factor_secrets_write_mismatch',
+						__( 'The stored secret did not match the original, so it was removed.', 'two-factor' )
+					);
 			}
 
 			Two_Factor_Secrets::memzero( $readback );

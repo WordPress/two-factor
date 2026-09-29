@@ -186,7 +186,7 @@ Tests `Two_Factor_Secrets`: secret names, marker meta, API presence, `can_write(
 
 **Class:** `Two_Factor_Totp_Secrets_Tests` · **Groups:** `providers`, `totp`, `secrets`
 
-Tests how `Two_Factor_Totp` uses the adapter: storage precedence, verified writes, lazy one-directional migration, fail-closed validation, the login prompt and profile UI when a secret is unreadable, the affected-user login regression, user deletion, uninstall, the administrator notice, the Site Health test and multisite cross-site reads.
+Tests how `Two_Factor_Totp` uses the adapter: storage precedence, verified writes, lazy one-directional migration, fail-closed validation, the login prompt and profile UI when a secret is unreadable, setup and reset when the Secrets API key is unusable (no plaintext fallback, a clear 503, no reset), the affected-user login regression, user deletion, uninstall, the administrator notice, the Site Health test and multisite cross-site reads.
 
 ### Dummy Provider — `tests/providers/class-two-factor-dummy.php`
 

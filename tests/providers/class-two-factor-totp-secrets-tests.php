@@ -1119,4 +1119,173 @@ class Two_Factor_Totp_Secrets_Tests extends Two_Factor_Secrets_UnitTestCase {
 			$result['description']
 		);
 	}
+
+	/**
+	 * Make the Secrets API behave as it does after WP_SECRETS_KEY changed: its root key
+	 * cannot be unwrapped, so every read and write fails, while deletes still work.
+	 */
+	private function make_key_unavailable() {
+		$error = function () {
+			return new WP_Error( 'secret_key_unavailable', 'The wrapped key material could not be decrypted with the configured site key.' );
+		};
+
+		Two_Factor_Secrets::$test_overrides['get'] = $error;
+		Two_Factor_Secrets::$test_overrides['set'] = $error;
+	}
+
+	/**
+	 * POST a TOTP setup request for a user.
+	 *
+	 * @param int    $user_id User ID.
+	 * @param string $key     TOTP key.
+	 * @return WP_REST_Response
+	 */
+	private function rest_setup( $user_id, $key ) {
+		$request = new WP_REST_Request( 'POST', '/' . Two_Factor_Core::REST_NAMESPACE . '/totp' );
+		$request->set_body_params(
+			array(
+				'user_id'         => $user_id,
+				'key'             => $key,
+				'code'            => $this->provider->calc_totp( $key ),
+				'enable_provider' => true,
+			)
+		);
+
+		return rest_do_request( $request );
+	}
+
+	/**
+	 * Create an administrator who can manage their own options on either install type.
+	 *
+	 * @return int
+	 */
+	private function admin_user() {
+		$user_id = self::factory()->user->create( array( 'role' => 'administrator' ) );
+		if ( is_multisite() ) {
+			grant_super_admin( $user_id );
+		}
+		wp_set_current_user( $user_id );
+
+		return $user_id;
+	}
+
+	/**
+	 * With an unusable Secrets API key, the profile says to restore the key and offers no reset,
+	 * since a reset could not be followed by re-enrollment.
+	 */
+	public function test_user_options_offers_no_reset_when_key_unavailable() {
+		$this->require_secrets_api();
+		$user_id = $this->user();
+		$this->provider->set_user_totp_key( $user_id, Two_Factor_Totp::generate_key() );
+		$this->make_key_unavailable();
+		$user = get_userdata( $user_id );
+
+		$html = $this->capture(
+			function () use ( $user ) {
+				$this->provider->user_two_factor_options( $user );
+			}
+		);
+
+		$this->assertStringContainsString( 'two-factor-totp-key-unavailable', $html );
+		$this->assertStringContainsString( 'WP_SECRETS_KEY', $html );
+		$this->assertStringNotContainsString( 'reset-totp-key', $html );
+		$this->assertStringNotContainsString( 'two-factor-totp-key"', $html );
+	}
+
+	/**
+	 * With an unusable Secrets API key, the REST reset is refused and the user stays enrolled,
+	 * so they are kept out rather than left with a password alone.
+	 *
+	 * @covers Two_Factor_Totp::rest_delete_totp
+	 */
+	public function test_rest_reset_refused_when_key_unavailable() {
+		$this->require_secrets_api();
+		$user_id = $this->user();
+		$this->provider->set_user_totp_key( $user_id, $this->provider->generate_key() );
+		Two_Factor_Core::enable_provider_for_user( $user_id, 'Two_Factor_Totp' );
+		$this->make_key_unavailable();
+
+		// An administrator resets another user, as on the user-edit screen.
+		$this->admin_user();
+
+		$request = new WP_REST_Request( 'DELETE', '/' . Two_Factor_Core::REST_NAMESPACE . '/totp' );
+		$request->set_body_params( array( 'user_id' => $user_id ) );
+		$response = rest_do_request( $request );
+
+		$this->assertSame( 503, $response->get_status() );
+		$this->assertSame( 'two_factor_secrets_key_unavailable', $response->as_error()->get_error_code() );
+		$this->assertSame( (string) get_current_network_id(), $this->marker( $user_id ) );
+		$this->assertContains( 'Two_Factor_Totp', Two_Factor_Core::get_enabled_providers_for_user( $user_id ) );
+	}
+
+	/**
+	 * Regression: re-enrolling after a reset under a changed secrets key fails closed with a
+	 * clear 503, stores nothing, and works once the key is usable again. The REST reset is
+	 * refused in this state, but a reset can still happen another way, for example through
+	 * `wp two-factor disable`.
+	 *
+	 * @covers Two_Factor_Totp::rest_setup_totp
+	 * @covers Two_Factor_Totp::set_user_totp_key
+	 */
+	public function test_reenroll_after_reset_with_unavailable_key_fails_closed_with_clear_error() {
+		$this->require_secrets_api();
+		$user_id = $this->admin_user();
+		$this->assertTrue( $this->provider->set_user_totp_key( $user_id, $this->provider->generate_key() ) );
+		Two_Factor_Core::enable_provider_for_user( $user_id, 'Two_Factor_Totp' );
+
+		$this->make_key_unavailable();
+		$this->assertWPError( $this->provider->get_user_totp_key_state( $user_id ) );
+
+		// A reset outside the REST endpoint, as `wp two-factor disable` performs it.
+		Two_Factor_Core::disable_provider_for_user( $user_id, 'Two_Factor_Totp' );
+		$this->assertTrue( $this->provider->delete_user_totp_key( $user_id ) );
+
+		$new_key  = $this->provider->generate_key();
+		$response = $this->rest_setup( $user_id, $new_key );
+		$error    = $response->as_error();
+
+		$this->assertSame( 503, $response->get_status() );
+		$this->assertSame( 'two_factor_secrets_key_unavailable', $error->get_error_code() );
+		$this->assertStringContainsString( 'WP_SECRETS_KEY', $error->get_error_message() );
+		$this->assertStringNotContainsString( $new_key, wp_json_encode( $response->get_data() ) );
+
+		// Fail closed: no plaintext fallback, no marker, TOTP not enabled.
+		$this->assertSame( '', $this->plaintext( $user_id ) );
+		$this->assertSame( '', $this->marker( $user_id ) );
+		$this->assertNotContains( 'Two_Factor_Totp', Two_Factor_Core::get_enabled_providers_for_user( $user_id ) );
+		$this->assertFalse( $this->provider->set_user_totp_key( $user_id, $new_key ) );
+
+		// Once the key is usable again, the same enrollment succeeds.
+		Two_Factor_Secrets::$test_overrides = array();
+
+		$response = $this->rest_setup( $user_id, $new_key );
+
+		$this->assertSame( 200, $response->get_status() );
+		$this->assertSame( $new_key, $this->provider->get_user_totp_key_state( $user_id ) );
+		$this->assertSame( (string) get_current_network_id(), $this->marker( $user_id ) );
+		$this->assertSame( '', $this->plaintext( $user_id ) );
+	}
+
+	/**
+	 * Any other Secrets API write failure is reported as such, and stores nothing.
+	 *
+	 * @covers Two_Factor_Totp::rest_setup_totp
+	 */
+	public function test_rest_setup_reports_secrets_write_failure() {
+		$this->require_secrets_api();
+		$user_id = $this->admin_user();
+
+		Two_Factor_Secrets::$test_overrides['set'] = function () {
+			return new WP_Error( 'secret_store_unavailable', 'sensitive detail' );
+		};
+
+		$response = $this->rest_setup( $user_id, $this->provider->generate_key() );
+		$error    = $response->as_error();
+
+		$this->assertSame( 503, $response->get_status() );
+		$this->assertSame( 'two_factor_secrets_write_failed', $error->get_error_code() );
+		$this->assertStringNotContainsString( 'sensitive detail', $error->get_error_message() );
+		$this->assertSame( '', $this->plaintext( $user_id ) );
+		$this->assertSame( '', $this->marker( $user_id ) );
+	}
 }

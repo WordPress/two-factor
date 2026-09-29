@@ -225,4 +225,16 @@ class Two_Factor_Secrets_Tests extends Two_Factor_Secrets_UnitTestCase {
 
 		$this->assertTrue( Two_Factor_Secrets::delete_user_secret( $user_id, 'totp' ) );
 	}
+
+	/**
+	 * Key-unavailable errors are recognized by code.
+	 *
+	 * @covers Two_Factor_Secrets::is_key_unavailable_error
+	 */
+	public function test_is_key_unavailable_error() {
+		$this->assertTrue( Two_Factor_Secrets::is_key_unavailable_error( new WP_Error( 'secret_key_unavailable' ) ) );
+		$this->assertFalse( Two_Factor_Secrets::is_key_unavailable_error( new WP_Error( 'secret_store_unavailable' ) ) );
+		$this->assertFalse( Two_Factor_Secrets::is_key_unavailable_error( 'secret_key_unavailable' ) );
+		$this->assertFalse( Two_Factor_Secrets::is_key_unavailable_error( true ) );
+	}
 }

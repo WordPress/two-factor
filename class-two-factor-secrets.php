@@ -57,6 +57,26 @@ class Two_Factor_Secrets {
 	}
 
 	/**
+	 * Whether an error means the Secrets API cannot use its encryption key.
+	 *
+	 * The Secrets API wraps a single root key with the site key (WP_SECRETS_KEY, or one
+	 * derived from the salts). When the site key changes without the API's own rotation,
+	 * the root key cannot be unwrapped and every read and write fails, including writes
+	 * of brand-new secrets, until the original key is restored.
+	 *
+	 * @since 0.18.0
+	 *
+	 * @param mixed $error Value to check.
+	 *
+	 * @return bool
+	 */
+	public static function is_key_unavailable_error( $error ) {
+		$code = defined( 'WP_SECRETS_ERROR_KEY_UNAVAILABLE' ) ? WP_SECRETS_ERROR_KEY_UNAVAILABLE : 'secret_key_unavailable';
+
+		return is_wp_error( $error ) && $code === $error->get_error_code();
+	}
+
+	/**
 	 * Whether the active secrets provider accepts writes.
 	 *
 	 * @since 0.18.0
