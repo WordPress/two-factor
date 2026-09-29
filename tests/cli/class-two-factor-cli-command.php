@@ -481,7 +481,20 @@ class Tests_Two_Factor_CLI_Command extends WP_UnitTestCase {
 
 		$this->assertSame( 'ABCDEFGH', get_user_meta( $this->user->ID, Two_Factor_Totp::SECRET_META_KEY, true ) );
 		$this->assertSame( '', (string) get_user_meta( $this->user->ID, Two_Factor_Totp::SECRET_NETWORK_META_KEY, true ) );
-		$this->assertStringStartsWith( 'Dry run', $this->last_message( 'success' ) );
+		$this->assertSame( 'Dry run: would migrate 1, skipped 0. Nothing was changed.', $this->last_message( 'success' ) );
+	}
+
+	/**
+	 * A dry run for a user without a plaintext secret reports a skip, not a migration.
+	 *
+	 * @covers Two_Factor_CLI_Command::secrets
+	 */
+	public function test_secrets_migrate_dry_run_skips_user_without_plaintext() {
+		$this->require_secrets_api();
+
+		$this->command->secrets( array( 'migrate', 'cli_test_user' ), array( 'dry-run' => true ) );
+
+		$this->assertSame( 'Dry run: would migrate 0, skipped 1. Nothing was changed.', $this->last_message( 'success' ) );
 	}
 
 	/**

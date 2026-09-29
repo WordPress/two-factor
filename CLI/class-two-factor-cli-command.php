@@ -869,14 +869,20 @@ class Two_Factor_CLI_Command extends WP_CLI_Command {
 
 		$totp     = Two_Factor_Totp::get_instance();
 		$migrated = 0;
+		$would    = 0;
 		$failed   = 0;
 		$skipped  = 0;
 
-		$migrate_one = function ( $user_id ) use ( $totp, $dry_run, &$migrated, &$failed, &$skipped ) {
+		$migrate_one = function ( $user_id ) use ( $totp, $dry_run, &$migrated, &$would, &$failed, &$skipped ) {
 			if ( $dry_run ) {
+				if ( '' === (string) get_user_meta( $user_id, Two_Factor_Totp::SECRET_META_KEY, true ) ) {
+					++$skipped;
+					return 'skipped';
+				}
+
 				WP_CLI::log( sprintf( 'Would migrate user %d', $user_id ) );
-				++$skipped;
-				return 'skipped';
+				++$would;
+				return 'would-migrate';
 			}
 
 			$result = $totp->migrate_user_totp_key( $user_id );
@@ -943,14 +949,26 @@ class Two_Factor_CLI_Command extends WP_CLI_Command {
 
 		Two_Factor_Totp::clear_affected_users_cache();
 
-		$message = sprintf(
-			/* translators: 1: number migrated, 2: number failed, 3: number skipped */
-			__( 'Migrated %1$d, failed %2$d, skipped %3$d.', 'two-factor' ),
-			$migrated,
-			$failed,
-			$skipped
-		);
+		if ( $dry_run ) {
+			WP_CLI::success(
+				sprintf(
+					/* translators: 1: number that would be migrated, 2: number skipped */
+					__( 'Dry run: would migrate %1$d, skipped %2$d. Nothing was changed.', 'two-factor' ),
+					$would,
+					$skipped
+				)
+			);
+			return;
+		}
 
-		WP_CLI::success( $dry_run ? __( 'Dry run: ', 'two-factor' ) . $message : $message );
+		WP_CLI::success(
+			sprintf(
+				/* translators: 1: number migrated, 2: number failed, 3: number skipped */
+				__( 'Migrated %1$d, failed %2$d, skipped %3$d.', 'two-factor' ),
+				$migrated,
+				$failed,
+				$skipped
+			)
+		);
 	}
 }
