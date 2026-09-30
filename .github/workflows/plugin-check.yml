@@ -63,5 +63,9 @@ jobs:
           build-dir: dist
           # The action derives the slug from the directory name, which would be "dist".
           slug: two-factor
+          # These files copy core login functions and omit the text domain on purpose,
+          # so core translations apply. phpcs.xml.dist excludes them for the same reason.
+          exclude-directories: |
+            includes
           wp-version: 'latest'
           ignore-warnings: true
