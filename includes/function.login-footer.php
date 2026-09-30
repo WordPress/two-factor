@@ -3,10 +3,6 @@
  * Extracted from wp-login.php since that file also loads WP core which we already have.
  */
 
-if ( ! defined( 'ABSPATH' ) ) {
-	exit; // Exit if accessed directly.
-}
-
 /**
  * Outputs the footer for the login page.
  *
