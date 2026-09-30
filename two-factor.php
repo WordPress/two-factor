@@ -49,6 +49,18 @@ require_once TWO_FACTOR_DIR . 'class-two-factor-core.php';
  */
 require_once TWO_FACTOR_DIR . 'class-two-factor-compat.php';
 
+/**
+ * Storage adapter for the WordPress Secrets API.
+ */
+require_once TWO_FACTOR_DIR . 'class-two-factor-secrets.php';
+
+/**
+ * The TOTP provider owns secrets that outlive its being enabled, so its lifecycle
+ * hooks are registered even when the site has turned TOTP off.
+ */
+require_once TWO_FACTOR_DIR . 'providers/class-two-factor-totp.php';
+Two_Factor_Totp::register_secret_lifecycle_hooks();
+
 // Load settings UI class so the settings page can be rendered.
 require_once TWO_FACTOR_DIR . 'settings/class-two-factor-settings.php';
 

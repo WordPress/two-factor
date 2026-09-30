@@ -176,6 +176,18 @@ Extends `WP_Test_REST_TestCase`. Tests the backup codes REST endpoints:
 - User cannot generate codes for a different user
 - Admin can generate codes for other users
 
+### Secrets API Adapter — `tests/class-two-factor-secrets-tests.php`
+
+**Class:** `Two_Factor_Secrets_Tests` · **Group:** `secrets`
+
+Tests `Two_Factor_Secrets`: secret names, marker meta, API presence, `can_write()` and its filter, the read/write/delete round trip in network scope, and the error codes for a missing API, another network's marker, a vanished secret and API errors. The file is named after the class, and sorts after `class-two-factor-core.php` on purpose: the core tests register hooks in `set_up_before_class()`, which an earlier test class would wipe.
+
+### TOTP Secrets Storage — `tests/providers/class-two-factor-totp-secrets-tests.php`
+
+**Class:** `Two_Factor_Totp_Secrets_Tests` · **Groups:** `providers`, `totp`, `secrets`
+
+Tests how `Two_Factor_Totp` uses the adapter: storage precedence, verified writes, lazy one-directional migration, fail-closed validation, the login prompt and profile UI when a secret is unreadable, setup and reset when the Secrets API key is unusable (no plaintext fallback, a clear 503, no reset), the affected-user login regression, user deletion, uninstall, the administrator notice, the Site Health test and multisite cross-site reads.
+
 ### Dummy Provider — `tests/providers/class-two-factor-dummy.php`
 
 **Class:** `Tests_Two_Factor_Dummy` · **Groups:** `providers`, `dummy`
@@ -209,8 +221,20 @@ Tests the `Two_Factor_CLI_Command` WP-CLI command class. The WP-CLI runtime is n
 - `disable` (all) — full reset clears providers/throttle/nonce state and destroys sessions, preserves the compromised-password-reset flag, idempotent no-op, stale-meta cleanup guarding the fail-closed email fallback, confirmation required without `--yes`
 - `backup-codes generate` — default and `--count` code counts, regeneration replaces the set, enables the provider so codes are usable at login, session destruction when first enabled, unknown-action and missing-argument errors
 - `unlock` — clears the login throttle for a rate-limited user; no-op message otherwise
+- `status` `totp_storage` field for each storage state
+- `secrets status` — API availability, provider label and per-state user counts, `--format` passthrough, unknown/missing action errors
+- `secrets migrate` — single user, `--dry-run`, `--batch-size` paging, per-user failures, error when the API is absent or opted out
+- `secrets export` — not an action; the secret stays in the Secrets API
 
 ## Test Helpers
+
+- **`tests/class-two-factor-secrets-test-case.php`** — `Two_Factor_Secrets_UnitTestCase`, the base class for secrets tests. `require_secrets_api()` skips the test when the feature plugin is not loaded, `simulate_api_absent()` makes the adapter report the API as missing, and `tear_down()` resets `Two_Factor_Secrets::$test_overrides` and the affected-users transient. `tests/bootstrap.php` loads it after the WordPress test library.
+- **`tests/class-two-factor-dummy-unavailable.php`** — `Two_Factor_Dummy_Unavailable`, a provider that is enrolled but never available, and counts `uninstall_user_data()` calls.
+- **`tests/phpstan/`** — Stubs for the Secrets API functions and classes so PHPStan can analyse the adapter (`scanFiles` in `phpstan.dist.neon`). PHPUnit excludes the directory in both configs because the stubs would redeclare the real functions once the feature plugin is loaded.
+
+### Secrets API feature plugin
+
+The tests need the Secrets API feature plugin. `.wp-env.json` maps `ericmann/secrets-api#v0.2.1` into the tests environment (`env.tests.plugins`, which must repeat `"."`) and sets a deterministic `WP_SECRETS_KEY`. `tests/bootstrap.php` loads `secrets-api/secrets-api.php` from the plugins directory, or the file named by the `TWO_FACTOR_SECRETS_API_FILE` environment variable. When the file is absent the suite still runs and tests that need the API are skipped; tests that simulate an absent API run either way. Restart the environment with `npm run env start` after changing the mapping.
 
 - **`tests/bootstrap.php`** — Locates the WordPress test library (via `WP_TESTS_DIR` env var, relative path, or `/tmp/wordpress-tests-lib`), loads the plugin via `muplugins_loaded`, then boots the WP test environment.
 - **`tests/class-two-factor-dummy-secure.php`** — Defines `Two_Factor_Dummy_Secure`, a test-only provider class that spoofs the key of `Two_Factor_Dummy` but always fails `validate_authentication`. Used by `Tests_Two_Factor_Dummy_Secure` and some core tests.
