@@ -61,5 +61,7 @@ jobs:
         uses: wordpress/plugin-check-action@10857da14b6c2246d15402b3e69f777edcf8c12e # v1.1.9
         with:
           build-dir: dist
+          # The action derives the slug from the directory name, which would be "dist".
+          slug: two-factor
           wp-version: 'latest'
           ignore-warnings: true
