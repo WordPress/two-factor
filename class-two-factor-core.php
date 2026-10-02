@@ -2390,6 +2390,121 @@ class Two_Factor_Core {
 	}
 
 	/**
+	 * Notify a user by email that their two-factor authentication settings have changed.
+	 *
+	 * Enrolling (or un-enrolling) a factor destroys the account's other active sessions
+	 * (see the "Destroy other sessions" block in `user_two_factor_options_update()`), which
+	 * is indistinguishable from an unauthorized logout unless the account owner is told why
+	 * it happened -- especially when an administrator made the change on their behalf. Unlike
+	 * the password-reset notifications above, this email is always sent; only its content can
+	 * be filtered, not whether it goes out.
+	 *
+	 * @since 0.18.0
+	 *
+	 * @param WP_User $user               The user whose two-factor settings changed.
+	 * @param array   $enabled_providers  Provider keys enabled after the change.
+	 * @param array   $existing_providers Provider keys that were enabled before the change.
+	 *
+	 * @return bool `true` if the email was sent, `false` if there was nothing to report or it failed.
+	 */
+	public static function notify_user_two_factor_settings_changed( $user, $enabled_providers, $existing_providers ) {
+		$added_keys   = array_values( array_diff( $enabled_providers, $existing_providers ) );
+		$removed_keys = array_values( array_diff( $existing_providers, $enabled_providers ) );
+
+		if ( ! $added_keys && ! $removed_keys ) {
+			return false;
+		}
+
+		$supported_providers = self::get_supported_providers_for_user( $user->ID );
+
+		$label_for_key = static function ( $provider_key ) use ( $supported_providers ) {
+			return isset( $supported_providers[ $provider_key ] ) ? $supported_providers[ $provider_key ]->get_label() : $provider_key;
+		};
+
+		$changes = array();
+
+		if ( $added_keys ) {
+			$changes[] = sprintf(
+				/* translators: %s: comma-separated list of two-factor method names that were activated. */
+				__( 'Activated: %s', 'two-factor' ),
+				implode( ', ', array_map( $label_for_key, $added_keys ) )
+			);
+		}
+
+		if ( $removed_keys ) {
+			$changes[] = sprintf(
+				/* translators: %s: comma-separated list of two-factor method names that were deactivated. */
+				__( 'Deactivated: %s', 'two-factor' ),
+				implode( ', ', array_map( $label_for_key, $removed_keys ) )
+			);
+		}
+
+		// Regardless of whether this particular change actually triggered a session destroy
+		// (see the conditions in user_two_factor_options_update()), the account owner is told
+		// their sessions were logged out: it's true often enough, and simpler than trying to
+		// explain the exact conditions under which the plugin invalidates other sessions.
+		$changes[] = __( 'All open sessions have been logged out.', 'two-factor' );
+
+		$site_name = wp_specialchars_decode( get_bloginfo( 'name' ), ENT_QUOTES );
+
+		$message = sprintf(
+			/* translators: 1: username, 2: site URL, 3: list of changes, 4: URL to the account's security settings, 5: site name. */
+			__(
+				'Hello %1$s,
+
+This notice confirms that the two-factor authentication methods on your account at %2$s were just changed.
+
+%3$s
+
+If you made this change yourself, no further action is needed.
+
+If you did NOT make this change, someone else may have access to your account. Please review your security settings at %4$s and change your password immediately.
+
+This is an automated notification. If you would like to speak to a site administrator, please contact them directly.
+
+Regards,
+All at %5$s
+%2$s',
+				'two-factor'
+			),
+			esc_html( $user->user_login ),
+			home_url(),
+			implode( "\n", $changes ),
+			admin_url( 'profile.php' ),
+			$site_name
+		);
+		$message = str_replace( "\t", '', $message );
+
+		$email = array(
+			'to'      => $user->user_email,
+			'subject' => sprintf(
+				/* translators: %s: site name. */
+				__( '[%s] Your two-factor authentication settings have changed', 'two-factor' ),
+				$site_name
+			),
+			'message' => $message,
+			'headers' => '',
+		);
+
+		/**
+		 * Filters the email sent to a user when their two-factor authentication settings change.
+		 *
+		 * This cannot be used to suppress the email -- only to change its content -- since the
+		 * account owner must always be told about a change to their own authentication methods.
+		 *
+		 * @since 0.18.0
+		 *
+		 * @param array   $email   Used to build wp_mail(). Contains 'to', 'subject', 'message', and 'headers'.
+		 * @param WP_User $user    The user whose two-factor settings changed.
+		 * @param array   $added   Provider keys that were newly enabled.
+		 * @param array   $removed Provider keys that were disabled.
+		 */
+		$email = apply_filters( 'two_factor_settings_changed_email', $email, $user, $added_keys, $removed_keys );
+
+		return wp_mail( $email['to'], $email['subject'], $email['message'], $email['headers'] ); // phpcs:ignore WordPressVIPMinimum.Functions.RestrictedFunctions.wp_mail_wp_mail -- Plugin sends a single transactional security email to the affected user.
+	}
+
+	/**
 	 * Show the password reset error when on the login screen.
 	 *
 	 * @since 0.8.0
@@ -2818,6 +2933,7 @@ class Two_Factor_Core {
 	 * This executes during the `personal_options_update` & `edit_user_profile_update` actions.
 	 *
 	 * @since 0.2.0
+	 * @since 0.18.0 Also emails the account owner via Two_Factor_Core::notify_user_two_factor_settings_changed().
 	 *
 	 * @param int $user_id User ID.
 	 */
@@ -2893,12 +3009,14 @@ class Two_Factor_Core {
 			}
 
 			// Destroy other sessions if setup 2FA for the first time, or deactivated a provider.
-			if (
+			$sessions_destroyed = (
 				// No providers, enabling one (or more).
 				( ! $existing_providers && $enabled_providers ) ||
 				// Has providers, and is disabling one (or more), but remaining with 2FA.
 				( $existing_providers && $enabled_providers && array_diff( $existing_providers, array_keys( $enabled_providers ) ) )
-			) {
+			);
+
+			if ( $sessions_destroyed ) {
 				if ( get_current_user_id() === $user_id ) {
 					// Keep the current session, destroy others sessions for this user.
 					wp_destroy_other_sessions();
@@ -2907,6 +3025,8 @@ class Two_Factor_Core {
 					WP_Session_Tokens::get_instance( $user_id )->destroy_all();
 				}
 			}
+
+			self::notify_user_two_factor_settings_changed( $user, array_keys( $enabled_providers ), $existing_providers );
 		}
 	}
 
