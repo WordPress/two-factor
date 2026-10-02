@@ -498,6 +498,46 @@ class Tests_Two_Factor_Email extends WP_UnitTestCase {
 	}
 
 	/**
+	 * Verify the email code input enables auto-submit by default.
+	 *
+	 * @covers Two_Factor_Email::authentication_page
+	 * @covers Two_Factor_Provider::is_authcode_auto_submit_enabled
+	 */
+	public function test_authentication_page_auto_submit_enabled_by_default() {
+		$user = self::factory()->user->create_and_get();
+
+		ob_start();
+		$this->provider->authentication_page( $user );
+		$output = ob_get_clean();
+
+		$this->assertStringContainsString( ' data-auto-submit', $output );
+	}
+
+	/**
+	 * Verify the two_factor_auto_submit_authcode filter removes the data-auto-submit attribute.
+	 *
+	 * @covers Two_Factor_Email::authentication_page
+	 * @covers Two_Factor_Provider::is_authcode_auto_submit_enabled
+	 */
+	public function test_authentication_page_auto_submit_disabled_via_filter() {
+		$user = self::factory()->user->create_and_get();
+
+		$filter = function () {
+			return false;
+		};
+		add_filter( 'two_factor_auto_submit_authcode', $filter );
+		try {
+			ob_start();
+			$this->provider->authentication_page( $user );
+			$output = ob_get_clean();
+		} finally {
+			remove_filter( 'two_factor_auto_submit_authcode', $filter );
+		}
+
+		$this->assertStringNotContainsString( ' data-auto-submit', $output );
+	}
+
+	/**
 	 * Verify the email form remains visible with disabled controls during a lockout.
 	 *
 	 * Showing an interactive resend button during a lockout misleads the user

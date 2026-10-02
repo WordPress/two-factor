@@ -11,6 +11,13 @@
 			inputEl && inputEl.dataset
 				? parseInt( inputEl.dataset.digits, 10 )
 				: 0,
+		// Auto-submit is only enabled when the input opted in via the
+		// boolean `data-auto-submit` attribute (populated from the
+		// `two_factor_auto_submit_authcode` filter).
+		autoSubmitEnabled =
+			inputEl && inputEl.dataset
+				? 'autoSubmit' in inputEl.dataset
+				: false,
 		halfLength = Math.floor( expectedLength / 2 );
 
 	if ( inputEl ) {
@@ -32,8 +39,8 @@
 
 			this.value = sanitized;
 
-			// Auto-submit once the full code length is reached.
-			if ( expectedLength && digits.length === expectedLength ) {
+			// Auto-submit once the full code length is reached, if enabled.
+			if ( autoSubmitEnabled && expectedLength && digits.length === expectedLength ) {
 				if ( form && typeof form.requestSubmit === 'function' ) {
 					form.requestSubmit();
 					submitControl = form.querySelector( '[type="submit"]' );
