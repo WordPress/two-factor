@@ -49,6 +49,8 @@ class Two_Factor_Backup_Codes extends Two_Factor_Provider {
 		add_action( 'admin_notices', array( $this, 'admin_notices' ) );
 		add_action( 'admin_enqueue_scripts', array( $this, 'enqueue_assets' ) );
 		add_action( 'wp_enqueue_scripts', array( $this, 'enqueue_assets' ) );
+		add_action( 'two_factor_user_authenticated', array( $this, 'maybe_redirect_to_regenerate_codes' ), 10, 2 );
+		add_action( 'two_factor_user_revalidated', array( $this, 'maybe_redirect_to_regenerate_codes' ), 10, 2 );
 
 		parent::__construct();
 	}
@@ -145,19 +147,8 @@ class Two_Factor_Backup_Codes extends Two_Factor_Provider {
 			return;
 		}
 
-		/**
-		 * Filters the number of remaining recovery codes at or below which the
-		 * user is warned to regenerate, before they run out entirely.
-		 *
-		 * @since 0.17.0
-		 *
-		 * @param int     $threshold Number of remaining codes that triggers the warning. Default 2.
-		 * @param WP_User $user      User object.
-		 */
-		$threshold = (int) apply_filters( 'two_factor_backup_codes_low_threshold', self::LOW_CODES_THRESHOLD, $user );
-
 		// Running low: warn the user before they hit zero.
-		if ( $count <= $threshold ) {
+		if ( $count <= self::get_low_codes_threshold( $user ) ) {
 			?>
 			<div class="notice notice-warning">
 				<p>
@@ -183,6 +174,165 @@ class Two_Factor_Backup_Codes extends Two_Factor_Provider {
 			</div>
 			<?php
 		}
+	}
+
+	/**
+	 * Get the number of remaining codes at or below which the user is warned to regenerate.
+	 *
+	 * @since 0.18.0
+	 *
+	 * @param WP_User $user User object.
+	 *
+	 * @return int
+	 */
+	private static function get_low_codes_threshold( $user ) {
+		/**
+		 * Filters the number of remaining recovery codes at or below which the
+		 * user is warned to regenerate, before they run out entirely.
+	 *
+		 * Applies to both the admin notice and the email sent when a code is used.
+		 *
+		 * @since 0.17.0
+		 *
+		 * @param int     $threshold Number of remaining codes that triggers the warning. Default 2.
+		 * @param WP_User $user      User object.
+		 */
+		return (int) apply_filters( 'two_factor_backup_codes_low_threshold', self::LOW_CODES_THRESHOLD, $user );
+	}
+
+	/**
+	 * Get the URL of the recovery codes section on the user's own profile screen.
+	 *
+	 * Uses get_edit_profile_url() rather than get_edit_user_link(), which checks the current
+	 * user's capabilities and so returns an empty string during login, before the current user is set.
+	 *
+	 * @since 0.18.0
+	 *
+	 * @param WP_User $user User object.
+	 *
+	 * @return string
+	 */
+	private static function get_regenerate_codes_url( $user ) {
+		return get_edit_profile_url( $user->ID ) . '#two-factor-backup-codes';
+	}
+
+	/**
+	 * Send the user straight to the recovery codes section after they log in with their last code.
+	 *
+	 * Runs on `two_factor_user_authenticated` and `two_factor_user_revalidated`, which both fire
+	 * right before the `login_redirect` filter is applied. Interim (modal) logins don't redirect,
+	 * so those users still get the admin notice instead.
+	 *
+	 * @since 0.18.0
+	 *
+	 * @param WP_User             $user     The user who just authenticated.
+	 * @param Two_Factor_Provider $provider The provider the user authenticated with.
+	 */
+	public function maybe_redirect_to_regenerate_codes( $user, $provider ) {
+		if ( ! $provider instanceof Two_Factor_Provider || $this->get_key() !== $provider->get_key() ) {
+			return;
+		}
+
+		if ( 0 < self::codes_remaining_for_user( $user ) ) {
+			return;
+		}
+
+		add_filter(
+			'login_redirect',
+			static function () use ( $user ) {
+				return self::get_regenerate_codes_url( $user );
+			},
+			PHP_INT_MAX
+		);
+	}
+
+	/**
+	 * Notify a user by email that they are running low on, or have run out of, recovery codes.
+	 *
+	 * Sent each time a code is used while the user is at or below the threshold, matching the
+	 * notices in `admin_notices()`, so users are warned even if they don't visit wp-admin.
+	 *
+	 * @since 0.18.0
+	 *
+	 * @param WP_User $user The user who just used a recovery code.
+	 *
+	 * @return bool `true` if the email was sent, `false` if there was nothing to report or it failed.
+	 */
+	public static function notify_user_codes_running_low( $user ) {
+		if ( ! in_array( __CLASS__, Two_Factor_Core::get_enabled_providers_for_user( $user->ID ), true ) ) {
+			return false;
+		}
+
+		$count = self::codes_remaining_for_user( $user );
+
+		if ( 0 < $count && $count > self::get_low_codes_threshold( $user ) ) {
+			return false;
+		}
+
+		if ( 0 === $count ) {
+			/* translators: %s: site name. */
+			$subject = __( '[%s] You are out of recovery codes', 'two-factor' );
+			$status  = __( 'You have no recovery codes left.', 'two-factor' );
+		} else {
+			/* translators: %s: site name. */
+			$subject = __( '[%s] You are running low on recovery codes', 'two-factor' );
+			$status  = sprintf(
+				/* translators: %s: number of recovery codes remaining. */
+				_n( 'You only have %s recovery code left.', 'You only have %s recovery codes left.', $count, 'two-factor' ),
+				number_format_i18n( $count )
+			);
+		}
+
+		$site_name = wp_specialchars_decode( get_bloginfo( 'name' ), ENT_QUOTES );
+
+		$message = sprintf(
+			/* translators: 1: username, 2: site URL, 3: sentence stating how many recovery codes are left, 4: URL to regenerate recovery codes, 5: site name. */
+			__(
+				'Hello %1$s,
+
+A recovery code was just used on your account at %2$s. %3$s
+
+Generate new recovery codes now to avoid being locked out of your account: %4$s
+
+If you did NOT use a recovery code, someone else may have access to your account. Please change your password immediately and generate new recovery codes.
+
+This is an automated notification. If you would like to speak to a site administrator, please contact them directly.
+
+Regards,
+All at %5$s
+%2$s',
+				'two-factor'
+			),
+			esc_html( $user->user_login ),
+			home_url(),
+			$status,
+			self::get_regenerate_codes_url( $user ),
+			$site_name
+		);
+		$message = str_replace( "\t", '', $message );
+
+		$email = array(
+			'to'      => $user->user_email,
+			'subject' => sprintf( $subject, $site_name ),
+			'message' => $message,
+			'headers' => '',
+		);
+
+		/**
+		 * Filters the email sent to a user when they are running low on, or have run out of, recovery codes.
+		 *
+		 * This can only change the email's content, not whether it is sent. Use the
+		 * `two_factor_backup_codes_low_threshold` filter to change when it is sent.
+		 *
+		 * @since 0.18.0
+		 *
+		 * @param array   $email Used to build wp_mail(). Contains 'to', 'subject', 'message', and 'headers'.
+		 * @param WP_User $user  The user who used a recovery code.
+		 * @param int     $count Number of recovery codes the user has left.
+		 */
+		$email = apply_filters( 'two_factor_backup_codes_low_email', $email, $user, $count );
+
+		return wp_mail( $email['to'], $email['subject'], $email['message'], $email['headers'] ); // phpcs:ignore WordPressVIPMinimum.Functions.RestrictedFunctions.wp_mail_wp_mail -- Plugin sends a single transactional security email to the affected user.
 	}
 
 	/**
@@ -536,6 +686,7 @@ class Two_Factor_Backup_Codes extends Two_Factor_Provider {
 		foreach ( $backup_codes as $code_hashed ) {
 			if ( wp_check_password( $code, $code_hashed, $user->ID ) ) {
 				$this->delete_code( $user, $code_hashed );
+				self::notify_user_codes_running_low( $user );
 
 				return true;
 			}

@@ -165,6 +165,8 @@ Tests `Two_Factor_Backup_Codes`:
 - User options UI output
 - Code deletion
 - `two_factor_backup_code_length` filter for customizing code length
+- Low-codes email: sent at or below the threshold and when out of codes, `two_factor_backup_codes_low_threshold` and `two_factor_backup_codes_low_email` filters
+- Redirect to the recovery codes section after the last code is used
 
 ### Backup Codes REST API — `tests/providers/class-two-factor-backup-codes-rest-api.php`
 

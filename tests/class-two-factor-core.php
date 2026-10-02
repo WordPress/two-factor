@@ -2508,6 +2508,41 @@ class Test_ClassTwoFactorCore extends WP_UnitTestCase {
 	}
 
 	/**
+	 * Validate that logging in with the last recovery code redirects to the recovery codes
+	 * section of the profile instead of the requested redirect.
+	 *
+	 * @covers Two_Factor_Core::validate_login_form_2fa()
+	 * @covers Two_Factor_Backup_Codes::maybe_redirect_to_regenerate_codes
+	 */
+	public function test_validate_login_form_2fa_redirects_to_regenerate_codes_after_last_code() {
+		$user     = self::factory()->user->create_and_get();
+		$provider = Two_Factor_Backup_Codes::get_instance();
+		$codes    = $provider->generate_codes( $user, array( 'number' => 2 ) );
+		Two_Factor_Core::enable_provider_for_user( $user->ID, 'Two_Factor_Backup_Codes' );
+
+		$log_in_with_code = function ( $code ) use ( $user ) {
+			$login_nonce                        = Two_Factor_Core::create_login_nonce( $user->ID );
+			$_REQUEST['two-factor-backup-code'] = $code;
+
+			return $this->do_redirect_callable(
+				function () use ( $user, $login_nonce ) {
+					Two_Factor_Core::validate_login_form_2fa( $user, $login_nonce['key'], 'Two_Factor_Backup_Codes', admin_url( 'edit.php' ), true );
+				}
+			);
+		};
+
+		// One code left, keep the requested redirect.
+		$this->assertSame( admin_url( 'edit.php' ), $log_in_with_code( $codes[0] ) );
+
+		// Last code used, send them to regenerate.
+		$this->assertSame( get_edit_profile_url( $user->ID ) . '#two-factor-backup-codes', $log_in_with_code( $codes[1] ) );
+
+		unset( $_REQUEST['two-factor-backup-code'] );
+		remove_all_filters( 'login_redirect' );
+		reset_phpmailer_instance();
+	}
+
+	/**
 	 * Test current user can update two factor options functionality.
 	 *
 	 * @covers Two_Factor_Core::current_user_can_update_two_factor_options()
