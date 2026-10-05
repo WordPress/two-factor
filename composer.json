@@ -26,6 +26,7 @@
   "require-dev": {
     "automattic/vipwpcs": "^3.0",
     "dealerdirect/phpcodesniffer-composer-installer": "^1.0",
+    "php-stubs/wp-cli-stubs": "dev-master",
     "phpcompatibility/phpcompatibility-wp": "3.0.0-alpha2",
     "phpunit/phpunit": "^8.5|^9.6",
     "spatie/phpunit-watcher": "^1.23",
@@ -37,10 +38,19 @@
     "lint": "phpcs",
     "lint-compat": "phpcs -p --standard=PHPCompatibilityWP --runtime-set testVersion 7.2- --extensions=php --ignore='tests/,dist/,includes/Yubico/,vendor/,node_modules/' .",
     "lint-phpstan": "phpstan analyse --verbose --memory-limit=1G",
-    "test": "phpunit --coverage-text",
-    "test:watch": [
+    "test-single": "phpunit --coverage-text",
+    "test-multisite": "phpunit --coverage-text --config phpunit-multisite.xml",
+    "test": [
+      "@test-single",
+      "@test-multisite"
+    ],
+    "test-watch-single": [
       "Composer\\Config::disableProcessTimeout",
       "phpunit-watcher watch --no-coverage"
+    ],
+    "test-watch-multisite": [
+      "Composer\\Config::disableProcessTimeout",
+      "phpunit-watcher watch --no-coverage --config phpunit-multisite.xml"
     ],
     "format": "phpcbf"
   }

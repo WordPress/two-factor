@@ -12,7 +12,7 @@
  * Plugin URI:        https://wordpress.org/plugins/two-factor/
  * Description:       Enable Two-Factor Authentication using time-based one-time passwords, email, and backup verification codes.
  * Requires at least: 7.0
- * Version:           0.16.0
+ * Version:           0.17.0
  * Requires PHP:      7.4
  * Author:            WordPress.org Contributors
  * Author URI:        https://github.com/wordpress/two-factor/graphs/contributors
@@ -27,7 +27,7 @@ if ( ! defined( 'TWO_FACTOR_DIR' ) ) {
 }
 
 if ( ! defined( 'TWO_FACTOR_VERSION' ) ) {
-	define( 'TWO_FACTOR_VERSION', '0.16.0' );
+	define( 'TWO_FACTOR_VERSION', '0.17.0' );
 }
 
 if ( ! defined( 'ABSPATH' ) ) {
@@ -55,6 +55,11 @@ require_once TWO_FACTOR_DIR . 'settings/class-two-factor-settings.php';
 $two_factor_compat = new Two_Factor_Compat();
 
 Two_Factor_Core::add_hooks( $two_factor_compat );
+
+if ( defined( 'WP_CLI' ) && WP_CLI ) {
+	require_once TWO_FACTOR_DIR . 'CLI/class-two-factor-cli-command.php';
+	WP_CLI::add_command( 'two-factor', 'Two_Factor_CLI_Command' );
+}
 
 // Delete our options and user meta during uninstall.
 register_uninstall_hook( __FILE__, array( Two_Factor_Core::class, 'uninstall' ) );
@@ -140,7 +145,7 @@ function two_factor_get_enabled_providers_option() {
  * This filter receives providers in core format: classname => path.
  *
  * @since 0.16
- * 
+ *
  * @param array $providers Registered providers in classname => path format.
  * @return array Filtered list of enabled providers.
  */

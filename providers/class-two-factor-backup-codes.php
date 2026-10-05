@@ -240,7 +240,7 @@ class Two_Factor_Backup_Codes extends Two_Factor_Provider {
 		$count = self::codes_remaining_for_user( $user );
 		?>
 		<div id="two-factor-backup-codes">
-			<p class="two-factor-backup-codes-count">
+			<p class="description two-factor-backup-codes-count">
 			<?php
 				echo esc_html(
 					sprintf(
@@ -265,8 +265,8 @@ class Two_Factor_Backup_Codes extends Two_Factor_Provider {
 			</div>
 			<p class="description"><?php esc_html_e( 'Write these down! Once you navigate away from this page, you will not be able to view these codes again.', 'two-factor' ); ?></p>
 			<p>
-				<a class="button button-two-factor-backup-codes-copy button-secondary hide-if-no-js" href="javascript:void(0);" id="two-factor-backup-codes-copy-link"><?php esc_html_e( 'Copy Codes', 'two-factor' ); ?></a>
-				<a class="button button-two-factor-backup-codes-download button-secondary hide-if-no-js" href="javascript:void(0);" id="two-factor-backup-codes-download-link" download="two-factor-backup-codes.txt"><?php esc_html_e( 'Download Codes', 'two-factor' ); ?></a>
+				<button type="button" class="button button-two-factor-backup-codes-copy button-secondary hide-if-no-js" id="two-factor-backup-codes-copy-link"><?php esc_html_e( 'Copy Codes', 'two-factor' ); ?></button>
+				<a class="button button-two-factor-backup-codes-download button-secondary hide-if-no-js" href="#" id="two-factor-backup-codes-download-link" download="two-factor-backup-codes.txt"><?php esc_html_e( 'Download Codes', 'two-factor' ); ?></a>
 			</p>
 		</div>
 		<?php
@@ -317,7 +317,7 @@ class Two_Factor_Backup_Codes extends Two_Factor_Provider {
 
 		// Append or replace (default).
 		if ( isset( $args['method'] ) && 'append' === $args['method'] ) {
-			$codes_hashed = (array) get_user_meta( $user->ID, self::BACKUP_CODES_META_KEY, true );
+			$codes_hashed = self::get_backup_codes_for_user( $user->ID );
 		}
 
 		$code_length = $this->get_backup_code_length( $user );
@@ -358,18 +358,31 @@ class Two_Factor_Backup_Codes extends Two_Factor_Provider {
 		$title = sprintf(
 			/* translators: %s: the site's domain */
 			__( 'Two-Factor Recovery Codes for %s', 'two-factor' ),
-			home_url( '/' )
+			str_replace( array( 'http://', 'https://' ), '', home_url() ) // Account for sub-directory multisites by not using wp_parse_url() to extract the hostname.
 		);
 
-		// Generate download content.
-		$download_link  = 'data:application/text;charset=utf-8,';
-		$download_link .= rawurlencode( "{$title}\r\n\r\n" );
+		/**
+		 * Filters the title in the backup codes download file.
+		 *
+		 * @since 0.17.0
+		 *
+		 * @param string  $title Title for the backup codes download file.
+		 * @param WP_User $user  User for whom the backup codes were generated.
+		 */
+		$title = apply_filters( 'two_factor_backup_codes_download_title', $title, $user );
 
-		$i = 1;
+		// Generate the codes text, shared by the copy and download actions.
+		$codes_text = "{$title}\r\n\r\n";
+		$i          = 1;
 		foreach ( $codes as $code ) {
-			$download_link .= rawurlencode( "{$i}. {$code}\r\n" );
+			$codes_text .= "{$i}. {$code}\r\n";
 			++$i;
 		}
+		$codes_text .= "\r\n";
+		$codes_text .= __( 'Each code can only be used once.', 'two-factor' ) . "\r\n";
+		$codes_text .= __( 'These codes are the only way to recover your account if you lose access to your authentication app, or other two-factor method.', 'two-factor' ) . "\r\n";
+
+		$download_link = 'data:application/text;charset=utf-8,' . rawurlencode( $codes_text );
 
 		$i18n = array(
 			/* translators: %s: count */
@@ -382,10 +395,44 @@ class Two_Factor_Backup_Codes extends Two_Factor_Provider {
 
 		return array(
 			'codes'         => $codes,
+			'codes_text'    => $codes_text,
 			'download_link' => $download_link,
 			'remaining'     => $count,
 			'i18n'          => $i18n,
 		);
+	}
+
+	/**
+	 * Get the sanitized list of hashed backup codes for a user.
+	 *
+	 * Earlier versions could store an empty string entry in the hashed codes
+	 * list, e.g. when appending codes for a user with no existing codes. Such
+	 * entries can never match a real code and only pollute the stored list:
+	 * they inflate codes_remaining_for_user() and keep the provider offered
+	 * at login without any usable code backing it. This filters them out on
+	 * every read so the counts and availability are always accurate.
+	 *
+	 * @since 0.18.0
+	 *
+	 * @param int $user_id User ID.
+	 * @return array List of hashed backup codes without empty entries.
+	 */
+	public static function get_backup_codes_for_user( int $user_id ) {
+		$backup_codes = get_user_meta( $user_id, self::BACKUP_CODES_META_KEY, true );
+
+		if ( ! is_array( $backup_codes ) ) {
+			return array();
+		}
+
+		// Remove any empty or non-string entries from the backup codes list.
+		$backup_codes = array_filter(
+			$backup_codes,
+			static function ( $code ) {
+				return is_string( $code ) && '' !== trim( $code );
+			}
+		);
+
+		return array_values( $backup_codes );
 	}
 
 	/**
@@ -396,12 +443,8 @@ class Two_Factor_Backup_Codes extends Two_Factor_Provider {
 	 * @param WP_User $user WP_User object of the logged-in user.
 	 * @return int $int  The number of unused codes remaining
 	 */
-	public static function codes_remaining_for_user( $user ) {
-		$backup_codes = get_user_meta( $user->ID, self::BACKUP_CODES_META_KEY, true );
-		if ( is_array( $backup_codes ) && ! empty( $backup_codes ) ) {
-			return count( $backup_codes );
-		}
-		return 0;
+	public static function codes_remaining_for_user( $user ): int {
+		return count( self::get_backup_codes_for_user( $user->ID ) );
 	}
 
 	/**
@@ -441,7 +484,7 @@ class Two_Factor_Backup_Codes extends Two_Factor_Provider {
 		?>
 		<p>
 			<label for="authcode"><?php esc_html_e( 'Recovery Code:', 'two-factor' ); ?></label>
-			<input type="text" inputmode="numeric" name="two-factor-backup-code" id="authcode" class="input authcode" value="" size="20" pattern="[0-9 ]*" placeholder="<?php echo esc_attr( $code_placeholder ); ?>" data-digits="<?php echo esc_attr( (string) $code_length ); ?>" />
+			<input type="text" inputmode="numeric" name="two-factor-backup-code" id="authcode" class="input authcode" value="" size="20" pattern="[0-9 ]*" placeholder="<?php echo esc_attr( $code_placeholder ); ?>" autocomplete="one-time-code" data-digits="<?php echo esc_attr( (string) $code_length ); ?>">
 		</p>
 		<?php
 		/**
@@ -488,16 +531,16 @@ class Two_Factor_Backup_Codes extends Two_Factor_Provider {
 	 * @return boolean
 	 */
 	public function validate_code( $user, $code ) {
-		$backup_codes = get_user_meta( $user->ID, self::BACKUP_CODES_META_KEY, true );
+		$backup_codes = self::get_backup_codes_for_user( $user->ID );
 
-		if ( is_array( $backup_codes ) && ! empty( $backup_codes ) ) {
-			foreach ( $backup_codes as $code_index => $code_hashed ) {
-				if ( wp_check_password( $code, $code_hashed, $user->ID ) ) {
-					$this->delete_code( $user, $code_hashed );
-					return true;
-				}
+		foreach ( $backup_codes as $code_hashed ) {
+			if ( wp_check_password( $code, $code_hashed, $user->ID ) ) {
+				$this->delete_code( $user, $code_hashed );
+
+				return true;
 			}
 		}
+
 		return false;
 	}
 
@@ -510,7 +553,7 @@ class Two_Factor_Backup_Codes extends Two_Factor_Provider {
 	 * @param string  $code_hashed The hashed the backup code.
 	 */
 	public function delete_code( $user, $code_hashed ) {
-		$backup_codes = get_user_meta( $user->ID, self::BACKUP_CODES_META_KEY, true );
+		$backup_codes = self::get_backup_codes_for_user( $user->ID );
 
 		// Delete the current code from the list since it's been used.
 		$backup_codes = array_flip( $backup_codes );
