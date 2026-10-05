@@ -86,6 +86,7 @@ The largest test file. Covers the full authentication lifecycle managed by `Two_
 
 - Hook registration (`add_hooks`)
 - Provider registration and retrieval (`get_providers`, `get_enabled_providers_for_user`, `get_available_providers_for_user`, `get_primary_provider_for_user`)
+- Fail-closed fallback when a user's stored providers are unregistered or can't be used (used-up recovery codes, missing TOTP secret): emailed codes, or a lockout when email is turned off
 - Login interception (`filter_authenticate`, `show_two_factor_login`, `process_provider`)
 - Login nonce creation, verification, and deletion
 - Rate limiting (`get_user_time_delay`, `is_user_rate_limited`, `clear_login_rate_limit`)
@@ -202,7 +203,7 @@ Tests `Two_Factor_Dummy_Secure` (a fixture that always _fails_ authentication, u
 Tests the `Two_Factor_CLI_Command` WP-CLI command class. The WP-CLI runtime is not loaded during PHPUnit, so the suite loads lightweight test doubles for `WP_CLI`, `WP_CLI_Command`, and the `WP_CLI\Utils` helpers (see Test Helpers) that capture output for assertions and throw on `error()`/`confirm()`:
 
 - User resolution by ID, login, and email; "user not found" errors
-- `status` — output for users with and without 2FA, backup-code count, `--format` passthrough
+- `status` — output for users with and without 2FA, locked-out users, backup-code count, `--format` passthrough
 - `list-providers` — registered providers listed, `--format` passthrough
 - `enable` — enabling secret-free providers; session destruction on change; refusing TOTP (no stale "Phase 3" pointer) and backup codes; unknown provider and missing-argument errors
 - `disable` (single provider) — removal leaves others intact, session destruction on change, idempotent no-op, confirmation required without `--yes`

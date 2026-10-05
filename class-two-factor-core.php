@@ -723,10 +723,10 @@ class Two_Factor_Core {
 	 * @see Two_Factor_Core::get_enabled_providers_for_user()
 	 *
 	 * @param int|WP_User $user Optional. User ID, or WP_User object of the the user. Defaults to current user.
-	 * @return Two_Factor_Provider[]|WP_Error List of provider instances, or a WP_Error if the user's stored
-	 *                                        providers are no longer registered and the fallback provider
-	 *                                        (`Two_Factor_Email` by default, see `two_factor_fallback_provider_for_user`)
-	 *                                        doesn't resolve to a registered, available provider.
+	 * @return Two_Factor_Provider[]|WP_Error List of provider instances, or a WP_Error if none of the user's stored
+	 *                                        providers can be used and the fallback provider (`Two_Factor_Email` by
+	 *                                        default, see `two_factor_fallback_provider_for_user`) doesn't resolve
+	 *                                        to a registered, available provider.
 	 */
 	public static function get_available_providers_for_user( $user = null ) {
 		$user = self::fetch_user( $user );
@@ -739,82 +739,120 @@ class Two_Factor_Core {
 		$configured_providers = array();
 		$stored_providers     = self::get_stored_provider_keys_for_user( $user );
 
-		/**
-		 * If the user has providers stored in meta but none of them are still registered, force
-		 * emailed codes on where available so removed or deprecated providers can't drop the user
-		 * to single-factor auth ('failing open').
-		 *
-		 * "No longer registered" is deliberately cause-agnostic: a provider dropped by plugin
-		 * deactivation, by the site-wide settings, or by `two_factor_providers_for_user` is treated
-		 * identically, because the outcome for the user is identical.
-		 *
-		 * If any stored provider IS still registered, an empty enabled list means
-		 * `two_factor_enabled_providers_for_user` cleared it on purpose, and that must be respected.
-		 */
-		if ( empty( $enabled_providers ) && ! empty( $stored_providers ) ) {
-			$still_registered = array_intersect( $stored_providers, array_keys( $providers ) );
-
-			if ( empty( $still_registered ) ) {
-				/**
-				 * Filter the provider forced on when none of a user's stored providers are still registered.
-				 *
-				 * Returning a key that is not registered, or that the provider itself reports as unavailable
-				 * for this user, is treated as "no fallback": the method returns a `no_available_2fa_methods`
-				 * WP_Error rather than allowing the user through with one factor.
-				 *
-				 * The returned provider must be usable without any prior per-user setup (like the email
-				 * provider is), since the user has no working provider left to configure it through:
-				 *
-				 *     add_filter( 'two_factor_fallback_provider_for_user', function() {
-				 *         return 'Two_Factor_Backup_Codes'; // Wrong: requires codes to already be generated.
-				 *     } );
-				 *
-				 * A fallback that is not already available for the user resolves to the WP_Error branch,
-				 * not to a silent single-factor login.
-				 *
-				 * @since 0.17.0
-				 *
-				 * @param string   $fallback_provider Provider key to force on. Default 'Two_Factor_Email'.
-				 * @param int      $user_id           The user ID.
-				 * @param string[] $stored_providers  Provider keys stored for the user, none of which are registered.
-				 */
-				$fallback_provider = apply_filters(
-					'two_factor_fallback_provider_for_user',
-					'Two_Factor_Email',
-					$user->ID,
-					$stored_providers
-				);
-
-				if (
-					is_string( $fallback_provider )
-					&& isset( $providers[ $fallback_provider ] )
-					&& $providers[ $fallback_provider ]->is_available_for_user( $user )
-				) {
-					// Force the fallback provider to 'on'.
-					$enabled_providers[] = $fallback_provider;
-				} else {
-					// Fail closed: an invalid, unregistered, or unavailable fallback locks the user
-					// out pending admin intervention, rather than letting them through with one factor.
-					return new WP_Error(
-						'no_available_2fa_methods',
-						__( 'Error: You have Two Factor method(s) enabled, but the provider(s) no longer exist. Please contact a site administrator for assistance.', 'two-factor' ),
-						array(
-							'user_providers_raw'  => $stored_providers,
-							'available_providers' => array_keys( $providers ),
-							'fallback_provider'   => $fallback_provider,
-						)
-					);
-				}
-			}
-		}
-
 		foreach ( $providers as $provider_key => $provider ) {
 			if ( in_array( $provider_key, $enabled_providers, true ) && $provider->is_available_for_user( $user ) ) {
 				$configured_providers[ $provider_key ] = $provider;
 			}
 		}
 
-		return $configured_providers;
+		// Without providers stored in meta the user never set up two-factor, so there's nothing to fall back from.
+		if ( ! empty( $configured_providers ) || empty( $stored_providers ) ) {
+			return $configured_providers;
+		}
+
+		/**
+		 * The user has providers stored in meta but none of them can be used. Force emailed codes on where
+		 * available so the user can't drop to single-factor auth ('failing open'). This covers:
+		 *
+		 * - 'unregistered': none of the stored providers are still registered. A provider dropped by
+		 *   plugin deactivation, by the site-wide settings, or by `two_factor_providers_for_user` is
+		 *   treated identically, because the outcome for the user is identical.
+		 * - 'unavailable': the enabled providers are registered but not available for the user, such
+		 *   as recovery codes that have all been used, or an authenticator app with no secret stored.
+		 *
+		 * If any stored provider IS still registered, an empty enabled list means
+		 * `two_factor_enabled_providers_for_user` cleared it on purpose, and that must be respected.
+		 */
+		if ( ! empty( $enabled_providers ) ) {
+			$reason = 'unavailable';
+		} elseif ( empty( array_intersect( $stored_providers, array_keys( $providers ) ) ) ) {
+			$reason = 'unregistered';
+		} else {
+			return $configured_providers;
+		}
+
+		/**
+		 * Filter the provider forced on when none of a user's stored providers can be used.
+		 *
+		 * Returning a key that is not registered, or that the provider itself reports as unavailable
+		 * for this user, is treated as "no fallback": the method returns a `no_available_2fa_methods`
+		 * or `no_usable_2fa_methods` WP_Error rather than allowing the user through with one factor.
+		 *
+		 * The returned provider must be usable without any prior per-user setup (like the email
+		 * provider is), since the user has no working provider left to configure it through:
+		 *
+		 *     add_filter( 'two_factor_fallback_provider_for_user', function() {
+		 *         return 'Two_Factor_Backup_Codes'; // Wrong: requires codes to already be generated.
+		 *     } );
+		 *
+		 * A fallback that is not already available for the user resolves to the WP_Error branch,
+		 * not to a silent single-factor login.
+		 *
+		 * @since 0.17.0
+		 * @since 0.18.0 Also applied when the enabled providers are registered but unavailable, and added `$reason`.
+		 *
+		 * @param string   $fallback_provider Provider key to force on. Default 'Two_Factor_Email'.
+		 * @param int      $user_id           The user ID.
+		 * @param string[] $stored_providers  Provider keys stored for the user.
+		 * @param string   $reason            'unregistered' if none of the stored providers are still registered,
+		 *                                    'unavailable' if the enabled providers aren't available for the user.
+		 */
+		$fallback_provider = apply_filters(
+			'two_factor_fallback_provider_for_user',
+			'Two_Factor_Email',
+			$user->ID,
+			$stored_providers,
+			$reason
+		);
+
+		if (
+			is_string( $fallback_provider )
+			&& isset( $providers[ $fallback_provider ] )
+			&& $providers[ $fallback_provider ]->is_available_for_user( $user )
+		) {
+			// Force the fallback provider to 'on'.
+			return array( $fallback_provider => $providers[ $fallback_provider ] );
+		}
+
+		// Fail closed: an invalid, unregistered, or unavailable fallback locks the user
+		// out pending admin intervention, rather than letting them through with one factor.
+		$error_data = array(
+			'user_providers_raw'  => $stored_providers,
+			'available_providers' => array_keys( $providers ),
+			'fallback_provider'   => $fallback_provider,
+		);
+
+		if ( 'unregistered' === $reason ) {
+			return new WP_Error(
+				'no_available_2fa_methods',
+				__( 'Error: You have Two Factor method(s) enabled, but the provider(s) no longer exist. Please contact a site administrator for assistance.', 'two-factor' ),
+				$error_data
+			);
+		}
+
+		if ( in_array( 'Two_Factor_Backup_Codes', $enabled_providers, true ) ) {
+			$message = __( 'Error: You have used all of your recovery codes. Please ask a site administrator to generate new ones.', 'two-factor' );
+		} else {
+			$labels = array();
+			foreach ( $enabled_providers as $provider_key ) {
+				$labels[] = isset( $providers[ $provider_key ] ) ? $providers[ $provider_key ]->get_label() : $provider_key;
+			}
+
+			$message = sprintf(
+				/* translators: %s: comma-separated list of two-factor method names. */
+				_n(
+					'Error: Your two-factor method (%s) is not set up. Please ask a site administrator to reset it.',
+					'Error: Your two-factor methods (%s) are not set up. Please ask a site administrator to reset them.',
+					count( $labels ),
+					'two-factor'
+				),
+				implode( ', ', $labels )
+			);
+		}
+
+		$error_data['enabled_providers'] = $enabled_providers;
+
+		return new WP_Error( 'no_usable_2fa_methods', $message, $error_data );
 	}
 
 	/**
@@ -825,7 +863,7 @@ class Two_Factor_Core {
 	 * @param int|WP_User        $user Optional. User ID, or WP_User object of the the user. Defaults to current user.
 	 * @param null|string|object $preferred_provider Optional. The name of the provider, the provider, or empty.
 	 * @return null|object|WP_Error The provider, null if none is available, or a WP_Error if the user has
-	 *                               provider(s) enabled that are no longer registered (see
+	 *                               provider(s) enabled but none can be used (see
 	 *                               Two_Factor_Core::get_primary_provider_for_user()).
 	 */
 	public static function get_provider_for_user( $user = null, $preferred_provider = null ) {
@@ -892,7 +930,7 @@ class Two_Factor_Core {
 	 *
 	 * @param int|WP_User $user Optional. User ID, or WP_User object of the the user. Defaults to current user.
 	 * @return object|null|WP_Error Provider instance, null if the user has none configured, or a WP_Error if the
-	 *                               user has provider(s) enabled that are no longer registered. Callers that render
+	 *                               user has provider(s) enabled but none can be used. Callers that render
 	 *                               shared admin UI (e.g. list tables) must not `wp_die()` on the WP_Error case, since
 	 *                               that would break the page for everyone, not just the affected user.
 	 */
@@ -906,7 +944,7 @@ class Two_Factor_Core {
 		$available_providers = self::get_available_providers_for_user( $user );
 
 		if ( is_wp_error( $available_providers ) ) {
-			// The user's configured methods don't exist, and there was no replacement to swap in. Bubble the
+			// None of the user's methods can be used, and there was no replacement to swap in. Bubble the
 			// error up instead of dying here — this can run from contexts (like the Users list table) where
 			// killing the whole request would break the page for an admin who isn't even the affected user.
 			return $available_providers;
@@ -971,9 +1009,9 @@ class Two_Factor_Core {
 		 * @param bool    $is_required Whether two-factor is required for the user. Default true when the user has a primary provider.
 		 * @param WP_User $user        The user being checked.
 		 */
-		// A WP_Error means the user has a provider enabled that's no longer registered. Still treat them as
-		// "using" two-factor so the login requirement isn't dropped (failing open) just because their specific
-		// method disappeared. WP_Error is a non-null object, so !empty() already covers it.
+		// A WP_Error means the user has providers enabled but none can be used. Still treat them as "using"
+		// two-factor so the login requirement isn't dropped (failing open) just because their methods
+		// disappeared or can't be used. WP_Error is a non-null object, so !empty() already covers it.
 		return (bool) apply_filters( 'two_factor_is_required_for_user', ! empty( $provider ), $user );
 	}
 
@@ -1251,7 +1289,7 @@ class Two_Factor_Core {
 	public static function login_html( $user, $login_nonce, $redirect_to, $error_msg = '', $provider = null, $action = 'validate_2fa' ) {
 		$provider = self::get_provider_for_user( $user, $provider );
 		if ( is_wp_error( $provider ) ) {
-			// The user's configured methods don't exist, and there was no replacement to swap in. This is the
+			// None of the user's methods can be used, and there was no replacement to swap in. This is the
 			// user's own login screen, so it's appropriate to stop here with a specific, actionable message.
 			wp_die( esc_html( $provider->get_error_message() ) );
 		}
@@ -1263,7 +1301,7 @@ class Two_Factor_Core {
 		$available_providers = self::get_available_providers_for_user( $user );
 
 		if ( is_wp_error( $available_providers ) ) {
-			// If it returned an error, the configured methods don't exist, and it couldn't swap in a replacement.
+			// If it returned an error, none of the methods can be used, and it couldn't swap in a replacement.
 			wp_die( esc_html( $available_providers->get_error_message() ) );
 		}
 
@@ -1890,7 +1928,7 @@ class Two_Factor_Core {
 
 		$provider = self::get_provider_for_user( $user, $provider );
 		if ( is_wp_error( $provider ) ) {
-			// The user's configured methods don't exist, and there was no replacement to swap in. This is the
+			// None of the user's methods can be used, and there was no replacement to swap in. This is the
 			// user's own login attempt, so it's appropriate to stop here with a specific, actionable message.
 			wp_die( esc_html( $provider->get_error_message() ) );
 		}
@@ -2090,7 +2128,7 @@ class Two_Factor_Core {
 
 		$provider = self::get_provider_for_user( $user, $provider );
 		if ( is_wp_error( $provider ) ) {
-			// The user's configured methods don't exist, and there was no replacement to swap in. This is the
+			// None of the user's methods can be used, and there was no replacement to swap in. This is the
 			// user's own session revalidation, so it's appropriate to stop here with a specific, actionable message.
 			wp_die( esc_html( $provider->get_error_message() ) );
 		}
@@ -2441,10 +2479,14 @@ class Two_Factor_Core {
 		$provider = self::get_primary_provider_for_user( $user_id );
 
 		if ( is_wp_error( $provider ) ) {
-			// The user has a provider enabled that's no longer registered on the site. Show a clear,
-			// non-fatal indicator instead of erroring out — this must never wp_die(), since that would
-			// truncate the Users list table for every admin viewing the page, not just this one user's row.
-			return sprintf( '<span class="dashicons-before dashicons-warning">%s</span>', esc_html__( 'Error: legacy 2FA method', 'two-factor' ) );
+			// None of the user's methods can be used. Show a clear, non-fatal indicator instead of
+			// erroring out — this must never wp_die(), since that would truncate the Users list table
+			// for every admin viewing the page, not just this one user's row.
+			$label = 'no_usable_2fa_methods' === $provider->get_error_code()
+				? __( 'Error: no usable 2FA method', 'two-factor' )
+				: __( 'Error: legacy 2FA method', 'two-factor' );
+
+			return sprintf( '<span class="dashicons-before dashicons-warning">%s</span>', esc_html( $label ) );
 		}
 
 		if ( ! $provider ) {
@@ -2471,8 +2513,8 @@ class Two_Factor_Core {
 		$available_providers_or_error = self::get_available_providers_for_user( $user );
 
 		if ( is_wp_error( $available_providers_or_error ) ) {
-			// The user has provider(s) enabled that are no longer registered on the site. Surface the existing
-			// admin-contact message on their own profile screen (where they can act on it) rather than crashing.
+			// None of the user's methods can be used and there's no fallback. Surface the admin-contact
+			// message on their own profile screen (where they can act on it) rather than crashing.
 			self::add_error( $available_providers_or_error );
 			$enabled_providers = array();
 		} else {

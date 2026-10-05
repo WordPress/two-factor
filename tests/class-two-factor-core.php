@@ -3681,6 +3681,165 @@ class Test_ClassTwoFactorCore extends WP_UnitTestCase {
 	}
 
 	/**
+	 * Ensure a user whose only method is recovery codes keeps a second factor once all codes are used,
+	 * and that a session that never passed two-factor can't change their two-factor settings.
+	 *
+	 * @covers Two_Factor_Core::get_available_providers_for_user
+	 * @covers Two_Factor_Core::is_user_using_two_factor
+	 * @covers Two_Factor_Core::current_user_can_update_two_factor_options
+	 */
+	public function test_get_available_providers_for_user_falls_back_when_recovery_codes_are_used_up() {
+		$user         = self::factory()->user->create_and_get();
+		$backup_codes = Two_Factor_Backup_Codes::get_instance();
+		$codes        = $backup_codes->generate_codes( $user, array( 'number' => 1 ) );
+		Two_Factor_Core::enable_provider_for_user( $user->ID, 'Two_Factor_Backup_Codes' );
+
+		$this->assertArrayHasKey( 'Two_Factor_Backup_Codes', Two_Factor_Core::get_available_providers_for_user( $user->ID ), 'Recovery codes are available while codes remain' );
+
+		$this->assertTrue( $backup_codes->validate_code( $user, $codes[0] ) );
+
+		$this->assertSame(
+			array( 'Two_Factor_Email' ),
+			array_keys( Two_Factor_Core::get_available_providers_for_user( $user->ID ) ),
+			'Emailed codes are forced on once all recovery codes are used'
+		);
+		$this->assertSame( 'Two_Factor_Email', Two_Factor_Core::get_primary_provider_for_user( $user->ID )->get_key() );
+		$this->assertTrue( Two_Factor_Core::is_user_using_two_factor( $user->ID ), 'The user still needs a second factor to log in' );
+
+		// The WP test framework blocks cookies at priority 10, so check for the plugin's block at PHP_INT_MAX.
+		$this->assertFalse( has_filter( 'send_auth_cookies', '__return_false', PHP_INT_MAX ) );
+		Two_Factor_Core::filter_authenticate( $user );
+		$this->assertTrue( has_filter( 'send_auth_cookies', '__return_false', PHP_INT_MAX ), 'The password alone does not set auth cookies' );
+
+		// A session from a password-only login has no two-factor data.
+		wp_set_current_user( $user->ID );
+		wp_set_auth_cookie( $user->ID );
+		$this->assertFalse( Two_Factor_Core::is_current_user_session_two_factor() );
+		$this->assertFalse( Two_Factor_Core::current_user_can_update_two_factor_options( 'save' ), 'A session without two-factor cannot change two-factor settings' );
+
+		wp_set_current_user( 0 );
+	}
+
+	/**
+	 * Ensure a user with an authenticator app enabled but no secret stored gets the email fallback.
+	 *
+	 * @covers Two_Factor_Core::get_available_providers_for_user
+	 */
+	public function test_get_available_providers_for_user_falls_back_when_totp_secret_is_missing() {
+		$user = self::factory()->user->create_and_get();
+
+		update_user_meta( $user->ID, Two_Factor_Core::ENABLED_PROVIDERS_USER_META_KEY, array( 'Two_Factor_Totp' ) );
+
+		$this->assertSame(
+			array( 'Two_Factor_Email' ),
+			array_keys( Two_Factor_Core::get_available_providers_for_user( $user->ID ) ),
+			'Emailed codes are forced on when the authenticator app has no secret'
+		);
+		$this->assertTrue( Two_Factor_Core::is_user_using_two_factor( $user->ID ) );
+	}
+
+	/**
+	 * Ensure the user is locked out with a specific message when all recovery codes are used and the
+	 * email method is turned off site-wide.
+	 *
+	 * @covers Two_Factor_Core::get_available_providers_for_user
+	 * @covers Two_Factor_Core::manage_users_custom_column
+	 */
+	public function test_get_available_providers_for_user_fails_closed_when_recovery_codes_are_used_up_and_email_is_disabled() {
+		$user = self::factory()->user->create_and_get();
+
+		update_user_meta( $user->ID, Two_Factor_Core::ENABLED_PROVIDERS_USER_META_KEY, array( 'Two_Factor_Backup_Codes' ) );
+		update_option( Two_Factor_Core::ENABLED_PROVIDERS_OPTION_KEY, array( 'Two_Factor_Totp', 'Two_Factor_Backup_Codes' ) );
+
+		try {
+			$result = Two_Factor_Core::get_available_providers_for_user( $user->ID );
+
+			$this->assertInstanceOf( WP_Error::class, $result );
+			$this->assertSame( 'no_usable_2fa_methods', $result->get_error_code() );
+			$this->assertSame( 'Error: You have used all of your recovery codes. Please ask a site administrator to generate new ones.', $result->get_error_message() );
+			$this->assertSame( array( 'Two_Factor_Backup_Codes' ), $result->get_error_data()['enabled_providers'] );
+			$this->assertTrue( Two_Factor_Core::is_user_using_two_factor( $user->ID ), 'User is still treated as using two-factor (fail closed)' );
+			$this->assertStringContainsString( 'no usable 2FA method', Two_Factor_Core::manage_users_custom_column( '', 'two-factor', $user->ID ) );
+		} finally {
+			delete_option( Two_Factor_Core::ENABLED_PROVIDERS_OPTION_KEY );
+		}
+	}
+
+	/**
+	 * Ensure the lockout message names the method when it isn't recovery codes.
+	 *
+	 * @covers Two_Factor_Core::get_available_providers_for_user
+	 */
+	public function test_get_available_providers_for_user_fails_closed_when_totp_secret_is_missing_and_email_is_disabled() {
+		$user = self::factory()->user->create_and_get();
+
+		update_user_meta( $user->ID, Two_Factor_Core::ENABLED_PROVIDERS_USER_META_KEY, array( 'Two_Factor_Totp' ) );
+		update_option( Two_Factor_Core::ENABLED_PROVIDERS_OPTION_KEY, array( 'Two_Factor_Totp', 'Two_Factor_Backup_Codes' ) );
+
+		try {
+			$result = Two_Factor_Core::get_available_providers_for_user( $user->ID );
+
+			$this->assertInstanceOf( WP_Error::class, $result );
+			$this->assertSame( 'no_usable_2fa_methods', $result->get_error_code() );
+			$this->assertSame( 'Error: Your two-factor method (Authenticator App) is not set up. Please ask a site administrator to reset it.', $result->get_error_message() );
+		} finally {
+			delete_option( Two_Factor_Core::ENABLED_PROVIDERS_OPTION_KEY );
+		}
+	}
+
+	/**
+	 * Ensure the fallback filter is told why it runs, and that its return value is used.
+	 *
+	 * @covers Two_Factor_Core::get_available_providers_for_user
+	 */
+	public function test_fallback_provider_filter_receives_reason() {
+		$user = self::factory()->user->create_and_get();
+		$args = array();
+
+		$filter = function ( $fallback_provider, $user_id, $stored_providers, $reason ) use ( &$args ) {
+			$args = array( $user_id, $stored_providers, $reason );
+
+			return 'Two_Factor_Dummy';
+		};
+
+		add_filter( 'two_factor_fallback_provider_for_user', $filter, 10, 4 );
+
+		try {
+			update_user_meta( $user->ID, Two_Factor_Core::ENABLED_PROVIDERS_USER_META_KEY, array( 'Two_Factor_Backup_Codes' ) );
+			$this->assertSame( array( 'Two_Factor_Dummy' ), array_keys( Two_Factor_Core::get_available_providers_for_user( $user->ID ) ) );
+			$this->assertSame( array( $user->ID, array( 'Two_Factor_Backup_Codes' ), 'unavailable' ), $args );
+
+			update_user_meta( $user->ID, Two_Factor_Core::ENABLED_PROVIDERS_USER_META_KEY, array( 'Two_Factor_Missing' ) );
+			$this->assertSame( array( 'Two_Factor_Dummy' ), array_keys( Two_Factor_Core::get_available_providers_for_user( $user->ID ) ) );
+			$this->assertSame( array( $user->ID, array( 'Two_Factor_Missing' ), 'unregistered' ), $args );
+		} finally {
+			remove_filter( 'two_factor_fallback_provider_for_user', $filter, 10 );
+		}
+	}
+
+	/**
+	 * Ensure providers added by a filter for a user who never set up two-factor don't trigger the fallback.
+	 *
+	 * @covers Two_Factor_Core::get_available_providers_for_user
+	 */
+	public function test_get_available_providers_for_user_ignores_unconfigured_providers_added_by_filter() {
+		$user = self::factory()->user->create_and_get();
+
+		$filter = function () {
+			return array( 'Two_Factor_Totp' );
+		};
+
+		add_filter( 'two_factor_enabled_providers_for_user', $filter );
+
+		try {
+			$this->assertSame( array(), Two_Factor_Core::get_available_providers_for_user( $user->ID ) );
+			$this->assertFalse( Two_Factor_Core::is_user_using_two_factor( $user->ID ) );
+		} finally {
+			remove_filter( 'two_factor_enabled_providers_for_user', $filter );
+		}
+	}
+
+	/**
 	 * Verify process_provider() returns WP_Error when no provider is given.
 	 *
 	 * @covers Two_Factor_Core::process_provider

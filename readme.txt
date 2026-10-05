@@ -93,7 +93,7 @@ Here is a list of action and filter hooks provided by the plugin:
 - `two_factor_providers_for_user` filter overrides the available two-factor providers for a specific user. Array values are instances of provider classes and the user object `WP_User` is available as the second argument.
 - `two_factor_enabled_providers_for_user` filter overrides the list of two-factor providers enabled for a user. First argument is an array of enabled provider classnames as values, the second argument is the user ID.
 - `two_factor_is_required_for_user` filter controls whether two-factor authentication is required for a user. Return `false` to bypass the two-factor flow (e.g. for trusted IP addresses). First argument is a boolean (whether the user has a primary provider configured), the second argument is the `WP_User` object.
-- `two_factor_fallback_provider_for_user` filter overrides the provider forced on when none of a user's stored two-factor providers are still registered (e.g. after a provider plugin is deactivated). Defaults to `Two_Factor_Email`. First argument is the provider classname, the second is the user ID, the third is the array of provider classnames that were stored for the user but are no longer registered. The returned provider must be registered and available to the user (`is_available_for_user()`), or the user is shown an error instead of being let through with a fallback.
+- `two_factor_fallback_provider_for_user` filter overrides the provider forced on when none of a user's stored two-factor providers can be used, either because they are no longer registered (e.g. after a provider plugin is deactivated) or because they aren't available for the user (e.g. all recovery codes have been used). Defaults to `Two_Factor_Email`. First argument is the provider classname, the second is the user ID, the third is the array of provider classnames stored for the user, and the fourth is the reason: `unregistered` or `unavailable`. The returned provider must be registered and available to the user (`is_available_for_user()`), or the user is shown an error instead of being let through with a fallback.
 - `two_factor_user_authenticated` action which receives the logged in `WP_User` object as the first argument for determining the logged in user right after the authentication workflow.
 - `two_factor_user_api_login_enable` filter restricts authentication for REST API and XML-RPC to application passwords only. Provides the user ID as the second argument.
 - `two_factor_email_token_ttl` filter overrides the time interval in seconds that an email token is considered after generation. Accepts the time in seconds as the first argument and the ID of the `WP_User` object being authenticated.
@@ -147,7 +147,9 @@ To report a security issue, please visit the [WordPress HackerOne](https://hacke
 
 = What if I lose access to all my authentication methods? =
 
-If you have backup codes enabled, you can use one of those to regain access. If you don't have backup codes or have used them all, you'll need to contact your site administrator to reset your account. This is why it's important to always enable backup codes and keep them in a secure location.
+If you have backup codes enabled, you can use one of those to regain access. If you don't have backup codes, you'll need to contact your site administrator to reset your account. This is why it's important to always enable backup codes and keep them in a secure location.
+
+If none of your two-factor methods can be used anymore, for example because you have used all your backup codes, you'll be sent a code by email instead. If the site has turned off the email method, you'll need to contact your site administrator to generate new backup codes or reset your account.
 
 = Why do I need to re-verify my two-factor method when changing two-factor settings? =
 
