@@ -7,6 +7,7 @@ parameters:
 	paths:
 		- CLI
 		- providers
+		- secrets
 		- settings
 		- class-two-factor-compat.php
 		- class-two-factor-secrets.php

@@ -50,8 +50,11 @@ require_once TWO_FACTOR_DIR . 'class-two-factor-core.php';
 require_once TWO_FACTOR_DIR . 'class-two-factor-compat.php';
 
 /**
- * Storage adapter for the WordPress Secrets API.
+ * Storage of secrets with the WordPress Secrets API.
  */
+require_once TWO_FACTOR_DIR . 'secrets/interface-two-factor-secrets-store.php';
+require_once TWO_FACTOR_DIR . 'secrets/class-two-factor-secrets-api-store.php';
+require_once TWO_FACTOR_DIR . 'secrets/class-two-factor-secrets-manager.php';
 require_once TWO_FACTOR_DIR . 'class-two-factor-secrets.php';
 
 /**

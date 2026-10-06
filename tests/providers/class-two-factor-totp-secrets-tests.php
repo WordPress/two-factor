@@ -105,14 +105,13 @@ class Two_Factor_Totp_Secrets_Tests extends Two_Factor_Secrets_UnitTestCase {
 	 * Keys are stored in the Secrets API.
 	 */
 	public function test_set_key_with_api_stores_in_secrets_api() {
-		$this->require_secrets_api();
 		$user_id = $this->user();
 
 		$this->assertTrue( $this->provider->set_user_totp_key( $user_id, 'ABCDEFGH' ) );
 		$this->assertSame( '', $this->plaintext( $user_id ) );
 		$this->assertSame( (string) get_current_network_id(), $this->marker( $user_id ) );
 		$this->assertSame( 'ABCDEFGH', $this->provider->get_user_totp_key( $user_id ) );
-		$this->assertNotNull( wp_get_network_secret( "two-factor/totp-{$user_id}" ) );
+		$this->assertNotNull( $this->secrets_store->get( "two-factor/totp-{$user_id}" ) );
 	}
 
 	/**
@@ -133,9 +132,8 @@ class Two_Factor_Totp_Secrets_Tests extends Two_Factor_Secrets_UnitTestCase {
 	 * A failed Secrets API write never falls back to plaintext.
 	 */
 	public function test_set_key_returns_false_when_secrets_write_fails() {
-		$this->require_secrets_api();
-		$user_id                                   = $this->user();
-		Two_Factor_Secrets::$test_overrides['set'] = function () {
+		$user_id                     = $this->user();
+		$this->secrets_store->on_set = function () {
 			return new WP_Error( 'write_failed' );
 		};
 
@@ -148,14 +146,13 @@ class Two_Factor_Totp_Secrets_Tests extends Two_Factor_Secrets_UnitTestCase {
 	 * A read-back mismatch fails the write and cleans up.
 	 */
 	public function test_set_key_returns_false_when_readback_mismatches() {
-		$this->require_secrets_api();
-		$user_id                                   = $this->user();
-		Two_Factor_Secrets::$test_overrides['get'] = function () {
+		$user_id                     = $this->user();
+		$this->secrets_store->on_get = function () {
 			return 'SOMETHINGELSE';
 		};
 
 		$this->assertFalse( $this->provider->set_user_totp_key( $user_id, 'ABCDEFGH' ) );
-		$this->assertNull( wp_get_network_secret( "two-factor/totp-{$user_id}" ) );
+		$this->assertArrayNotHasKey( "two-factor/totp-{$user_id}", $this->secrets_store->values );
 		$this->assertSame( '', $this->marker( $user_id ) );
 	}
 
@@ -177,7 +174,6 @@ class Two_Factor_Totp_Secrets_Tests extends Two_Factor_Secrets_UnitTestCase {
 	 * Delete clears everything.
 	 */
 	public function test_delete_key_removes_secret_marker_and_plaintext() {
-		$this->require_secrets_api();
 		$user_id = $this->user();
 		$this->provider->set_user_totp_key( $user_id, 'ABCDEFGH' );
 		update_user_meta( $user_id, Two_Factor_Totp::SECRET_META_KEY, 'LEFTOVER' );
@@ -185,7 +181,7 @@ class Two_Factor_Totp_Secrets_Tests extends Two_Factor_Secrets_UnitTestCase {
 		$this->assertTrue( $this->provider->delete_user_totp_key( $user_id ) );
 		$this->assertSame( '', $this->plaintext( $user_id ) );
 		$this->assertSame( '', $this->marker( $user_id ) );
-		$this->assertNull( wp_get_network_secret( "two-factor/totp-{$user_id}" ) );
+		$this->assertNull( $this->secrets_store->get( "two-factor/totp-{$user_id}" ) );
 	}
 
 	/**
@@ -204,7 +200,6 @@ class Two_Factor_Totp_Secrets_Tests extends Two_Factor_Secrets_UnitTestCase {
 	 * Reading a plaintext key migrates it.
 	 */
 	public function test_lazy_migration_moves_plaintext_to_secrets_api() {
-		$this->require_secrets_api();
 		$user_id = $this->user();
 		update_user_meta( $user_id, Two_Factor_Totp::SECRET_META_KEY, 'ABCDEFGH' );
 
@@ -219,7 +214,6 @@ class Two_Factor_Totp_Secrets_Tests extends Two_Factor_Secrets_UnitTestCase {
 	 * Migration runs once.
 	 */
 	public function test_lazy_migration_is_idempotent() {
-		$this->require_secrets_api();
 		$user_id = $this->user();
 		update_user_meta( $user_id, Two_Factor_Totp::SECRET_META_KEY, 'ABCDEFGH' );
 
@@ -234,10 +228,9 @@ class Two_Factor_Totp_Secrets_Tests extends Two_Factor_Secrets_UnitTestCase {
 	 * A failed write keeps plaintext.
 	 */
 	public function test_lazy_migration_write_failure_keeps_plaintext_and_fires_failed_action() {
-		$this->require_secrets_api();
 		$user_id = $this->user();
 		update_user_meta( $user_id, Two_Factor_Totp::SECRET_META_KEY, 'ABCDEFGH' );
-		Two_Factor_Secrets::$test_overrides['set'] = function () {
+		$this->secrets_store->on_set = function () {
 			return new WP_Error( 'write_failed' );
 		};
 
@@ -252,10 +245,9 @@ class Two_Factor_Totp_Secrets_Tests extends Two_Factor_Secrets_UnitTestCase {
 	 * A read-back mismatch keeps plaintext and cleans up.
 	 */
 	public function test_lazy_migration_readback_mismatch_keeps_plaintext_and_cleans_up() {
-		$this->require_secrets_api();
 		$user_id = $this->user();
 		update_user_meta( $user_id, Two_Factor_Totp::SECRET_META_KEY, 'ABCDEFGH' );
-		Two_Factor_Secrets::$test_overrides['get'] = function () {
+		$this->secrets_store->on_get = function () {
 			return 'SOMETHINGELSE';
 		};
 
@@ -265,7 +257,7 @@ class Two_Factor_Totp_Secrets_Tests extends Two_Factor_Secrets_UnitTestCase {
 		$this->assertSame( 'two_factor_secrets_migration_mismatch', $result->get_error_code() );
 		$this->assertSame( 'ABCDEFGH', $this->plaintext( $user_id ) );
 		$this->assertSame( '', $this->marker( $user_id ) );
-		$this->assertNull( wp_get_network_secret( "two-factor/totp-{$user_id}" ) );
+		$this->assertArrayNotHasKey( "two-factor/totp-{$user_id}", $this->secrets_store->values );
 		$this->assertSame( 1, $this->count_calls( 'failed' ) );
 	}
 
@@ -273,7 +265,6 @@ class Two_Factor_Totp_Secrets_Tests extends Two_Factor_Secrets_UnitTestCase {
 	 * Opting out skips migration.
 	 */
 	public function test_lazy_migration_skipped_when_filter_opts_out() {
-		$this->require_secrets_api();
 		add_filter( 'two_factor_use_secrets_api', '__return_false' );
 		$user_id = $this->user();
 		update_user_meta( $user_id, Two_Factor_Totp::SECRET_META_KEY, 'ABCDEFGH' );
@@ -287,7 +278,6 @@ class Two_Factor_Totp_Secrets_Tests extends Two_Factor_Secrets_UnitTestCase {
 	 * An unreadable secret with the API present keeps TOTP enrolled and does not force the fallback.
 	 */
 	public function test_unreadable_secret_with_api_present_keeps_totp_and_does_not_force_fallback() {
-		$this->require_secrets_api();
 		$user_id = $this->user();
 		$key     = Two_Factor_Totp::generate_key();
 		$this->provider->set_user_totp_key( $user_id, $key );
@@ -306,7 +296,6 @@ class Two_Factor_Totp_Secrets_Tests extends Two_Factor_Secrets_UnitTestCase {
 	 * Migration is one-directional: opting out never moves a migrated secret back to plaintext.
 	 */
 	public function test_opt_out_never_moves_migrated_secret_back_to_plaintext() {
-		$this->require_secrets_api();
 		$user_id = $this->user();
 		$this->provider->set_user_totp_key( $user_id, 'ABCDEFGH' );
 
@@ -323,7 +312,6 @@ class Two_Factor_Totp_Secrets_Tests extends Two_Factor_Secrets_UnitTestCase {
 	 * Plaintext wins over a marker.
 	 */
 	public function test_plaintext_beats_marker() {
-		$this->require_secrets_api();
 		add_filter( 'two_factor_use_secrets_api', '__return_false' );
 		$user_id = $this->user();
 		update_user_meta( $user_id, Two_Factor_Totp::SECRET_META_KEY, 'PLAINTEXT' );
@@ -358,7 +346,6 @@ class Two_Factor_Totp_Secrets_Tests extends Two_Factor_Secrets_UnitTestCase {
 	 * A marker for another network is an error.
 	 */
 	public function test_key_state_error_when_marker_names_other_network() {
-		$this->require_secrets_api();
 		$user_id = $this->user();
 		update_user_meta( $user_id, Two_Factor_Totp::SECRET_NETWORK_META_KEY, (string) ( get_current_network_id() + 1 ) );
 
@@ -372,7 +359,6 @@ class Two_Factor_Totp_Secrets_Tests extends Two_Factor_Secrets_UnitTestCase {
 	 * Opting out does not stop reads of migrated users.
 	 */
 	public function test_migrated_user_still_readable_when_filter_opts_out() {
-		$this->require_secrets_api();
 		$user_id = $this->user();
 		$this->provider->set_user_totp_key( $user_id, 'ABCDEFGH' );
 		add_filter( 'two_factor_use_secrets_api', '__return_false' );
@@ -384,7 +370,6 @@ class Two_Factor_Totp_Secrets_Tests extends Two_Factor_Secrets_UnitTestCase {
 	 * Available with marker and API.
 	 */
 	public function test_is_available_for_user_true_with_marker_and_api() {
-		$this->require_secrets_api();
 		$user_id = $this->user();
 		$this->provider->set_user_totp_key( $user_id, 'ABCDEFGH' );
 
@@ -406,7 +391,6 @@ class Two_Factor_Totp_Secrets_Tests extends Two_Factor_Secrets_UnitTestCase {
 	 * Unavailable with a marker for another network.
 	 */
 	public function test_is_available_for_user_false_with_marker_for_other_network() {
-		$this->require_secrets_api();
 		$user_id = $this->user();
 		update_user_meta( $user_id, Two_Factor_Totp::SECRET_NETWORK_META_KEY, (string) ( get_current_network_id() + 1 ) );
 
@@ -417,7 +401,6 @@ class Two_Factor_Totp_Secrets_Tests extends Two_Factor_Secrets_UnitTestCase {
 	 * Availability checks never migrate.
 	 */
 	public function test_is_available_for_user_does_not_migrate() {
-		$this->require_secrets_api();
 		$user_id = $this->user();
 		update_user_meta( $user_id, Two_Factor_Totp::SECRET_META_KEY, 'ABCDEFGH' );
 
@@ -443,14 +426,12 @@ class Two_Factor_Totp_Secrets_Tests extends Two_Factor_Secrets_UnitTestCase {
 
 		// Marker for this network, API present.
 		update_user_meta( $user_id, Two_Factor_Totp::SECRET_NETWORK_META_KEY, (string) get_current_network_id() );
-		if ( function_exists( 'wp_get_network_secret' ) ) {
-			$this->assertFalse( $this->provider->is_enrolled_but_unavailable_for_user( $user ) );
+		$this->assertFalse( $this->provider->is_enrolled_but_unavailable_for_user( $user ) );
 
-			// Marker for another network.
-			update_user_meta( $user_id, Two_Factor_Totp::SECRET_NETWORK_META_KEY, (string) ( get_current_network_id() + 1 ) );
-			$this->assertTrue( $this->provider->is_enrolled_but_unavailable_for_user( $user ) );
-			update_user_meta( $user_id, Two_Factor_Totp::SECRET_NETWORK_META_KEY, (string) get_current_network_id() );
-		}
+		// Marker for another network.
+		update_user_meta( $user_id, Two_Factor_Totp::SECRET_NETWORK_META_KEY, (string) ( get_current_network_id() + 1 ) );
+		$this->assertTrue( $this->provider->is_enrolled_but_unavailable_for_user( $user ) );
+		update_user_meta( $user_id, Two_Factor_Totp::SECRET_NETWORK_META_KEY, (string) get_current_network_id() );
 
 		// Marker with the API absent.
 		$this->simulate_api_absent();
@@ -461,7 +442,6 @@ class Two_Factor_Totp_Secrets_Tests extends Two_Factor_Secrets_UnitTestCase {
 	 * Storage descriptions.
 	 */
 	public function test_get_user_totp_key_storage_values() {
-		$this->require_secrets_api();
 		$user_id = $this->user();
 
 		$this->assertSame( 'none', $this->provider->get_user_totp_key_storage( $user_id ) );
@@ -492,7 +472,6 @@ class Two_Factor_Totp_Secrets_Tests extends Two_Factor_Secrets_UnitTestCase {
 		if ( ! is_multisite() ) {
 			$this->markTestSkipped( 'Multisite only.' );
 		}
-		$this->require_secrets_api();
 
 		$user_id = $this->user();
 		$blog_id = self::factory()->blog->create();
@@ -531,7 +510,7 @@ class Two_Factor_Totp_Secrets_Tests extends Two_Factor_Secrets_UnitTestCase {
 	 * @return void
 	 */
 	private function make_unreadable() {
-		Two_Factor_Secrets::$test_overrides['get'] = function () {
+		$this->secrets_store->on_get = function () {
 			return new WP_Error( 'secret_decryption_failed', 'sensitive detail' );
 		};
 	}
@@ -552,7 +531,6 @@ class Two_Factor_Totp_Secrets_Tests extends Two_Factor_Secrets_UnitTestCase {
 	 * Unreadable secrets fail validation.
 	 */
 	public function test_validate_code_fails_when_secret_unreadable() {
-		$this->require_secrets_api();
 		$user_id = $this->user();
 		$key     = Two_Factor_Totp::generate_key();
 		$this->provider->set_user_totp_key( $user_id, $key );
@@ -579,7 +557,6 @@ class Two_Factor_Totp_Secrets_Tests extends Two_Factor_Secrets_UnitTestCase {
 	 * A Secrets API key validates.
 	 */
 	public function test_validate_code_succeeds_from_secrets_api() {
-		$this->require_secrets_api();
 		$user_id = $this->user();
 		$key     = Two_Factor_Totp::generate_key();
 		$this->provider->set_user_totp_key( $user_id, $key );
@@ -591,7 +568,6 @@ class Two_Factor_Totp_Secrets_Tests extends Two_Factor_Secrets_UnitTestCase {
 	 * A marker without the API fails validation.
 	 */
 	public function test_validate_authentication_fails_when_api_absent_with_marker() {
-		$this->require_secrets_api();
 		$user_id = $this->user();
 		$key     = Two_Factor_Totp::generate_key();
 		$this->provider->set_user_totp_key( $user_id, $key );
@@ -609,7 +585,6 @@ class Two_Factor_Totp_Secrets_Tests extends Two_Factor_Secrets_UnitTestCase {
 	 * The login prompt explains the problem.
 	 */
 	public function test_authentication_page_shows_unavailable_message() {
-		$this->require_secrets_api();
 		$user_id = $this->user();
 		$this->provider->set_user_totp_key( $user_id, Two_Factor_Totp::generate_key() );
 		$this->make_unreadable();
@@ -653,7 +628,6 @@ class Two_Factor_Totp_Secrets_Tests extends Two_Factor_Secrets_UnitTestCase {
 	 * The profile offers a reset, not setup, for an unreadable secret.
 	 */
 	public function test_user_options_shows_reset_not_setup_when_unreadable() {
-		$this->require_secrets_api();
 		$user_id = $this->user();
 		$this->provider->set_user_totp_key( $user_id, Two_Factor_Totp::generate_key() );
 		$this->make_unreadable();
@@ -693,7 +667,6 @@ class Two_Factor_Totp_Secrets_Tests extends Two_Factor_Secrets_UnitTestCase {
 	 * An affected TOTP-only user is forced onto the fallback, never single factor.
 	 */
 	public function test_login_fails_closed_for_affected_totp_only_user() {
-		$this->require_secrets_api();
 		$user_id = $this->user();
 		$this->provider->set_user_totp_key( $user_id, Two_Factor_Totp::generate_key() );
 		update_user_meta( $user_id, Two_Factor_Core::ENABLED_PROVIDERS_USER_META_KEY, array( 'Two_Factor_Totp' ) );
@@ -719,7 +692,6 @@ class Two_Factor_Totp_Secrets_Tests extends Two_Factor_Secrets_UnitTestCase {
 	 * Without a valid fallback the user is locked out, not let in.
 	 */
 	public function test_login_fails_closed_for_affected_totp_only_user_without_fallback() {
-		$this->require_secrets_api();
 		$user_id = $this->user();
 		$this->provider->set_user_totp_key( $user_id, Two_Factor_Totp::generate_key() );
 		update_user_meta( $user_id, Two_Factor_Core::ENABLED_PROVIDERS_USER_META_KEY, array( 'Two_Factor_Totp' ) );
@@ -739,7 +711,6 @@ class Two_Factor_Totp_Secrets_Tests extends Two_Factor_Secrets_UnitTestCase {
 	 * Backup codes remain usable for an affected user.
 	 */
 	public function test_affected_user_keeps_backup_codes() {
-		$this->require_secrets_api();
 		$user_id = $this->user();
 		$user    = get_userdata( $user_id );
 		$this->provider->set_user_totp_key( $user_id, Two_Factor_Totp::generate_key() );
@@ -757,13 +728,12 @@ class Two_Factor_Totp_Secrets_Tests extends Two_Factor_Secrets_UnitTestCase {
 		if ( is_multisite() ) {
 			$this->markTestSkipped( 'Single site only.' );
 		}
-		$this->require_secrets_api();
 		$user_id = $this->user();
 		$this->provider->set_user_totp_key( $user_id, 'ABCDEFGH' );
 
 		wp_delete_user( $user_id );
 
-		$this->assertNull( wp_get_network_secret( "two-factor/totp-{$user_id}" ) );
+		$this->assertNull( $this->secrets_store->get( "two-factor/totp-{$user_id}" ) );
 	}
 
 	/**
@@ -773,7 +743,6 @@ class Two_Factor_Totp_Secrets_Tests extends Two_Factor_Secrets_UnitTestCase {
 		if ( ! is_multisite() ) {
 			$this->markTestSkipped( 'Multisite only.' );
 		}
-		$this->require_secrets_api();
 		$user_id = $this->user();
 		$blog_id = self::factory()->blog->create();
 		add_user_to_blog( $blog_id, $user_id, 'subscriber' );
@@ -786,7 +755,7 @@ class Two_Factor_Totp_Secrets_Tests extends Two_Factor_Secrets_UnitTestCase {
 			restore_current_blog();
 		}
 
-		$this->assertNotNull( wp_get_network_secret( "two-factor/totp-{$user_id}" ) );
+		$this->assertNotNull( $this->secrets_store->get( "two-factor/totp-{$user_id}" ) );
 		$this->assertSame( (string) get_current_network_id(), $this->marker( $user_id ) );
 	}
 
@@ -797,14 +766,13 @@ class Two_Factor_Totp_Secrets_Tests extends Two_Factor_Secrets_UnitTestCase {
 		if ( ! is_multisite() ) {
 			$this->markTestSkipped( 'Multisite only.' );
 		}
-		$this->require_secrets_api();
 		require_once ABSPATH . 'wp-admin/includes/ms.php';
 		$user_id = $this->user();
 		$this->provider->set_user_totp_key( $user_id, 'ABCDEFGH' );
 
 		wpmu_delete_user( $user_id );
 
-		$this->assertNull( wp_get_network_secret( "two-factor/totp-{$user_id}" ) );
+		$this->assertNull( $this->secrets_store->get( "two-factor/totp-{$user_id}" ) );
 		$this->assertSame( '', $this->marker( $user_id ) );
 	}
 
@@ -822,7 +790,6 @@ class Two_Factor_Totp_Secrets_Tests extends Two_Factor_Secrets_UnitTestCase {
 	 * Lifecycle hooks stay registered, and still delete secrets, when TOTP is disabled site-wide.
 	 */
 	public function test_lifecycle_hooks_work_when_totp_disabled_site_wide() {
-		$this->require_secrets_api();
 		$user_id = $this->user();
 		$this->provider->set_user_totp_key( $user_id, 'ABCDEFGH' );
 
@@ -843,7 +810,7 @@ class Two_Factor_Totp_Secrets_Tests extends Two_Factor_Secrets_UnitTestCase {
 				wp_delete_user( $user_id );
 			}
 
-			$this->assertNull( wp_get_network_secret( "two-factor/totp-{$user_id}" ) );
+			$this->assertNull( $this->secrets_store->get( "two-factor/totp-{$user_id}" ) );
 		} finally {
 			delete_option( Two_Factor_Core::ENABLED_PROVIDERS_OPTION_KEY );
 		}
@@ -853,7 +820,6 @@ class Two_Factor_Totp_Secrets_Tests extends Two_Factor_Secrets_UnitTestCase {
 	 * Uninstall removes all secrets.
 	 */
 	public function test_uninstall_user_data_removes_secrets_for_all_marked_users() {
-		$this->require_secrets_api();
 		$user_ids = array( $this->user(), $this->user(), $this->user() );
 		foreach ( $user_ids as $user_id ) {
 			$this->provider->set_user_totp_key( $user_id, 'ABCDEFGH' );
@@ -862,7 +828,7 @@ class Two_Factor_Totp_Secrets_Tests extends Two_Factor_Secrets_UnitTestCase {
 		Two_Factor_Totp::uninstall_user_data();
 
 		foreach ( $user_ids as $user_id ) {
-			$this->assertNull( wp_get_network_secret( "two-factor/totp-{$user_id}" ) );
+			$this->assertNull( $this->secrets_store->get( "two-factor/totp-{$user_id}" ) );
 			$this->assertSame( '', $this->marker( $user_id ) );
 		}
 	}
@@ -918,7 +884,6 @@ class Two_Factor_Totp_Secrets_Tests extends Two_Factor_Secrets_UnitTestCase {
 		if ( ! is_multisite() ) {
 			$this->markTestSkipped( 'Multisite only.' );
 		}
-		$this->require_secrets_api();
 		$this->seed_marker( (string) ( get_current_network_id() + 1 ) );
 
 		$this->assertTrue( Two_Factor_Totp::has_affected_users() );
@@ -1068,7 +1033,6 @@ class Two_Factor_Totp_Secrets_Tests extends Two_Factor_Secrets_UnitTestCase {
 	 * Remaining plaintext is recommended to migrate.
 	 */
 	public function test_site_health_recommended_when_plaintext_remains() {
-		$this->require_secrets_api();
 		$user_id = $this->user();
 		update_user_meta( $user_id, Two_Factor_Totp::SECRET_META_KEY, 'ABCDEFGH' );
 
@@ -1083,7 +1047,6 @@ class Two_Factor_Totp_Secrets_Tests extends Two_Factor_Secrets_UnitTestCase {
 	 * Fully migrated is good and names the provider.
 	 */
 	public function test_site_health_good_when_fully_migrated() {
-		$this->require_secrets_api();
 
 		$result = $this->provider->site_health_secret_storage();
 
@@ -1095,7 +1058,6 @@ class Two_Factor_Totp_Secrets_Tests extends Two_Factor_Secrets_UnitTestCase {
 	 * Opting out with plaintext remaining is good.
 	 */
 	public function test_site_health_good_when_filter_opts_out_with_plaintext() {
-		$this->require_secrets_api();
 		add_filter( 'two_factor_use_secrets_api', '__return_false' );
 		update_user_meta( $this->user(), Two_Factor_Totp::SECRET_META_KEY, 'ABCDEFGH' );
 
@@ -1124,7 +1086,6 @@ class Two_Factor_Totp_Secrets_Tests extends Two_Factor_Secrets_UnitTestCase {
 	 * Until an administrator opts in, Site Health recommends it and links to the settings screen.
 	 */
 	public function test_site_health_recommended_when_not_opted_in() {
-		$this->require_secrets_api();
 		$this->opt_out();
 
 		$result = $this->provider->site_health_secret_storage();
@@ -1139,8 +1100,7 @@ class Two_Factor_Totp_Secrets_Tests extends Two_Factor_Secrets_UnitTestCase {
 	 * A read-only provider is reported as such rather than blamed on the filter.
 	 */
 	public function test_site_health_good_when_provider_read_only() {
-		$this->require_secrets_api();
-		Two_Factor_Secrets::$test_overrides['writable'] = '__return_false';
+		$this->secrets_store->writable = false;
 
 		$result = $this->provider->site_health_secret_storage();
 
@@ -1152,7 +1112,6 @@ class Two_Factor_Totp_Secrets_Tests extends Two_Factor_Secrets_UnitTestCase {
 	 * Without the opt-in a new key stays in user meta, even with the API present.
 	 */
 	public function test_set_key_without_opt_in_stores_plaintext() {
-		$this->require_secrets_api();
 		$this->opt_out();
 		$user_id = $this->user();
 
@@ -1160,14 +1119,13 @@ class Two_Factor_Totp_Secrets_Tests extends Two_Factor_Secrets_UnitTestCase {
 
 		$this->assertSame( 'ABCDEFGH', get_user_meta( $user_id, Two_Factor_Totp::SECRET_META_KEY, true ) );
 		$this->assertSame( '', (string) get_user_meta( $user_id, Two_Factor_Totp::SECRET_NETWORK_META_KEY, true ) );
-		$this->assertNull( wp_get_network_secret( "two-factor/totp-{$user_id}" ) );
+		$this->assertNull( $this->secrets_store->get( "two-factor/totp-{$user_id}" ) );
 	}
 
 	/**
 	 * Without the opt-in a plaintext key is read but not migrated.
 	 */
 	public function test_lazy_migration_skipped_without_opt_in() {
-		$this->require_secrets_api();
 		$this->opt_out();
 		$user_id = $this->user();
 		update_user_meta( $user_id, Two_Factor_Totp::SECRET_META_KEY, 'ABCDEFGH' );
@@ -1181,7 +1139,6 @@ class Two_Factor_Totp_Secrets_Tests extends Two_Factor_Secrets_UnitTestCase {
 	 * Opting back out keeps already-migrated users working.
 	 */
 	public function test_migrated_user_still_readable_after_opting_out() {
-		$this->require_secrets_api();
 		$user_id = $this->user();
 		$this->provider->set_user_totp_key( $user_id, 'ABCDEFGH' );
 		$this->opt_out();
@@ -1199,8 +1156,8 @@ class Two_Factor_Totp_Secrets_Tests extends Two_Factor_Secrets_UnitTestCase {
 			return new WP_Error( 'secret_key_unavailable', 'The wrapped key material could not be decrypted with the configured site key.' );
 		};
 
-		Two_Factor_Secrets::$test_overrides['get'] = $error;
-		Two_Factor_Secrets::$test_overrides['set'] = $error;
+		$this->secrets_store->on_get = $error;
+		$this->secrets_store->on_set = $error;
 	}
 
 	/**
@@ -1244,7 +1201,6 @@ class Two_Factor_Totp_Secrets_Tests extends Two_Factor_Secrets_UnitTestCase {
 	 * since a reset could not be followed by re-enrollment.
 	 */
 	public function test_user_options_offers_no_reset_when_key_unavailable() {
-		$this->require_secrets_api();
 		$user_id = $this->user();
 		$this->provider->set_user_totp_key( $user_id, Two_Factor_Totp::generate_key() );
 		$this->make_key_unavailable();
@@ -1269,7 +1225,6 @@ class Two_Factor_Totp_Secrets_Tests extends Two_Factor_Secrets_UnitTestCase {
 	 * @covers Two_Factor_Totp::rest_delete_totp
 	 */
 	public function test_rest_reset_refused_when_key_unavailable() {
-		$this->require_secrets_api();
 		$user_id = $this->user();
 		$this->provider->set_user_totp_key( $user_id, $this->provider->generate_key() );
 		Two_Factor_Core::enable_provider_for_user( $user_id, 'Two_Factor_Totp' );
@@ -1298,7 +1253,6 @@ class Two_Factor_Totp_Secrets_Tests extends Two_Factor_Secrets_UnitTestCase {
 	 * @covers Two_Factor_Totp::set_user_totp_key
 	 */
 	public function test_reenroll_after_reset_with_unavailable_key_fails_closed_with_clear_error() {
-		$this->require_secrets_api();
 		$user_id = $this->admin_user();
 		$this->assertTrue( $this->provider->set_user_totp_key( $user_id, $this->provider->generate_key() ) );
 		Two_Factor_Core::enable_provider_for_user( $user_id, 'Two_Factor_Totp' );
@@ -1326,7 +1280,8 @@ class Two_Factor_Totp_Secrets_Tests extends Two_Factor_Secrets_UnitTestCase {
 		$this->assertFalse( $this->provider->set_user_totp_key( $user_id, $new_key ) );
 
 		// Once the key is usable again, the same enrollment succeeds.
-		Two_Factor_Secrets::$test_overrides = array();
+		$this->secrets_store->on_get = null;
+		$this->secrets_store->on_set = null;
 
 		$response = $this->rest_setup( $user_id, $new_key );
 
@@ -1342,10 +1297,9 @@ class Two_Factor_Totp_Secrets_Tests extends Two_Factor_Secrets_UnitTestCase {
 	 * @covers Two_Factor_Totp::rest_setup_totp
 	 */
 	public function test_rest_setup_reports_secrets_write_failure() {
-		$this->require_secrets_api();
 		$user_id = $this->admin_user();
 
-		Two_Factor_Secrets::$test_overrides['set'] = function () {
+		$this->secrets_store->on_set = function () {
 			return new WP_Error( 'secret_store_unavailable', 'sensitive detail' );
 		};
 

@@ -11,7 +11,14 @@
 abstract class Two_Factor_Secrets_UnitTestCase extends WP_UnitTestCase {
 
 	/**
-	 * Opt in to Secrets API storage, as an administrator would on the settings screen.
+	 * The in-memory store the plugin writes secrets to during a test.
+	 *
+	 * @var Two_Factor_Secrets_Memory_Store
+	 */
+	protected $secrets_store;
+
+	/**
+	 * Store secrets in memory and opt in, as an administrator would on the settings screen.
 	 *
 	 * Storage is off until an administrator turns it on. Most tests here exercise the
 	 * storage itself, so they start opted in; tests of the default call opt_out().
@@ -20,6 +27,9 @@ abstract class Two_Factor_Secrets_UnitTestCase extends WP_UnitTestCase {
 	 */
 	public function set_up() {
 		parent::set_up();
+
+		$this->secrets_store = new Two_Factor_Secrets_Memory_Store();
+		Two_Factor_Secrets::set_instance( new Two_Factor_Secrets_Manager( $this->secrets_store ) );
 		Two_Factor_Secrets::set_opted_in( true );
 	}
 
@@ -33,7 +43,7 @@ abstract class Two_Factor_Secrets_UnitTestCase extends WP_UnitTestCase {
 	}
 
 	/**
-	 * Skip the test unless the Secrets API feature plugin is loaded.
+	 * Skip the test unless the Secrets API feature plugin is loaded. Only tests of the real store need it.
 	 *
 	 * @return void
 	 */
@@ -44,12 +54,12 @@ abstract class Two_Factor_Secrets_UnitTestCase extends WP_UnitTestCase {
 	}
 
 	/**
-	 * Make the adapter behave as though the Secrets API were absent.
+	 * Make the store report itself as unavailable, as when the Secrets API is absent.
 	 *
 	 * @return void
 	 */
 	protected function simulate_api_absent() {
-		add_filter( 'two_factor_secrets_api_present', '__return_false' );
+		$this->secrets_store->available = false;
 	}
 
 	/**
@@ -58,7 +68,7 @@ abstract class Two_Factor_Secrets_UnitTestCase extends WP_UnitTestCase {
 	 * @return void
 	 */
 	public function tear_down() {
-		Two_Factor_Secrets::$test_overrides = array();
+		Two_Factor_Secrets::reset();
 		delete_site_transient( 'two_factor_totp_affected_users' );
 		parent::tear_down();
 	}

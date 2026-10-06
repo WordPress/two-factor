@@ -21,6 +21,13 @@ class Tests_Two_Factor_CLI_Command extends WP_UnitTestCase {
 	protected $command;
 
 	/**
+	 * The in-memory store the plugin writes secrets to during a test.
+	 *
+	 * @var Two_Factor_Secrets_Memory_Store
+	 */
+	protected $secrets_store;
+
+	/**
 	 * Load the WP-CLI test doubles and the command under test.
 	 *
 	 * The WP-CLI runtime is absent during PHPUnit runs, so the stub classes and
@@ -54,7 +61,9 @@ class Tests_Two_Factor_CLI_Command extends WP_UnitTestCase {
 
 		WP_CLI::reset();
 
-		// Secrets API storage is opt-in; the secrets tests below start opted in.
+		// Store secrets in memory. Storage is opt-in; the secrets tests below start opted in.
+		$this->secrets_store = new Two_Factor_Secrets_Memory_Store();
+		Two_Factor_Secrets::set_instance( new Two_Factor_Secrets_Manager( $this->secrets_store ) );
 		Two_Factor_Secrets::set_opted_in( true );
 
 		$this->command = new Two_Factor_CLI_Command();
@@ -304,9 +313,6 @@ class Tests_Two_Factor_CLI_Command extends WP_UnitTestCase {
 	 * @covers Two_Factor_CLI_Command::status
 	 */
 	public function test_status_reports_totp_storage_secrets_api() {
-		if ( ! function_exists( 'wp_get_network_secret' ) ) {
-			$this->markTestSkipped( 'Secrets API feature plugin is not loaded.' );
-		}
 		Two_Factor_Totp::get_instance()->set_user_totp_key( $this->user->ID, 'ABCDEFGH' );
 
 		$this->command->status( array( 'cli_test_user' ), array() );
@@ -321,7 +327,7 @@ class Tests_Two_Factor_CLI_Command extends WP_UnitTestCase {
 	 */
 	public function test_status_reports_totp_storage_unavailable() {
 		update_user_meta( $this->user->ID, Two_Factor_Totp::SECRET_NETWORK_META_KEY, (string) get_current_network_id() );
-		add_filter( 'two_factor_secrets_api_present', '__return_false' );
+		$this->secrets_store->available = false;
 
 		$this->command->status( array( 'cli_test_user' ), array() );
 
@@ -334,9 +340,6 @@ class Tests_Two_Factor_CLI_Command extends WP_UnitTestCase {
 	 * @covers Two_Factor_CLI_Command::secrets
 	 */
 	public function test_secrets_status_reports_present_api_and_counts() {
-		if ( ! function_exists( 'wp_get_network_secret' ) ) {
-			$this->markTestSkipped( 'Secrets API feature plugin is not loaded.' );
-		}
 		$plaintext_user = self::factory()->user->create();
 		$migrated_user  = self::factory()->user->create();
 		$totp           = Two_Factor_Totp::get_instance();
@@ -379,7 +382,7 @@ class Tests_Two_Factor_CLI_Command extends WP_UnitTestCase {
 	 * @covers Two_Factor_CLI_Command::secrets
 	 */
 	public function test_secrets_status_reports_absent_api() {
-		add_filter( 'two_factor_secrets_api_present', '__return_false' );
+		$this->secrets_store->available = false;
 		update_user_meta( $this->user->ID, Two_Factor_Totp::SECRET_NETWORK_META_KEY, (string) get_current_network_id() );
 
 		$this->command->secrets( array( 'status' ), array() );
@@ -441,19 +444,10 @@ class Tests_Two_Factor_CLI_Command extends WP_UnitTestCase {
 	}
 
 	/**
-	 * Skip unless the Secrets API is loaded.
-	 */
-	protected function require_secrets_api() {
-		if ( ! function_exists( 'wp_get_network_secret' ) ) {
-			$this->markTestSkipped( 'Secrets API feature plugin is not loaded.' );
-		}
-	}
-
-	/**
-	 * Reset adapter test seams.
+	 * Go back to storing secrets with the Secrets API.
 	 */
 	public function tear_down() {
-		Two_Factor_Secrets::$test_overrides = array();
+		Two_Factor_Secrets::reset();
 		parent::tear_down();
 	}
 
@@ -463,7 +457,6 @@ class Tests_Two_Factor_CLI_Command extends WP_UnitTestCase {
 	 * @covers Two_Factor_CLI_Command::secrets
 	 */
 	public function test_secrets_migrate_single_user() {
-		$this->require_secrets_api();
 		$this->seed_plaintext_key( $this->user->ID );
 
 		$this->command->secrets( array( 'migrate', 'cli_test_user' ), array() );
@@ -479,7 +472,6 @@ class Tests_Two_Factor_CLI_Command extends WP_UnitTestCase {
 	 * @covers Two_Factor_CLI_Command::secrets
 	 */
 	public function test_secrets_migrate_dry_run_changes_nothing() {
-		$this->require_secrets_api();
 		$this->seed_plaintext_key( $this->user->ID );
 
 		$this->command->secrets( array( 'migrate' ), array( 'dry-run' => true ) );
@@ -495,7 +487,6 @@ class Tests_Two_Factor_CLI_Command extends WP_UnitTestCase {
 	 * @covers Two_Factor_CLI_Command::secrets
 	 */
 	public function test_secrets_migrate_dry_run_skips_user_without_plaintext() {
-		$this->require_secrets_api();
 
 		$this->command->secrets( array( 'migrate', 'cli_test_user' ), array( 'dry-run' => true ) );
 
@@ -508,7 +499,6 @@ class Tests_Two_Factor_CLI_Command extends WP_UnitTestCase {
 	 * @covers Two_Factor_CLI_Command::secrets
 	 */
 	public function test_secrets_migrate_pages_through_users_in_batches() {
-		$this->require_secrets_api();
 		$ids = array( $this->user->ID, self::factory()->user->create(), self::factory()->user->create() );
 		foreach ( $ids as $id ) {
 			$this->seed_plaintext_key( $id );
@@ -528,17 +518,17 @@ class Tests_Two_Factor_CLI_Command extends WP_UnitTestCase {
 	 * @covers Two_Factor_CLI_Command::secrets
 	 */
 	public function test_secrets_migrate_reports_failed_users_and_continues() {
-		$this->require_secrets_api();
 		$bad = self::factory()->user->create();
 		$ids = array( $this->user->ID, $bad, self::factory()->user->create() );
 		foreach ( $ids as $id ) {
 			$this->seed_plaintext_key( $id );
 		}
-		Two_Factor_Secrets::$test_overrides['set'] = function ( $name, $value ) use ( $bad ) {
+		$this->secrets_store->on_set = function ( $name, $value ) use ( $bad ) {
 			if ( "two-factor/totp-{$bad}" === $name ) {
 				return new WP_Error( 'write_failed', 'write failed' );
 			}
-			return wp_set_network_secret( $name, $value );
+			$this->secrets_store->values[ $name ] = $value;
+			return true;
 		};
 
 		$this->command->secrets( array( 'migrate' ), array( 'batch-size' => '2' ) );
@@ -554,7 +544,7 @@ class Tests_Two_Factor_CLI_Command extends WP_UnitTestCase {
 	 * @covers Two_Factor_CLI_Command::secrets
 	 */
 	public function test_secrets_migrate_errors_when_api_absent() {
-		add_filter( 'two_factor_secrets_api_present', '__return_false' );
+		$this->secrets_store->available = false;
 
 		$message = $this->assert_command_aborts(
 			function () {
@@ -588,7 +578,6 @@ class Tests_Two_Factor_CLI_Command extends WP_UnitTestCase {
 	 * @covers Two_Factor_CLI_Command::secrets
 	 */
 	public function test_secrets_migrate_errors_when_not_opted_in() {
-		$this->require_secrets_api();
 		Two_Factor_Secrets::set_opted_in( false );
 		update_user_meta( $this->user->ID, Two_Factor_Totp::SECRET_META_KEY, 'ABCDEFGH' );
 
@@ -639,7 +628,6 @@ class Tests_Two_Factor_CLI_Command extends WP_UnitTestCase {
 	 * @covers Two_Factor_CLI_Command::secrets
 	 */
 	public function test_secrets_migrate_user_not_found() {
-		$this->require_secrets_api();
 
 		$message = $this->assert_command_aborts(
 			function () {
@@ -656,7 +644,6 @@ class Tests_Two_Factor_CLI_Command extends WP_UnitTestCase {
 	 * @covers Two_Factor_CLI_Command::secrets
 	 */
 	public function test_secrets_export_is_not_an_action() {
-		$this->require_secrets_api();
 		Two_Factor_Totp::get_instance()->set_user_totp_key( $this->user->ID, 'ABCDEFGH' );
 
 		$message = $this->assert_command_aborts(
