@@ -605,7 +605,7 @@ class Two_Factor_Totp extends Two_Factor_Provider {
 		$plaintext = (string) get_user_meta( $user_id, self::SECRET_META_KEY, true );
 
 		if ( '' !== $plaintext ) {
-			if ( $migrate && Two_Factor_Secrets::can_write( $user_id ) ) {
+			if ( $migrate && Two_Factor_Secrets::can_write( (int) $user_id ) ) {
 				$this->migrate_user_totp_key( $user_id );
 			}
 
@@ -616,7 +616,7 @@ class Two_Factor_Totp extends Two_Factor_Provider {
 			return null;
 		}
 
-		return Two_Factor_Secrets::get_user_secret( $user_id, self::SECRET_SLUG );
+		return Two_Factor_Secrets::get_user_secret( (int) $user_id, self::SECRET_SLUG );
 	}
 
 	/**
@@ -637,21 +637,21 @@ class Two_Factor_Totp extends Two_Factor_Provider {
 			return null;
 		}
 
-		if ( ! Two_Factor_Secrets::can_write( $user_id ) ) {
+		if ( ! Two_Factor_Secrets::can_write( (int) $user_id ) ) {
 			return new WP_Error(
 				'two_factor_secrets_not_writable',
 				__( 'The Secrets API cannot be written to, so the secret was not migrated.', 'two-factor' )
 			);
 		}
 
-		$result = Two_Factor_Secrets::set_user_secret( $user_id, self::SECRET_SLUG, $plaintext );
+		$result = Two_Factor_Secrets::set_user_secret( (int) $user_id, self::SECRET_SLUG, $plaintext );
 
 		if ( is_wp_error( $result ) ) {
 			$this->fire_migration_failed( $user_id, $result );
 			return $result;
 		}
 
-		$readback = Two_Factor_Secrets::get_user_secret( $user_id, self::SECRET_SLUG );
+		$readback = Two_Factor_Secrets::get_user_secret( (int) $user_id, self::SECRET_SLUG );
 
 		if ( ! is_string( $readback ) || ! hash_equals( $plaintext, $readback ) ) {
 			$error = is_wp_error( $readback )
@@ -661,7 +661,7 @@ class Two_Factor_Totp extends Two_Factor_Provider {
 					__( 'The stored secret did not match the original, so the migration was rolled back.', 'two-factor' )
 				);
 
-			Two_Factor_Secrets::delete_user_secret( $user_id, self::SECRET_SLUG );
+			Two_Factor_Secrets::delete_user_secret( (int) $user_id, self::SECRET_SLUG );
 			$this->fire_migration_failed( $user_id, $error );
 
 			return $error;
@@ -746,17 +746,17 @@ class Two_Factor_Totp extends Two_Factor_Provider {
 			return $this->delete_user_totp_key( $user_id );
 		}
 
-		if ( Two_Factor_Secrets::can_write( $user_id ) ) {
-			$result = Two_Factor_Secrets::set_user_secret( $user_id, self::SECRET_SLUG, $key );
+		if ( Two_Factor_Secrets::can_write( (int) $user_id ) ) {
+			$result = Two_Factor_Secrets::set_user_secret( (int) $user_id, self::SECRET_SLUG, (string) $key );
 
 			if ( is_wp_error( $result ) ) {
 				return $result;
 			}
 
-			$readback = Two_Factor_Secrets::get_user_secret( $user_id, self::SECRET_SLUG );
+			$readback = Two_Factor_Secrets::get_user_secret( (int) $user_id, self::SECRET_SLUG );
 
 			if ( ! is_string( $readback ) || ! hash_equals( (string) $key, $readback ) ) {
-				Two_Factor_Secrets::delete_user_secret( $user_id, self::SECRET_SLUG );
+				Two_Factor_Secrets::delete_user_secret( (int) $user_id, self::SECRET_SLUG );
 
 				return is_wp_error( $readback )
 					? $readback
@@ -776,7 +776,7 @@ class Two_Factor_Totp extends Two_Factor_Provider {
 		$result = update_user_meta( $user_id, self::SECRET_META_KEY, $key );
 
 		// Clear any stale marker or secret so the plaintext value is unambiguous.
-		Two_Factor_Secrets::delete_user_secret( $user_id, self::SECRET_SLUG );
+		Two_Factor_Secrets::delete_user_secret( (int) $user_id, self::SECRET_SLUG );
 		self::clear_affected_users_cache();
 
 		return $result;
@@ -795,7 +795,7 @@ class Two_Factor_Totp extends Two_Factor_Provider {
 		delete_user_meta( $user_id, self::LAST_SUCCESSFUL_LOGIN_META_KEY );
 		delete_user_meta( $user_id, self::SECRET_META_KEY );
 
-		$secret = Two_Factor_Secrets::delete_user_secret( $user_id, self::SECRET_SLUG );
+		$secret = Two_Factor_Secrets::delete_user_secret( (int) $user_id, self::SECRET_SLUG );
 		self::clear_affected_users_cache();
 
 		return true === $secret
@@ -1104,7 +1104,7 @@ class Two_Factor_Totp extends Two_Factor_Provider {
 			return 'none';
 		}
 
-		$secret = Two_Factor_Secrets::get_user_secret( $user_id, self::SECRET_SLUG );
+		$secret = Two_Factor_Secrets::get_user_secret( (int) $user_id, self::SECRET_SLUG );
 
 		if ( is_string( $secret ) ) {
 			Two_Factor_Secrets::memzero( $secret );
@@ -1638,7 +1638,7 @@ class Two_Factor_Totp extends Two_Factor_Provider {
 
 			foreach ( $new_ids as $user_id ) {
 				$seen[] = $user_id;
-				Two_Factor_Secrets::delete_user_secret( $user_id, self::SECRET_SLUG );
+				Two_Factor_Secrets::delete_user_secret( (int) $user_id, self::SECRET_SLUG );
 			}
 		} while ( ! empty( $new_ids ) );
 	}

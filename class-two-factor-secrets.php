@@ -47,7 +47,7 @@ class Two_Factor_Secrets {
 	 *
 	 * @return bool
 	 */
-	public static function is_api_present() {
+	public static function is_api_present(): bool {
 		$present = function_exists( 'wp_get_network_secret' )
 			&& function_exists( 'wp_set_network_secret' )
 			&& function_exists( 'wp_delete_network_secret' )
@@ -82,7 +82,7 @@ class Two_Factor_Secrets {
 	 *
 	 * @return bool
 	 */
-	public static function is_key_unavailable_error( $error ) {
+	public static function is_key_unavailable_error( $error ): bool {
 		$code = defined( 'WP_SECRETS_ERROR_KEY_UNAVAILABLE' ) ? WP_SECRETS_ERROR_KEY_UNAVAILABLE : 'secret_key_unavailable';
 
 		return is_wp_error( $error ) && $code === $error->get_error_code();
@@ -95,7 +95,7 @@ class Two_Factor_Secrets {
 	 *
 	 * @return bool
 	 */
-	public static function is_provider_writable() {
+	public static function is_provider_writable(): bool {
 		if ( ! self::is_api_present() ) {
 			return false;
 		}
@@ -118,7 +118,7 @@ class Two_Factor_Secrets {
 	 *
 	 * @return bool
 	 */
-	public static function is_opted_in() {
+	public static function is_opted_in(): bool {
 		return '1' === (string) get_site_option( self::OPT_IN_OPTION_KEY, '' );
 	}
 
@@ -133,7 +133,7 @@ class Two_Factor_Secrets {
 	 * @param bool $opted_in Whether Secrets API storage is turned on.
 	 * @return void
 	 */
-	public static function set_opted_in( $opted_in ) {
+	public static function set_opted_in( bool $opted_in ): void {
 		if ( $opted_in ) {
 			update_site_option( self::OPT_IN_OPTION_KEY, '1' );
 			return;
@@ -153,7 +153,7 @@ class Two_Factor_Secrets {
 	 * @param int $user_id User ID; may be 0 when no user is in context.
 	 * @return bool
 	 */
-	public static function is_enabled( $user_id = 0 ) {
+	public static function is_enabled( int $user_id = 0 ): bool {
 		/**
 		 * Filters whether Two-Factor writes secrets to the Secrets API.
 		 *
@@ -170,7 +170,7 @@ class Two_Factor_Secrets {
 		 *                      opt-in on the settings screen, which is off until it is saved.
 		 * @param int  $user_id User ID, which may be 0 when no user is in context.
 		 */
-		return (bool) apply_filters( 'two_factor_use_secrets_api', self::is_opted_in(), (int) $user_id );
+		return (bool) apply_filters( 'two_factor_use_secrets_api', self::is_opted_in(), $user_id );
 	}
 
 	/**
@@ -181,7 +181,7 @@ class Two_Factor_Secrets {
 	 * @param int $user_id User ID; may be 0 when no user is in context.
 	 * @return bool
 	 */
-	public static function can_write( $user_id = 0 ) {
+	public static function can_write( int $user_id = 0 ): bool {
 		if ( ! self::is_api_present() ) {
 			return false;
 		}
@@ -204,7 +204,7 @@ class Two_Factor_Secrets {
 	 *
 	 * @throws InvalidArgumentException When the slug is invalid.
 	 */
-	public static function get_secret_name( $user_id, $slug ) {
+	public static function get_secret_name( int $user_id, string $slug ): string {
 		self::assert_slug( $slug );
 
 		return "two-factor/{$slug}-{$user_id}";
@@ -220,7 +220,7 @@ class Two_Factor_Secrets {
 	 *
 	 * @throws InvalidArgumentException When the slug is invalid.
 	 */
-	public static function get_marker_meta_key( $slug ) {
+	public static function get_marker_meta_key( string $slug ): string {
 		self::assert_slug( $slug );
 
 		return "_two_factor_{$slug}_key_network";
@@ -235,7 +235,7 @@ class Two_Factor_Secrets {
 	 * @param string $slug    Secret slug.
 	 * @return string|null|WP_Error Null when no secret has been migrated for the user.
 	 */
-	public static function get_user_secret( $user_id, $slug ) {
+	public static function get_user_secret( int $user_id, string $slug ) {
 		$marker = get_user_meta( $user_id, self::get_marker_meta_key( $slug ), true );
 
 		if ( '' === $marker || false === $marker || null === $marker ) {
@@ -278,7 +278,7 @@ class Two_Factor_Secrets {
 	 * @param string $value   Secret value.
 	 * @return true|WP_Error
 	 */
-	public static function set_user_secret( $user_id, $slug, $value ) {
+	public static function set_user_secret( int $user_id, string $slug, string $value ) {
 		if ( ! self::is_api_present() ) {
 			return new WP_Error(
 				'two_factor_secrets_api_missing',
@@ -308,7 +308,7 @@ class Two_Factor_Secrets {
 	 * @param string $slug    Secret slug.
 	 * @return true|WP_Error
 	 */
-	public static function delete_user_secret( $user_id, $slug ) {
+	public static function delete_user_secret( int $user_id, string $slug ) {
 		$error = null;
 
 		if ( self::is_api_present() ) {
@@ -330,7 +330,7 @@ class Two_Factor_Secrets {
 	 *
 	 * @return string
 	 */
-	public static function provider_label() {
+	public static function provider_label(): string {
 		if ( self::is_api_present() ) {
 			return (string) wp_secrets_provider_label();
 		}
@@ -346,7 +346,7 @@ class Two_Factor_Secrets {
 	 * @param string $value Value to wipe.
 	 * @return void
 	 */
-	public static function memzero( &$value ) {
+	public static function memzero( &$value ): void {
 		if ( function_exists( 'wp_secrets_memzero' ) ) {
 			wp_secrets_memzero( $value );
 			return;
@@ -365,8 +365,8 @@ class Two_Factor_Secrets {
 	 *
 	 * @throws InvalidArgumentException When the slug is invalid.
 	 */
-	private static function assert_slug( $slug ) {
-		if ( ! is_string( $slug ) || 1 !== preg_match( '/^[a-z0-9]([a-z0-9_-]*[a-z0-9])?$/', $slug ) ) {
+	private static function assert_slug( string $slug ): void {
+		if ( 1 !== preg_match( '/^[a-z0-9]([a-z0-9_-]*[a-z0-9])?$/', $slug ) ) {
 			throw new InvalidArgumentException( 'Invalid secret slug.' );
 		}
 	}
@@ -380,7 +380,7 @@ class Two_Factor_Secrets {
 	 * @param string $value Secret value.
 	 * @return true|WP_Error
 	 */
-	private static function api_set( $name, $value ) {
+	private static function api_set( string $name, string $value ) {
 		if ( isset( self::$test_overrides['set'] ) ) {
 			return call_user_func( self::$test_overrides['set'], $name, $value );
 		}
@@ -396,7 +396,7 @@ class Two_Factor_Secrets {
 	 * @param string $name Secret name.
 	 * @return string|null|WP_Error
 	 */
-	private static function api_get( $name ) {
+	private static function api_get( string $name ) {
 		if ( isset( self::$test_overrides['get'] ) ) {
 			return call_user_func( self::$test_overrides['get'], $name );
 		}
@@ -418,7 +418,7 @@ class Two_Factor_Secrets {
 	 * @param string $name Secret name.
 	 * @return true|WP_Error
 	 */
-	private static function api_delete( $name ) {
+	private static function api_delete( string $name ) {
 		if ( isset( self::$test_overrides['delete'] ) ) {
 			return call_user_func( self::$test_overrides['delete'], $name );
 		}
