@@ -57,6 +57,10 @@ class Test_ClassTwoFactorCore extends WP_UnitTestCase {
 		// Remove the plugin's send_auth_cookies block that filter_authenticate installs,
 		// so it does not leak into subsequent tests that expect cookies to be settable.
 		remove_filter( 'send_auth_cookies', '__return_false', PHP_INT_MAX );
+
+		// Provider resolution is snapshotted per user for the request; drop the
+		// snapshots so tests that change provider filters start fresh.
+		Two_Factor_Core::reset_providers_cache();
 	}
 
 	/**
@@ -2979,6 +2983,9 @@ class Test_ClassTwoFactorCore extends WP_UnitTestCase {
 			2
 		);
 
+		// The earlier lookup snapshotted the default providers; start a fresh resolution.
+		Two_Factor_Core::reset_providers_cache();
+
 		$this->assertNotContains(
 			'Two_Factor_Email',
 			Two_Factor_Core::get_supported_providers_for_user( $user ),
@@ -3008,6 +3015,9 @@ class Test_ClassTwoFactorCore extends WP_UnitTestCase {
 				return array_diff_key( $providers, array( 'Two_Factor_Email' => null ) );
 			}
 		);
+
+		// The supported check above already resolved providers for this user; start a fresh resolution.
+		Two_Factor_Core::reset_providers_cache();
 
 		$this->assertNotContains( 'Two_Factor_Email', array_keys( Two_Factor_Core::get_providers() ), 'Default provider can be disabled via a filter' );
 
@@ -3065,6 +3075,9 @@ class Test_ClassTwoFactorCore extends WP_UnitTestCase {
 				return array_diff_key( $providers, array( 'Two_Factor_Totp' => null ) );
 			}
 		);
+
+		// enable_provider_for_user() already resolved providers for this user; start a fresh resolution.
+		Two_Factor_Core::reset_providers_cache();
 
 		$this->assertNotContains(
 			'Two_Factor_Totp',
@@ -3677,6 +3690,138 @@ class Test_ClassTwoFactorCore extends WP_UnitTestCase {
 			$this->assertSame( 'Two_Factor_Nonexistent', $result->get_error_data()['fallback_provider'], 'Error data records the rejected fallback provider' );
 		} finally {
 			remove_filter( 'two_factor_fallback_provider_for_user', $filter );
+		}
+	}
+
+	/**
+	 * Ensure a provider filter that flips between lookups cannot empty the
+	 * available set or downgrade an enabled user to password-only login.
+	 *
+	 * The first provider resolution for a user is snapshotted for the request,
+	 * so every lookup feeding one authentication decision sees the same
+	 * providers even when the filter returns different sets on each call.
+	 *
+	 * @covers Two_Factor_Core::get_available_providers_for_user
+	 * @covers Two_Factor_Core::is_user_using_two_factor
+	 */
+	public function test_flapping_provider_filter_cannot_fail_open_authentication() {
+		$user = self::factory()->user->create_and_get();
+
+		Two_Factor_Core::enable_provider_for_user( $user->ID, 'Two_Factor_Dummy' );
+
+		$calls  = 0;
+		$filter = function ( $providers ) use ( &$calls ) {
+			++$calls;
+
+			// Every second evaluation pretends the provider was deregistered.
+			if ( 0 === $calls % 2 ) {
+				unset( $providers['Two_Factor_Dummy'] );
+			}
+
+			return $providers;
+		};
+
+		add_filter( 'two_factor_providers', $filter );
+
+		try {
+			$available = Two_Factor_Core::get_available_providers_for_user( $user->ID );
+
+			$this->assertArrayHasKey( 'Two_Factor_Dummy', $available, 'The snapshot keeps the available set stable across lookups' );
+			$this->assertInstanceOf( Two_Factor_Dummy::class, Two_Factor_Core::get_primary_provider_for_user( $user->ID ), 'Primary provider resolves from the same snapshot' );
+			$this->assertTrue( Two_Factor_Core::is_user_using_two_factor( $user->ID ), 'A mid-request provider flap cannot downgrade the login to password-only' );
+		} finally {
+			remove_filter( 'two_factor_providers', $filter );
+		}
+	}
+
+	/**
+	 * Ensure a provider deregistered for the whole request still fails closed
+	 * through the snapshot: the fallback is forced on and the login requirement
+	 * is not dropped.
+	 *
+	 * @covers Two_Factor_Core::get_available_providers_for_user
+	 */
+	public function test_deregistered_provider_still_fails_closed_with_snapshot() {
+		$user = self::factory()->user->create_and_get();
+
+		update_user_meta( $user->ID, Two_Factor_Core::ENABLED_PROVIDERS_USER_META_KEY, array( 'Two_Factor_Dummy' ) );
+
+		$filter = function ( $providers ) {
+			unset( $providers['Two_Factor_Dummy'] );
+
+			return $providers;
+		};
+
+		add_filter( 'two_factor_providers', $filter );
+
+		try {
+			$available = Two_Factor_Core::get_available_providers_for_user( $user->ID );
+
+			$this->assertArrayHasKey( 'Two_Factor_Email', $available, 'Email fallback is forced on when the only stored provider is deregistered' );
+			$this->assertArrayNotHasKey( 'Two_Factor_Dummy', $available, 'The deregistered provider is not available' );
+			$this->assertTrue( Two_Factor_Core::is_user_using_two_factor( $user->ID ), 'The login requirement is not dropped for a deregistered provider' );
+		} finally {
+			remove_filter( 'two_factor_providers', $filter );
+		}
+	}
+
+	/**
+	 * Ensure resetting the provider cache lets changed provider filters take
+	 * effect again within the same request.
+	 *
+	 * @covers Two_Factor_Core::reset_providers_cache
+	 */
+	public function test_reset_providers_cache_allows_changed_filters_to_apply() {
+		$user = self::factory()->user->create_and_get();
+
+		$this->assertArrayHasKey( 'Two_Factor_Dummy', Two_Factor_Core::get_supported_providers_for_user( $user ), 'Dummy provider is registered by default' );
+
+		$filter = function ( $providers ) {
+			unset( $providers['Two_Factor_Dummy'] );
+
+			return $providers;
+		};
+
+		add_filter( 'two_factor_providers', $filter );
+
+		try {
+			$this->assertArrayHasKey( 'Two_Factor_Dummy', Two_Factor_Core::get_supported_providers_for_user( $user ), 'The first resolution is reused until the cache is reset' );
+
+			Two_Factor_Core::reset_providers_cache();
+
+			$this->assertArrayNotHasKey( 'Two_Factor_Dummy', Two_Factor_Core::get_supported_providers_for_user( $user ), 'Resetting the cache re-evaluates the provider filters' );
+		} finally {
+			remove_filter( 'two_factor_providers', $filter );
+		}
+	}
+
+	/**
+	 * Ensure the provider snapshot is kept per user, so resolving one user does
+	 * not pin the providers of another.
+	 *
+	 * @covers Two_Factor_Core::get_supported_providers_for_user
+	 */
+	public function test_provider_snapshot_is_per_user() {
+		$user_a = self::factory()->user->create_and_get();
+		$user_b = self::factory()->user->create_and_get();
+
+		$filter = function ( $providers, $filter_user ) use ( $user_a ) {
+			if ( $filter_user instanceof WP_User && $filter_user->ID === $user_a->ID ) {
+				return $providers;
+			}
+
+			unset( $providers['Two_Factor_Dummy'] );
+
+			return $providers;
+		};
+
+		add_filter( 'two_factor_providers_for_user', $filter, 10, 2 );
+
+		try {
+			$this->assertArrayHasKey( 'Two_Factor_Dummy', Two_Factor_Core::get_supported_providers_for_user( $user_a ), 'User A keeps the Dummy provider' );
+			$this->assertArrayNotHasKey( 'Two_Factor_Dummy', Two_Factor_Core::get_supported_providers_for_user( $user_b ), 'User B resolves against its own snapshot' );
+		} finally {
+			remove_filter( 'two_factor_providers_for_user', $filter, 10 );
 		}
 	}
 

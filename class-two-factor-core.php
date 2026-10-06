@@ -110,6 +110,20 @@ class Two_Factor_Core {
 	private static $app_password_auth_user_ids = array();
 
 	/**
+	 * Keep track of the supported providers resolved for each user during the
+	 * current request, keyed by user ID (0 for no user).
+	 *
+	 * Provider filters must not be re-evaluated between the lookups that make
+	 * up one authentication decision, or a filter that flips mid-request can
+	 * make a user with two-factor enabled resolve to no providers (failing
+	 * open). The first resolution per user is reused for the rest of the
+	 * request.
+	 *
+	 * @var array[]
+	 */
+	private static $supported_providers_cache = array();
+
+	/**
 	 * Set up filters and actions.
 	 *
 	 * @param object $compat A compatibility layer for plugins.
@@ -360,26 +374,52 @@ class Two_Factor_Core {
 	/**
 	 * Get providers available for user which may not be enabled or configured.
 	 *
+	 * The result is snapshotted per user for the rest of the request, so every
+	 * lookup that feeds one authentication decision sees the same set of
+	 * providers even if the underlying filters change mid-request.
+	 *
 	 * @since 0.13.0
 	 *
 	 * @see Two_Factor_Core::get_enabled_providers_for_user()
 	 * @see Two_Factor_Core::get_available_providers_for_user()
+	 * @see Two_Factor_Core::reset_providers_cache()
 	 *
 	 * @param  WP_User|int|null $user User ID.
 	 *
 	 * @return Two_Factor_Provider[] List of provider instances indexed by provider key.
 	 */
 	public static function get_supported_providers_for_user( $user = null ) {
-		$user      = self::fetch_user( $user );
-		$providers = self::get_providers();
+		$user = self::fetch_user( $user );
 
-		/**
-		 * List of providers available to user which may not be enabled or configured.
-		 *
-		 * @param array       $providers List of available provider instances indexed by provider key.
-		 * @param int|WP_User $user User ID.
-		 */
-		return apply_filters( 'two_factor_providers_for_user', $providers, $user );
+		$cache_key = $user ? $user->ID : 0;
+
+		if ( ! array_key_exists( $cache_key, self::$supported_providers_cache ) ) {
+			$providers = self::get_providers();
+
+			/**
+			 * List of providers available to user which may not be enabled or configured.
+			 *
+			 * @param array       $providers List of available provider instances indexed by provider key.
+			 * @param int|WP_User $user User ID.
+			 */
+			self::$supported_providers_cache[ $cache_key ] = apply_filters( 'two_factor_providers_for_user', $providers, $user );
+		}
+
+		return self::$supported_providers_cache[ $cache_key ];
+	}
+
+	/**
+	 * Discard the cached provider snapshots for the current request.
+	 *
+	 * Provider resolution is snapshotted per user on first use so that an
+	 * authentication decision cannot observe the provider filters changing
+	 * between lookups. Call this after intentionally changing the registered
+	 * providers mid-request.
+	 *
+	 * @since 0.18.0
+	 */
+	public static function reset_providers_cache() {
+		self::$supported_providers_cache = array();
 	}
 
 	/**
