@@ -2,12 +2,6 @@
 
 All notable changes to this project will be documented in this file, per [the Keep a Changelog standard](http://keepachangelog.com/), and will adhere to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
-
-### New Features
-
-- Store authenticator app (TOTP) secrets encrypted with the WordPress Secrets API when it is available, with lazy migration, `wp two-factor secrets` commands and a Site Health check by @ericmann in [#TBD](https://github.com/WordPress/two-factor/pull/TBD)
-
 ## [0.17.0] - 2026-09-25
 
 ### Security Fixes
