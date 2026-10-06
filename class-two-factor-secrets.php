@@ -68,9 +68,11 @@ class Two_Factor_Secrets {
 		 *
 		 * @internal Test seam only; not a public extension point. Can only force false.
 		 *
-		 * @param bool $present Whether the API is present.
+		 * @param bool $present  Whether to treat the API as present. Default true. Returning
+		 *                       true cannot make a missing API count as present.
+		 * @param bool $resolved Whether the API's functions and classes are actually loaded.
 		 */
-		$filtered = (bool) apply_filters( 'two_factor_secrets_api_present', true );
+		$filtered = (bool) apply_filters( 'two_factor_secrets_api_present', true, $present );
 
 		return $present && $filtered;
 	}

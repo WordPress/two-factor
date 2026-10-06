@@ -40,6 +40,26 @@ class Two_Factor_Secrets_Tests extends Two_Factor_Secrets_UnitTestCase {
 	}
 
 	/**
+	 * The internal filter receives the resolved presence, and cannot override a missing API.
+	 */
+	public function test_is_api_present_filter_receives_resolved_value() {
+		$expected = function_exists( 'wp_get_network_secret' ) && class_exists( 'WP_Secret' );
+		$seen     = array();
+		add_filter(
+			'two_factor_secrets_api_present',
+			function ( $present, $resolved ) use ( &$seen ) {
+				$seen = array( $present, $resolved );
+				return true;
+			},
+			10,
+			2
+		);
+
+		$this->assertSame( $expected, Two_Factor_Secrets::is_api_present() );
+		$this->assertSame( array( true, $expected ), $seen );
+	}
+
+	/**
 	 * The internal filter can force absence.
 	 */
 	public function test_is_api_present_internal_filter_forces_absent() {

@@ -112,7 +112,7 @@ The one exception is data that outlives the provider being enabled. `Two_Factor_
 ### Secrets API hooks
 
 - `two_factor_use_secrets_api` filter (`$enabled`, `$user_id`) receives the administrator's opt-in as its default, so it can turn storage off or force it on. It controls writes and migration only; already-migrated users are still read from the Secrets API while it is present. `$user_id` may be `0`.
-- `two_factor_secrets_api_present` filter is an internal test seam. It can only force "absent" and is not a public extension point.
+- `two_factor_secrets_api_present` filter (`$present`, `$resolved`) is an internal test seam. It receives whether the API is actually loaded as `$resolved`, can only force "absent", and is not a public extension point.
 - `two_factor_secrets_migrated` action (`$user_id`, `$slug`) after a secret was moved into the Secrets API.
 - `two_factor_secrets_migration_failed` action (`$user_id`, `$slug`, `$error`) when a migration failed and the plaintext copy was kept.
 - `two_factor_secret_unavailable` action (`$user_id`, `$slug`, `$error`) when a stored secret cannot be read.
