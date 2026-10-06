@@ -356,7 +356,8 @@ class Tests_Two_Factor_CLI_Command extends WP_UnitTestCase {
 		$this->assertSame( 1, $item['plaintext_users'] );
 		$this->assertSame( 1, $item['migrated_users'] );
 		$this->assertSame( 0, $item['affected_users'] );
-		$this->assertSame( array( 'api_present', 'provider', 'writable', 'opted_in', 'enabled', 'plaintext_users', 'migrated_users', 'affected_users' ), $this->last_format()['fields'] );
+		$this->assertSame( array( 'secret', 'api_present', 'provider', 'writable', 'opted_in', 'enabled', 'plaintext_users', 'migrated_users', 'affected_users' ), $this->last_format()['fields'] );
+		$this->assertSame( 'totp', $item['secret'] );
 		$this->assertSame( 'true', $item['opted_in'] );
 		$this->assertSame( 'true', $item['enabled'] );
 	}
@@ -534,7 +535,7 @@ class Tests_Two_Factor_CLI_Command extends WP_UnitTestCase {
 		$this->command->secrets( array( 'migrate' ), array( 'batch-size' => '2' ) );
 
 		$this->assertSame( 'Migrated 2, failed 1, skipped 0.', $this->last_message( 'success' ) );
-		$this->assertStringContainsString( "User {$bad}:", $this->last_message( 'warning' ) );
+		$this->assertStringContainsString( "User {$bad} (totp):", $this->last_message( 'warning' ) );
 		$this->assertSame( 'ABCDEFGH', get_user_meta( $bad, Two_Factor_Totp::SECRET_META_KEY, true ) );
 	}
 
@@ -605,6 +606,42 @@ class Tests_Two_Factor_CLI_Command extends WP_UnitTestCase {
 		$item = $this->last_format()['items'][0];
 		$this->assertSame( 'false', $item['opted_in'] );
 		$this->assertSame( 'false', $item['enabled'] );
+	}
+
+	/**
+	 * Migration and status cover a secret declared by a provider other than TOTP.
+	 *
+	 * @covers Two_Factor_CLI_Command::secrets
+	 */
+	public function test_secrets_commands_cover_other_providers_secrets() {
+		require_once dirname( __DIR__ ) . '/class-two-factor-dummy-secret.php';
+		$register = function ( $providers ) {
+			$providers['Two_Factor_Dummy_Secret'] = dirname( __DIR__ ) . '/class-two-factor-dummy-secret.php';
+			return $providers;
+		};
+		add_filter( 'two_factor_providers', $register );
+
+		$this->seed_plaintext_key( $this->user->ID );
+		update_user_meta( $this->user->ID, Two_Factor_Dummy_Secret::SECRET_META_KEY, 'DUMMYSECRET' );
+
+		$this->command->secrets( array( 'status' ), array() );
+		$rows = wp_list_pluck( $this->last_format()['items'], 'plaintext_users', 'secret' );
+		$this->assertSame(
+			array(
+				'totp'  => 1,
+				'dummy' => 1,
+			),
+			$rows
+		);
+
+		$this->command->secrets( array( 'migrate' ), array() );
+
+		$this->assertSame( 'DUMMYSECRET', $this->secrets_store->get( "two-factor/dummy-{$this->user->ID}" ) );
+		$this->assertSame( '', (string) get_user_meta( $this->user->ID, Two_Factor_Dummy_Secret::SECRET_META_KEY, true ) );
+		$this->assertSame( '', (string) get_user_meta( $this->user->ID, Two_Factor_Totp::SECRET_META_KEY, true ) );
+		$this->assertStringContainsString( 'Migrated 2, failed 0', $this->last_message( 'success' ) );
+
+		remove_filter( 'two_factor_providers', $register );
 	}
 
 	/**

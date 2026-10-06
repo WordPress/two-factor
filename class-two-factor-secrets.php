@@ -242,6 +242,145 @@ class Two_Factor_Secrets {
 	}
 
 	/**
+	 * Read a secret a provider keeps for a user, wherever it is stored.
+	 *
+	 * A plaintext value in the provider's own user meta wins, and is moved into the
+	 * Secrets API on the way past when that is allowed. Otherwise the Secrets API is
+	 * consulted when the user has a marker.
+	 *
+	 * @since 0.18.0
+	 *
+	 * @param int    $user_id  User ID.
+	 * @param string $slug     Secret slug.
+	 * @param string $meta_key User meta key that holds the plaintext value.
+	 * @param bool   $migrate  Optional. Whether to migrate a plaintext value. Default true.
+	 * @return string|null|WP_Error The value, null when the user has none, or a WP_Error when one exists but cannot be read.
+	 */
+	public static function get_stored_secret_state( int $user_id, string $slug, string $meta_key, bool $migrate = true ) {
+		return self::instance()->get_stored_secret_state( $user_id, $slug, $meta_key, $migrate );
+	}
+
+	/**
+	 * Move a plaintext secret from user meta into the Secrets API.
+	 *
+	 * The plaintext is removed only after the stored secret has been read back and
+	 * matches. Nothing ever moves a secret the other way.
+	 *
+	 * @since 0.18.0
+	 *
+	 * @param int    $user_id  User ID.
+	 * @param string $slug     Secret slug.
+	 * @param string $meta_key User meta key that holds the plaintext value.
+	 * @return true|null|WP_Error True when migrated, null when there is nothing to migrate, WP_Error on failure.
+	 */
+	public static function migrate_stored_secret( int $user_id, string $slug, string $meta_key ) {
+		return self::instance()->migrate_stored_secret( $user_id, $slug, $meta_key );
+	}
+
+	/**
+	 * Store a secret a provider keeps for a user.
+	 *
+	 * Writes to the Secrets API when that is allowed, verifying by read-back, and to
+	 * the provider's user meta otherwise. A Secrets API failure never results in a
+	 * plaintext write. The value must be a single non-empty string.
+	 *
+	 * @since 0.18.0
+	 *
+	 * @param int    $user_id  User ID.
+	 * @param string $slug     Secret slug.
+	 * @param string $meta_key User meta key that holds the plaintext value.
+	 * @param string $value    Secret value.
+	 * @return int|bool|WP_Error True, or what update_user_meta() returned for a plaintext write, or a WP_Error when the Secrets API write or its read-back failed.
+	 */
+	public static function save_stored_secret( int $user_id, string $slug, string $meta_key, string $value ) {
+		return self::instance()->save_stored_secret( $user_id, $slug, $meta_key, $value );
+	}
+
+	/**
+	 * Delete a secret a provider keeps for a user, from user meta and the Secrets API.
+	 *
+	 * @since 0.18.0
+	 *
+	 * @param int    $user_id  User ID.
+	 * @param string $slug     Secret slug.
+	 * @param string $meta_key User meta key that holds the plaintext value.
+	 * @return bool Whether nothing of the secret is left behind.
+	 */
+	public static function delete_stored_secret( int $user_id, string $slug, string $meta_key ): bool {
+		return self::instance()->delete_stored_secret( $user_id, $slug, $meta_key );
+	}
+
+	/**
+	 * Get where a secret a provider keeps for a user is stored. Never migrates.
+	 *
+	 * @since 0.18.0
+	 *
+	 * @param int    $user_id  User ID.
+	 * @param string $slug     Secret slug.
+	 * @param string $meta_key User meta key that holds the plaintext value.
+	 * @return string One of 'plaintext', 'secrets-api', 'unavailable' or 'none'.
+	 */
+	public static function get_stored_secret_storage( int $user_id, string $slug, string $meta_key ): string {
+		return self::instance()->get_stored_secret_storage( $user_id, $slug, $meta_key );
+	}
+
+	/**
+	 * Whether a user has a secret that can be reached from here. Does not decrypt anything.
+	 *
+	 * @since 0.18.0
+	 *
+	 * @param int    $user_id  User ID.
+	 * @param string $slug     Secret slug.
+	 * @param string $meta_key User meta key that holds the plaintext value.
+	 * @return bool
+	 */
+	public static function is_stored_secret_reachable( int $user_id, string $slug, string $meta_key ): bool {
+		return self::instance()->is_stored_secret_reachable( $user_id, $slug, $meta_key );
+	}
+
+	/**
+	 * Whether a user has a secret in the Secrets API that cannot be reached from here.
+	 *
+	 * True when the Secrets API is missing or the secret belongs to another network.
+	 * Does not decrypt anything.
+	 *
+	 * @since 0.18.0
+	 *
+	 * @param int    $user_id  User ID.
+	 * @param string $slug     Secret slug.
+	 * @param string $meta_key User meta key that holds the plaintext value.
+	 * @return bool
+	 */
+	public static function is_stored_secret_unreachable( int $user_id, string $slug, string $meta_key ): bool {
+		return self::instance()->is_stored_secret_unreachable( $user_id, $slug, $meta_key );
+	}
+
+	/**
+	 * Whether any user has a secret in the Secrets API that this site cannot currently reach.
+	 *
+	 * The result is cached briefly in a site transient.
+	 *
+	 * @since 0.18.0
+	 *
+	 * @param string[] $slugs Secret slugs to look for.
+	 * @return bool
+	 */
+	public static function has_affected_users( array $slugs ): bool {
+		return self::instance()->has_affected_users( $slugs );
+	}
+
+	/**
+	 * Forget the cached unreachable-secrets result.
+	 *
+	 * @since 0.18.0
+	 *
+	 * @return void
+	 */
+	public static function clear_affected_users_cache(): void {
+		self::instance()->clear_affected_users_cache();
+	}
+
+	/**
 	 * Whether an error means the Secrets API cannot use its encryption key.
 	 *
 	 * The Secrets API wraps a single root key with the site key (WP_SECRETS_KEY, or one

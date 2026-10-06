@@ -780,7 +780,7 @@ class Two_Factor_Totp_Secrets_Tests extends Two_Factor_Secrets_UnitTestCase {
 	 * The right deletion hook is registered.
 	 */
 	public function test_registers_correct_deletion_hook() {
-		$callback = array( 'Two_Factor_Totp', 'delete_user_secrets_on_user_deletion' );
+		$callback = array( 'Two_Factor_Secrets_Lifecycle', 'delete_user_secrets' );
 
 		$this->assertNotFalse( has_action( is_multisite() ? 'wpmu_delete_user' : 'delete_user', $callback ) );
 		$this->assertFalse( has_action( is_multisite() ? 'delete_user' : 'wpmu_delete_user', $callback ) );
@@ -798,9 +798,11 @@ class Two_Factor_Totp_Secrets_Tests extends Two_Factor_Secrets_UnitTestCase {
 		try {
 			$this->assertArrayNotHasKey( 'Two_Factor_Totp', Two_Factor_Core::get_providers() );
 
-			$this->assertNotFalse( has_filter( 'site_status_tests', array( 'Two_Factor_Totp', 'register_site_health_test' ) ) );
-			$this->assertNotFalse( has_action( 'admin_notices', array( 'Two_Factor_Totp', 'admin_notice_secrets_api_missing' ) ) );
-			$this->assertNotFalse( has_action( 'network_admin_notices', array( 'Two_Factor_Totp', 'admin_notice_secrets_api_missing' ) ) );
+			$this->assertArrayHasKey( 'totp', Two_Factor_Core::get_provider_secrets() );
+
+			$this->assertNotFalse( has_filter( 'site_status_tests', array( 'Two_Factor_Secrets_Lifecycle', 'register_site_health_test' ) ) );
+			$this->assertNotFalse( has_action( 'admin_notices', array( 'Two_Factor_Secrets_Lifecycle', 'admin_notice_secrets_api_missing' ) ) );
+			$this->assertNotFalse( has_action( 'network_admin_notices', array( 'Two_Factor_Secrets_Lifecycle', 'admin_notice_secrets_api_missing' ) ) );
 
 			if ( is_multisite() ) {
 				require_once ABSPATH . 'wp-admin/includes/ms.php';
@@ -825,7 +827,7 @@ class Two_Factor_Totp_Secrets_Tests extends Two_Factor_Secrets_UnitTestCase {
 			$this->provider->set_user_totp_key( $user_id, 'ABCDEFGH' );
 		}
 
-		Two_Factor_Totp::uninstall_user_data();
+		Two_Factor_Secrets_Lifecycle::delete_all_secrets();
 
 		foreach ( $user_ids as $user_id ) {
 			$this->assertNull( $this->secrets_store->get( "two-factor/totp-{$user_id}" ) );
@@ -841,7 +843,7 @@ class Two_Factor_Totp_Secrets_Tests extends Two_Factor_Secrets_UnitTestCase {
 		update_user_meta( $user_id, Two_Factor_Totp::SECRET_NETWORK_META_KEY, (string) get_current_network_id() );
 		$this->simulate_api_absent();
 
-		Two_Factor_Totp::uninstall_user_data();
+		Two_Factor_Secrets_Lifecycle::delete_all_secrets();
 
 		$this->assertSame( (string) get_current_network_id(), $this->marker( $user_id ) );
 	}
@@ -855,7 +857,7 @@ class Two_Factor_Totp_Secrets_Tests extends Two_Factor_Secrets_UnitTestCase {
 	private function seed_marker( $network = null ) {
 		$user_id = $this->user();
 		update_user_meta( $user_id, Two_Factor_Totp::SECRET_NETWORK_META_KEY, null === $network ? (string) get_current_network_id() : $network );
-		Two_Factor_Totp::clear_affected_users_cache();
+		Two_Factor_Secrets::clear_affected_users_cache();
 
 		return $user_id;
 	}
@@ -864,7 +866,7 @@ class Two_Factor_Totp_Secrets_Tests extends Two_Factor_Secrets_UnitTestCase {
 	 * No markers means no affected users.
 	 */
 	public function test_has_affected_users_false_without_markers() {
-		$this->assertFalse( Two_Factor_Totp::has_affected_users() );
+		$this->assertFalse( Two_Factor_Secrets_Lifecycle::has_affected_users() );
 	}
 
 	/**
@@ -874,7 +876,7 @@ class Two_Factor_Totp_Secrets_Tests extends Two_Factor_Secrets_UnitTestCase {
 		$this->seed_marker();
 		$this->simulate_api_absent();
 
-		$this->assertTrue( Two_Factor_Totp::has_affected_users() );
+		$this->assertTrue( Two_Factor_Secrets_Lifecycle::has_affected_users() );
 	}
 
 	/**
@@ -886,7 +888,7 @@ class Two_Factor_Totp_Secrets_Tests extends Two_Factor_Secrets_UnitTestCase {
 		}
 		$this->seed_marker( (string) ( get_current_network_id() + 1 ) );
 
-		$this->assertTrue( Two_Factor_Totp::has_affected_users() );
+		$this->assertTrue( Two_Factor_Secrets_Lifecycle::has_affected_users() );
 	}
 
 	/**
@@ -894,18 +896,18 @@ class Two_Factor_Totp_Secrets_Tests extends Two_Factor_Secrets_UnitTestCase {
 	 */
 	public function test_has_affected_users_is_cached() {
 		$this->simulate_api_absent();
-		Two_Factor_Totp::clear_affected_users_cache();
+		Two_Factor_Secrets::clear_affected_users_cache();
 
-		$this->assertFalse( Two_Factor_Totp::has_affected_users() );
+		$this->assertFalse( Two_Factor_Secrets_Lifecycle::has_affected_users() );
 
 		$user_id = $this->user();
 		update_user_meta( $user_id, Two_Factor_Totp::SECRET_NETWORK_META_KEY, (string) get_current_network_id() );
 
-		$this->assertFalse( Two_Factor_Totp::has_affected_users() );
+		$this->assertFalse( Two_Factor_Secrets_Lifecycle::has_affected_users() );
 
-		Two_Factor_Totp::clear_affected_users_cache();
+		Two_Factor_Secrets::clear_affected_users_cache();
 
-		$this->assertTrue( Two_Factor_Totp::has_affected_users() );
+		$this->assertTrue( Two_Factor_Secrets_Lifecycle::has_affected_users() );
 	}
 
 	/**
@@ -921,7 +923,7 @@ class Two_Factor_Totp_Secrets_Tests extends Two_Factor_Secrets_UnitTestCase {
 
 		$html = $this->capture(
 			function () {
-				$this->provider->admin_notice_secrets_api_missing();
+				Two_Factor_Secrets_Lifecycle::admin_notice_secrets_api_missing();
 			}
 		);
 
@@ -943,7 +945,7 @@ class Two_Factor_Totp_Secrets_Tests extends Two_Factor_Secrets_UnitTestCase {
 			'',
 			$this->capture(
 				function () {
-					$this->provider->admin_notice_secrets_api_missing();
+					Two_Factor_Secrets_Lifecycle::admin_notice_secrets_api_missing();
 				}
 			)
 		);
@@ -962,7 +964,7 @@ class Two_Factor_Totp_Secrets_Tests extends Two_Factor_Secrets_UnitTestCase {
 			'',
 			$this->capture(
 				function () {
-					$this->provider->admin_notice_secrets_api_missing();
+					Two_Factor_Secrets_Lifecycle::admin_notice_secrets_api_missing();
 				}
 			)
 		);
@@ -985,7 +987,7 @@ class Two_Factor_Totp_Secrets_Tests extends Two_Factor_Secrets_UnitTestCase {
 				'',
 				$this->capture(
 					function () {
-						$this->provider->admin_notice_secrets_api_missing();
+						Two_Factor_Secrets_Lifecycle::admin_notice_secrets_api_missing();
 					}
 				)
 			);
@@ -995,7 +997,7 @@ class Two_Factor_Totp_Secrets_Tests extends Two_Factor_Secrets_UnitTestCase {
 				'reset those users',
 				$this->capture(
 					function () {
-						$this->provider->admin_notice_secrets_api_missing();
+						Two_Factor_Secrets_Lifecycle::admin_notice_secrets_api_missing();
 					}
 				)
 			);
@@ -1010,7 +1012,7 @@ class Two_Factor_Totp_Secrets_Tests extends Two_Factor_Secrets_UnitTestCase {
 	public function test_site_health_test_is_registered() {
 		$tests = apply_filters( 'site_status_tests', array( 'direct' => array() ) );
 
-		$this->assertArrayHasKey( 'two_factor_totp_secret_storage', $tests['direct'] );
+		$this->assertArrayHasKey( 'two_factor_secret_storage', $tests['direct'] );
 	}
 
 	/**
@@ -1020,13 +1022,13 @@ class Two_Factor_Totp_Secrets_Tests extends Two_Factor_Secrets_UnitTestCase {
 		$this->seed_marker();
 		$this->simulate_api_absent();
 
-		$result = $this->provider->site_health_secret_storage();
+		$result = Two_Factor_Secrets_Lifecycle::site_health_secret_storage();
 
 		$this->assertSame( 'critical', $result['status'] );
 		$this->assertSame( 'red', $result['badge']['color'] );
 		$this->assertStringContainsString( 'reset those users', $result['description'] );
 		$this->assertStringNotContainsString( 'export', $result['description'] );
-		$this->assertSame( 'two_factor_totp_secret_storage', $result['test'] );
+		$this->assertSame( 'two_factor_secret_storage', $result['test'] );
 	}
 
 	/**
@@ -1036,7 +1038,7 @@ class Two_Factor_Totp_Secrets_Tests extends Two_Factor_Secrets_UnitTestCase {
 		$user_id = $this->user();
 		update_user_meta( $user_id, Two_Factor_Totp::SECRET_META_KEY, 'ABCDEFGH' );
 
-		$result = $this->provider->site_health_secret_storage();
+		$result = Two_Factor_Secrets_Lifecycle::site_health_secret_storage();
 
 		$this->assertSame( 'recommended', $result['status'] );
 		$this->assertSame( 'orange', $result['badge']['color'] );
@@ -1048,7 +1050,7 @@ class Two_Factor_Totp_Secrets_Tests extends Two_Factor_Secrets_UnitTestCase {
 	 */
 	public function test_site_health_good_when_fully_migrated() {
 
-		$result = $this->provider->site_health_secret_storage();
+		$result = Two_Factor_Secrets_Lifecycle::site_health_secret_storage();
 
 		$this->assertSame( 'good', $result['status'] );
 		$this->assertStringContainsString( esc_html( Two_Factor_Secrets::provider_label() ), $result['description'] );
@@ -1061,7 +1063,7 @@ class Two_Factor_Totp_Secrets_Tests extends Two_Factor_Secrets_UnitTestCase {
 		add_filter( 'two_factor_use_secrets_api', '__return_false' );
 		update_user_meta( $this->user(), Two_Factor_Totp::SECRET_META_KEY, 'ABCDEFGH' );
 
-		$result = $this->provider->site_health_secret_storage();
+		$result = Two_Factor_Secrets_Lifecycle::site_health_secret_storage();
 
 		$this->assertSame( 'good', $result['status'] );
 		$this->assertStringContainsString( 'two_factor_use_secrets_api', $result['description'] );
@@ -1073,7 +1075,7 @@ class Two_Factor_Totp_Secrets_Tests extends Two_Factor_Secrets_UnitTestCase {
 	public function test_site_health_good_neutral_when_api_absent() {
 		$this->simulate_api_absent();
 
-		$result = $this->provider->site_health_secret_storage();
+		$result = Two_Factor_Secrets_Lifecycle::site_health_secret_storage();
 
 		$this->assertSame( 'good', $result['status'] );
 		$this->assertSame(
@@ -1088,7 +1090,7 @@ class Two_Factor_Totp_Secrets_Tests extends Two_Factor_Secrets_UnitTestCase {
 	public function test_site_health_recommended_when_not_opted_in() {
 		$this->opt_out();
 
-		$result = $this->provider->site_health_secret_storage();
+		$result = Two_Factor_Secrets_Lifecycle::site_health_secret_storage();
 
 		$this->assertSame( 'recommended', $result['status'] );
 		$this->assertSame( 'orange', $result['badge']['color'] );
@@ -1102,7 +1104,7 @@ class Two_Factor_Totp_Secrets_Tests extends Two_Factor_Secrets_UnitTestCase {
 	public function test_site_health_good_when_provider_read_only() {
 		$this->secrets_store->writable = false;
 
-		$result = $this->provider->site_health_secret_storage();
+		$result = Two_Factor_Secrets_Lifecycle::site_health_secret_storage();
 
 		$this->assertSame( 'good', $result['status'] );
 		$this->assertStringContainsString( 'read-only', $result['description'] );

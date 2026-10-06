@@ -69,7 +69,7 @@ abstract class Two_Factor_Secrets_UnitTestCase extends WP_UnitTestCase {
 	 */
 	public function tear_down() {
 		Two_Factor_Secrets::reset();
-		delete_site_transient( 'two_factor_totp_affected_users' );
+		delete_site_transient( Two_Factor_Secrets_Manager::AFFECTED_USERS_TRANSIENT );
 		parent::tear_down();
 	}
 }
