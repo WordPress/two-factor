@@ -121,8 +121,8 @@ The plugin includes a `wp two-factor` WP-CLI namespace for managing two-factor a
 * `wp two-factor enable <user> <provider>` — Enables a provider for a user. Providers that require a shared secret (like TOTP) can't be enabled this way and will point you to the profile page instead.
 * `wp two-factor disable <user> [<provider>]` — Disables a single provider, or performs a full reset of all 2FA for the user when no provider is given. Both forms prompt for confirmation unless `--yes` is passed.
 * `wp two-factor backup-codes generate <user> [--count=<n>]` — Generates a fresh set of backup codes for a user, replacing any existing ones. Defaults to 10 codes.
-* `wp two-factor secrets status` — Shows whether the WordPress Secrets API is available, whether an administrator has turned on storing secrets with it, and how many users have authenticator app secrets in user meta, in the Secrets API, or unreachable. Supports `--format=json`.
-* `wp two-factor secrets migrate [<user>] [--batch-size=<n>] [--dry-run]` — Moves plaintext authenticator app secrets into the Secrets API.
+* `wp two-factor secrets status` — Shows whether the WordPress Secrets API is available, whether an administrator has turned on storing secrets with it, and how many users have secrets in user meta, in the Secrets API, or unreachable, with one row per secret a provider keeps. Supports `--format=json`.
+* `wp two-factor secrets migrate [<user>] [--batch-size=<n>] [--dry-run]` — Moves plaintext secrets, such as authenticator app keys, into the Secrets API.
 * `wp two-factor unlock <user>` — Clears a user's login rate-limit/throttle without changing their 2FA configuration.
 
 Run `wp help two-factor` for the full list, or `wp help two-factor <command>` for options and examples for a specific command.
