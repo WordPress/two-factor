@@ -375,4 +375,189 @@ class Tests_Two_Factor_Backup_Codes extends WP_UnitTestCase {
 
 		remove_all_filters( 'two_factor_backup_code_length' );
 	}
+
+	/**
+	 * Create a user with recovery codes enabled as a two-factor method.
+	 *
+	 * @param int $number Number of codes to generate.
+	 *
+	 * @return array The user and their plain-text codes.
+	 */
+	private function get_user_with_codes( $number ) {
+		$user  = new WP_User( self::factory()->user->create() );
+		$codes = $this->provider->generate_codes( $user, array( 'number' => $number ) );
+		Two_Factor_Core::enable_provider_for_user( $user->ID, 'Two_Factor_Backup_Codes' );
+
+		return array( $user, $codes );
+	}
+
+	/**
+	 * Validate that using a code emails the user once they are at or below the low-codes
+	 * threshold, and that the last code gets the "out of codes" email instead.
+	 *
+	 * @covers Two_Factor_Backup_Codes::validate_code
+	 * @covers Two_Factor_Backup_Codes::notify_user_codes_running_low
+	 */
+	public function test_low_codes_email_sent_as_codes_run_out() {
+		list( $user, $codes ) = $this->get_user_with_codes( 4 );
+
+		reset_phpmailer_instance();
+		$mailer = tests_retrieve_phpmailer_instance();
+
+		// 3 left is above the default threshold of 2.
+		$this->assertTrue( $this->provider->validate_code( $user, $codes[0] ) );
+		$this->assertCount( 0, $mailer->mock_sent );
+
+		$this->assertTrue( $this->provider->validate_code( $user, $codes[1] ) );
+		$this->assertCount( 1, $mailer->mock_sent );
+		$this->assertContains( $user->user_email, $mailer->mock_sent[0]['to'][0] );
+		$this->assertSame( sprintf( '[%s] You are running low on recovery codes', get_bloginfo( 'name' ) ), $mailer->mock_sent[0]['subject'] );
+		$this->assertStringContainsString( 'You only have 2 recovery codes left.', $mailer->mock_sent[0]['body'] );
+		$this->assertStringContainsString( get_edit_profile_url( $user->ID ) . '#two-factor-backup-codes', $mailer->mock_sent[0]['body'] );
+
+		$this->assertTrue( $this->provider->validate_code( $user, $codes[2] ) );
+		$this->assertCount( 2, $mailer->mock_sent );
+		$this->assertStringContainsString( 'You only have 1 recovery code left.', $mailer->mock_sent[1]['body'] );
+
+		$this->assertTrue( $this->provider->validate_code( $user, $codes[3] ) );
+		$this->assertCount( 3, $mailer->mock_sent );
+		$this->assertSame( sprintf( '[%s] You are out of recovery codes', get_bloginfo( 'name' ) ), $mailer->mock_sent[2]['subject'] );
+		$this->assertStringContainsString( 'You have no recovery codes left.', $mailer->mock_sent[2]['body'] );
+
+		reset_phpmailer_instance();
+	}
+
+	/**
+	 * Validate that no email is sent for a failed code, or when recovery codes aren't enabled.
+	 *
+	 * @covers Two_Factor_Backup_Codes::validate_code
+	 * @covers Two_Factor_Backup_Codes::notify_user_codes_running_low
+	 */
+	public function test_low_codes_email_not_sent_without_enabled_provider_or_valid_code() {
+		list( $user ) = $this->get_user_with_codes( 1 );
+
+		$user_without_provider = new WP_User( self::factory()->user->create() );
+		$codes                 = $this->provider->generate_codes( $user_without_provider, array( 'number' => 1 ) );
+
+		reset_phpmailer_instance();
+		$mailer = tests_retrieve_phpmailer_instance();
+
+		$this->assertFalse( $this->provider->validate_code( $user, '00000000' ) );
+		$this->assertTrue( $this->provider->validate_code( $user_without_provider, $codes[0] ) );
+		$this->assertCount( 0, $mailer->mock_sent );
+
+		reset_phpmailer_instance();
+	}
+
+	/**
+	 * Validate that the low-codes threshold filter also controls the email, and that the
+	 * "out of codes" email is still sent when the threshold is lowered to zero.
+	 *
+	 * @covers Two_Factor_Backup_Codes::notify_user_codes_running_low
+	 */
+	public function test_low_codes_email_follows_threshold_filter() {
+		list( $user, $codes ) = $this->get_user_with_codes( 2 );
+
+		add_filter( 'two_factor_backup_codes_low_threshold', '__return_zero' );
+
+		reset_phpmailer_instance();
+		$mailer = tests_retrieve_phpmailer_instance();
+
+		$this->assertTrue( $this->provider->validate_code( $user, $codes[0] ) );
+		$this->assertCount( 0, $mailer->mock_sent );
+
+		$this->assertTrue( $this->provider->validate_code( $user, $codes[1] ) );
+		$this->assertCount( 1, $mailer->mock_sent );
+		$this->assertStringContainsString( 'You have no recovery codes left.', $mailer->mock_sent[0]['body'] );
+
+		remove_filter( 'two_factor_backup_codes_low_threshold', '__return_zero' );
+		reset_phpmailer_instance();
+	}
+
+	/**
+	 * Validate that the `two_factor_backup_codes_low_email` filter can customize the email content.
+	 *
+	 * @covers Two_Factor_Backup_Codes::notify_user_codes_running_low
+	 */
+	public function test_low_codes_email_content_is_filterable() {
+		list( $user, $codes ) = $this->get_user_with_codes( 1 );
+
+		reset_phpmailer_instance();
+		$mailer = tests_retrieve_phpmailer_instance();
+
+		add_filter(
+			'two_factor_backup_codes_low_email',
+			function ( $email, $filtered_user, $count ) use ( $user ) {
+				$this->assertSame( $user->ID, $filtered_user->ID );
+				$this->assertSame( 0, $count );
+
+				$email['subject'] = 'Custom subject';
+
+				return $email;
+			},
+			10,
+			3
+		);
+
+		$this->assertTrue( $this->provider->validate_code( $user, $codes[0] ) );
+
+		remove_all_filters( 'two_factor_backup_codes_low_email' );
+
+		$this->assertCount( 1, $mailer->mock_sent );
+		$this->assertSame( 'Custom subject', $mailer->mock_sent[0]['subject'] );
+
+		reset_phpmailer_instance();
+	}
+
+	/**
+	 * Validate that the provider hooks into both the login and the revalidation flow.
+	 *
+	 * @covers Two_Factor_Backup_Codes::__construct
+	 */
+	public function test_redirect_to_regenerate_codes_hooks_registered() {
+		$callback = array( $this->provider, 'maybe_redirect_to_regenerate_codes' );
+
+		$this->assertSame( 10, has_action( 'two_factor_user_authenticated', $callback ) );
+		$this->assertSame( 10, has_action( 'two_factor_user_revalidated', $callback ) );
+	}
+
+	/**
+	 * Validate that the login redirect is replaced only once the user has used their last code.
+	 *
+	 * @covers Two_Factor_Backup_Codes::maybe_redirect_to_regenerate_codes
+	 */
+	public function test_redirect_to_regenerate_codes_after_last_code() {
+		list( $user, $codes ) = $this->get_user_with_codes( 2 );
+
+		// One code left, keep the requested redirect.
+		$this->provider->validate_code( $user, $codes[0] );
+		$this->provider->maybe_redirect_to_regenerate_codes( $user, $this->provider );
+		$this->assertSame( admin_url(), apply_filters( 'login_redirect', admin_url(), admin_url(), $user ) );
+
+		// No codes left, send them to regenerate.
+		$this->provider->validate_code( $user, $codes[1] );
+		$this->provider->maybe_redirect_to_regenerate_codes( $user, $this->provider );
+		$this->assertSame(
+			get_edit_profile_url( $user->ID ) . '#two-factor-backup-codes',
+			apply_filters( 'login_redirect', admin_url(), admin_url(), $user )
+		);
+
+		remove_all_filters( 'login_redirect' );
+		reset_phpmailer_instance();
+	}
+
+	/**
+	 * Validate that logging in with another provider doesn't redirect, even with no codes left.
+	 *
+	 * @covers Two_Factor_Backup_Codes::maybe_redirect_to_regenerate_codes
+	 */
+	public function test_no_redirect_to_regenerate_codes_for_other_provider() {
+		$user = new WP_User( self::factory()->user->create() );
+
+		$this->provider->maybe_redirect_to_regenerate_codes( $user, Two_Factor_Dummy::get_instance() );
+
+		$this->assertSame( admin_url(), apply_filters( 'login_redirect', admin_url(), admin_url(), $user ) );
+
+		remove_all_filters( 'login_redirect' );
+	}
 }
