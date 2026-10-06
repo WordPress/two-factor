@@ -13,6 +13,13 @@
  * holds the secret; the marker is what makes "not yet migrated" distinguishable
  * from "migrated but unreadable".
  *
+ * When the Secrets API is absent, what a method returns depends on what it is
+ * for. Predicates (the `is_*()` methods and `can_write()`) answer a yes/no
+ * question and return false. Reading or writing a secret returns a WP_Error, so
+ * the caller knows why it failed and can fail closed; a user with no marker has
+ * nothing to read and gets null either way. Deleting clears the marker and
+ * returns true, leaving any stored secret behind.
+ *
  * @since 0.18.0
  */
 class Two_Factor_Secrets {
