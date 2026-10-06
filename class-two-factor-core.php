@@ -265,6 +265,9 @@ class Two_Factor_Core {
 			delete_option( $option_key );
 		}
 
+		// The Secrets API opt-in is a network option, which delete_option() does not reach on multisite.
+		delete_site_option( Two_Factor_Secrets::OPT_IN_OPTION_KEY );
+
 		foreach ( $user_meta_keys as $meta_key ) {
 			delete_metadata( 'user', 0, $meta_key, '', true );
 		}

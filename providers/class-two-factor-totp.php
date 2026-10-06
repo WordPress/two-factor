@@ -973,7 +973,45 @@ class Two_Factor_Totp extends Two_Factor_Provider {
 			$result['label']       = __( 'Authenticator app secrets are stored in user meta', 'two-factor' );
 			$result['description'] = sprintf(
 				'<p>%s</p>',
-				esc_html__( 'TOTP secrets are stored in user meta; the WordPress Secrets API, when available, will be used automatically.', 'two-factor' )
+				esc_html__( 'TOTP secrets are stored in user meta. When the WordPress Secrets API is available, an administrator can choose to store them encrypted instead.', 'two-factor' )
+			);
+
+			return $result;
+		}
+
+		if ( ! Two_Factor_Secrets::is_enabled() ) {
+			// Opted in on the settings screen, but a filter turned storage back off: a deliberate choice, not a to-do.
+			if ( Two_Factor_Secrets::is_opted_in() ) {
+				$result['label']       = __( 'Authenticator app secrets remain in user meta', 'two-factor' );
+				$result['description'] = sprintf(
+					'<p>%s</p>',
+					esc_html__( 'Storing authenticator app secrets with the WordPress Secrets API is disabled by the two_factor_use_secrets_api filter, so new secrets are stored in user meta.', 'two-factor' )
+				);
+
+				return $result;
+			}
+
+			$result['label']          = __( 'Authenticator app secrets can be stored encrypted', 'two-factor' );
+			$result['status']         = 'recommended';
+			$result['badge']['color'] = 'orange';
+			$result['description']    = sprintf(
+				'<p>%s</p>',
+				esc_html__( 'The WordPress Secrets API is available, but authenticator app secrets are still stored in user meta, where anyone with a copy of the database can read them. Turning on encrypted storage is a one-way change that depends on this site\'s secrets key, so an administrator has to turn it on.', 'two-factor' )
+			);
+			$result['actions']        = sprintf(
+				'<p><a href="%s">%s</a></p>',
+				esc_url( admin_url( 'options-general.php?page=two-factor-settings' ) ),
+				esc_html__( 'Review Two-Factor settings', 'two-factor' )
+			);
+
+			return $result;
+		}
+
+		if ( ! Two_Factor_Secrets::is_provider_writable() ) {
+			$result['label']       = __( 'Authenticator app secrets remain in user meta', 'two-factor' );
+			$result['description'] = sprintf(
+				'<p>%s</p>',
+				esc_html__( 'The active secrets provider is read-only, so new authenticator app secrets are stored in user meta and existing ones are not migrated.', 'two-factor' )
 			);
 
 			return $result;
@@ -993,26 +1031,16 @@ class Two_Factor_Totp extends Two_Factor_Provider {
 			return $result;
 		}
 
-		if ( Two_Factor_Secrets::can_write() ) {
-			$result['label']          = __( 'Some authenticator app secrets are not yet migrated', 'two-factor' );
-			$result['status']         = 'recommended';
-			$result['badge']['color'] = 'orange';
-			$result['description']    = sprintf(
-				'<p>%s</p>',
-				sprintf(
-					/* translators: %s: WP-CLI migrate command. */
-					esc_html__( 'Some authenticator app secrets are still stored in user meta. They move to the WordPress Secrets API when those users next log in, or you can run %s to migrate them all now.', 'two-factor' ),
-					'<code>wp two-factor secrets migrate</code>'
-				)
-			);
-
-			return $result;
-		}
-
-		$result['label']       = __( 'Authenticator app secrets remain in user meta', 'two-factor' );
-		$result['description'] = sprintf(
+		$result['label']          = __( 'Some authenticator app secrets are not yet migrated', 'two-factor' );
+		$result['status']         = 'recommended';
+		$result['badge']['color'] = 'orange';
+		$result['description']    = sprintf(
 			'<p>%s</p>',
-			esc_html__( 'Migration to the WordPress Secrets API is disabled by the two_factor_use_secrets_api filter or a read-only secrets provider, so authenticator app secrets remain in user meta.', 'two-factor' )
+			sprintf(
+				/* translators: %s: WP-CLI migrate command. */
+				esc_html__( 'Some authenticator app secrets are still stored in user meta. They move to the WordPress Secrets API when those users next log in, or you can run %s to migrate them all now.', 'two-factor' ),
+				'<code>wp two-factor secrets migrate</code>'
+			)
 		);
 
 		return $result;

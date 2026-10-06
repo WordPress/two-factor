@@ -812,7 +812,8 @@ class Two_Factor_CLI_Command extends WP_CLI_Command {
 				'api_present'     => Two_Factor_Secrets::is_api_present() ? 'true' : 'false',
 				'provider'        => Two_Factor_Secrets::provider_label(),
 				'writable'        => Two_Factor_Secrets::is_provider_writable() ? 'true' : 'false',
-				'filter_enabled'  => (bool) apply_filters( 'two_factor_use_secrets_api', true, 0 ) ? 'true' : 'false',
+				'opted_in'        => Two_Factor_Secrets::is_opted_in() ? 'true' : 'false',
+				'enabled'         => Two_Factor_Secrets::is_enabled() ? 'true' : 'false',
 				'plaintext_users' => $counts['plaintext'],
 				'migrated_users'  => $counts['migrated'],
 				'affected_users'  => $counts['affected'],
@@ -823,7 +824,7 @@ class Two_Factor_CLI_Command extends WP_CLI_Command {
 		WP_CLI\Utils\format_items(
 			$format,
 			$items,
-			array( 'api_present', 'provider', 'writable', 'filter_enabled', 'plaintext_users', 'migrated_users', 'affected_users' )
+			array( 'api_present', 'provider', 'writable', 'opted_in', 'enabled', 'plaintext_users', 'migrated_users', 'affected_users' )
 		);
 	}
 
@@ -862,6 +863,10 @@ class Two_Factor_CLI_Command extends WP_CLI_Command {
 	private function secrets_migrate( $user_identifier, $assoc_args ) {
 		$batch   = $this->get_secrets_batch_size( $assoc_args );
 		$dry_run = (bool) WP_CLI\Utils\get_flag_value( $assoc_args, 'dry-run', false );
+
+		if ( Two_Factor_Secrets::is_api_present() && ! Two_Factor_Secrets::is_enabled() && ! Two_Factor_Secrets::is_opted_in() ) {
+			WP_CLI::error( __( 'Storing authenticator app secrets with the Secrets API has not been turned on. An administrator must turn it on under Settings > Two-Factor first. Nothing was migrated.', 'two-factor' ) );
+		}
 
 		if ( ! Two_Factor_Secrets::can_write() ) {
 			WP_CLI::error( __( 'The Secrets API is not available for writing (missing, read-only, or disabled by the two_factor_use_secrets_api filter). Nothing was migrated.', 'two-factor' ) );

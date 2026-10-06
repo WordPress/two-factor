@@ -11,6 +11,28 @@
 abstract class Two_Factor_Secrets_UnitTestCase extends WP_UnitTestCase {
 
 	/**
+	 * Opt in to Secrets API storage, as an administrator would on the settings screen.
+	 *
+	 * Storage is off until an administrator turns it on. Most tests here exercise the
+	 * storage itself, so they start opted in; tests of the default call opt_out().
+	 *
+	 * @return void
+	 */
+	public function set_up() {
+		parent::set_up();
+		Two_Factor_Secrets::set_opted_in( true );
+	}
+
+	/**
+	 * Return to the default state, in which no administrator has opted in.
+	 *
+	 * @return void
+	 */
+	protected function opt_out() {
+		Two_Factor_Secrets::set_opted_in( false );
+	}
+
+	/**
 	 * Skip the test unless the Secrets API feature plugin is loaded.
 	 *
 	 * @return void

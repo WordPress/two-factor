@@ -48,11 +48,58 @@ class Two_Factor_Secrets_Tests extends Two_Factor_Secrets_UnitTestCase {
 	}
 
 	/**
-	 * Writes are allowed with the API present.
+	 * Writes are allowed with the API present once an administrator has opted in.
 	 */
 	public function test_can_write_true_with_api_present() {
 		$this->require_secrets_api();
 		$this->assertTrue( Two_Factor_Secrets::can_write( 1 ) );
+	}
+
+	/**
+	 * Storage is off until an administrator opts in.
+	 */
+	public function test_can_write_false_until_opted_in() {
+		$this->require_secrets_api();
+		$this->opt_out();
+
+		$this->assertFalse( Two_Factor_Secrets::is_opted_in() );
+		$this->assertFalse( Two_Factor_Secrets::is_enabled( 1 ) );
+		$this->assertFalse( Two_Factor_Secrets::can_write( 1 ) );
+	}
+
+	/**
+	 * The opt-in round trips and leaves no option behind when turned off.
+	 */
+	public function test_set_opted_in_round_trip() {
+		$this->opt_out();
+		$this->assertFalse( get_site_option( Two_Factor_Secrets::OPT_IN_OPTION_KEY ) );
+
+		Two_Factor_Secrets::set_opted_in( true );
+		$this->assertTrue( Two_Factor_Secrets::is_opted_in() );
+
+		Two_Factor_Secrets::set_opted_in( false );
+		$this->assertFalse( Two_Factor_Secrets::is_opted_in() );
+		$this->assertFalse( get_site_option( Two_Factor_Secrets::OPT_IN_OPTION_KEY ) );
+	}
+
+	/**
+	 * The filter receives the opt-in as its default and can turn storage on without it.
+	 */
+	public function test_filter_receives_opt_in_and_can_force_on() {
+		$this->require_secrets_api();
+		$this->opt_out();
+		$seen = null;
+		add_filter(
+			'two_factor_use_secrets_api',
+			function ( $enabled ) use ( &$seen ) {
+				$seen = $enabled;
+				return true;
+			}
+		);
+
+		$this->assertTrue( Two_Factor_Secrets::can_write( 1 ) );
+		$this->assertFalse( $seen );
+		$this->assertFalse( Two_Factor_Secrets::is_opted_in() );
 	}
 
 	/**

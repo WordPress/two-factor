@@ -180,13 +180,19 @@ Extends `WP_Test_REST_TestCase`. Tests the backup codes REST endpoints:
 
 **Class:** `Two_Factor_Secrets_Tests` · **Group:** `secrets`
 
-Tests `Two_Factor_Secrets`: secret names, marker meta, API presence, `can_write()` and its filter, the read/write/delete round trip in network scope, and the error codes for a missing API, another network's marker, a vanished secret and API errors. The file is named after the class, and sorts after `class-two-factor-core.php` on purpose: the core tests register hooks in `set_up_before_class()`, which an earlier test class would wipe.
+Tests `Two_Factor_Secrets`: secret names, marker meta, API presence, the administrator opt-in, `can_write()` and its filter, the read/write/delete round trip in network scope, and the error codes for a missing API, another network's marker, a vanished secret and API errors. The file is named after the class, and sorts after `class-two-factor-core.php` on purpose: the core tests register hooks in `set_up_before_class()`, which an earlier test class would wipe.
 
 ### TOTP Secrets Storage — `tests/providers/class-two-factor-totp-secrets-tests.php`
 
 **Class:** `Two_Factor_Totp_Secrets_Tests` · **Groups:** `providers`, `totp`, `secrets`
 
-Tests how `Two_Factor_Totp` uses the adapter: storage precedence, verified writes, lazy one-directional migration, fail-closed validation, the login prompt and profile UI when a secret is unreadable, setup and reset when the Secrets API key is unusable (no plaintext fallback, a clear 503, no reset), the affected-user login regression, user deletion, uninstall, the administrator notice, the Site Health test and multisite cross-site reads.
+Tests how `Two_Factor_Totp` uses the adapter: plaintext storage until an administrator opts in, storage precedence, verified writes, lazy one-directional migration, fail-closed validation, the login prompt and profile UI when a secret is unreadable, setup and reset when the Secrets API key is unusable (no plaintext fallback, a clear 503, no reset), the affected-user login regression, user deletion, uninstall, the administrator notice, the Site Health test and multisite cross-site reads.
+
+### Settings Screen — `tests/settings/class-tests-two-factor-settings.php`
+
+**Class:** `Tests_Two_Factor_Settings` · **Groups:** `settings`, `secrets`
+
+Tests the Secrets API storage section of `Two_Factor_Settings`: the absent-API explanation, the opt-in checkbox and its acknowledgement, refusing to turn storage on without the acknowledgement, turning it off, leaving the opt-in alone when the section was not submitted, and the network-administrator requirement on multisite.
 
 ### Dummy Provider — `tests/providers/class-two-factor-dummy.php`
 
@@ -222,13 +228,13 @@ Tests the `Two_Factor_CLI_Command` WP-CLI command class. The WP-CLI runtime is n
 - `backup-codes generate` — default and `--count` code counts, regeneration replaces the set, enables the provider so codes are usable at login, session destruction when first enabled, unknown-action and missing-argument errors
 - `unlock` — clears the login throttle for a rate-limited user; no-op message otherwise
 - `status` `totp_storage` field for each storage state
-- `secrets status` — API availability, provider label and per-state user counts, `--format` passthrough, unknown/missing action errors
-- `secrets migrate` — single user, `--dry-run`, `--batch-size` paging, per-user failures, error when the API is absent or opted out
+- `secrets status` — API availability, provider label, the `opted_in` and `enabled` fields and per-state user counts, `--format` passthrough, unknown/missing action errors
+- `secrets migrate` — single user, `--dry-run`, `--batch-size` paging, per-user failures, error when the API is absent, not yet turned on by an administrator, or opted out
 - `secrets export` — not an action; the secret stays in the Secrets API
 
 ## Test Helpers
 
-- **`tests/class-two-factor-secrets-test-case.php`** — `Two_Factor_Secrets_UnitTestCase`, the base class for secrets tests. `require_secrets_api()` skips the test when the feature plugin is not loaded, `simulate_api_absent()` makes the adapter report the API as missing, and `tear_down()` resets `Two_Factor_Secrets::$test_overrides` and the affected-users transient. `tests/bootstrap.php` loads it after the WordPress test library.
+- **`tests/class-two-factor-secrets-test-case.php`** — `Two_Factor_Secrets_UnitTestCase`, the base class for secrets tests. `set_up()` opts in to Secrets API storage, since it is off by default, and `opt_out()` returns to that default. `require_secrets_api()` skips the test when the feature plugin is not loaded, `simulate_api_absent()` makes the adapter report the API as missing, and `tear_down()` resets `Two_Factor_Secrets::$test_overrides` and the affected-users transient. `tests/bootstrap.php` loads it after the WordPress test library.
 - **`tests/class-two-factor-dummy-unavailable.php`** — `Two_Factor_Dummy_Unavailable`, a provider that is enrolled but never available, and counts `uninstall_user_data()` calls.
 - **`tests/phpstan/`** — Stubs for the Secrets API functions and classes so PHPStan can analyse the adapter (`scanFiles` in `phpstan.dist.neon`). PHPUnit excludes the directory in both configs because the stubs would redeclare the real functions once the feature plugin is loaded.
 

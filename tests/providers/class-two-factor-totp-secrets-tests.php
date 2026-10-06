@@ -1115,9 +1115,79 @@ class Two_Factor_Totp_Secrets_Tests extends Two_Factor_Secrets_UnitTestCase {
 
 		$this->assertSame( 'good', $result['status'] );
 		$this->assertSame(
-			'<p>TOTP secrets are stored in user meta; the WordPress Secrets API, when available, will be used automatically.</p>',
+			'<p>TOTP secrets are stored in user meta. When the WordPress Secrets API is available, an administrator can choose to store them encrypted instead.</p>',
 			$result['description']
 		);
+	}
+
+	/**
+	 * Until an administrator opts in, Site Health recommends it and links to the settings screen.
+	 */
+	public function test_site_health_recommended_when_not_opted_in() {
+		$this->require_secrets_api();
+		$this->opt_out();
+
+		$result = $this->provider->site_health_secret_storage();
+
+		$this->assertSame( 'recommended', $result['status'] );
+		$this->assertSame( 'orange', $result['badge']['color'] );
+		$this->assertStringContainsString( 'one-way change', $result['description'] );
+		$this->assertStringContainsString( 'page=two-factor-settings', $result['actions'] );
+	}
+
+	/**
+	 * A read-only provider is reported as such rather than blamed on the filter.
+	 */
+	public function test_site_health_good_when_provider_read_only() {
+		$this->require_secrets_api();
+		Two_Factor_Secrets::$test_overrides['writable'] = '__return_false';
+
+		$result = $this->provider->site_health_secret_storage();
+
+		$this->assertSame( 'good', $result['status'] );
+		$this->assertStringContainsString( 'read-only', $result['description'] );
+	}
+
+	/**
+	 * Without the opt-in a new key stays in user meta, even with the API present.
+	 */
+	public function test_set_key_without_opt_in_stores_plaintext() {
+		$this->require_secrets_api();
+		$this->opt_out();
+		$user_id = $this->user();
+
+		$this->assertTrue( (bool) $this->provider->set_user_totp_key( $user_id, 'ABCDEFGH' ) );
+
+		$this->assertSame( 'ABCDEFGH', get_user_meta( $user_id, Two_Factor_Totp::SECRET_META_KEY, true ) );
+		$this->assertSame( '', (string) get_user_meta( $user_id, Two_Factor_Totp::SECRET_NETWORK_META_KEY, true ) );
+		$this->assertNull( wp_get_network_secret( "two-factor/totp-{$user_id}" ) );
+	}
+
+	/**
+	 * Without the opt-in a plaintext key is read but not migrated.
+	 */
+	public function test_lazy_migration_skipped_without_opt_in() {
+		$this->require_secrets_api();
+		$this->opt_out();
+		$user_id = $this->user();
+		update_user_meta( $user_id, Two_Factor_Totp::SECRET_META_KEY, 'ABCDEFGH' );
+
+		$this->assertSame( 'ABCDEFGH', $this->provider->get_user_totp_key( $user_id ) );
+		$this->assertSame( 'ABCDEFGH', get_user_meta( $user_id, Two_Factor_Totp::SECRET_META_KEY, true ) );
+		$this->assertSame( '', (string) get_user_meta( $user_id, Two_Factor_Totp::SECRET_NETWORK_META_KEY, true ) );
+	}
+
+	/**
+	 * Opting back out keeps already-migrated users working.
+	 */
+	public function test_migrated_user_still_readable_after_opting_out() {
+		$this->require_secrets_api();
+		$user_id = $this->user();
+		$this->provider->set_user_totp_key( $user_id, 'ABCDEFGH' );
+		$this->opt_out();
+
+		$this->assertSame( 'ABCDEFGH', $this->provider->get_user_totp_key( $user_id ) );
+		$this->assertSame( '', (string) get_user_meta( $user_id, Two_Factor_Totp::SECRET_META_KEY, true ) );
 	}
 
 	/**

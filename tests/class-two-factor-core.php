@@ -3089,6 +3089,8 @@ class Test_ClassTwoFactorCore extends WP_UnitTestCase {
 			$this->markTestSkipped( 'Secrets API feature plugin is not loaded.' );
 		}
 
+		Two_Factor_Secrets::set_opted_in( true );
+
 		$user_id = self::factory()->user->create();
 		$totp    = Two_Factor_Totp::get_instance();
 		$totp->set_user_totp_key( $user_id, 'ABCDEFGH' );
@@ -3122,6 +3124,21 @@ class Test_ClassTwoFactorCore extends WP_UnitTestCase {
 			get_option( Two_Factor_Core::ENABLED_PROVIDERS_OPTION_KEY ),
 			'Enabled providers option was deleted during uninstall'
 		);
+	}
+
+	/**
+	 * Plugin uninstall removes the Secrets API opt-in, which is a network option.
+	 *
+	 * @covers Two_Factor_Core::uninstall
+	 */
+	public function test_uninstall_removes_secrets_api_opt_in() {
+		Two_Factor_Secrets::set_opted_in( true );
+		$this->assertTrue( Two_Factor_Secrets::is_opted_in() );
+
+		Two_Factor_Core::uninstall();
+
+		$this->assertFalse( Two_Factor_Secrets::is_opted_in() );
+		$this->assertFalse( get_site_option( Two_Factor_Secrets::OPT_IN_OPTION_KEY ) );
 	}
 
 	/**

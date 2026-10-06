@@ -54,6 +54,9 @@ class Tests_Two_Factor_CLI_Command extends WP_UnitTestCase {
 
 		WP_CLI::reset();
 
+		// Secrets API storage is opt-in; the secrets tests below start opted in.
+		Two_Factor_Secrets::set_opted_in( true );
+
 		$this->command = new Two_Factor_CLI_Command();
 		$this->user    = self::factory()->user->create_and_get(
 			array(
@@ -350,7 +353,9 @@ class Tests_Two_Factor_CLI_Command extends WP_UnitTestCase {
 		$this->assertSame( 1, $item['plaintext_users'] );
 		$this->assertSame( 1, $item['migrated_users'] );
 		$this->assertSame( 0, $item['affected_users'] );
-		$this->assertSame( array( 'api_present', 'provider', 'writable', 'filter_enabled', 'plaintext_users', 'migrated_users', 'affected_users' ), $this->last_format()['fields'] );
+		$this->assertSame( array( 'api_present', 'provider', 'writable', 'opted_in', 'enabled', 'plaintext_users', 'migrated_users', 'affected_users' ), $this->last_format()['fields'] );
+		$this->assertSame( 'true', $item['opted_in'] );
+		$this->assertSame( 'true', $item['enabled'] );
 	}
 
 	/**
@@ -575,6 +580,42 @@ class Tests_Two_Factor_CLI_Command extends WP_UnitTestCase {
 		);
 
 		$this->assertStringContainsString( 'Nothing was migrated', $message );
+	}
+
+	/**
+	 * Migrating before an administrator has opted in errors and says where to turn it on.
+	 *
+	 * @covers Two_Factor_CLI_Command::secrets
+	 */
+	public function test_secrets_migrate_errors_when_not_opted_in() {
+		$this->require_secrets_api();
+		Two_Factor_Secrets::set_opted_in( false );
+		update_user_meta( $this->user->ID, Two_Factor_Totp::SECRET_META_KEY, 'ABCDEFGH' );
+
+		$message = $this->assert_command_aborts(
+			function () {
+				$this->command->secrets( array( 'migrate' ), array() );
+			}
+		);
+
+		$this->assertStringContainsString( 'has not been turned on', $message );
+		$this->assertStringContainsString( 'Nothing was migrated', $message );
+		$this->assertSame( 'ABCDEFGH', get_user_meta( $this->user->ID, Two_Factor_Totp::SECRET_META_KEY, true ) );
+	}
+
+	/**
+	 * Secrets status reports that nobody has opted in.
+	 *
+	 * @covers Two_Factor_CLI_Command::secrets
+	 */
+	public function test_secrets_status_reports_not_opted_in() {
+		Two_Factor_Secrets::set_opted_in( false );
+
+		$this->command->secrets( array( 'status' ), array() );
+
+		$item = $this->last_format()['items'][0];
+		$this->assertSame( 'false', $item['opted_in'] );
+		$this->assertSame( 'false', $item['enabled'] );
 	}
 
 	/**

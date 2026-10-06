@@ -29,6 +29,18 @@ class Two_Factor_Secrets {
 	public static $test_overrides = array();
 
 	/**
+	 * Network option recording that an administrator turned Secrets API storage on.
+	 *
+	 * A network option because secrets are network scoped: one site of a network
+	 * cannot opt in on its own.
+	 *
+	 * @since 0.18.0
+	 *
+	 * @var string
+	 */
+	const OPT_IN_OPTION_KEY = 'two_factor_secrets_api_enabled';
+
+	/**
 	 * Whether the Secrets API is available right now.
 	 *
 	 * @since 0.18.0
@@ -96,6 +108,72 @@ class Two_Factor_Secrets {
 	}
 
 	/**
+	 * Whether an administrator has turned Secrets API storage on.
+	 *
+	 * Storage is opt-in: moving a secret into the Secrets API is one-directional, and
+	 * a changed encryption key makes every stored secret unreadable, so an administrator
+	 * has to acknowledge that before anything is written.
+	 *
+	 * @since 0.18.0
+	 *
+	 * @return bool
+	 */
+	public static function is_opted_in() {
+		return '1' === (string) get_site_option( self::OPT_IN_OPTION_KEY, '' );
+	}
+
+	/**
+	 * Record whether an administrator has turned Secrets API storage on.
+	 *
+	 * Turning it off stops new writes and migration only. Secrets that were already
+	 * stored stay in the Secrets API and are still read from it.
+	 *
+	 * @since 0.18.0
+	 *
+	 * @param bool $opted_in Whether Secrets API storage is turned on.
+	 * @return void
+	 */
+	public static function set_opted_in( $opted_in ) {
+		if ( $opted_in ) {
+			update_site_option( self::OPT_IN_OPTION_KEY, '1' );
+			return;
+		}
+
+		delete_site_option( self::OPT_IN_OPTION_KEY );
+	}
+
+	/**
+	 * Whether Two-Factor should write secrets to the Secrets API.
+	 *
+	 * This is the administrator's opt-in, as adjusted by the filter. It says nothing
+	 * about whether the API is present or writable; see can_write() for that.
+	 *
+	 * @since 0.18.0
+	 *
+	 * @param int $user_id User ID; may be 0 when no user is in context.
+	 * @return bool
+	 */
+	public static function is_enabled( $user_id = 0 ) {
+		/**
+		 * Filters whether Two-Factor writes secrets to the Secrets API.
+		 *
+		 * This controls writes and migration only. Users whose secret was already
+		 * migrated are still read from the Secrets API while it is present.
+		 *
+		 * Returning true turns storage on without the administrator opting in on the
+		 * settings screen, so only do that where the encryption key is managed for
+		 * the site.
+		 *
+		 * @since 0.18.0
+		 *
+		 * @param bool $enabled Whether to use the Secrets API. Defaults to the administrator's
+		 *                      opt-in on the settings screen, which is off until it is saved.
+		 * @param int  $user_id User ID, which may be 0 when no user is in context.
+		 */
+		return (bool) apply_filters( 'two_factor_use_secrets_api', self::is_opted_in(), (int) $user_id );
+	}
+
+	/**
 	 * Whether new secrets may be written to the Secrets API.
 	 *
 	 * @since 0.18.0
@@ -108,18 +186,7 @@ class Two_Factor_Secrets {
 			return false;
 		}
 
-		/**
-		 * Filters whether Two-Factor writes secrets to the Secrets API.
-		 *
-		 * This controls writes and migration only. Users whose secret was already
-		 * migrated are still read from the Secrets API while it is present.
-		 *
-		 * @since 0.18.0
-		 *
-		 * @param bool $enabled Whether to use the Secrets API. Default true.
-		 * @param int  $user_id User ID, which may be 0 when no user is in context.
-		 */
-		if ( ! (bool) apply_filters( 'two_factor_use_secrets_api', true, (int) $user_id ) ) {
+		if ( ! self::is_enabled( $user_id ) ) {
 			return false;
 		}
 
