@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "157edd3a51da8fea925b10deea9246f7",
+    "content-hash": "9af433e287d80495c9918e1bd2e1a059",
     "packages": [],
     "packages-dev": [
         {
@@ -4323,6 +4323,18 @@
                 }
             ],
             "time": "2025-11-17T20:03:58+00:00"
+        },
+        {
+            "name": "wordpress/secrets-api",
+            "version": "0.2.1",
+            "dist": {
+                "type": "zip",
+                "url": "https://github.com/ericmann/secrets-api/archive/refs/tags/v0.2.1.zip"
+            },
+            "require": {
+                "php": ">=7.4"
+            },
+            "type": "wordpress-plugin"
         },
         {
             "name": "wp-coding-standards/wpcs",

@@ -35,10 +35,10 @@ require_once __DIR__ . '/class-two-factor-redirect-exception.php';
 tests_add_filter(
 	'muplugins_loaded',
 	function () {
-		// Load the Secrets API feature plugin when the tests environment provides it.
+		// Load the Secrets API feature plugin, a Composer dev dependency, unless another copy is named.
 		$secrets_api = getenv( 'TWO_FACTOR_SECRETS_API_FILE' );
 		if ( ! $secrets_api ) {
-			$secrets_api = WP_PLUGIN_DIR . '/secrets-api/secrets-api.php';
+			$secrets_api = dirname( __DIR__ ) . '/vendor/wordpress/secrets-api/secrets-api.php';
 		}
 		if ( file_exists( $secrets_api ) ) {
 			require_once $secrets_api;

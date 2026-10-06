@@ -10,11 +10,7 @@
         "WP_SITEURL": "https://example.org",
         "WP_HOME": "https://example.org",
         "WP_SECRETS_KEY": "AQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQE="
-      },
-      "plugins": [
-        ".",
-        "ericmann/secrets-api#v0.2.1"
-      ]
+      }
     }
   }
 }
