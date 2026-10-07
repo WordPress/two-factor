@@ -90,22 +90,6 @@ class Tests_Two_Factor_Totp extends WP_UnitTestCase {
 	}
 
 	/**
-	 * Verify getting user options creates a key.
-	 *
-	 * @covers Two_Factor_Totp::user_two_factor_options
-	 * @covers Two_Factor_Totp::is_available_for_user
-	 */
-	public function test_user_two_factor_options_generates_key() {
-		$user = new WP_User( self::factory()->user->create() );
-
-		ob_start();
-		$this->provider->user_two_factor_options( $user );
-		$content = ob_get_clean();
-
-		$this->assertStringContainsString( __( 'Authentication Code:', 'two-factor' ), $content );
-	}
-
-	/**
 	 * Verify QR code URL generation.
 	 *
 	 * @covers Two_Factor_Totp::generate_qr_code_url
@@ -524,5 +508,51 @@ class Tests_Two_Factor_Totp extends WP_UnitTestCase {
 	public function test_pad_secret_zero_length_throws_exception() {
 		$this->expectException( InvalidArgumentException::class );
 		$this->call_pad_secret( 'ABC', 0 );
+	}
+
+	/**
+	 * Verify the profile does not expose a secret or QR code before setup is started.
+	 *
+	 * @covers Two_Factor_Totp::user_two_factor_options
+	 */
+	public function test_user_options_hide_secret_until_setup_is_started() {
+		$user = new WP_User( self::factory()->user->create() );
+
+		$this->provider->enqueue_assets( 'profile.php' );
+
+		ob_start();
+		$this->provider->user_two_factor_options( $user );
+		$html = ob_get_clean();
+
+		$this->assertStringContainsString( 'setup-totp', $html );
+		$this->assertStringNotContainsString( 'otpauth://', $html );
+		$this->assertStringNotContainsString( 'two-factor-totp-key', $html );
+		$this->assertStringNotContainsString( 'two-factor-qr-code', $html );
+
+		// The script data printed with the page must not carry a secret either.
+		$script_data = (string) wp_scripts()->get_data( 'two-factor-totp-admin', 'data' );
+		$this->assertStringContainsString( 'restPath', $script_data, 'Script data was localized' );
+		$this->assertStringNotContainsString( 'otpauth', $script_data );
+		$this->assertStringNotContainsString( 'secret', $script_data );
+
+		$this->assertSame( '', $this->provider->get_user_totp_key( $user->ID ), 'Rendering the profile stores nothing' );
+	}
+
+	/**
+	 * Verify the profile offers a reset, and no setup steps, once an app is configured.
+	 *
+	 * @covers Two_Factor_Totp::user_two_factor_options
+	 */
+	public function test_user_options_show_reset_when_configured() {
+		$user = new WP_User( self::factory()->user->create() );
+		$this->provider->set_user_totp_key( $user->ID, $this->provider->generate_key() );
+
+		ob_start();
+		$this->provider->user_two_factor_options( $user );
+		$html = ob_get_clean();
+
+		$this->assertStringContainsString( 'reset-totp-key', $html );
+		$this->assertStringNotContainsString( 'setup-totp', $html );
+		$this->assertStringNotContainsString( 'otpauth://', $html );
 	}
 }
