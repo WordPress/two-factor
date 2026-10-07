@@ -175,4 +175,40 @@ class Tests_Two_Factor_Provider extends WP_UnitTestCase {
 	public function test_uninstall_options_base_returns_empty() {
 		$this->assertSame( array(), Two_Factor_Dummy::uninstall_options() );
 	}
+
+	/**
+	 * Verify is_authcode_auto_submit_enabled() defaults to true.
+	 *
+	 * @covers Two_Factor_Provider::is_authcode_auto_submit_enabled
+	 */
+	public function test_is_authcode_auto_submit_enabled_default() {
+		$provider = Two_Factor_Dummy::get_instance();
+		$method   = new ReflectionMethod( $provider, 'is_authcode_auto_submit_enabled' );
+		$method->setAccessible( true );
+
+		$this->assertTrue( $method->invoke( $provider ) );
+	}
+
+	/**
+	 * Verify the two_factor_auto_submit_authcode filter disables auto-submit.
+	 *
+	 * @covers Two_Factor_Provider::is_authcode_auto_submit_enabled
+	 */
+	public function test_is_authcode_auto_submit_enabled_filter() {
+		$provider = Two_Factor_Dummy::get_instance();
+		$method   = new ReflectionMethod( $provider, 'is_authcode_auto_submit_enabled' );
+		$method->setAccessible( true );
+
+		$filter = function ( $auto_submit, $provider_key ) {
+			$this->assertTrue( $auto_submit );
+			$this->assertSame( 'Two_Factor_Dummy', $provider_key );
+			return false;
+		};
+		add_filter( 'two_factor_auto_submit_authcode', $filter, 10, 2 );
+		try {
+			$this->assertFalse( $method->invoke( $provider ) );
+		} finally {
+			remove_filter( 'two_factor_auto_submit_authcode', $filter, 10 );
+		}
+	}
 }
