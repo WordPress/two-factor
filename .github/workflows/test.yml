@@ -116,6 +116,8 @@ jobs:
         wp:
           - latest
           - wordpress/wordpress
+          - wordpress/wordpress#6.8-branch
+          - wordpress/wordpress#6.9-branch
           - wordpress/wordpress#7.0-branch
           - wordpress/wordpress#7.1-branch
     env:
