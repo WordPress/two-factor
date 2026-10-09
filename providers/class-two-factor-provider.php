@@ -224,8 +224,38 @@ abstract class Two_Factor_Provider {
 	 * @param WP_User $user WP_User object of the user.
 	 * @return bool
 	 */
-	public function is_enrolled_but_unavailable_for_user( $user ) { // phpcs:ignore Generic.CodeAnalysis.UnusedFunctionParameter.Found -- Base implementation keeps the provider interface signature but does not use the user.
+	public function is_enrolled_but_unavailable_for_user( $user ) {
+		// A secret the provider declared that sits in the Secrets API out of reach is exactly this case.
+		foreach ( static::user_secret_meta_keys() as $slug => $meta_key ) {
+			if ( Two_Factor_Secrets::is_stored_secret_unreachable( (int) $user->ID, (string) $slug, (string) $meta_key ) ) {
+				return true;
+			}
+		}
+
 		return false;
+	}
+
+	/**
+	 * Declare the user meta keys in which this provider keeps secrets.
+	 *
+	 * A secret is a value the provider has to read back in full, such as a TOTP key. Hashed
+	 * values are not secrets in this sense. For each one declared, core stores the value with
+	 * the WordPress Secrets API once an administrator has turned that on, migrates existing
+	 * plaintext values, deletes the secret with the user and on uninstall, and reports on it in
+	 * Site Health and WP-CLI. The provider reads and writes the value through
+	 * Two_Factor_Secrets::get_stored_secret_state(), save_stored_secret() and
+	 * delete_stored_secret() rather than user meta directly.
+	 *
+	 * Each value must be a single string. The slug is part of the stored secret's name, so it
+	 * has to be unique across providers and must not change once secrets exist: lowercase
+	 * letters, digits, hyphens and underscores.
+	 *
+	 * @since 0.18.0
+	 *
+	 * @return array<string, string> Secret slug => user meta key holding the plaintext value.
+	 */
+	public static function user_secret_meta_keys() {
+		return array();
 	}
 
 	/**

@@ -52,4 +52,5 @@ tests_add_filter(
 require_once $_tests_dir . '/includes/bootstrap.php';
 
 // The shared secrets test case extends WP_UnitTestCase, which exists only after the line above.
+require_once __DIR__ . '/class-two-factor-secrets-memory-store.php';
 require_once __DIR__ . '/class-two-factor-secrets-test-case.php';

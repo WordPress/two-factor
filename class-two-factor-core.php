@@ -38,6 +38,15 @@ class Two_Factor_Core {
 	const ENABLED_PROVIDERS_OPTION_KEY = 'two_factor_enabled_providers';
 
 	/**
+	 * Whether get_provider_secrets() is currently listing providers.
+	 *
+	 * @since 0.18.0
+	 *
+	 * @var bool
+	 */
+	private static $listing_all_providers = false;
+
+	/**
 	 * The user meta nonce key.
 	 *
 	 * @type string
@@ -119,6 +128,9 @@ class Two_Factor_Core {
 	public static function add_hooks( $compat ) {
 		// Allow providers to register their hooks.
 		add_action( 'init', array( __CLASS__, 'get_providers' ) ); // @phpstan-ignore return.void
+
+		// Look after the secrets providers declare, whether or not those providers are enabled.
+		Two_Factor_Secrets_Lifecycle::add_hooks();
 
 		add_filter( 'wp_login_errors', array( __CLASS__, 'maybe_show_reset_password_notice' ) );
 		add_action( 'after_password_reset', array( __CLASS__, 'clear_password_reset_notice' ) );
@@ -260,6 +272,13 @@ class Two_Factor_Core {
 			}
 		}
 
+		// Delete secrets held in the Secrets API while their markers still exist to find them by.
+		Two_Factor_Secrets_Lifecycle::delete_all_secrets();
+
+		foreach ( array_keys( self::get_provider_secrets() ) as $slug ) {
+			$user_meta_keys[] = Two_Factor_Secrets::get_marker_meta_key( $slug );
+		}
+
 		// Delete options first since that is faster.
 		foreach ( $option_keys as $option_key ) {
 			delete_option( $option_key );
@@ -287,6 +306,91 @@ class Two_Factor_Core {
 			'Two_Factor_Backup_Codes' => TWO_FACTOR_DIR . 'providers/class-two-factor-backup-codes.php',
 			'Two_Factor_Dummy'        => TWO_FACTOR_DIR . 'providers/class-two-factor-dummy.php',
 		);
+	}
+
+	/**
+	 * Whether providers are being listed regardless of the site-wide enabled-providers setting.
+	 *
+	 * The filter that enforces that setting checks this and leaves the list alone.
+	 *
+	 * @since 0.18.0
+	 *
+	 * @return bool
+	 */
+	public static function is_listing_all_providers() {
+		return self::$listing_all_providers;
+	}
+
+	/**
+	 * Get the secrets that providers keep for users.
+	 *
+	 * Built from every registered provider class, including ones the site has turned off
+	 * in Settings, because a provider that was enabled once may still hold users' secrets.
+	 * No provider is instantiated.
+	 *
+	 * @since 0.18.0
+	 *
+	 * @see Two_Factor_Provider::user_secret_meta_keys()
+	 *
+	 * @return array<string, array{meta_key: string, provider: string}> Secret slug => the user meta key holding the plaintext value and the provider key that declared it.
+	 */
+	public static function get_provider_secrets() {
+		$providers = self::get_default_providers();
+
+		// The site-wide setting is enforced by removing providers in this filter, so ask it to stand aside.
+		self::$listing_all_providers = true;
+
+		try {
+			/** This filter is documented in the get_providers() method */
+			$additional_providers = apply_filters( 'two_factor_providers', $providers );
+		} finally {
+			self::$listing_all_providers = false;
+		}
+
+		if ( ! empty( $additional_providers ) && is_array( $additional_providers ) ) {
+			$providers = array_merge( $providers, $additional_providers );
+		}
+
+		$secrets = array();
+
+		foreach ( self::get_providers_classes( $providers ) as $provider_key => $provider_class ) {
+			if ( ! method_exists( $provider_class, 'user_secret_meta_keys' ) ) {
+				continue;
+			}
+
+			foreach ( (array) call_user_func( array( $provider_class, 'user_secret_meta_keys' ) ) as $slug => $meta_key ) {
+				if ( ! is_string( $slug ) || ! is_string( $meta_key ) || '' === $meta_key ) {
+					continue;
+				}
+
+				try {
+					Two_Factor_Secrets::get_marker_meta_key( $slug );
+				} catch ( InvalidArgumentException $e ) {
+					continue;
+				}
+
+				if ( isset( $secrets[ $slug ] ) ) {
+					_doing_it_wrong(
+						__METHOD__,
+						sprintf(
+							/* translators: 1: secret slug, 2: provider key that declared it first */
+							esc_html__( 'The secret slug "%1$s" is already declared by %2$s. Secret slugs must be unique across providers.', 'two-factor' ),
+							esc_html( $slug ),
+							esc_html( $secrets[ $slug ]['provider'] )
+						),
+						'0.18.0'
+					);
+					continue;
+				}
+
+				$secrets[ $slug ] = array(
+					'meta_key' => $meta_key,
+					'provider' => (string) $provider_key,
+				);
+			}
+		}
+
+		return $secrets;
 	}
 
 	/**

@@ -33,36 +33,32 @@ class Two_Factor_Secrets_Tests extends Two_Factor_Secrets_UnitTestCase {
 	}
 
 	/**
-	 * Presence reflects loaded functions.
+	 * Presence reflects whether the store is available.
 	 */
-	public function test_is_api_present_reflects_functions() {
-		$this->assertSame( function_exists( 'wp_get_network_secret' ) && class_exists( 'WP_Secret' ), Two_Factor_Secrets::is_api_present() );
+	public function test_is_api_present_reflects_store() {
+		$this->assertTrue( Two_Factor_Secrets::is_api_present() );
+		$this->assertSame( 'Memory', Two_Factor_Secrets::provider_label() );
+
+		$this->secrets_store->available = false;
+
+		$this->assertFalse( Two_Factor_Secrets::is_api_present() );
+		$this->assertFalse( Two_Factor_Secrets::is_provider_writable() );
+		$this->assertSame( '', Two_Factor_Secrets::provider_label() );
 	}
 
 	/**
-	 * The internal filter receives the resolved presence, and cannot override a missing API.
+	 * Without a manager set, the facade builds one over the Secrets API.
 	 */
-	public function test_is_api_present_filter_receives_resolved_value() {
-		$expected = function_exists( 'wp_get_network_secret' ) && class_exists( 'WP_Secret' );
-		$seen     = array();
-		add_filter(
-			'two_factor_secrets_api_present',
-			function ( $present, $resolved ) use ( &$seen ) {
-				$seen = array( $present, $resolved );
-				return true;
-			},
-			10,
-			2
-		);
+	public function test_facade_defaults_to_the_secrets_api_store() {
+		Two_Factor_Secrets::reset();
 
-		$this->assertSame( $expected, Two_Factor_Secrets::is_api_present() );
-		$this->assertSame( array( true, $expected ), $seen );
+		$this->assertSame( ( new Two_Factor_Secrets_Api_Store() )->is_available(), Two_Factor_Secrets::is_api_present() );
 	}
 
 	/**
-	 * The internal filter can force absence.
+	 * An unavailable store means the API is absent.
 	 */
-	public function test_is_api_present_internal_filter_forces_absent() {
+	public function test_is_api_present_false_when_store_unavailable() {
 		$this->simulate_api_absent();
 		$this->assertFalse( Two_Factor_Secrets::is_api_present() );
 	}
@@ -71,7 +67,6 @@ class Two_Factor_Secrets_Tests extends Two_Factor_Secrets_UnitTestCase {
 	 * Writes are allowed with the API present once an administrator has opted in.
 	 */
 	public function test_can_write_true_with_api_present() {
-		$this->require_secrets_api();
 		$this->assertTrue( Two_Factor_Secrets::can_write( 1 ) );
 	}
 
@@ -79,7 +74,6 @@ class Two_Factor_Secrets_Tests extends Two_Factor_Secrets_UnitTestCase {
 	 * Storage is off until an administrator opts in.
 	 */
 	public function test_can_write_false_until_opted_in() {
-		$this->require_secrets_api();
 		$this->opt_out();
 
 		$this->assertFalse( Two_Factor_Secrets::is_opted_in() );
@@ -106,7 +100,6 @@ class Two_Factor_Secrets_Tests extends Two_Factor_Secrets_UnitTestCase {
 	 * The filter receives the opt-in as its default and can turn storage on without it.
 	 */
 	public function test_filter_receives_opt_in_and_can_force_on() {
-		$this->require_secrets_api();
 		$this->opt_out();
 		$seen = null;
 		add_filter(
@@ -134,7 +127,6 @@ class Two_Factor_Secrets_Tests extends Two_Factor_Secrets_UnitTestCase {
 	 * The opt-out filter disables writes and receives the user ID.
 	 */
 	public function test_can_write_false_when_filter_opts_out() {
-		$this->require_secrets_api();
 		$seen = null;
 		add_filter(
 			'two_factor_use_secrets_api',
@@ -154,8 +146,7 @@ class Two_Factor_Secrets_Tests extends Two_Factor_Secrets_UnitTestCase {
 	 * A read-only provider disables writes.
 	 */
 	public function test_can_write_false_when_provider_read_only() {
-		$this->require_secrets_api();
-		Two_Factor_Secrets::$test_overrides['writable'] = '__return_false';
+		$this->secrets_store->writable = false;
 
 		$this->assertTrue( Two_Factor_Secrets::is_api_present() );
 		$this->assertFalse( Two_Factor_Secrets::can_write( 1 ) );
@@ -170,16 +161,14 @@ class Two_Factor_Secrets_Tests extends Two_Factor_Secrets_UnitTestCase {
 	}
 
 	/**
-	 * Secrets are stored in network scope.
+	 * A secret round trips through the store and records the network.
 	 */
-	public function test_get_user_secret_round_trip_uses_network_scope() {
-		$this->require_secrets_api();
+	public function test_get_user_secret_round_trip() {
 		$user_id = self::factory()->user->create();
 
 		$this->assertTrue( Two_Factor_Secrets::set_user_secret( $user_id, 'totp', 'ABCDEF' ) );
 		$this->assertSame( 'ABCDEF', Two_Factor_Secrets::get_user_secret( $user_id, 'totp' ) );
-		$this->assertNotNull( wp_get_network_secret( "two-factor/totp-{$user_id}" ) );
-		$this->assertNull( wp_get_secret( "two-factor/totp-{$user_id}" ) );
+		$this->assertNotNull( $this->secrets_store->get( "two-factor/totp-{$user_id}" ) );
 		$this->assertSame(
 			(string) get_current_network_id(),
 			get_user_meta( $user_id, Two_Factor_Secrets::get_marker_meta_key( 'totp' ), true )
@@ -205,7 +194,6 @@ class Two_Factor_Secrets_Tests extends Two_Factor_Secrets_UnitTestCase {
 	 * Marker naming another network is an error.
 	 */
 	public function test_get_user_secret_error_when_marker_names_other_network() {
-		$this->require_secrets_api();
 		$user_id = self::factory()->user->create();
 		update_user_meta( $user_id, Two_Factor_Secrets::get_marker_meta_key( 'totp' ), (string) ( get_current_network_id() + 1 ) );
 
@@ -218,10 +206,9 @@ class Two_Factor_Secrets_Tests extends Two_Factor_Secrets_UnitTestCase {
 	 * Marker with no stored secret is an error.
 	 */
 	public function test_get_user_secret_error_when_marker_present_but_secret_gone() {
-		$this->require_secrets_api();
 		$user_id = self::factory()->user->create();
 		Two_Factor_Secrets::set_user_secret( $user_id, 'totp', 'ABCDEF' );
-		wp_delete_network_secret( "two-factor/totp-{$user_id}" );
+		$this->secrets_store->delete( "two-factor/totp-{$user_id}" );
 
 		$result = Two_Factor_Secrets::get_user_secret( $user_id, 'totp' );
 		$this->assertWPError( $result );
@@ -232,10 +219,9 @@ class Two_Factor_Secrets_Tests extends Two_Factor_Secrets_UnitTestCase {
 	 * API errors pass through.
 	 */
 	public function test_get_user_secret_passes_through_api_error() {
-		$this->require_secrets_api();
 		$user_id = self::factory()->user->create();
 		update_user_meta( $user_id, Two_Factor_Secrets::get_marker_meta_key( 'totp' ), (string) get_current_network_id() );
-		Two_Factor_Secrets::$test_overrides['get'] = function () {
+		$this->secrets_store->on_get = function () {
 			return new WP_Error( 'secret_decryption_failed' );
 		};
 
@@ -248,9 +234,8 @@ class Two_Factor_Secrets_Tests extends Two_Factor_Secrets_UnitTestCase {
 	 * A failed write leaves no marker.
 	 */
 	public function test_set_user_secret_error_leaves_marker_absent() {
-		$this->require_secrets_api();
-		$user_id                                   = self::factory()->user->create();
-		Two_Factor_Secrets::$test_overrides['set'] = function () {
+		$user_id                     = self::factory()->user->create();
+		$this->secrets_store->on_set = function () {
 			return new WP_Error( 'write_failed' );
 		};
 
@@ -262,12 +247,11 @@ class Two_Factor_Secrets_Tests extends Two_Factor_Secrets_UnitTestCase {
 	 * Delete removes secret and marker.
 	 */
 	public function test_delete_user_secret_removes_secret_and_marker() {
-		$this->require_secrets_api();
 		$user_id = self::factory()->user->create();
 		Two_Factor_Secrets::set_user_secret( $user_id, 'totp', 'ABCDEF' );
 
 		$this->assertTrue( Two_Factor_Secrets::delete_user_secret( $user_id, 'totp' ) );
-		$this->assertNull( wp_get_network_secret( "two-factor/totp-{$user_id}" ) );
+		$this->assertNull( $this->secrets_store->get( "two-factor/totp-{$user_id}" ) );
 		$this->assertSame( '', get_user_meta( $user_id, Two_Factor_Secrets::get_marker_meta_key( 'totp' ), true ) );
 	}
 
@@ -287,7 +271,6 @@ class Two_Factor_Secrets_Tests extends Two_Factor_Secrets_UnitTestCase {
 	 * Deleting a missing secret succeeds.
 	 */
 	public function test_delete_user_secret_missing_is_success() {
-		$this->require_secrets_api();
 		$user_id = self::factory()->user->create();
 
 		$this->assertTrue( Two_Factor_Secrets::delete_user_secret( $user_id, 'totp' ) );

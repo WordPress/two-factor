@@ -83,7 +83,6 @@ class Tests_Two_Factor_Settings extends Two_Factor_Secrets_UnitTestCase {
 	 * @covers Two_Factor_Settings::render_settings_page
 	 */
 	public function test_section_offers_opt_in_with_acknowledgement() {
-		$this->require_secrets_api();
 
 		$output = $this->render();
 
@@ -99,7 +98,6 @@ class Tests_Two_Factor_Settings extends Two_Factor_Secrets_UnitTestCase {
 	 * @covers Two_Factor_Settings::render_settings_page
 	 */
 	public function test_opt_in_refused_without_acknowledgement() {
-		$this->require_secrets_api();
 
 		$output = $this->render(
 			array(
@@ -118,7 +116,6 @@ class Tests_Two_Factor_Settings extends Two_Factor_Secrets_UnitTestCase {
 	 * @covers Two_Factor_Settings::render_settings_page
 	 */
 	public function test_opt_in_saved_with_acknowledgement() {
-		$this->require_secrets_api();
 
 		$output = $this->render(
 			array(
@@ -139,7 +136,6 @@ class Tests_Two_Factor_Settings extends Two_Factor_Secrets_UnitTestCase {
 	 * @covers Two_Factor_Settings::render_settings_page
 	 */
 	public function test_opt_in_kept_then_turned_off() {
-		$this->require_secrets_api();
 		Two_Factor_Secrets::set_opted_in( true );
 
 		$this->render(
@@ -174,7 +170,6 @@ class Tests_Two_Factor_Settings extends Two_Factor_Secrets_UnitTestCase {
 	 * @covers Two_Factor_Settings::render_settings_page
 	 */
 	public function test_site_admin_cannot_change_network_setting_on_multisite() {
-		$this->require_secrets_api();
 
 		if ( ! is_multisite() ) {
 			$this->markTestSkipped( 'Only applies on multisite.' );

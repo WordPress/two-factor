@@ -805,10 +805,14 @@ class Two_Factor_CLI_Command extends WP_CLI_Command {
 	 * @param array $assoc_args Associative arguments.
 	 */
 	private function secrets_status( $assoc_args ) {
-		$counts = Two_Factor_Totp::count_users_by_storage();
+		$items = array();
 
-		$items = array(
-			array(
+		// One row per secret a provider declares; the storage columns are the same on every row.
+		foreach ( Two_Factor_Core::get_provider_secrets() as $slug => $secret ) {
+			$counts = Two_Factor_Secrets_Lifecycle::count_users_by_storage( $slug, $secret['meta_key'] );
+
+			$items[] = array(
+				'secret'          => $slug,
 				'api_present'     => Two_Factor_Secrets::is_api_present() ? 'true' : 'false',
 				'provider'        => Two_Factor_Secrets::provider_label(),
 				'writable'        => Two_Factor_Secrets::is_provider_writable() ? 'true' : 'false',
@@ -817,14 +821,14 @@ class Two_Factor_CLI_Command extends WP_CLI_Command {
 				'plaintext_users' => $counts['plaintext'],
 				'migrated_users'  => $counts['migrated'],
 				'affected_users'  => $counts['affected'],
-			),
-		);
+			);
+		}
 
 		$format = WP_CLI\Utils\get_flag_value( $assoc_args, 'format', 'table' );
 		WP_CLI\Utils\format_items(
 			$format,
 			$items,
-			array( 'api_present', 'provider', 'writable', 'opted_in', 'enabled', 'plaintext_users', 'migrated_users', 'affected_users' )
+			array( 'secret', 'api_present', 'provider', 'writable', 'opted_in', 'enabled', 'plaintext_users', 'migrated_users', 'affected_users' )
 		);
 	}
 
@@ -853,7 +857,7 @@ class Two_Factor_CLI_Command extends WP_CLI_Command {
 	}
 
 	/**
-	 * Migrate plaintext TOTP secrets into the Secrets API.
+	 * Migrate the plaintext secrets providers keep for users into the Secrets API.
 	 *
 	 * @since 0.18.0
 	 *
@@ -872,25 +876,27 @@ class Two_Factor_CLI_Command extends WP_CLI_Command {
 			WP_CLI::error( __( 'The Secrets API is not available for writing (missing, read-only, or disabled by the two_factor_use_secrets_api filter). Nothing was migrated.', 'two-factor' ) );
 		}
 
-		$totp     = Two_Factor_Totp::get_instance();
+		$secrets  = Two_Factor_Core::get_provider_secrets();
 		$migrated = 0;
 		$would    = 0;
 		$failed   = 0;
 		$skipped  = 0;
 
-		$migrate_one = function ( $user_id ) use ( $totp, $dry_run, &$migrated, &$would, &$failed, &$skipped ) {
+		$migrate_one = function ( $user_id, $slug ) use ( $secrets, $dry_run, &$migrated, &$would, &$failed, &$skipped ) {
+			$meta_key = $secrets[ $slug ]['meta_key'];
+
 			if ( $dry_run ) {
-				if ( '' === (string) get_user_meta( $user_id, Two_Factor_Totp::SECRET_META_KEY, true ) ) {
+				if ( '' === (string) get_user_meta( $user_id, $meta_key, true ) ) {
 					++$skipped;
 					return 'skipped';
 				}
 
-				WP_CLI::log( sprintf( 'Would migrate user %d', $user_id ) );
+				WP_CLI::log( sprintf( 'Would migrate user %1$d (%2$s)', $user_id, $slug ) );
 				++$would;
 				return 'would-migrate';
 			}
 
-			$result = $totp->migrate_user_totp_key( $user_id );
+			$result = Two_Factor_Secrets::migrate_stored_secret( (int) $user_id, $slug, $meta_key );
 
 			if ( true === $result ) {
 				++$migrated;
@@ -899,7 +905,7 @@ class Two_Factor_CLI_Command extends WP_CLI_Command {
 
 			if ( is_wp_error( $result ) ) {
 				++$failed;
-				WP_CLI::warning( sprintf( 'User %d: %s', $user_id, $result->get_error_message() ) );
+				WP_CLI::warning( sprintf( 'User %1$d (%2$s): %3$s', $user_id, $slug, $result->get_error_message() ) );
 				return 'failed';
 			}
 
@@ -919,40 +925,44 @@ class Two_Factor_CLI_Command extends WP_CLI_Command {
 				);
 			}
 
-			$migrate_one( $user->ID );
+			foreach ( array_keys( $secrets ) as $slug ) {
+				$migrate_one( $user->ID, $slug );
+			}
 		} else {
-			$offset = 0;
+			foreach ( $secrets as $slug => $secret ) {
+				$offset = 0;
 
-			do {
-				$query = new WP_User_Query(
-					array(
-						'blog_id'      => 0,
-						'fields'       => 'ID',
-						'number'       => $batch,
-						'offset'       => $offset,
-						'orderby'      => 'ID',
-						'order'        => 'ASC',
-						'meta_key'     => Two_Factor_Totp::SECRET_META_KEY, // phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_meta_key -- One-off CLI migration.
-						'meta_value'   => '', // phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_meta_value -- One-off CLI migration.
-						'meta_compare' => '!=',
-						'count_total'  => false,
-					)
-				);
-				$ids   = array_map( 'intval', $query->get_results() );
+				do {
+					$query = new WP_User_Query(
+						array(
+							'blog_id'      => 0,
+							'fields'       => 'ID',
+							'number'       => $batch,
+							'offset'       => $offset,
+							'orderby'      => 'ID',
+							'order'        => 'ASC',
+							'meta_key'     => $secret['meta_key'], // phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_meta_key -- One-off CLI migration.
+							'meta_value'   => '', // phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_meta_value -- One-off CLI migration.
+							'meta_compare' => '!=',
+							'count_total'  => false,
+						)
+					);
+					$ids   = array_map( 'intval', $query->get_results() );
 
-				// Migrated users drop out of the result set; skipped and failed ones stay, so step past them.
-				$stayed = 0;
-				foreach ( $ids as $user_id ) {
-					if ( 'migrated' !== $migrate_one( $user_id ) ) {
-						++$stayed;
+					// Migrated users drop out of the result set; skipped and failed ones stay, so step past them.
+					$stayed = 0;
+					foreach ( $ids as $user_id ) {
+						if ( 'migrated' !== $migrate_one( $user_id, $slug ) ) {
+							++$stayed;
+						}
 					}
-				}
 
-				$offset += $stayed;
-			} while ( ! empty( $ids ) );
+					$offset += $stayed;
+				} while ( ! empty( $ids ) );
+			}
 		}
 
-		Two_Factor_Totp::clear_affected_users_cache();
+		Two_Factor_Secrets::clear_affected_users_cache();
 
 		if ( $dry_run ) {
 			WP_CLI::success(
