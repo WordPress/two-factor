@@ -171,8 +171,10 @@ class Tests_Two_Factor_Email extends WP_UnitTestCase {
 
 		$pattern = '/verification code below:\R\R(\d+)/';
 		$content = $GLOBALS['phpmailer']->Body;
+		$subject = $GLOBALS['phpmailer']->Subject;
 
 		$this->assertGreaterThan( 0, preg_match( $pattern, $content, $match ) );
+		$this->assertStringContainsString( $match[1], $subject );
 		$this->assertTrue( $this->provider->validate_token( $user->ID, $match[1] ) );
 	}
 
