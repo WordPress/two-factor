@@ -3080,6 +3080,31 @@ class Test_ClassTwoFactorCore extends WP_UnitTestCase {
 	}
 
 	/**
+	 * Plugin uninstall removes TOTP secrets held in the Secrets API and their markers.
+	 *
+	 * @covers Two_Factor_Core::uninstall
+	 */
+	public function test_uninstall_removes_totp_secrets_and_markers() {
+		if ( ! function_exists( 'wp_get_network_secret' ) ) {
+			$this->markTestSkipped( 'Secrets API feature plugin is not loaded.' );
+		}
+
+		Two_Factor_Secrets::set_opted_in( true );
+
+		$user_id = self::factory()->user->create();
+		$totp    = Two_Factor_Totp::get_instance();
+		$totp->set_user_totp_key( $user_id, 'ABCDEFGH' );
+
+		$this->assertNotNull( wp_get_network_secret( "two-factor/totp-{$user_id}" ) );
+
+		Two_Factor_Core::uninstall();
+
+		$this->assertNull( wp_get_network_secret( "two-factor/totp-{$user_id}" ) );
+		$this->assertSame( '', (string) get_user_meta( $user_id, Two_Factor_Totp::SECRET_NETWORK_META_KEY, true ) );
+		$this->assertSame( '', $totp->get_user_totp_key( $user_id ) );
+	}
+
+	/**
 	 * Plugin uninstall removes the site-wide enabled providers option.
 	 *
 	 * @covers Two_Factor_Core::uninstall
@@ -3099,6 +3124,21 @@ class Test_ClassTwoFactorCore extends WP_UnitTestCase {
 			get_option( Two_Factor_Core::ENABLED_PROVIDERS_OPTION_KEY ),
 			'Enabled providers option was deleted during uninstall'
 		);
+	}
+
+	/**
+	 * Plugin uninstall removes the Secrets API opt-in, which is a network option.
+	 *
+	 * @covers Two_Factor_Core::uninstall
+	 */
+	public function test_uninstall_removes_secrets_api_opt_in() {
+		Two_Factor_Secrets::set_opted_in( true );
+		$this->assertTrue( Two_Factor_Secrets::is_opted_in() );
+
+		Two_Factor_Core::uninstall();
+
+		$this->assertFalse( Two_Factor_Secrets::is_opted_in() );
+		$this->assertFalse( get_site_option( Two_Factor_Secrets::OPT_IN_OPTION_KEY ) );
 	}
 
 	/**
@@ -3677,6 +3717,119 @@ class Test_ClassTwoFactorCore extends WP_UnitTestCase {
 			$this->assertSame( 'Two_Factor_Nonexistent', $result->get_error_data()['fallback_provider'], 'Error data records the rejected fallback provider' );
 		} finally {
 			remove_filter( 'two_factor_fallback_provider_for_user', $filter );
+		}
+	}
+
+	/**
+	 * Register the unavailable provider fixture.
+	 *
+	 * @return void
+	 */
+	private function register_unavailable_provider() {
+		add_filter(
+			'two_factor_providers',
+			function ( $providers ) {
+				$providers['Two_Factor_Dummy_Unavailable'] = __DIR__ . '/class-two-factor-dummy-unavailable.php';
+				return $providers;
+			}
+		);
+	}
+
+	/**
+	 * An enrolled but unavailable provider forces the fallback.
+	 *
+	 * @covers Two_Factor_Core::get_available_providers_for_user
+	 */
+	public function test_get_available_providers_for_user_forces_fallback_when_enrolled_provider_is_unavailable() {
+		$this->register_unavailable_provider();
+		$user = self::factory()->user->create_and_get();
+		update_user_meta( $user->ID, Two_Factor_Core::ENABLED_PROVIDERS_USER_META_KEY, array( 'Two_Factor_Dummy_Unavailable' ) );
+
+		try {
+			$available = Two_Factor_Core::get_available_providers_for_user( $user->ID );
+
+			$this->assertIsArray( $available );
+			$this->assertSame( array( 'Two_Factor_Email' ), array_keys( $available ) );
+			$this->assertTrue( Two_Factor_Core::is_user_using_two_factor( $user->ID ) );
+		} finally {
+			remove_all_filters( 'two_factor_providers' );
+		}
+	}
+
+	/**
+	 * An invalid fallback fails closed for an unavailable provider.
+	 *
+	 * @covers Two_Factor_Core::get_available_providers_for_user
+	 */
+	public function test_get_available_providers_for_user_fails_closed_when_enrolled_provider_is_unavailable_and_fallback_invalid() {
+		$this->register_unavailable_provider();
+		$user = self::factory()->user->create_and_get();
+		update_user_meta( $user->ID, Two_Factor_Core::ENABLED_PROVIDERS_USER_META_KEY, array( 'Two_Factor_Dummy_Unavailable' ) );
+
+		$filter = function () {
+			return 'Two_Factor_Nonexistent';
+		};
+		add_filter( 'two_factor_fallback_provider_for_user', $filter );
+
+		try {
+			$result = Two_Factor_Core::get_available_providers_for_user( $user->ID );
+
+			$this->assertWPError( $result );
+			$this->assertSame( 'no_available_2fa_methods', $result->get_error_code() );
+			$this->assertSame( array( 'Two_Factor_Dummy_Unavailable' ), $result->get_error_data()['unavailable_providers'] );
+			$this->assertTrue( Two_Factor_Core::is_user_using_two_factor( $user->ID ) );
+		} finally {
+			remove_filter( 'two_factor_fallback_provider_for_user', $filter );
+			remove_all_filters( 'two_factor_providers' );
+		}
+	}
+
+	/**
+	 * An available provider means no fallback is forced.
+	 *
+	 * @covers Two_Factor_Core::get_available_providers_for_user
+	 */
+	public function test_get_available_providers_for_user_keeps_available_provider_when_another_is_unavailable() {
+		$this->register_unavailable_provider();
+		$user = self::factory()->user->create_and_get();
+		update_user_meta( $user->ID, Two_Factor_Core::ENABLED_PROVIDERS_USER_META_KEY, array( 'Two_Factor_Dummy_Unavailable', 'Two_Factor_Dummy' ) );
+
+		try {
+			$available = Two_Factor_Core::get_available_providers_for_user( $user->ID );
+
+			$this->assertSame( array( 'Two_Factor_Dummy' ), array_keys( $available ) );
+		} finally {
+			remove_all_filters( 'two_factor_providers' );
+		}
+	}
+
+	/**
+	 * A merely unconfigured provider does not force the fallback.
+	 *
+	 * @covers Two_Factor_Core::get_available_providers_for_user
+	 */
+	public function test_get_available_providers_for_user_does_not_force_fallback_for_unconfigured_provider() {
+		$user = self::factory()->user->create_and_get();
+		update_user_meta( $user->ID, Two_Factor_Core::ENABLED_PROVIDERS_USER_META_KEY, array( 'Two_Factor_Backup_Codes' ) );
+
+		$this->assertSame( array(), Two_Factor_Core::get_available_providers_for_user( $user->ID ) );
+	}
+
+	/**
+	 * Uninstall calls each provider's uninstall_user_data().
+	 *
+	 * @covers Two_Factor_Core::uninstall
+	 */
+	public function test_uninstall_calls_provider_uninstall_user_data() {
+		$this->register_unavailable_provider();
+		Two_Factor_Dummy_Unavailable::$uninstall_user_data_calls = 0;
+
+		try {
+			Two_Factor_Core::uninstall();
+
+			$this->assertSame( 1, Two_Factor_Dummy_Unavailable::$uninstall_user_data_calls );
+		} finally {
+			remove_all_filters( 'two_factor_providers' );
 		}
 	}
 

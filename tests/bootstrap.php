@@ -35,9 +35,22 @@ require_once __DIR__ . '/class-two-factor-redirect-exception.php';
 tests_add_filter(
 	'muplugins_loaded',
 	function () {
+		// Load the Secrets API feature plugin, a Composer dev dependency, unless another copy is named.
+		$secrets_api = getenv( 'TWO_FACTOR_SECRETS_API_FILE' );
+		if ( ! $secrets_api ) {
+			$secrets_api = dirname( __DIR__ ) . '/vendor/wordpress/secrets-api/secrets-api.php';
+		}
+		if ( file_exists( $secrets_api ) ) {
+			require_once $secrets_api;
+		}
+
 		require_once dirname( __DIR__ ) . '/two-factor.php';
 	}
 );
 
 // Start up the WP testing environment.
 require_once $_tests_dir . '/includes/bootstrap.php';
+
+// The shared secrets test case extends WP_UnitTestCase, which exists only after the line above.
+require_once __DIR__ . '/class-two-factor-secrets-memory-store.php';
+require_once __DIR__ . '/class-two-factor-secrets-test-case.php';

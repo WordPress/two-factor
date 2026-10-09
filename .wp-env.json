@@ -8,7 +8,8 @@
         "WP_TESTS_EMAIL": "admin@example.org",
         "WP_TESTS_DOMAIN": "example.org",
         "WP_SITEURL": "https://example.org",
-        "WP_HOME": "https://example.org"
+        "WP_HOME": "https://example.org",
+        "WP_SECRETS_KEY": "AQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQE="
       }
     }
   }

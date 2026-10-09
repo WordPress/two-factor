@@ -38,6 +38,15 @@ class Two_Factor_Core {
 	const ENABLED_PROVIDERS_OPTION_KEY = 'two_factor_enabled_providers';
 
 	/**
+	 * Whether get_provider_secrets() is currently listing providers.
+	 *
+	 * @since 0.18.0
+	 *
+	 * @var bool
+	 */
+	private static $listing_all_providers = false;
+
+	/**
 	 * The user meta nonce key.
 	 *
 	 * @type string
@@ -120,6 +129,9 @@ class Two_Factor_Core {
 		// Allow providers to register their hooks.
 		add_action( 'init', array( __CLASS__, 'get_providers' ) ); // @phpstan-ignore return.void
 
+		// Look after the secrets providers declare, whether or not those providers are enabled.
+		Two_Factor_Secrets_Lifecycle::add_hooks();
+
 		add_filter( 'wp_login_errors', array( __CLASS__, 'maybe_show_reset_password_notice' ) );
 		add_action( 'after_password_reset', array( __CLASS__, 'clear_password_reset_notice' ) );
 		add_action( 'login_form_validate_2fa', array( __CLASS__, 'login_form_validate_2fa' ) );
@@ -195,6 +207,9 @@ class Two_Factor_Core {
 	/**
 	 * Delete all plugin data on uninstall.
 	 *
+	 * Secrets held in the Secrets API are removed by the providers, but are orphaned in the store
+	 * if the Secrets API is absent when the plugin is uninstalled.
+	 *
 	 * @since 0.10.0
 	 *
 	 * @return void
@@ -237,6 +252,14 @@ class Two_Factor_Core {
 				}
 			}
 
+			// Let the provider delete per-user data held outside user meta, while its own meta still exists.
+			if ( method_exists( $provider_class, 'uninstall_user_data' ) ) {
+				try {
+					call_user_func( array( $provider_class, 'uninstall_user_data' ) );
+				} catch ( Exception $e ) { // phpcs:ignore Generic.CodeAnalysis.EmptyStatement.DetectedCatch -- Intentionally empty, provider may not implement this method.
+				}
+			}
+
 			// Merge with provider-specific option keys.
 			if ( method_exists( $provider_class, 'uninstall_options' ) ) {
 				try {
@@ -249,10 +272,20 @@ class Two_Factor_Core {
 			}
 		}
 
+		// Delete secrets held in the Secrets API while their markers still exist to find them by.
+		Two_Factor_Secrets_Lifecycle::delete_all_secrets();
+
+		foreach ( array_keys( self::get_provider_secrets() ) as $slug ) {
+			$user_meta_keys[] = Two_Factor_Secrets::get_marker_meta_key( $slug );
+		}
+
 		// Delete options first since that is faster.
 		foreach ( $option_keys as $option_key ) {
 			delete_option( $option_key );
 		}
+
+		// The Secrets API opt-in is a network option, which delete_option() does not reach on multisite.
+		delete_site_option( Two_Factor_Secrets::OPT_IN_OPTION_KEY );
 
 		foreach ( $user_meta_keys as $meta_key ) {
 			delete_metadata( 'user', 0, $meta_key, '', true );
@@ -273,6 +306,91 @@ class Two_Factor_Core {
 			'Two_Factor_Backup_Codes' => TWO_FACTOR_DIR . 'providers/class-two-factor-backup-codes.php',
 			'Two_Factor_Dummy'        => TWO_FACTOR_DIR . 'providers/class-two-factor-dummy.php',
 		);
+	}
+
+	/**
+	 * Whether providers are being listed regardless of the site-wide enabled-providers setting.
+	 *
+	 * The filter that enforces that setting checks this and leaves the list alone.
+	 *
+	 * @since 0.18.0
+	 *
+	 * @return bool
+	 */
+	public static function is_listing_all_providers() {
+		return self::$listing_all_providers;
+	}
+
+	/**
+	 * Get the secrets that providers keep for users.
+	 *
+	 * Built from every registered provider class, including ones the site has turned off
+	 * in Settings, because a provider that was enabled once may still hold users' secrets.
+	 * No provider is instantiated.
+	 *
+	 * @since 0.18.0
+	 *
+	 * @see Two_Factor_Provider::user_secret_meta_keys()
+	 *
+	 * @return array<string, array{meta_key: string, provider: string}> Secret slug => the user meta key holding the plaintext value and the provider key that declared it.
+	 */
+	public static function get_provider_secrets() {
+		$providers = self::get_default_providers();
+
+		// The site-wide setting is enforced by removing providers in this filter, so ask it to stand aside.
+		self::$listing_all_providers = true;
+
+		try {
+			/** This filter is documented in the get_providers() method */
+			$additional_providers = apply_filters( 'two_factor_providers', $providers );
+		} finally {
+			self::$listing_all_providers = false;
+		}
+
+		if ( ! empty( $additional_providers ) && is_array( $additional_providers ) ) {
+			$providers = array_merge( $providers, $additional_providers );
+		}
+
+		$secrets = array();
+
+		foreach ( self::get_providers_classes( $providers ) as $provider_key => $provider_class ) {
+			if ( ! method_exists( $provider_class, 'user_secret_meta_keys' ) ) {
+				continue;
+			}
+
+			foreach ( (array) call_user_func( array( $provider_class, 'user_secret_meta_keys' ) ) as $slug => $meta_key ) {
+				if ( ! is_string( $slug ) || ! is_string( $meta_key ) || '' === $meta_key ) {
+					continue;
+				}
+
+				try {
+					Two_Factor_Secrets::get_marker_meta_key( $slug );
+				} catch ( InvalidArgumentException $e ) {
+					continue;
+				}
+
+				if ( isset( $secrets[ $slug ] ) ) {
+					_doing_it_wrong(
+						__METHOD__,
+						sprintf(
+							/* translators: 1: secret slug, 2: provider key that declared it first */
+							esc_html__( 'The secret slug "%1$s" is already declared by %2$s. Secret slugs must be unique across providers.', 'two-factor' ),
+							esc_html( $slug ),
+							esc_html( $secrets[ $slug ]['provider'] )
+						),
+						'0.18.0'
+					);
+					continue;
+				}
+
+				$secrets[ $slug ] = array(
+					'meta_key' => $meta_key,
+					'provider' => (string) $provider_key,
+				);
+			}
+		}
+
+		return $secrets;
 	}
 
 	/**
@@ -755,41 +873,10 @@ class Two_Factor_Core {
 			$still_registered = array_intersect( $stored_providers, array_keys( $providers ) );
 
 			if ( empty( $still_registered ) ) {
-				/**
-				 * Filter the provider forced on when none of a user's stored providers are still registered.
-				 *
-				 * Returning a key that is not registered, or that the provider itself reports as unavailable
-				 * for this user, is treated as "no fallback": the method returns a `no_available_2fa_methods`
-				 * WP_Error rather than allowing the user through with one factor.
-				 *
-				 * The returned provider must be usable without any prior per-user setup (like the email
-				 * provider is), since the user has no working provider left to configure it through:
-				 *
-				 *     add_filter( 'two_factor_fallback_provider_for_user', function() {
-				 *         return 'Two_Factor_Backup_Codes'; // Wrong: requires codes to already be generated.
-				 *     } );
-				 *
-				 * A fallback that is not already available for the user resolves to the WP_Error branch,
-				 * not to a silent single-factor login.
-				 *
-				 * @since 0.17.0
-				 *
-				 * @param string   $fallback_provider Provider key to force on. Default 'Two_Factor_Email'.
-				 * @param int      $user_id           The user ID.
-				 * @param string[] $stored_providers  Provider keys stored for the user, none of which are registered.
-				 */
-				$fallback_provider = apply_filters(
-					'two_factor_fallback_provider_for_user',
-					'Two_Factor_Email',
-					$user->ID,
-					$stored_providers
-				);
+				$fallback_filtered = null;
+				$fallback_provider = self::resolve_fallback_provider_for_user( $user, $providers, $stored_providers, $fallback_filtered );
 
-				if (
-					is_string( $fallback_provider )
-					&& isset( $providers[ $fallback_provider ] )
-					&& $providers[ $fallback_provider ]->is_available_for_user( $user )
-				) {
+				if ( null !== $fallback_provider ) {
 					// Force the fallback provider to 'on'.
 					$enabled_providers[] = $fallback_provider;
 				} else {
@@ -801,7 +888,7 @@ class Two_Factor_Core {
 						array(
 							'user_providers_raw'  => $stored_providers,
 							'available_providers' => array_keys( $providers ),
-							'fallback_provider'   => $fallback_provider,
+							'fallback_provider'   => $fallback_filtered,
 						)
 					);
 				}
@@ -814,7 +901,95 @@ class Two_Factor_Core {
 			}
 		}
 
+		/**
+		 * A provider the user enrolled can be unusable right now (for example when its secret store is
+		 * unavailable). Dropping it would leave the user with no second factor, so force the fallback
+		 * provider on, or fail closed when there is none.
+		 */
+		if ( empty( $configured_providers ) && ! empty( $enabled_providers ) ) {
+			$unavailable_providers = array();
+
+			foreach ( $enabled_providers as $provider_key ) {
+				if ( isset( $providers[ $provider_key ] ) && $providers[ $provider_key ]->is_enrolled_but_unavailable_for_user( $user ) ) {
+					$unavailable_providers[] = $provider_key;
+				}
+			}
+
+			if ( ! empty( $unavailable_providers ) ) {
+				$fallback_filtered = null;
+				$fallback_provider = self::resolve_fallback_provider_for_user( $user, $providers, $unavailable_providers, $fallback_filtered );
+
+				if ( null === $fallback_provider ) {
+					return new WP_Error(
+						'no_available_2fa_methods',
+						__( 'Error: Your two-factor method is currently unavailable and no fallback method could be used. Please contact a site administrator for assistance.', 'two-factor' ),
+						array(
+							'user_providers_raw'    => $stored_providers,
+							'available_providers'   => array_keys( $providers ),
+							'fallback_provider'     => $fallback_filtered,
+							'unavailable_providers' => $unavailable_providers,
+						)
+					);
+				}
+
+				$configured_providers[ $fallback_provider ] = $providers[ $fallback_provider ];
+			}
+		}
+
 		return $configured_providers;
+	}
+
+	/**
+	 * Resolve the fallback provider to force on for a user.
+	 *
+	 * @since 0.18.0
+	 *
+	 * @param WP_User  $user             The user.
+	 * @param array    $providers        Registered provider instances indexed by key.
+	 * @param string[] $stored_providers Provider keys stored for the user.
+	 * @param mixed    $filtered         Optional. Receives the raw value returned by the fallback filter.
+	 * @return string|null The fallback provider key, or null when it is not a registered, available provider.
+	 */
+	private static function resolve_fallback_provider_for_user( WP_User $user, array $providers, array $stored_providers, &$filtered = null ) {
+		/**
+		 * Filter the provider forced on when none of a user's stored providers are still registered.
+		 *
+		 * Returning a key that is not registered, or that the provider itself reports as unavailable
+		 * for this user, is treated as "no fallback": the method returns a `no_available_2fa_methods`
+		 * WP_Error rather than allowing the user through with one factor.
+		 *
+		 * The returned provider must be usable without any prior per-user setup (like the email
+		 * provider is), since the user has no working provider left to configure it through:
+		 *
+		 *     add_filter( 'two_factor_fallback_provider_for_user', function() {
+		 *         return 'Two_Factor_Backup_Codes'; // Wrong: requires codes to already be generated.
+		 *     } );
+		 *
+		 * A fallback that is not already available for the user resolves to the WP_Error branch,
+		 * not to a silent single-factor login.
+		 *
+		 * @since 0.17.0
+		 *
+		 * @param string   $fallback_provider Provider key to force on. Default 'Two_Factor_Email'.
+		 * @param int      $user_id           The user ID.
+		 * @param string[] $stored_providers  Provider keys stored for the user, none of which are registered.
+		 */
+		$filtered = apply_filters(
+			'two_factor_fallback_provider_for_user',
+			'Two_Factor_Email',
+			$user->ID,
+			$stored_providers
+		);
+
+		if (
+			is_string( $filtered )
+			&& isset( $providers[ $filtered ] )
+			&& $providers[ $filtered ]->is_available_for_user( $user )
+		) {
+			return $filtered;
+		}
+
+		return null;
 	}
 
 	/**

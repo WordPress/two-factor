@@ -94,6 +94,10 @@ Here is a list of action and filter hooks provided by the plugin:
 - `two_factor_enabled_providers_for_user` filter overrides the list of two-factor providers enabled for a user. First argument is an array of enabled provider classnames as values, the second argument is the user ID.
 - `two_factor_is_required_for_user` filter controls whether two-factor authentication is required for a user. Return `false` to bypass the two-factor flow (e.g. for trusted IP addresses). First argument is a boolean (whether the user has a primary provider configured), the second argument is the `WP_User` object.
 - `two_factor_fallback_provider_for_user` filter overrides the provider forced on when none of a user's stored two-factor providers are still registered (e.g. after a provider plugin is deactivated). Defaults to `Two_Factor_Email`. First argument is the provider classname, the second is the user ID, the third is the array of provider classnames that were stored for the user but are no longer registered. The returned provider must be registered and available to the user (`is_available_for_user()`), or the user is shown an error instead of being let through with a fallback.
+- `two_factor_use_secrets_api` filter controls whether new authenticator app (TOTP) secrets are written to the WordPress Secrets API and whether existing plaintext secrets are migrated. It controls writes and migration only: users whose secret was already migrated are still read from the Secrets API while it is present. First argument is a boolean, which defaults to the administrator's choice under Settings → Two-Factor (off until they turn it on); the second is the user ID, which can be `0` when no user is in context. Returning `true` turns storage on without that choice, so only do so where the site's secrets key is managed for it.
+- `two_factor_secrets_migrated` action fires after a user's TOTP secret was moved into the Secrets API. Receives the user ID and the secret slug (`totp`), never the secret.
+- `two_factor_secrets_migration_failed` action fires when moving a user's TOTP secret into the Secrets API failed and the plaintext copy was kept. Receives the user ID, the secret slug, and a `WP_Error`.
+- `two_factor_secret_unavailable` action fires when a user's stored TOTP secret cannot be read (for example because the Secrets API is missing or the key changed). Receives the user ID, the secret slug, and a `WP_Error`.
 - `two_factor_user_authenticated` action which receives the logged in `WP_User` object as the first argument for determining the logged in user right after the authentication workflow.
 - `two_factor_user_api_login_enable` filter restricts authentication for REST API and XML-RPC to application passwords only. Provides the user ID as the second argument.
 - `two_factor_email_token_ttl` filter overrides the time interval in seconds that an email token is considered after generation. Accepts the time in seconds as the first argument and the ID of the `WP_User` object being authenticated.
@@ -112,11 +116,13 @@ Here is a list of action and filter hooks provided by the plugin:
 
 The plugin includes a `wp two-factor` WP-CLI namespace for managing two-factor authentication from the command line. All commands accept a user by ID, login, or email.
 
-* `wp two-factor status <user>` — Shows a user's current 2FA status (read-only). Supports `--format=json`.
+* `wp two-factor status <user>` — Shows a user's current 2FA status (read-only), including where their authenticator app secret is stored (`totp_storage`). Supports `--format=json`.
 * `wp two-factor list-providers` — Lists all registered two-factor providers.
 * `wp two-factor enable <user> <provider>` — Enables a provider for a user. Providers that require a shared secret (like TOTP) can't be enabled this way and will point you to the profile page instead.
 * `wp two-factor disable <user> [<provider>]` — Disables a single provider, or performs a full reset of all 2FA for the user when no provider is given. Both forms prompt for confirmation unless `--yes` is passed.
 * `wp two-factor backup-codes generate <user> [--count=<n>]` — Generates a fresh set of backup codes for a user, replacing any existing ones. Defaults to 10 codes.
+* `wp two-factor secrets status` — Shows whether the WordPress Secrets API is available, whether an administrator has turned on storing secrets with it, and how many users have secrets in user meta, in the Secrets API, or unreachable, with one row per secret a provider keeps. Supports `--format=json`.
+* `wp two-factor secrets migrate [<user>] [--batch-size=<n>] [--dry-run]` — Moves plaintext secrets, such as authenticator app keys, into the Secrets API.
 * `wp two-factor unlock <user>` — Clears a user's login rate-limit/throttle without changing their 2FA configuration.
 
 Run `wp help two-factor` for the full list, or `wp help two-factor <command>` for options and examples for a specific command.
@@ -170,6 +176,14 @@ Yes. The Two-Factor plugin is compatible with WordPress Multisite. Each user con
 = How do I disable 2FA for a user who is locked out? =
 
 As an administrator, go to **Users → All Users** in the WordPress admin, click **Edit** on the affected user's profile, scroll down to the **Two-Factor Options** section, and uncheck all enabled methods, then click **Update User**. This will remove 2FA for that user, allowing them to log in with their password alone. You can also do this via WP-CLI with wp two-factor disable <user_id> --yes, which performs a full reset (see the WP-CLI Commands section above). Once they're back in, encourage them to re-enable 2FA and generate fresh backup codes.
+
+= How are authenticator (TOTP) secrets stored? =
+
+By default they are stored in plaintext user meta. When the WordPress [Secrets API](https://github.com/ericmann/secrets-api) is available, an administrator can turn on encrypted storage under **Settings → Two-Factor**, after confirming that they understand how it depends on the site's secrets key. On multisite this is a network-wide setting that only a network administrator can change. Until it is turned on nothing changes, and Site Health recommends it. Once it is on, new secrets are stored encrypted through the Secrets API, and existing plaintext secrets are migrated the next time each user logs in. To migrate everyone at once run `wp two-factor secrets migrate`. Turning the setting off again, or returning `false` from the `two_factor_use_secrets_api` filter, stops new writes and migration; users who were already migrated are still read from the Secrets API.
+
+Define `WP_SECRETS_KEY` (the base64 encoding of 32 random bytes) in `wp-config.php` so encryption does not depend on your salts. Without it, rotating `LOGGED_IN_KEY` or `LOGGED_IN_SALT` makes stored secrets unreadable. Users whose secrets are stored in the Secrets API can't use their authenticator app, and nobody can set up a new one, until the original key or salts are restored. A user whose only method is the authenticator app is locked out until then. Resetting the authenticator app does not help while the key is unusable, so Two-Factor does not offer it. The fallback method is only forced when the Secrets API is missing or the secret belongs to another network.
+
+Migration is one-directional: Two-Factor never moves a secret back out of the Secrets API into user meta. Do not deactivate the Secrets API while users have migrated secrets: those users can't use their authenticator app until it is restored, and an administrator notice and Site Health check will warn you. If you do remove it, reset the affected users' authenticator app so they can set it up again. Secrets left in the store when the Secrets API is absent at the time the plugin is uninstalled are not removed.
 
 = Can I require 2FA for all users or specific roles? =
 
