@@ -525,4 +525,58 @@ class Tests_Two_Factor_Totp extends WP_UnitTestCase {
 		$this->expectException( InvalidArgumentException::class );
 		$this->call_pad_secret( 'ABC', 0 );
 	}
+
+	/**
+	 * Verify privacy_eraser_user_meta_keys() erases nothing.
+	 *
+	 * The secret is kept so the provider stays configured, and the last
+	 * successful login timestamp is kept with it because it still blocks
+	 * reuse of the most recent code after erasure.
+	 *
+	 * @covers Two_Factor_Totp::privacy_eraser_user_meta_keys
+	 */
+	public function test_privacy_eraser_user_meta_keys() {
+		$this->assertSame(
+			array(),
+			Two_Factor_Totp::privacy_eraser_user_meta_keys()
+		);
+	}
+
+	/**
+	 * Verify privacy_export_data() reports nothing for a user without a key.
+	 *
+	 * @covers Two_Factor_Totp::privacy_export_data
+	 */
+	public function test_privacy_export_data_without_key() {
+		$user     = self::factory()->user->create_and_get();
+		$provider = Two_Factor_Totp::get_instance();
+
+		$this->assertSame( array(), $provider->privacy_export_data( $user ) );
+	}
+
+	/**
+	 * Verify privacy_export_data() reports configuration and the last login
+	 * date, but not the secret.
+	 *
+	 * @covers Two_Factor_Totp::privacy_export_data
+	 */
+	public function test_privacy_export_data_with_key() {
+		$user     = self::factory()->user->create_and_get();
+		$provider = Two_Factor_Totp::get_instance();
+
+		$key = Two_Factor_Totp::generate_key();
+		$provider->set_user_totp_key( $user->ID, $key );
+		update_user_meta( $user->ID, Two_Factor_Totp::LAST_SUCCESSFUL_LOGIN_META_KEY, time() - 50 );
+
+		$data = $provider->privacy_export_data( $user );
+
+		$this->assertCount( 2, $data );
+		$this->assertSame( 'Authenticator app (TOTP)', $data[0]['name'] );
+		$this->assertSame( 'Configured', $data[0]['value'] );
+		$this->assertSame( 'Last successful login', $data[1]['name'] );
+		$this->assertNotEmpty( $data[1]['value'] );
+
+		$payload = wp_json_encode( $data );
+		$this->assertStringNotContainsString( $key, $payload );
+	}
 }
