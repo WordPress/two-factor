@@ -65,6 +65,7 @@ npm run composer -- test -- --group backup-codes
 npm run composer -- test -- --group providers
 npm run composer -- test -- --group core
 npm run composer -- test -- --group cli
+npm run composer -- test -- --group settings
 
 # Run a single file
 npm run composer -- test -- tests/providers/class-two-factor-totp.php
@@ -209,6 +210,30 @@ Tests the `Two_Factor_CLI_Command` WP-CLI command class. The WP-CLI runtime is n
 - `disable` (all) — full reset clears providers/throttle/nonce state and destroys sessions, preserves the compromised-password-reset flag, idempotent no-op, stale-meta cleanup guarding the fail-closed email fallback, confirmation required without `--yes`
 - `backup-codes generate` — default and `--count` code counts, regeneration replaces the set, enables the provider so codes are usable at login, session destruction when first enabled, unknown-action and missing-argument errors
 - `unlock` — clears the login throttle for a rate-limited user; no-op message otherwise
+
+### Settings — `tests/settings/class-two-factor-settings.php`
+
+**Class:** `Tests_Two_Factor_Settings` · **Group:** `settings`
+
+Tests the enabled-providers setting in both suites:
+
+- `two_factor_get_enabled_providers_option()` matching `Two_Factor_Core::get_enabled_providers_policy()`, and normalization on save
+- Uninstall removing the setting as a site option and as a network option
+- Failing closed when the setting leaves none of a user's providers registered
+- Single site only (skipped on multisite): `manage_options` capability, plain site option, saving from the settings screen, editors can't save, page registered under Settings
+
+### Network Settings — `tests/settings/class-two-factor-settings-multisite.php`
+
+**Class:** `Tests_Two_Factor_Settings_Multisite` · **Groups:** `settings`, `multisite`
+
+Multisite only (skipped on single site):
+
+- Per-site values are ignored; a sub-site administrator can't change the setting through the per-site form or the network save handler
+- The network setting applies on every site; super admins save it from the network admin, with a valid nonce, keeping only registered providers, and never with an empty selection
+- Carrying the main site's per-site value over to the network option, once
+- Pages registered under Network Admin → Settings (`manage_network_options`) and, read-only, under Settings (`manage_options`); all providers listed on the network screen only
+- The read-only site page: no form, nothing saved, a link to the network settings for network admins only
+- Plugin action link pointing to the network settings
 
 ## Test Helpers
 

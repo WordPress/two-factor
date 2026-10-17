@@ -38,6 +38,16 @@ class Two_Factor_Core {
 	const ENABLED_PROVIDERS_OPTION_KEY = 'two_factor_enabled_providers';
 
 	/**
+	 * The network option key recording that the enabled providers were carried over from
+	 * the main site to the network-wide setting on multisite.
+	 *
+	 * @since 0.18.0
+	 *
+	 * @type string
+	 */
+	const ENABLED_PROVIDERS_MIGRATED_OPTION_KEY = 'two_factor_enabled_providers_migrated';
+
+	/**
 	 * The user meta nonce key.
 	 *
 	 * @type string
@@ -160,7 +170,9 @@ class Two_Factor_Core {
 		add_filter( 'two_factor_providers', array( __CLASS__, 'enable_dummy_method_for_debug' ) );
 
 		// Add Settings link to plugin action links.
-		add_filter( 'plugin_action_links_' . plugin_basename( TWO_FACTOR_DIR . 'two-factor.php' ), array( __CLASS__, 'add_settings_action_link' ) );
+		$plugin_basename = plugin_basename( TWO_FACTOR_DIR . 'two-factor.php' );
+		add_filter( 'plugin_action_links_' . $plugin_basename, array( __CLASS__, 'add_settings_action_link' ) );
+		add_filter( 'network_admin_plugin_action_links_' . $plugin_basename, array( __CLASS__, 'add_settings_action_link' ) );
 
 		$compat->init();
 	}
@@ -253,6 +265,10 @@ class Two_Factor_Core {
 		foreach ( $option_keys as $option_key ) {
 			delete_option( $option_key );
 		}
+
+		// The enabled providers are a network option on multisite; on single site this deletes the same option again.
+		delete_network_option( null, self::ENABLED_PROVIDERS_OPTION_KEY );
+		delete_network_option( null, self::ENABLED_PROVIDERS_MIGRATED_OPTION_KEY );
 
 		foreach ( $user_meta_keys as $meta_key ) {
 			delete_metadata( 'user', 0, $meta_key, '', true );
@@ -400,6 +416,99 @@ class Two_Factor_Core {
 	}
 
 	/**
+	 * Get the providers enabled in the plugin settings.
+	 *
+	 * On multisite this is a network-wide setting, stored as a network option; values saved
+	 * per site are ignored. On single site installs it is a regular option.
+	 *
+	 * @since 0.18.0
+	 *
+	 * @return array|null Enabled provider keys, possibly empty, or null when the setting has never
+	 *                    been saved, meaning all providers are allowed.
+	 */
+	public static function get_enabled_providers_policy() {
+		if ( is_multisite() ) {
+			$enabled = get_network_option( null, self::ENABLED_PROVIDERS_OPTION_KEY, null );
+
+			if ( null === $enabled && self::maybe_migrate_enabled_providers_policy() ) {
+				$enabled = get_network_option( null, self::ENABLED_PROVIDERS_OPTION_KEY, null );
+			}
+		} else {
+			$enabled = get_option( self::ENABLED_PROVIDERS_OPTION_KEY, null );
+		}
+
+		if ( null === $enabled ) {
+			return null; // Never saved — allow everything.
+		}
+
+		return is_array( $enabled ) ? $enabled : array();
+	}
+
+	/**
+	 * Save the providers enabled in the plugin settings.
+	 *
+	 * @since 0.18.0
+	 *
+	 * @param array $providers Provider keys to enable.
+	 * @return bool True if the value was updated, false otherwise.
+	 */
+	public static function update_enabled_providers_policy( array $providers ) {
+		$providers = array_values( array_unique( array_filter( $providers, 'is_string' ) ) );
+
+		if ( ! is_multisite() ) {
+			return update_option( self::ENABLED_PROVIDERS_OPTION_KEY, $providers );
+		}
+
+		// A saved network setting takes precedence over anything left to carry over from the main site.
+		update_network_option( null, self::ENABLED_PROVIDERS_MIGRATED_OPTION_KEY, 1 );
+
+		return update_network_option( null, self::ENABLED_PROVIDERS_OPTION_KEY, $providers );
+	}
+
+	/**
+	 * Get the capability required to view and change the plugin settings.
+	 *
+	 * @since 0.18.0
+	 *
+	 * @return string
+	 */
+	public static function policy_capability() {
+		return is_multisite() ? 'manage_network_options' : 'manage_options';
+	}
+
+	/**
+	 * Carry the main site's enabled providers over to the network-wide setting, once.
+	 *
+	 * Before 0.18.0 the enabled providers were saved per site on multisite, too. Only the main
+	 * site's value is carried over; values saved on other sites are ignored.
+	 *
+	 * @since 0.18.0
+	 *
+	 * @return bool True if the network setting was saved from the main site's value.
+	 */
+	private static function maybe_migrate_enabled_providers_policy() {
+		if ( get_network_option( null, self::ENABLED_PROVIDERS_MIGRATED_OPTION_KEY ) ) {
+			return false;
+		}
+
+		update_network_option( null, self::ENABLED_PROVIDERS_MIGRATED_OPTION_KEY, 1 );
+
+		// Without a main site, get_blog_option() would read the current site's value instead.
+		$main_site_id = get_main_site_id();
+		if ( ! $main_site_id ) {
+			return false;
+		}
+
+		$main_site_enabled = get_blog_option( $main_site_id, self::ENABLED_PROVIDERS_OPTION_KEY, null );
+
+		if ( ! is_array( $main_site_enabled ) ) {
+			return false;
+		}
+
+		return self::update_enabled_providers_policy( $main_site_enabled );
+	}
+
+	/**
 	 * Add Plugin and User Settings link to the plugin action links on the Plugins screen.
 	 *
 	 * @since 0.14.3
@@ -408,7 +517,9 @@ class Two_Factor_Core {
 	 * @return string[] Modified array with the User Settings link added.
 	 */
 	public static function add_settings_action_link( $links ) {
-		$plugin_settings_url  = admin_url( 'options-general.php?page=two-factor-settings' );
+		$plugin_settings_url  = is_multisite()
+			? network_admin_url( 'settings.php?page=two-factor-settings' )
+			: admin_url( 'options-general.php?page=two-factor-settings' );
 		$plugin_settings_link = sprintf(
 			'<a href="%s">%s</a>',
 			esc_url( $plugin_settings_url ),
@@ -425,7 +536,7 @@ class Two_Factor_Core {
 		// Show plugin settings first, then user settings.
 		array_unshift( $links, $user_settings_link );
 
-		if ( current_user_can( 'manage_options' ) ) {
+		if ( current_user_can( self::policy_capability() ) ) {
 			array_unshift( $links, $plugin_settings_link );
 		}
 

@@ -47,10 +47,10 @@ The plugin follows a provider pattern. `Two_Factor_Core` owns the login intercep
 
 ### Core Files
 
-- **`two-factor.php`** — Entry point. Defines `TWO_FACTOR_DIR` and `TWO_FACTOR_VERSION`, loads all core files (including the settings class), instantiates `Two_Factor_Compat`, and calls `Two_Factor_Core::add_hooks()`. Also registers the wp-admin settings page (Settings → Two-Factor) and the filter callbacks that enforce the site-wide enabled-providers option (`two_factor_filter_enabled_providers`, `two_factor_filter_enabled_providers_for_user`).
+- **`two-factor.php`** — Entry point. Defines `TWO_FACTOR_DIR` and `TWO_FACTOR_VERSION`, loads all core files (including the settings class), instantiates `Two_Factor_Compat`, and calls `Two_Factor_Core::add_hooks()`. Also registers the settings page (Settings → Two-Factor; Network Admin → Settings → Two-Factor on multisite) and the filter callbacks that enforce the enabled-providers setting (`two_factor_filter_enabled_providers`, `two_factor_filter_enabled_providers_for_user`).
 - **`class-two-factor-core.php`** — Central class. Owns the login flow, user meta, nonce management, rate limiting, session tracking, REST API endpoints, and the user profile settings UI.
 - **`class-two-factor-compat.php`** — Compatibility shims for third-party plugins (currently: Jetpack SSO). New integrations go here; the goal is to avoid any plugin-specific logic outside this file.
-- **`settings/class-two-factor-settings.php`** — `Two_Factor_Settings`, renders the site-wide settings screen (Settings → Two-Factor, requires `manage_options`) where admins choose which providers are available on the site. Saving writes the `two_factor_enabled_providers` option; enforcement happens via the filters registered in `two-factor.php`, not in this class.
+- **`settings/class-two-factor-settings.php`** — `Two_Factor_Settings`, renders the settings screen where admins choose which providers are available: Settings → Two-Factor (`manage_options`) on single site, Network Admin → Settings → Two-Factor (`manage_network_options`) on multisite, where the setting applies to every site and each site's Settings → Two-Factor shows it read-only (`render_network_managed_page()`). Reads and writes go through `Two_Factor_Core::get_enabled_providers_policy()` and `update_enabled_providers_policy()`; on multisite the form is saved by `save_network_settings()` on `network_admin_edit_two_factor_settings`, which keeps only registered providers and refuses an empty selection. Enforcement happens via the filters registered in `two-factor.php`, not in this class.
 - **`providers/class-two-factor-provider.php`** — Abstract base class all providers extend. Defines the required interface: `get_label()`, `is_available_for_user()`, `authentication_page()`, `validate_authentication()`, and optional hooks for REST routes, settings UI, and uninstall cleanup.
 - **`providers/`** — Concrete providers: `class-two-factor-totp.php`, `class-two-factor-email.php`, `class-two-factor-backup-codes.php`, `class-two-factor-dummy.php`.
 - **`includes/`** — Custom `login_header()` and `login_footer()` template functions that replace the WordPress core versions with additional filter hooks. Excluded from PHPCS because they intentionally deviate from core function signatures. Do not modify files in includes/ directly. They are intentionally kept close to WordPress core function signatures to ease future merging into Core. Any functional changes should go through the filter hooks they expose instead.
@@ -102,7 +102,8 @@ New providers should follow this pattern rather than registering hooks from outs
 
 | Constant | Option Key | Purpose |
 |---|---|---|
-| `ENABLED_PROVIDERS_OPTION_KEY` | `two_factor_enabled_providers` | Provider class names enabled site-wide via the settings page; never saved means all providers are allowed. |
+| `ENABLED_PROVIDERS_OPTION_KEY` | `two_factor_enabled_providers` | Provider class names enabled via the settings page; never saved means all providers are allowed. A network option on multisite (per-site values are ignored there), a site option otherwise. |
+| `ENABLED_PROVIDERS_MIGRATED_OPTION_KEY` | `two_factor_enabled_providers_migrated` | Multisite network option recording that the main site's per-site value was carried over to the network option, so that happens only once. |
 
 ### REST API
 

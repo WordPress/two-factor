@@ -72,6 +72,12 @@ register_uninstall_hook( __FILE__, array( Two_Factor_Core::class, 'uninstall' ) 
 function two_factor_register_admin_hooks() {
 	if ( is_admin() ) {
 		add_action( 'admin_menu', 'two_factor_add_settings_page' );
+
+		// On multisite the settings are network-wide and changed in the network admin; sites show them read-only.
+		if ( is_multisite() ) {
+			add_action( 'network_admin_menu', 'two_factor_add_network_settings_page' );
+			add_action( 'network_admin_edit_' . Two_Factor_Settings::NETWORK_SAVE_ACTION, array( 'Two_Factor_Settings', 'save_network_settings' ) );
+		}
 	}
 
 	// Load settings page assets when in admin.
@@ -99,6 +105,22 @@ function two_factor_add_settings_page() {
 	);
 }
 
+/**
+ * Add the Two Factor settings page under Settings in the network admin.
+ *
+ * @since 0.18.0
+ */
+function two_factor_add_network_settings_page() {
+	add_submenu_page(
+		'settings.php',
+		__( 'Two-Factor Settings', 'two-factor' ),
+		__( 'Two-Factor', 'two-factor' ),
+		Two_Factor_Core::policy_capability(),
+		'two-factor-settings',
+		'two_factor_render_settings_page'
+	);
+}
+
 
 /**
  * Render the settings page via the settings class if available.
@@ -106,7 +128,13 @@ function two_factor_add_settings_page() {
  * @since 0.16
  */
 function two_factor_render_settings_page() {
-	if ( ! current_user_can( 'manage_options' ) ) {
+	// On multisite, sites only show the network-wide settings.
+	if ( is_multisite() && ! is_network_admin() ) {
+		Two_Factor_Settings::render_network_managed_page();
+		return;
+	}
+
+	if ( ! current_user_can( Two_Factor_Core::policy_capability() ) ) {
 		return;
 	}
 
@@ -123,20 +151,18 @@ function two_factor_render_settings_page() {
 
 
 /**
- * Helper: retrieve the site-enabled providers option.
+ * Helper: retrieve the enabled providers setting, network-wide on multisite.
  * Returns null when the option has never been saved (meaning all providers are allowed).
  * Returns an array (possibly empty) when the admin has explicitly saved a selection.
  *
  * @since 0.16
  *
+ * @see Two_Factor_Core::get_enabled_providers_policy()
+ *
  * @return array|null
  */
 function two_factor_get_enabled_providers_option() {
-	$enabled = get_option( Two_Factor_Core::ENABLED_PROVIDERS_OPTION_KEY, null );
-	if ( null === $enabled ) {
-		return null; // Never saved — allow everything.
-	}
-	return is_array( $enabled ) ? $enabled : array();
+	return Two_Factor_Core::get_enabled_providers_policy();
 }
 
 
@@ -158,8 +184,10 @@ function two_factor_filter_enabled_providers( $providers ) {
 	}
 
 	// On the settings page itself, show all providers so admins can change the selection.
-	$page = isset( $_GET['page'] ) ? sanitize_key( wp_unslash( $_GET['page'] ) ) : ''; // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Reading the current admin page slug only; no state change occurs here.
-	if ( is_admin() && 'two-factor-settings' === $page ) {
+	// On multisite that page is only in the network admin.
+	$page               = isset( $_GET['page'] ) ? sanitize_key( wp_unslash( $_GET['page'] ) ) : ''; // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Reading the current admin page slug only; no state change occurs here.
+	$on_settings_screen = is_multisite() ? is_network_admin() : is_admin();
+	if ( $on_settings_screen && 'two-factor-settings' === $page ) {
 		return $providers;
 	}
 

@@ -31,7 +31,7 @@ The Two-Factor plugin adds an extra layer of security to your WordPress login by
 
 ### For Site Administrators
 
-- **Plugin settings**: The plugin provides a settings page under "Settings → Two-Factor" to configure which providers should be disabled site-wide.
+- **Plugin settings**: The plugin provides a settings page under "Settings → Two-Factor" to configure which providers should be disabled site-wide. On Multisite, super admins find it under "Network Admin → Settings → Two-Factor", and it applies to every site in the network; "Settings → Two-Factor" on each site shows it read-only.
 - **User management**: Administrators can configure 2FA for other users by editing their profiles
 - **Security recommendations**: Encourage users to enable backup methods to prevent account lockouts
 
@@ -165,7 +165,7 @@ Yes. For passkeys and hardware security keys, you can install the [Two-Factor Pr
 
 = Does this plugin work on WordPress Multisite? =
 
-Yes. The Two-Factor plugin is compatible with WordPress Multisite. Each user configures their own 2FA settings via their profile, and because authentication codes are stored in WordPress user meta, the configuration is tied to the user account and valid across all sites in the network. However, there are no network-wide settings — a super admin cannot enforce or configure 2FA globally from the Network Admin dashboard. To manage 2FA for a specific user, edit their profile on any site where they have an account.
+Yes. The Two-Factor plugin is compatible with WordPress Multisite. Each user configures their own 2FA settings via their profile, and because authentication codes are stored in WordPress user meta, the configuration is tied to the user account and valid across all sites in the network. Which two-factor providers are available is a network-wide setting as well: super admins choose them under Network Admin → Settings → Two-Factor, and the choice applies to every site. There is no network-wide setting to enforce 2FA for users. To manage 2FA for a specific user, edit their profile on any site where they have an account.
 
 = How do I disable 2FA for a user who is locked out? =
 
