@@ -120,6 +120,10 @@ jobs:
           - wordpress/wordpress#6.9-branch
           - wordpress/wordpress#7.0-branch
           - wordpress/wordpress#7.1-branch
+        exclude:
+          # WordPress 6.8 is not compatible with PHP 8.5
+          - php: "8.5"
+            wp: wordpress/wordpress#6.8-branch
     env:
       WP_ENV_PHP_VERSION: ${{ matrix.php }}
       WP_ENV_CORE: ${{ matrix.wp == 'latest' && 'https://wordpress.org/wordpress-latest.zip' || matrix.wp }}
