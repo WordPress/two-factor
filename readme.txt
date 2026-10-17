@@ -133,7 +133,7 @@ To redirect users to a specific URL after completing the two-factor challenge, u
 
 = What PHP and WordPress versions does the Two-Factor plugin support? =
 
-This plugin supports the last two major versions of WordPress and <a href="https://make.wordpress.org/core/handbook/references/php-compatibility-and-wordpress-versions/">the minimum PHP version</a> supported by those WordPress versions.
+This plugin supports the last two major versions of WordPress and <a href="https://make.wordpress.org/core/handbook/references/php-compatibility-and-wordpress-versions/">the minimum PHP version</a> supported by those WordPress versions. The plugin also attempts to maintain backward compatibility with older WordPress versions for as long as possible.
 
 = How can I send feedback or get help with a bug? =
 
