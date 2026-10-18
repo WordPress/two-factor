@@ -3120,7 +3120,7 @@ class Two_Factor_Core {
 			);
 		}
 
-		$failed_attempts = get_user_meta( $user->ID, self::USER_FAILED_LOGIN_ATTEMPTS_KEY, true );
+		$failed_attempts = (int) get_user_meta( $user->ID, self::USER_FAILED_LOGIN_ATTEMPTS_KEY, true );
 		if ( $failed_attempts ) {
 			$data[] = array(
 				'name'  => __( 'Failed Two Factor login attempts', 'two-factor' ),
@@ -3175,19 +3175,20 @@ class Two_Factor_Core {
 				continue;
 			}
 
+			// Without a provider, Two Factor was enabled in this session and no code was entered.
+			$verified = ! empty( $session['two-factor-provider'] );
+
 			$session_data = array(
 				array(
-					'name'  => __( 'Two Factor verified', 'two-factor' ),
+					'name'  => $verified ? __( 'Two Factor verified', 'two-factor' ) : __( 'Two Factor enabled', 'two-factor' ),
 					'value' => self::format_privacy_timestamp( $session['two-factor-login'] ),
 				),
-			);
-
-			// Without a provider, Two Factor was enabled in this session and no code was entered.
-			$session_data[] = array(
-				'name'  => __( 'Two Factor method', 'two-factor' ),
-				'value' => empty( $session['two-factor-provider'] )
-					? __( 'None, Two Factor was enabled during this session', 'two-factor' )
-					: self::get_privacy_provider_label( $session['two-factor-provider'], $providers ),
+				array(
+					'name'  => __( 'Two Factor method', 'two-factor' ),
+					'value' => $verified
+						? self::get_privacy_provider_label( $session['two-factor-provider'], $providers )
+						: __( 'None, Two Factor was enabled during this session', 'two-factor' ),
+				),
 			);
 
 			$export_items[] = array(
@@ -3211,11 +3212,16 @@ class Two_Factor_Core {
 	 *
 	 * @since 0.18.0
 	 *
-	 * @param string                $provider_key Provider key.
+	 * @param mixed                 $provider_key Provider key, as read from user or session meta.
 	 * @param Two_Factor_Provider[] $providers    Provider instances indexed by provider key.
 	 * @return string
 	 */
 	private static function get_privacy_provider_label( $provider_key, $providers ) {
+		// Malformed meta can hold an array, which isset() rejects with a TypeError.
+		if ( ! is_string( $provider_key ) ) {
+			return __( 'Unknown', 'two-factor' );
+		}
+
 		if ( isset( $providers[ $provider_key ] ) ) {
 			return $providers[ $provider_key ]->get_label();
 		}

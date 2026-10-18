@@ -4145,6 +4145,25 @@ class Test_ClassTwoFactorCore extends WP_UnitTestCase {
 	}
 
 	/**
+	 * Verify malformed provider meta does not stop the export.
+	 *
+	 * @covers Two_Factor_Core::personal_data_exporter
+	 */
+	public function test_personal_data_exporter_handles_malformed_provider_meta() {
+		$user = self::factory()->user->create_and_get();
+		update_user_meta( $user->ID, Two_Factor_Core::ENABLED_PROVIDERS_USER_META_KEY, array( 'Two_Factor_Email', array( 'Two_Factor_Totp' ) ) );
+		update_user_meta( $user->ID, Two_Factor_Core::PROVIDER_USER_META_KEY, array( 'Two_Factor_Totp' ) );
+
+		$response = Two_Factor_Core::personal_data_exporter( $user->user_email );
+
+		$items  = $response['data'][0]['data'];
+		$values = array_combine( wp_list_pluck( $items, 'name' ), wp_list_pluck( $items, 'value' ) );
+
+		$this->assertSame( 'Email, Unknown', $values['Enabled Two Factor methods'] );
+		$this->assertSame( 'Unknown', $values['Primary Two Factor method'] );
+	}
+
+	/**
 	 * Verify the exporter adds the Two Factor details to the sessions
 	 * exported by core.
 	 *
@@ -4196,6 +4215,8 @@ class Test_ClassTwoFactorCore extends WP_UnitTestCase {
 		$this->assertSame( "session-tokens-{$user->ID}-enabled-session", $enabled_item['item_id'] );
 
 		$values = array_combine( wp_list_pluck( $enabled_item['data'], 'name' ), wp_list_pluck( $enabled_item['data'], 'value' ) );
+		$this->assertArrayNotHasKey( 'Two Factor verified', $values );
+		$this->assertNotEmpty( $values['Two Factor enabled'] );
 		$this->assertStringContainsString( 'enabled during this session', $values['Two Factor method'] );
 	}
 
@@ -4213,13 +4234,13 @@ class Test_ClassTwoFactorCore extends WP_UnitTestCase {
 		$names = wp_list_pluck( $items, 'name' );
 
 		$this->assertContains( 'Authenticator app (TOTP)', $names );
-		$this->assertContains( 'Last successful login', $names );
+		$this->assertContains( 'Last successful TOTP verification', $names );
 		$this->assertContains( 'Email login code', $names );
 		$this->assertContains( 'Recovery codes', $names );
 
 		$values = array_combine( $names, wp_list_pluck( $items, 'value' ) );
 		$this->assertSame( 'Configured', $values['Authenticator app (TOTP)'] );
-		$this->assertNotEmpty( $values['Last successful login'] );
+		$this->assertNotEmpty( $values['Last successful TOTP verification'] );
 		$this->assertStringContainsString( 'was sent on', $values['Email login code'] );
 		$this->assertStringContainsString( '10 unused codes', $values['Recovery codes'] );
 	}

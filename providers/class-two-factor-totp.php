@@ -928,7 +928,7 @@ class Two_Factor_Totp extends Two_Factor_Provider {
 		$last_login = (int) get_user_meta( $user->ID, self::LAST_SUCCESSFUL_LOGIN_META_KEY, true );
 		if ( $last_login ) {
 			$data[] = array(
-				'name'  => __( 'Last successful login', 'two-factor' ),
+				'name'  => __( 'Last successful TOTP verification', 'two-factor' ),
 				'value' => Two_Factor_Core::format_privacy_timestamp( $last_login ),
 			);
 		}

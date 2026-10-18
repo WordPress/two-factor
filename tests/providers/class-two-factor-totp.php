@@ -573,7 +573,7 @@ class Tests_Two_Factor_Totp extends WP_UnitTestCase {
 		$this->assertCount( 2, $data );
 		$this->assertSame( 'Authenticator app (TOTP)', $data[0]['name'] );
 		$this->assertSame( 'Configured', $data[0]['value'] );
-		$this->assertSame( 'Last successful login', $data[1]['name'] );
+		$this->assertSame( 'Last successful TOTP verification', $data[1]['name'] );
 		$this->assertNotEmpty( $data[1]['value'] );
 
 		$payload = wp_json_encode( $data );
