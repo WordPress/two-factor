@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<phpunit
+	bootstrap="tests/bootstrap.php"
+	backupGlobals="false"
+	colors="true"
+	convertErrorsToExceptions="true"
+	convertNoticesToExceptions="true"
+	convertWarningsToExceptions="true"
+	cacheResultFile="./tests/.phpunit.result.cache.multisite"
+	>
+	<php>
+		<const name="WP_TESTS_MULTISITE" value="1" />
+		<env name="WORDPRESS_TABLE_PREFIX" value="wp_multisite_" force="true" />
+	</php>
+	<testsuites>
+		<testsuite name="multisite">
+			<directory suffix=".php">tests</directory>
+		</testsuite>
+	</testsuites>
+
+	<!-- Kept in sync with phpunit.xml.dist; PHPUnit has no way to share this block. -->
+	<filter>
+		<whitelist addUncoveredFilesFromWhitelist="false" processUncoveredFilesFromWhitelist="false">
+			<directory suffix=".php">includes</directory>
+			<directory suffix=".php">providers</directory>
+			<directory suffix=".php">settings</directory>
+			<file>class-two-factor-compat.php</file>
+			<file>class-two-factor-core.php</file>
+			<file>two-factor.php</file>
+			<exclude>
+				<file>includes/function.login-footer.php</file>
+				<file>includes/function.login-header.php</file>
+			</exclude>
+		</whitelist>
+	</filter>
+
+	<!-- Separate targets so this suite does not overwrite the single-site report. -->
+	<logging>
+		<log type="coverage-clover" target="tests/logs/clover-multisite.xml" />
+		<log type="coverage-html" target="tests/logs/html-multisite" />
+	</logging>
+</phpunit>

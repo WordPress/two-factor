@@ -879,7 +879,10 @@ class Two_Factor_Core {
 			return null;
 		}
 
-		if ( ! empty( $primary_provider ) && ! empty( $available_providers[ $primary_provider ] ) ) {
+		// Persisted meta is untrusted: malformed (array/object) values must not reach array-key
+		// access, which fatals on PHP 8 and warns on 7.x. Fail closed to "no selection" so the
+		// caller falls back to the first available provider instead of letting the user through.
+		if ( is_string( $primary_provider ) && ! empty( $available_providers[ $primary_provider ] ) ) {
 			return $primary_provider;
 		}
 
@@ -1137,7 +1140,7 @@ class Two_Factor_Core {
 			wp_die( esc_html__( 'Failed to create a login nonce.', 'two-factor' ) );
 		}
 
-		$redirect_to = isset( $_REQUEST['redirect_to'] ) ? esc_url_raw( wp_unslash( $_REQUEST['redirect_to'] ) ) : admin_url(); // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Value only used for redirect; auth protected by 2FA login nonce later.
+		$redirect_to = isset( $_REQUEST['redirect_to'] ) ? esc_url_raw( wp_unslash( $_REQUEST['redirect_to'] ) ) : ''; // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Value only used for redirect; auth protected by 2FA login nonce later.
 
 		self::login_html( $user, $login_nonce['key'], $redirect_to );
 	}
@@ -1292,7 +1295,7 @@ class Two_Factor_Core {
 		}
 		?>
 
-		<form name="validate_2fa_form" id="loginform" action="<?php echo esc_url( self::login_url( array( 'action' => $action ), 'login_post' ) ); ?>" method="post" autocomplete="off">
+		<form name="validate_2fa_form" id="loginform" action="<?php echo esc_url( self::login_url( array( 'action' => $action ), 'login_post' ) ); ?>" method="post">
 				<input type="hidden" name="provider"      id="provider"      value="<?php echo esc_attr( $provider_key ); ?>">
 				<input type="hidden" name="wp-auth-id"    id="wp-auth-id"    value="<?php echo esc_attr( (string) $user->ID ); ?>">
 				<input type="hidden" name="wp-auth-nonce" id="wp-auth-nonce" value="<?php echo esc_attr( $login_nonce ); ?>">
@@ -1388,15 +1391,10 @@ class Two_Factor_Core {
 			$params = array();
 		}
 
+		$url = wp_login_url( '', false );
+		$url = set_url_scheme( $url, $scheme );
+
 		$params = urlencode_deep( $params );
-
-		// Compat: Match WordPress's usage of `site_url( wp-login.php )` by always passing the action if known.
-		if ( isset( $params['action'] ) ) {
-			$url = site_url( 'wp-login.php?action=' . $params['action'], $scheme );
-		} else {
-			$url = site_url( 'wp-login.php', $scheme );
-		}
-
 		if ( $params ) {
 			$url = add_query_arg( $params, $url );
 		}
@@ -1718,6 +1716,54 @@ class Two_Factor_Core {
 	}
 
 	/**
+	 * Flag the current user's session as two-factor authenticated once a provider
+	 * has actually been configured for them.
+	 *
+	 * Sessions are normally flagged when a factor is validated while signing in, but
+	 * a user who does not have a second factor yet cannot have done that. Without
+	 * flagging at setup time, enabling two-factor would leave their session
+	 * unflagged, and the revalidation check would lock them out of the very settings
+	 * screen they are still configuring.
+	 *
+	 * Only the current user's own session is ever modified. A session that is already
+	 * flagged is left untouched, so repeat calls cannot push the flag forward and
+	 * extend the revalidation grace period.
+	 *
+	 * @since 0.17.0
+	 *
+	 * @param int    $user_id      The user the provider was set up for.
+	 * @param string $provider_key The key of the provider that was just configured, or an
+	 *                             empty string when the setup itself did not verify a factor.
+	 * @return bool True if the session was updated, false otherwise.
+	 */
+	public static function maybe_mark_current_session_two_factor( int $user_id, string $provider_key = '' ): bool {
+		// Never alter the session of a different user, or of a logged out request.
+		if ( ! $user_id || get_current_user_id() !== $user_id ) {
+			return false;
+		}
+
+		// An already validated session keeps its original timestamp.
+		if ( self::is_current_user_session_two_factor() ) {
+			return false;
+		}
+
+		// Nothing to flag until a provider is enabled and configured for the user.
+		if ( ! self::is_user_using_two_factor( $user_id ) ) {
+			return false;
+		}
+
+		self::update_current_user_session(
+			array(
+				'two-factor-provider' => sanitize_text_field( $provider_key ),
+				'two-factor-login'    => time(),
+			)
+		);
+
+		// Confirm the flag landed, since the session storage returns void.
+		return (bool) self::is_current_user_session_two_factor();
+	}
+
+	/**
 	 * Determine if the current user session can update Two-Factor settings.
 	 *
 	 * @since 0.9.0
@@ -1943,9 +1989,43 @@ class Two_Factor_Core {
 			return;
 		}
 
-		$redirect_to = apply_filters( 'login_redirect', $redirect_to, $redirect_to, $user ); // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedHooknameFound -- Core WordPress filter.
+		$redirect_to = self::get_login_redirect_fallback( $redirect_to, $user );
 		wp_safe_redirect( $redirect_to );
 		exit;
+	}
+
+	/**
+	 * Determine the final redirect destination after two-factor authentication.
+	 *
+	 * Mirrors the decision made by wp-login.php: the `login_redirect` filter
+	 * decides the destination, and when it is empty, users without dashboard
+	 * access are sent to their profile or the front end instead, just like a
+	 * non-two-factor login would.
+	 *
+	 * @since 0.18.0
+	 *
+	 * @param string  $redirect_to The requested redirect destination.
+	 * @param WP_User $user        The authenticated user.
+	 * @return string The final redirect destination.
+	 */
+	private static function get_login_redirect_fallback( string $redirect_to, WP_User $user ): string {
+		$redirect_to = apply_filters( 'login_redirect', $redirect_to, $redirect_to, $user ); // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedHooknameFound -- Core WordPress filter.
+
+		if ( is_string( $redirect_to ) && ! empty( $redirect_to ) ) {
+			return $redirect_to;
+		}
+
+		// Mirrors the capability-based fallback from the `case 'login'` block
+		// in wp-login.php, applied when no redirect was requested or filtered.
+		if ( is_multisite() && ! get_active_blog_for_user( $user->ID ) && ! is_super_admin( $user->ID ) ) {
+			return user_admin_url();
+		} elseif ( is_multisite() && ! $user->has_cap( 'read' ) ) {
+			return get_dashboard_url( $user->ID );
+		} elseif ( ! $user->has_cap( 'edit_posts' ) ) {
+			return $user->has_cap( 'read' ) ? admin_url( 'profile.php' ) : home_url();
+		}
+
+		return admin_url();
 	}
 
 	/**
@@ -1968,7 +2048,6 @@ class Two_Factor_Core {
 		self::validate_login_form_2fa( $user, $nonce, $provider, $redirect_to, $is_post_request );
 	}
 
-
 	/**
 	 * Display the "Revalidate Two Factor" page.
 	 *
@@ -1977,7 +2056,7 @@ class Two_Factor_Core {
 	public static function login_form_revalidate_2fa() {
 		$nonce           = ( isset( $_REQUEST['wp-auth-nonce'] ) && is_scalar( $_REQUEST['wp-auth-nonce'] ) ) ? sanitize_text_field( wp_unslash( (string) $_REQUEST['wp-auth-nonce'] ) ) : ''; // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Nonce verified in revalidate_login_form_2fa() for POST before processing.
 		$provider        = ! empty( $_REQUEST['provider'] ) ? sanitize_text_field( wp_unslash( $_REQUEST['provider'] ) ) : false; // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Nonce verified in revalidate_login_form_2fa() for POST before processing.
-		$redirect_to     = ! empty( $_REQUEST['redirect_to'] ) ? esc_url_raw( wp_unslash( $_REQUEST['redirect_to'] ) ) : admin_url(); // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Nonce verified in revalidate_login_form_2fa() for POST before processing.
+		$redirect_to     = ! empty( $_REQUEST['redirect_to'] ) ? esc_url_raw( wp_unslash( $_REQUEST['redirect_to'] ) ) : ''; // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Nonce verified in revalidate_login_form_2fa() for POST before processing.
 		$is_post_request = isset( $_SERVER['REQUEST_METHOD'] ) && 'POST' === strtoupper( $_SERVER['REQUEST_METHOD'] ); // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.MissingUnslash, WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- REQUEST_METHOD is not user input.
 
 		self::revalidate_login_form_2fa( $nonce, $provider, $redirect_to, $is_post_request );
@@ -2076,7 +2155,7 @@ class Two_Factor_Core {
 			return;
 		}
 
-		$redirect_to = apply_filters( 'login_redirect', $redirect_to, $redirect_to, $user ); // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedHooknameFound -- Core WordPress filter.
+		$redirect_to = self::get_login_redirect_fallback( $redirect_to, $user );
 		wp_safe_redirect( $redirect_to );
 		exit;
 	}
@@ -2118,17 +2197,12 @@ class Two_Factor_Core {
 			);
 		}
 
-		// Allow the provider to re-send codes, etc.
-		if ( true === $provider->pre_process_authentication( $user ) ) {
-			return false;
-		}
-
 		// If it's not a POST request, there's no processing to perform.
 		if ( ! $is_post_request ) {
 			return false;
 		}
 
-		// Rate limit two factor authentication attempts.
+		// Rate limit two factor authentication attempts, including pre-processing (e.g. resend).
 		if ( true === self::is_user_rate_limited( $user ) ) {
 			$time_delay = self::get_user_time_delay( $user );
 			$last_login = get_user_meta( $user->ID, self::USER_RATE_LIMIT_KEY, true );
@@ -2136,11 +2210,16 @@ class Two_Factor_Core {
 			return new WP_Error(
 				'two_factor_too_fast',
 				sprintf(
-					/* translators: %s: human-readable time delay until another attempt can be made. */
-					__( 'ERROR: Too many invalid verification codes, you can try again in %s. This limit protects your account against automated attacks.', 'two-factor' ),
+					/* translators: %s: human-readable time until another attempt is allowed, e.g. "2 minutes". */
+					__( 'Too many incorrect verification codes. Please wait %s and reload this page to try again.', 'two-factor' ),
 					human_time_diff( $last_login + $time_delay )
 				)
 			);
+		}
+
+		// Allow the provider to re-send codes, etc.
+		if ( true === $provider->pre_process_authentication( $user ) ) {
+			return false;
 		}
 
 		// Ask the provider to verify the second factor.
@@ -2660,6 +2739,11 @@ class Two_Factor_Core {
 	 *
 	 * The caller is responsible for checking the user has permission to do this.
 	 *
+	 * When the provider ends up enabled for the current user, their session is
+	 * flagged as two-factor authenticated, so a user setting up two-factor for
+	 * themselves is not immediately asked to revalidate. See
+	 * maybe_mark_current_session_two_factor().
+	 *
 	 * @since 0.8.0
 	 *
 	 * @param int    $user_id      The ID of the user.
@@ -2677,12 +2761,20 @@ class Two_Factor_Core {
 
 		// Check if this is enabled already.
 		if ( in_array( $new_provider, $enabled_providers ) ) {
+			self::maybe_mark_current_session_two_factor( $user_id );
+
 			return true;
 		}
 
 		$enabled_providers[] = $new_provider;
 
-		return (bool) update_user_meta( $user_id, self::ENABLED_PROVIDERS_USER_META_KEY, $enabled_providers );
+		if ( ! update_user_meta( $user_id, self::ENABLED_PROVIDERS_USER_META_KEY, $enabled_providers ) ) {
+			return false;
+		}
+
+		self::maybe_mark_current_session_two_factor( $user_id );
+
+		return true;
 	}
 
 	/**
@@ -2789,14 +2881,10 @@ class Two_Factor_Core {
 			// Have we changed the two-factor settings for the current user? Alter their session metadata.
 			if ( get_current_user_id() === $user_id ) {
 
-				if ( $enabled_providers && ! $existing_providers && ! self::is_current_user_session_two_factor() ) {
-					// We've enabled two-factor from a non-two-factor session, set the key but not the provider, as no provider has been used yet.
-					self::update_current_user_session(
-						array(
-							'two-factor-provider' => '',
-							'two-factor-login'    => time(),
-						)
-					);
+				if ( $enabled_providers && ! $existing_providers ) {
+					// We've enabled two-factor from a non-two-factor session. No provider key is passed,
+					// since saving this form doesn't validate a factor for any particular provider.
+					self::maybe_mark_current_session_two_factor( $user_id );
 				} elseif ( $existing_providers && ! $enabled_providers ) {
 					// We've disabled two-factor, remove session metadata.
 					self::update_current_user_session(

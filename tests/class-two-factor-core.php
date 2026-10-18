@@ -431,6 +431,92 @@ class Test_ClassTwoFactorCore extends WP_UnitTestCase {
 	}
 
 	/**
+	 * Malformed `_two_factor_provider` meta (array or object) must not fatal when the
+	 * primary provider is resolved; resolution fails closed to an available provider.
+	 *
+	 * @see https://github.com/WordPress/two-factor/issues/944
+	 *
+	 * @covers Two_Factor_Core::get_primary_provider_for_user
+	 * @covers Two_Factor_Core::get_primary_provider_key_selected_for_user
+	 *
+	 * @dataProvider data_malformed_primary_provider_meta
+	 *
+	 * @param mixed $malformed Malformed stored primary-provider value.
+	 */
+	public function test_get_primary_provider_for_user_handles_malformed_primary_meta( $malformed ) {
+		$user = new WP_User( self::factory()->user->create() );
+
+		// Two available providers are needed to reach the stored-primary lookup; with only one,
+		// resolution short-circuits to that provider and never touches the malformed value.
+		Two_Factor_Totp::get_instance()->set_user_totp_key( $user->ID, 'foo' );
+		Two_Factor_Core::enable_provider_for_user( $user->ID, 'Two_Factor_Totp' );
+		Two_Factor_Core::enable_provider_for_user( $user->ID, 'Two_Factor_Email' );
+
+		$this->assertCount( 2, Two_Factor_Core::get_available_providers_for_user( $user ), 'Two providers are available.' );
+
+		update_user_meta( $user->ID, Two_Factor_Core::PROVIDER_USER_META_KEY, $malformed );
+
+		$provider = Two_Factor_Core::get_primary_provider_for_user( $user->ID );
+
+		$this->assertNotWPError( $provider, 'Malformed primary meta does not surface an error.' );
+		$this->assertInstanceOf( Two_Factor_Provider::class, $provider, 'Resolution falls back to an available provider.' );
+		$this->assertContains(
+			$provider->get_key(),
+			array( 'Two_Factor_Totp', 'Two_Factor_Email' ),
+			'The fallback is one of the available providers.'
+		);
+	}
+
+	/**
+	 * Data provider of malformed non-scalar primary-provider meta values.
+	 *
+	 * @return array[]
+	 */
+	public function data_malformed_primary_provider_meta() {
+		return array(
+			'array'        => array( array( 'Two_Factor_Totp' ) ),
+			'nested array' => array( array( array( 'Two_Factor_Totp' ) ) ),
+			'object'       => array( (object) array( 'key' => 'Two_Factor_Totp' ) ),
+		);
+	}
+
+	/**
+	 * Malformed `_two_factor_enabled_providers` meta (scalar or object) must not fatal
+	 * when enabled providers are resolved; it normalizes to an empty list.
+	 *
+	 * @see https://github.com/WordPress/two-factor/issues/941
+	 *
+	 * @covers Two_Factor_Core::get_enabled_providers_for_user
+	 *
+	 * @dataProvider data_malformed_enabled_providers_meta
+	 *
+	 * @param mixed $malformed Malformed stored enabled-providers value.
+	 */
+	public function test_get_enabled_providers_for_user_handles_malformed_stored_meta( $malformed ) {
+		$user = new WP_User( self::factory()->user->create() );
+
+		update_user_meta( $user->ID, Two_Factor_Core::ENABLED_PROVIDERS_USER_META_KEY, $malformed );
+
+		$enabled = Two_Factor_Core::get_enabled_providers_for_user( $user->ID );
+
+		$this->assertIsArray( $enabled, 'Enabled providers resolve to an array.' );
+		$this->assertEmpty( $enabled, 'A malformed stored value yields no enabled providers.' );
+	}
+
+	/**
+	 * Data provider of malformed enabled-providers meta values.
+	 *
+	 * @return array[]
+	 */
+	public function data_malformed_enabled_providers_meta() {
+		return array(
+			'string'  => array( 'Two_Factor_Email' ),
+			'integer' => array( 12345 ),
+			'object'  => array( (object) array( 'x' => 1 ) ),
+		);
+	}
+
+	/**
 	 * Verify not-logged-in-user is using two facator.
 	 *
 	 * @covers Two_Factor_Core::is_user_using_two_factor
@@ -610,6 +696,288 @@ class Test_ClassTwoFactorCore extends WP_UnitTestCase {
 				)
 			)
 		);
+	}
+
+	/**
+	 * Verify that login_url() adds the passed parameters to the resulting
+	 * URL exactly as expected — and only when they are present.
+	 *
+	 * Each data set is a pair of (params, expected exact URL).
+	 *
+	 * @covers Two_Factor_Core::login_url
+	 * @dataProvider data_login_url_with_params
+	 *
+	 * @param array  $params         Query args to pass.
+	 * @param string $expected_url   The exact URL expected back.
+	 */
+	public function test_login_url_with_params( $params, $expected_url ) {
+		$this->assertSame( $expected_url, Two_Factor_Core::login_url( $params ) );
+	}
+
+	/**
+	 * Data provider for test_login_url_with_params.
+	 *
+	 * Note: values are encoded by login_url() itself, so the expected URLs
+	 * contain the encoded form of each value.
+	 *
+	 * @return array[]
+	 */
+	public function data_login_url_with_params() {
+		// Derive the base from core's wp_login_url() so the test is portable
+		// across environments and follows the same filter chain as login_url().
+		$base = wp_login_url();
+
+		return array(
+			'no params'                  => array(
+				array(),
+				$base,
+			),
+			'action only'                => array(
+				array( 'action' => 'validate_2fa' ),
+				$base . '?action=validate_2fa',
+			),
+			'redirect_to only'           => array(
+				array( 'redirect_to' => 'https://example.org/wp-admin/' ),
+				$base . '?redirect_to=https%3A%2F%2Fexample.org%2Fwp-admin%2F',
+			),
+			'action and redirect_to'     => array(
+				array(
+					'action'      => 'validate_2fa',
+					'redirect_to' => 'https://example.org/wp-admin/',
+				),
+				$base . '?action=validate_2fa&redirect_to=https%3A%2F%2Fexample.org%2Fwp-admin%2F',
+			),
+			'redirect_to with own query' => array(
+				array( 'redirect_to' => 'https://example.org/target/?foo=1&bar=2' ),
+				$base . '?redirect_to=https%3A%2F%2Fexample.org%2Ftarget%2F%3Ffoo%3D1%26bar%3D2',
+			),
+			'values with special chars'  => array(
+				array(
+					'wp_nonce' => 'abc123',
+					'token'    => 'a b+c/d=',
+				),
+				$base . '?wp_nonce=abc123&token=a+b%2Bc%2Fd%3D',
+			),
+			'rememberme and provider'    => array(
+				array(
+					'rememberme' => '1',
+					'provider'   => 'Two_Factor_Backup_Codes',
+				),
+				$base . '?rememberme=1&provider=Two_Factor_Backup_Codes',
+			),
+			'params order is preserved'  => array(
+				array(
+					'provider' => 'Two_Factor_Email',
+					'wp_nonce' => 'abc123',
+				),
+				$base . '?provider=Two_Factor_Email&wp_nonce=abc123',
+			),
+		);
+	}
+
+	/**
+	 * Verify the login URL includes redirect_to only when passed.
+	 *
+	 * @covers Two_Factor_Core::login_url
+	 */
+	public function test_login_url_adds_redirect_to_when_present() {
+		$redirect_to = 'https://example.org/some/target/?foo=1';
+
+		$url = Two_Factor_Core::login_url(
+			array(
+				'action'      => 'validate_2fa',
+				'redirect_to' => $redirect_to,
+			)
+		);
+
+		$this->assertStringContainsString( 'wp-login.php', $url );
+		$this->assertStringContainsString( 'action=validate_2fa', $url );
+		$this->assertStringContainsString( 'redirect_to=' . rawurlencode( $redirect_to ), $url );
+
+		// Without params, no redirect_to should be present.
+		$this->assertStringNotContainsString( 'redirect_to', Two_Factor_Core::login_url() );
+	}
+
+	/**
+	 * Call the private get_login_redirect_fallback() via reflection.
+	 *
+	 * @param string  $redirect_to The requested redirect destination.
+	 * @param WP_User $user        The user to decide the fallback for.
+	 * @return string The final redirect destination.
+	 */
+	private function call_login_redirect_fallback( $redirect_to, WP_User $user ) {
+		$method = new ReflectionMethod( Two_Factor_Core::class, 'get_login_redirect_fallback' );
+		if ( PHP_VERSION_ID < 80100 ) {
+			$method->setAccessible( true );
+		}
+		return $method->invoke( null, $redirect_to, $user );
+	}
+
+	/**
+	 * Verify that the post-2FA redirect mirrors the wp-login.php decision.
+	 *
+	 * @covers Two_Factor_Core::get_login_redirect_fallback
+	 * @dataProvider data_get_login_redirect_fallback
+	 *
+	 * @param string $redirect_to The requested redirect destination.
+	 * @param string $role        The role to create the test user with.
+	 * @param string $expected    The expected final redirect destination.
+	 */
+	public function test_get_login_redirect_fallback( $redirect_to, $role, $expected ) {
+		$user_id = self::factory()->user->create( array( 'role' => $role ) );
+		$user    = new WP_User( $user_id );
+
+		$this->assertSame( $expected, $this->call_login_redirect_fallback( $redirect_to, $user ) );
+	}
+
+	/**
+	 * Data provider for test_get_login_redirect_fallback.
+	 *
+	 * Mirrors the capability-based fallback from wp-login.php.
+	 *
+	 * @return array[]
+	 */
+	public function data_get_login_redirect_fallback() {
+		return array(
+			'author, empty redirect'         => array(
+				'',
+				'author',
+				admin_url(),
+			),
+			'subscriber, empty redirect'     => array(
+				'',
+				'subscriber',
+				admin_url( 'profile.php' ),
+			),
+			'subscriber, wp-admin/ redirect' => array(
+				'wp-admin/',
+				'subscriber',
+				'wp-admin/',
+			),
+			'subscriber, plain admin URL'    => array(
+				admin_url(),
+				'subscriber',
+				admin_url(),
+			),
+			'author, custom URL kept'        => array(
+				'https://example.org/custom/',
+				'author',
+				'https://example.org/custom/',
+			),
+		);
+	}
+
+	/**
+	 * Verify that users without the read capability are sent to the front end.
+	 *
+	 * @covers Two_Factor_Core::get_login_redirect_fallback
+	 */
+	public function test_get_login_redirect_fallback_without_read_cap() {
+		$user_id = self::factory()->user->create( array( 'role' => 'subscriber' ) );
+		$user    = new WP_User( $user_id );
+
+		// Strip the role-granted read capability for this check.
+		$strip_read = static function ( $caps ) {
+			unset( $caps['read'] );
+			return $caps;
+		};
+		add_filter( 'user_has_cap', $strip_read );
+
+		$result = $this->call_login_redirect_fallback( '', $user );
+
+		remove_filter( 'user_has_cap', $strip_read );
+
+		// Core sends users without the read capability to the front end on
+		// single site, and to their network dashboard on multisite.
+		if ( is_multisite() ) {
+			$this->assertSame( get_dashboard_url( $user_id ), $result );
+		} else {
+			$this->assertSame( home_url(), $result );
+		}
+	}
+
+	/**
+	 * Verify that a successful 2FA validation with no redirect_to uses the
+	 * wp-login.php capability-based fallback for the final destination.
+	 *
+	 * @covers Two_Factor_Core::validate_login_form_2fa
+	 */
+	public function test_validate_2fa_redirect_uses_login_redirect_fallback() {
+		// get_dummy_user() creates a subscriber: no edit_posts, but read.
+		$user        = $this->get_dummy_user( array( 'Two_Factor_Dummy' => 'Two_Factor_Dummy' ) );
+		$login_nonce = Two_Factor_Core::create_login_nonce( $user->ID );
+		$this->assertNotFalse( $login_nonce );
+
+		$redirect_url = $this->do_redirect_callable(
+			function () use ( $user, $login_nonce ) {
+				Two_Factor_Core::validate_login_form_2fa( $user, $login_nonce['key'], 'Two_Factor_Dummy', '', true );
+			}
+		);
+
+		$this->assertSame( admin_url( 'profile.php' ), $redirect_url, 'A subscriber should be sent to their profile, mirroring core.' );
+
+		$this->clean_dummy_user();
+	}
+
+	/**
+	 * Verify that the core login_redirect filter decides the final destination
+	 * after 2FA, even when no redirect_to was passed.
+	 *
+	 * @covers Two_Factor_Core::validate_login_form_2fa
+	 */
+	public function test_validate_2fa_redirect_respects_login_redirect_filter() {
+		$custom_destination = 'https://example.org/custom-destination/';
+
+		add_filter(
+			'login_redirect',
+			static function () use ( $custom_destination ) {
+				return $custom_destination;
+			},
+			10,
+			3
+		);
+
+		$user        = $this->get_dummy_user( array( 'Two_Factor_Dummy' => 'Two_Factor_Dummy' ) );
+		$login_nonce = Two_Factor_Core::create_login_nonce( $user->ID );
+		$this->assertNotFalse( $login_nonce );
+
+		$redirect_url = $this->do_redirect_callable(
+			function () use ( $user, $login_nonce ) {
+				Two_Factor_Core::validate_login_form_2fa( $user, $login_nonce['key'], 'Two_Factor_Dummy', '', true );
+			}
+		);
+
+		remove_all_filters( 'login_redirect' );
+
+		$this->assertSame( $custom_destination, $redirect_url, 'The login_redirect filter should decide the destination.' );
+
+		$this->clean_dummy_user();
+	}
+
+	/**
+	 * Verify that revalidation without redirect_to uses the wp-login.php
+	 * capability-based fallback for the final destination.
+	 *
+	 * @covers Two_Factor_Core::revalidate_login_form_2fa
+	 */
+	public function test_revalidate_2fa_redirect_uses_login_redirect_fallback() {
+		// get_dummy_user() creates a subscriber: no edit_posts, but read.
+		$user = $this->get_dummy_user( array( 'Two_Factor_Dummy' => 'Two_Factor_Dummy' ) );
+
+		wp_set_current_user( $user->ID );
+		wp_set_auth_cookie( $user->ID );
+
+		$login_nonce = wp_create_nonce( 'two_factor_revalidate_' . $user->ID );
+
+		$redirect_url = $this->do_redirect_callable(
+			function () use ( $login_nonce ) {
+				Two_Factor_Core::revalidate_login_form_2fa( $login_nonce, 'Two_Factor_Dummy', '', true );
+			}
+		);
+
+		$this->assertSame( admin_url( 'profile.php' ), $redirect_url, 'A subscriber should be sent to their profile, mirroring core.' );
+
+		$this->clean_dummy_user();
 	}
 
 	/**
@@ -1260,6 +1628,135 @@ class Test_ClassTwoFactorCore extends WP_UnitTestCase {
 	}
 
 	/**
+	 * Test that email resend requests are blocked while rate limited.
+	 *
+	 * @covers Two_Factor_Core::process_provider()
+	 */
+	public function test_process_provider_blocks_email_resend_while_rate_limited() {
+		$user     = $this->get_dummy_user( array( 'Two_Factor_Email' => 'Two_Factor_Email' ) );
+		$provider = Two_Factor_Email::get_instance();
+
+		$provider->generate_token( $user->ID );
+
+		update_user_meta( $user->ID, Two_Factor_Core::USER_FAILED_LOGIN_ATTEMPTS_KEY, 1 );
+		update_user_meta( $user->ID, Two_Factor_Core::USER_RATE_LIMIT_KEY, time() );
+
+		$_REQUEST[ Two_Factor_Email::INPUT_NAME_RESEND_CODE ] = 1;
+
+		$result = Two_Factor_Core::process_provider( $provider, $user, true );
+
+		unset( $_REQUEST[ Two_Factor_Email::INPUT_NAME_RESEND_CODE ] );
+
+		$this->assertWPError( $result );
+		$this->assertSame( 'two_factor_too_fast', $result->get_error_code() );
+		$this->assertTrue( $provider->user_has_token( $user->ID ), 'Token is preserved when resend is blocked, to prevent auto-send on form re-render' );
+	}
+
+	/**
+	 * Test that rate limiting preserves the email token on validation attempts.
+	 *
+	 * @covers Two_Factor_Core::process_provider()
+	 */
+	public function test_process_provider_preserves_email_token_when_rate_limited() {
+		$user     = $this->get_dummy_user( array( 'Two_Factor_Email' => 'Two_Factor_Email' ) );
+		$provider = Two_Factor_Email::get_instance();
+
+		$provider->generate_token( $user->ID );
+
+		$this->assertTrue( $provider->user_has_token( $user->ID ), 'Token exists before rate limiting' );
+
+		// Simulate a rate-limited state.
+		update_user_meta( $user->ID, Two_Factor_Core::USER_FAILED_LOGIN_ATTEMPTS_KEY, 3 );
+		update_user_meta( $user->ID, Two_Factor_Core::USER_RATE_LIMIT_KEY, time() );
+
+		$result = Two_Factor_Core::process_provider( $provider, $user, true );
+
+		$this->assertWPError( $result );
+		$this->assertSame( 'two_factor_too_fast', $result->get_error_code() );
+		$this->assertTrue( $provider->user_has_token( $user->ID ), 'Token is preserved when rate limited to avoid triggering re-send on form re-render' );
+	}
+
+	/**
+	 * Test that switching providers while rate-limited preserves the email token.
+	 *
+	 * If a user fails on TOTP triggering rate limiting, then switches back
+	 * to email, the rate-limit gate should preserve the email token.
+	 *
+	 * @covers Two_Factor_Core::process_provider()
+	 */
+	public function test_process_provider_preserves_email_token_on_provider_switch_while_rate_limited() {
+		$user           = $this->get_dummy_user( array( 'Two_Factor_Email' => 'Two_Factor_Email' ) );
+		$email_provider = Two_Factor_Email::get_instance();
+
+		// Generate an email token.
+		$email_provider->generate_token( $user->ID );
+		$this->assertTrue( $email_provider->user_has_token( $user->ID ), 'Email token exists before TOTP failures' );
+
+		// Simulate rate-limited state from TOTP failures.
+		update_user_meta( $user->ID, Two_Factor_Core::USER_FAILED_LOGIN_ATTEMPTS_KEY, 5 );
+		update_user_meta( $user->ID, Two_Factor_Core::USER_RATE_LIMIT_KEY, time() );
+
+		// User switches back to email provider while rate-limited.
+		$result = Two_Factor_Core::process_provider( $email_provider, $user, true );
+
+		$this->assertWPError( $result );
+		$this->assertSame( 'two_factor_too_fast', $result->get_error_code() );
+		$this->assertTrue( $email_provider->user_has_token( $user->ID ), 'Email token is preserved when rate-limited via another provider' );
+	}
+
+	/**
+	 * Test that GET requests pass through without rate-limit side effects.
+	 *
+	 * Page reloads should not trigger rate limiting, token deletion, or
+	 * error messages — even when the user is rate-limited.
+	 *
+	 * @covers Two_Factor_Core::process_provider()
+	 */
+	public function test_process_provider_get_request_bypasses_rate_limit() {
+		$user     = $this->get_dummy_user( array( 'Two_Factor_Email' => 'Two_Factor_Email' ) );
+		$provider = Two_Factor_Email::get_instance();
+
+		$provider->generate_token( $user->ID );
+
+		$this->assertTrue( $provider->user_has_token( $user->ID ), 'Token exists before GET request' );
+
+		// Simulate a rate-limited state.
+		update_user_meta( $user->ID, Two_Factor_Core::USER_FAILED_LOGIN_ATTEMPTS_KEY, 3 );
+		update_user_meta( $user->ID, Two_Factor_Core::USER_RATE_LIMIT_KEY, time() );
+
+		// GET request (is_post_request = false).
+		$result = Two_Factor_Core::process_provider( $provider, $user, false );
+
+		$this->assertFalse( $result, 'GET request returns false, not WP_Error' );
+		$this->assertTrue( $provider->user_has_token( $user->ID ), 'Token survives GET request while rate-limited' );
+	}
+
+	/**
+	 * Test that rate limiting applies during the revalidation flow.
+	 *
+	 * @covers Two_Factor_Core::process_provider()
+	 */
+	public function test_process_provider_rate_limits_revalidation() {
+		$user     = $this->get_dummy_user( array( 'Two_Factor_Email' => 'Two_Factor_Email' ) );
+		$provider = Two_Factor_Email::get_instance();
+
+		$provider->generate_token( $user->ID );
+
+		$this->assertTrue( $provider->user_has_token( $user->ID ), 'Token exists before revalidation' );
+
+		// Simulate rate-limited state from prior failures.
+		update_user_meta( $user->ID, Two_Factor_Core::USER_FAILED_LOGIN_ATTEMPTS_KEY, 3 );
+		update_user_meta( $user->ID, Two_Factor_Core::USER_RATE_LIMIT_KEY, time() );
+
+		// Revalidation is also a POST through process_provider.
+		$result = Two_Factor_Core::process_provider( $provider, $user, true );
+
+		$this->assertWPError( $result );
+		$this->assertSame( 'two_factor_too_fast', $result->get_error_code() );
+		$this->assertTrue( $provider->user_has_token( $user->ID ), 'Token is preserved during rate-limited revalidation' );
+	}
+
+	/**
 	 * Test that the "invalid login attempts have occurred" login notice works as expected.
 	 *
 	 * @covers Two_Factor_Core::maybe_show_last_login_failure_notice()
@@ -1706,6 +2203,118 @@ class Test_ClassTwoFactorCore extends WP_UnitTestCase {
 	}
 
 	/**
+	 * Validate that configuring a provider flags the current session as two-factor.
+	 *
+	 * @covers Two_Factor_Core::maybe_mark_current_session_two_factor()
+	 */
+	public function test_maybe_mark_current_session_two_factor() {
+		$user = self::factory()->user->create_and_get();
+
+		wp_set_current_user( $user->ID );
+		wp_set_auth_cookie( $user->ID );
+
+		// The session is not two-factor yet, and the user has no provider.
+		$this->assertFalse( Two_Factor_Core::is_current_user_session_two_factor() );
+		$this->assertFalse( Two_Factor_Core::maybe_mark_current_session_two_factor( $user->ID, 'Two_Factor_Dummy' ) );
+
+		// Enable the provider outside of the user's own session, since enabling a
+		// provider for the current user flags their session on its own.
+		wp_set_current_user( 0 );
+		Two_Factor_Core::enable_provider_for_user( $user->ID, 'Two_Factor_Dummy' );
+
+		wp_set_current_user( $user->ID );
+		wp_set_auth_cookie( $user->ID );
+
+		$this->assertTrue( Two_Factor_Core::maybe_mark_current_session_two_factor( $user->ID, 'Two_Factor_Dummy' ) );
+
+		$session = Two_Factor_Core::get_current_user_session();
+		$this->assertArrayHasKey( 'two-factor-login', $session );
+		$this->assertEquals( 'Two_Factor_Dummy', $session['two-factor-provider'] );
+		$this->assertGreaterThan( time() - MINUTE_IN_SECONDS, $session['two-factor-login'] );
+
+		// The user can now update their settings without revalidating.
+		$this->assertTrue( Two_Factor_Core::current_user_can_update_two_factor_options() );
+		$this->assertTrue( Two_Factor_Core::current_user_can_update_two_factor_options( 'save' ) );
+	}
+
+	/**
+	 * Validate that enabling a provider for the current user flags their session
+	 * as two-factor without recording a validated provider.
+	 *
+	 * @covers Two_Factor_Core::enable_provider_for_user()
+	 * @covers Two_Factor_Core::maybe_mark_current_session_two_factor()
+	 */
+	public function test_enable_provider_for_user_marks_current_session_two_factor() {
+		$user = self::factory()->user->create_and_get();
+
+		wp_set_current_user( $user->ID );
+		wp_set_auth_cookie( $user->ID );
+
+		$this->assertFalse( Two_Factor_Core::is_current_user_session_two_factor() );
+
+		Two_Factor_Core::enable_provider_for_user( $user->ID, 'Two_Factor_Dummy' );
+
+		$session = Two_Factor_Core::get_current_user_session();
+		$this->assertArrayHasKey( 'two-factor-login', $session );
+		$this->assertGreaterThan( time() - MINUTE_IN_SECONDS, $session['two-factor-login'] );
+
+		// No factor is validated by enabling a provider, so none is recorded.
+		$this->assertEquals( '', $session['two-factor-provider'] );
+
+		// The user can now update their settings without revalidating.
+		$this->assertTrue( Two_Factor_Core::current_user_can_update_two_factor_options() );
+		$this->assertTrue( Two_Factor_Core::current_user_can_update_two_factor_options( 'save' ) );
+	}
+
+	/**
+	 * Validate that another user's session is never flagged.
+	 *
+	 * @covers Two_Factor_Core::maybe_mark_current_session_two_factor()
+	 */
+	public function test_maybe_mark_current_session_two_factor_ignores_other_users() {
+		$current_user = self::factory()->user->create_and_get();
+		$other_user   = self::factory()->user->create_and_get();
+
+		wp_set_current_user( $current_user->ID );
+		wp_set_auth_cookie( $current_user->ID );
+
+		Two_Factor_Core::enable_provider_for_user( $other_user->ID, 'Two_Factor_Dummy' );
+
+		$this->assertFalse( Two_Factor_Core::maybe_mark_current_session_two_factor( $other_user->ID, 'Two_Factor_Dummy' ) );
+		$this->assertFalse( Two_Factor_Core::is_current_user_session_two_factor() );
+	}
+
+	/**
+	 * Validate that an existing two-factor session keeps its original timestamp.
+	 *
+	 * @covers Two_Factor_Core::maybe_mark_current_session_two_factor()
+	 */
+	public function test_maybe_mark_current_session_two_factor_keeps_existing_time() {
+		$user = self::factory()->user->create_and_get();
+
+		wp_set_current_user( $user->ID );
+		wp_set_auth_cookie( $user->ID );
+
+		Two_Factor_Core::enable_provider_for_user( $user->ID, 'Two_Factor_Dummy' );
+		Two_Factor_Core::update_current_user_session(
+			array(
+				'two-factor-provider' => 'Two_Factor_Dummy',
+				'two-factor-login'    => time() - HOUR_IN_SECONDS,
+			)
+		);
+
+		$existing_time = Two_Factor_Core::is_current_user_session_two_factor();
+
+		$this->assertFalse( Two_Factor_Core::maybe_mark_current_session_two_factor( $user->ID, 'Two_Factor_Dummy' ) );
+
+		// The grace period is not extended by a repeated setup request.
+		$this->assertEquals( $existing_time, Two_Factor_Core::is_current_user_session_two_factor() );
+
+		$session = Two_Factor_Core::get_current_user_session();
+		$this->assertEquals( 'Two_Factor_Dummy', $session['two-factor-provider'] );
+	}
+
+	/**
 	 * Validate that a non-2fa login doesn't set the session two-factor data.
 	 *
 	 * @covers Two_Factor_Core::is_current_user_session_two_factor()
@@ -1916,8 +2525,14 @@ class Test_ClassTwoFactorCore extends WP_UnitTestCase {
 		// Logged in, no 2FA setup.
 		$this->assertTrue( Two_Factor_Core::current_user_can_update_two_factor_options() );
 
-		// Manually setup 2FA, but not through the User Options API, such that the above session is not-2fa.
+		// Manually setup 2FA, but not through the User Options API, such that the
+		// next session below is not-2fa. Enabling a provider for the current user
+		// flags their session on its own, so this happens before the session starts.
+		wp_set_current_user( 0 );
 		Two_Factor_Core::enable_provider_for_user( $user->ID, 'Two_Factor_Dummy' );
+
+		wp_set_current_user( $user->ID );
+		wp_set_auth_cookie( $user->ID );
 
 		// Logged in, user has 2FA, session has no 2FA.
 		$this->assertFalse( Two_Factor_Core::current_user_can_update_two_factor_options() );
@@ -2584,6 +3199,13 @@ class Test_ClassTwoFactorCore extends WP_UnitTestCase {
 
 		// Test with admin editing another user.
 		$admin_id = self::factory()->user->create( array( 'role' => 'administrator' ) );
+
+		// On multisite, `edit_users` is reserved for network super admins, so a
+		// plain site administrator cannot edit another user.
+		if ( is_multisite() ) {
+			grant_super_admin( $admin_id );
+		}
+
 		wp_set_current_user( $admin_id );
 		$_REQUEST['user_id'] = $user_id;
 
@@ -3121,6 +3743,28 @@ class Test_ClassTwoFactorCore extends WP_UnitTestCase {
 	}
 
 	/**
+	 * Verify the rate-limit error message does not use alarming language.
+	 *
+	 * "ERROR:" and "automated attacks" are alarming to a legitimate user who
+	 * simply mistyped their code. The message should be calm and actionable.
+	 *
+	 * @covers Two_Factor_Core::process_provider
+	 */
+	public function test_rate_limit_error_message_is_calm_and_actionable() {
+		$user     = self::factory()->user->create_and_get();
+		$provider = Two_Factor_Dummy::get_instance();
+
+		update_user_meta( $user->ID, Two_Factor_Core::USER_FAILED_LOGIN_ATTEMPTS_KEY, 1 );
+		update_user_meta( $user->ID, Two_Factor_Core::USER_RATE_LIMIT_KEY, time() );
+
+		$result  = Two_Factor_Core::process_provider( $provider, $user, true );
+		$message = $result->get_error_message();
+
+		$this->assertStringNotContainsString( 'ERROR:', $message, 'Rate-limit message must not use the ERROR: prefix' );
+		$this->assertStringNotContainsString( 'automated attacks', $message, 'Rate-limit message must not mention automated attacks' );
+	}
+
+	/**
 	 * Verify process_provider() returns WP_Error and increments the failed-attempts
 	 * counter when authentication fails.
 	 *
@@ -3203,12 +3847,14 @@ class Test_ClassTwoFactorCore extends WP_UnitTestCase {
 	 */
 	public function test_rest_api_can_edit_user_revalidation_required() {
 		$user = self::factory()->user->create_and_get();
+
+		// Enable 2FA before the user's session starts, so the session carries no
+		// two-factor metadata and current_user_can_update_two_factor_options( 'save' )
+		// returns false. Enabling for the current user would flag their session.
+		Two_Factor_Core::enable_provider_for_user( $user->ID, 'Two_Factor_Dummy' );
+
 		wp_set_current_user( $user->ID );
 		wp_set_auth_cookie( $user->ID );
-
-		// Enable 2FA, but the session carries no two-factor metadata →
-		// current_user_can_update_two_factor_options( 'save' ) returns false.
-		Two_Factor_Core::enable_provider_for_user( $user->ID, 'Two_Factor_Dummy' );
 
 		$result = Two_Factor_Core::rest_api_can_edit_user_and_update_two_factor_options( $user->ID );
 
