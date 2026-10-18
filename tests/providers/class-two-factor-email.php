@@ -529,6 +529,18 @@ class Tests_Two_Factor_Email extends WP_UnitTestCase {
 	}
 
 	/**
+	 * Verify privacy_eraser_user_meta_keys returns both short-lived keys.
+	 *
+	 * @covers Two_Factor_Email::privacy_eraser_user_meta_keys
+	 */
+	public function test_privacy_eraser_user_meta_keys() {
+		$this->assertSame(
+			array( Two_Factor_Email::TOKEN_META_KEY, Two_Factor_Email::TOKEN_META_KEY_TIMESTAMP ),
+			Two_Factor_Email::privacy_eraser_user_meta_keys()
+		);
+	}
+
+	/**
 	 * Verify privacy_export_data reports nothing for a user without a token.
 	 *
 	 * @covers Two_Factor_Email::privacy_export_data

@@ -158,8 +158,9 @@ class Two_Factor_Core {
 		add_action( 'admin_init', array( __CLASS__, 'trigger_user_settings_action' ) );
 		add_action( 'admin_init', array( __CLASS__, 'add_privacy_policy_content' ) );
 
-		// Personal data export tool.
+		// Personal data export and erasure tools.
 		add_filter( 'wp_privacy_personal_data_exporters', array( __CLASS__, 'register_personal_data_exporter' ) );
+		add_filter( 'wp_privacy_personal_data_erasers', array( __CLASS__, 'register_personal_data_eraser' ) );
 
 		add_filter( 'two_factor_providers', array( __CLASS__, 'enable_dummy_method_for_debug' ) );
 
@@ -2986,6 +2987,23 @@ class Two_Factor_Core {
 	}
 
 	/**
+	 * Registers the personal data eraser.
+	 *
+	 * @since 0.18.0
+	 *
+	 * @param array $erasers List of personal data erasers.
+	 * @return array
+	 */
+	public static function register_personal_data_eraser( $erasers ) {
+		$erasers['two-factor'] = array(
+			'eraser_friendly_name' => __( 'Two Factor Authentication Data', 'two-factor' ),
+			'callback'             => array( __CLASS__, 'personal_data_eraser' ),
+		);
+
+		return $erasers;
+	}
+
+	/**
 	 * Exports the Two Factor data stored for a user.
 	 *
 	 * Credentials are described, never included. The TOTP secret, the backup
@@ -3136,11 +3154,102 @@ class Two_Factor_Core {
 	}
 
 	/**
-	 * Get all registered providers for the personal data exporter.
+	 * Erases the Two Factor data stored for a user.
+	 *
+	 * Only the short-lived records are removed. The authentication credentials
+	 * are kept, because the erasure tool does not delete the user account and
+	 * removing the credentials would leave it protected by a password only.
+	 * The login protection records are kept too. They drive the brute force
+	 * backoff and the forced password reset, and are cleared by a successful
+	 * Two Factor login or a new password.
+	 *
+	 * @since 0.18.0
+	 *
+	 * @param string $email_address The email address of the user.
+	 * @param int    $page          The page of data being processed.
+	 * @return array
+	 */
+	public static function personal_data_eraser( $email_address, $page = 1 ) { // phpcs:ignore Generic.CodeAnalysis.UnusedFunctionParameter.FoundAfterLastUsed -- Pagination is not needed, all data fits on one page.
+		$user = get_user_by( 'email', $email_address );
+
+		if ( ! $user ) {
+			return array(
+				'items_removed'  => false,
+				'items_retained' => false,
+				'messages'       => array(),
+				'done'           => true,
+			);
+		}
+
+		$meta_keys = array(
+			self::USER_META_NONCE_KEY,
+		);
+
+		$retained_keys = array(
+			self::PROVIDER_USER_META_KEY,
+			self::ENABLED_PROVIDERS_USER_META_KEY,
+			self::USER_RATE_LIMIT_KEY,
+			self::USER_FAILED_LOGIN_ATTEMPTS_KEY,
+			self::USER_PASSWORD_WAS_RESET_KEY,
+		);
+
+		foreach ( self::get_privacy_providers() as $provider ) {
+			$eraser_keys = $provider::privacy_eraser_user_meta_keys();
+
+			$meta_keys = array_merge( $meta_keys, $eraser_keys );
+
+			// Credentials the provider keeps are disclosed as retained.
+			$retained_keys = array_merge(
+				$retained_keys,
+				array_diff( $provider::uninstall_user_meta_keys(), $eraser_keys )
+			);
+		}
+
+		$items_removed = false;
+		foreach ( array_unique( $meta_keys ) as $meta_key ) {
+			if ( delete_user_meta( $user->ID, $meta_key ) ) {
+				$items_removed = true;
+			}
+		}
+
+		$items_retained = false;
+		foreach ( array_unique( $retained_keys ) as $meta_key ) {
+			if ( get_user_meta( $user->ID, $meta_key, true ) ) {
+				$items_retained = true;
+				break;
+			}
+		}
+
+		// The Two Factor details of active sessions are kept with the sessions.
+		$sessions = get_user_meta( $user->ID, 'session_tokens', true );
+		if ( ! $items_retained && is_array( $sessions ) ) {
+			foreach ( $sessions as $session ) {
+				if ( ! empty( $session['two-factor-login'] ) ) {
+					$items_retained = true;
+					break;
+				}
+			}
+		}
+
+		$messages = array();
+		if ( $items_retained ) {
+			$messages[] = __( 'Two Factor credentials, login protection records and session details were retained because erasing them would weaken the security of an account that still exists. They are removed when the user account is deleted.', 'two-factor' );
+		}
+
+		return array(
+			'items_removed'  => $items_removed,
+			'items_retained' => $items_retained,
+			'messages'       => $messages,
+			'done'           => true,
+		);
+	}
+
+	/**
+	 * Get all registered providers for the personal data exporter and eraser.
 	 *
 	 * Same as get_providers(), but providers that are disabled in the
 	 * site-wide settings are not removed from the list. Data stored for a
-	 * user must be exported even while its provider is disabled.
+	 * user must be exported and erased even while its provider is disabled.
 	 *
 	 * @since 0.18.0
 	 *
@@ -3173,7 +3282,7 @@ class Two_Factor_Core {
 	}
 
 	/**
-	 * Formats a timestamp for the export report.
+	 * Formats a timestamp for the export and erasure reports.
 	 *
 	 * @since 0.18.0
 	 *
