@@ -4443,6 +4443,36 @@ class Test_ClassTwoFactorCore extends WP_UnitTestCase {
 	}
 
 	/**
+	 * Verify the eraser processes the keys of a custom provider that is
+	 * registered before the site-wide setting filter and disabled there.
+	 *
+	 * @covers Two_Factor_Core::personal_data_eraser
+	 */
+	public function test_personal_data_eraser_covers_site_disabled_custom_providers() {
+		require_once __DIR__ . '/class-two-factor-privacy-provider.php';
+
+		$register_provider = function ( $providers ) {
+			$providers['Two_Factor_Privacy_Provider'] = __DIR__ . '/class-two-factor-privacy-provider.php';
+			return $providers;
+		};
+		add_filter( 'two_factor_providers', $register_provider, 5 );
+		update_option( Two_Factor_Core::ENABLED_PROVIDERS_OPTION_KEY, array( 'Two_Factor_Email' ) );
+
+		$this->assertArrayNotHasKey( 'Two_Factor_Privacy_Provider', Two_Factor_Core::get_providers() );
+
+		$user = self::factory()->user->create_and_get();
+		update_user_meta( $user->ID, Two_Factor_Privacy_Provider::TOKEN_META_KEY, 'token' );
+
+		$response = Two_Factor_Core::personal_data_eraser( $user->user_email );
+
+		remove_filter( 'two_factor_providers', $register_provider, 5 );
+
+		$this->assertTrue( $response['items_removed'] );
+		$this->assertEmpty( get_user_meta( $user->ID, Two_Factor_Privacy_Provider::TOKEN_META_KEY, true ) );
+		$this->assertSame( 10, has_filter( 'two_factor_providers', 'two_factor_filter_enabled_providers' ) );
+	}
+
+	/**
 	 * Verify format_privacy_timestamp() handles empty and set timestamps.
 	 *
 	 * @covers Two_Factor_Core::format_privacy_timestamp

@@ -3346,11 +3346,22 @@ class Two_Factor_Core {
 	private static function get_privacy_providers() {
 		$providers = self::get_default_providers();
 
+		// Skip the site-wide setting filter so that disabled custom providers
+		// are kept, while other registration filters still run.
+		$site_filter_priority = has_filter( 'two_factor_providers', 'two_factor_filter_enabled_providers' );
+		if ( false !== $site_filter_priority ) {
+			remove_filter( 'two_factor_providers', 'two_factor_filter_enabled_providers', $site_filter_priority );
+		}
+
 		/** This filter is documented in the get_providers() method */
 		$additional_providers = apply_filters( 'two_factor_providers', $providers );
 
-		// Merge them with the default providers so that providers removed
-		// by the site-wide setting are still included.
+		if ( false !== $site_filter_priority ) {
+			add_filter( 'two_factor_providers', 'two_factor_filter_enabled_providers', $site_filter_priority );
+		}
+
+		// Merge them with the default providers so that default providers
+		// removed by another filter are still included.
 		if ( ! empty( $additional_providers ) ) {
 			$providers = array_merge( $providers, $additional_providers );
 		}
