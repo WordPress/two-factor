@@ -153,21 +153,6 @@ jobs:
           max_attempts: 3
           command: npm run env start -- --xdebug=coverage
 
-      # wp-env pulls the PHPUnit library from wordpress-develop trunk whenever the core
-      # version has an -alpha suffix, which is the case between point releases on a
-      # branch (e.g. 7.1.4-alpha). Trunk tests can then need classes this branch does not
-      # have yet, so check out the matching wordpress-develop branch instead.
-      - name: Match the PHPUnit library to the WordPress branch
-        if: ${{ endsWith( matrix.wp, '-branch' ) }}
-        env:
-          WP_BRANCH: ${{ matrix.wp }}
-        run: |
-          BRANCH="${WP_BRANCH##*#}"
-          BRANCH="${BRANCH%-branch}"
-          PHPUNIT_DIR="$(npm run --silent env -- status --json | jq -r .installPath)/tests-WordPress-PHPUnit"
-          git -C "$PHPUNIT_DIR" fetch origin "$BRANCH" --depth 1
-          git -C "$PHPUNIT_DIR" checkout FETCH_HEAD
-
       - name: Composer install
         run: |
           rm composer.lock || true # We need to install fresh.
