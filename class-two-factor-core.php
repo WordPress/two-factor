@@ -3146,7 +3146,8 @@ class Two_Factor_Core {
 		foreach ( $providers as $provider ) {
 			$provider_data = $provider->privacy_export_data( $user );
 
-			if ( ! empty( $provider_data ) ) {
+			// A third-party override can return a non-array, which array_merge() rejects.
+			if ( ! empty( $provider_data ) && is_array( $provider_data ) ) {
 				$data = array_merge( $data, $provider_data );
 			}
 		}
@@ -3233,8 +3234,9 @@ class Two_Factor_Core {
 	 * Get all registered providers for the personal data exporter.
 	 *
 	 * Same as get_providers(), but providers that are disabled in the
-	 * site-wide settings are not removed from the list. Data stored for a
-	 * user must be exported even while its provider is disabled.
+	 * site-wide settings, including third-party ones, are not removed from
+	 * the list. Data stored for a user must be exported even while its
+	 * provider is disabled.
 	 *
 	 * @since 0.18.0
 	 *
@@ -3243,11 +3245,17 @@ class Two_Factor_Core {
 	private static function get_privacy_providers() {
 		$providers = self::get_default_providers();
 
+		// Read the site-wide setting as never saved, so that its filter keeps
+		// disabled providers, including third-party ones, in the list.
+		add_filter( 'pre_option_' . self::ENABLED_PROVIDERS_OPTION_KEY, '__return_null' );
+
 		/** This filter is documented in the get_providers() method */
 		$additional_providers = apply_filters( 'two_factor_providers', $providers );
 
-		// Merge them with the default providers so that providers removed
-		// by the site-wide setting are still included.
+		remove_filter( 'pre_option_' . self::ENABLED_PROVIDERS_OPTION_KEY, '__return_null' );
+
+		// Merge them with the default providers so that default providers
+		// removed by other filters are still included.
 		if ( ! empty( $additional_providers ) ) {
 			$providers = array_merge( $providers, $additional_providers );
 		}

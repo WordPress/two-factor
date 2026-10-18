@@ -4283,6 +4283,39 @@ class Test_ClassTwoFactorCore extends WP_UnitTestCase {
 	}
 
 	/**
+	 * Verify the exporter includes third-party providers that are disabled
+	 * in the site-wide settings, and keeps the site-wide filter in place.
+	 *
+	 * @covers Two_Factor_Core::personal_data_exporter
+	 */
+	public function test_personal_data_exporter_includes_site_disabled_third_party_providers() {
+		update_option( Two_Factor_Core::ENABLED_PROVIDERS_OPTION_KEY, array( 'Two_Factor_Email' ) );
+
+		// Register a third-party provider before the site-wide filter runs.
+		$add_provider = static function ( $providers ) {
+			$providers['Two_Factor_Third_Party'] = '';
+			return $providers;
+		};
+		$map_class    = static function () {
+			return 'Two_Factor_Dummy';
+		};
+		add_filter( 'two_factor_providers', $add_provider, 5 );
+		add_filter( 'two_factor_provider_classname_Two_Factor_Third_Party', $map_class );
+
+		$user = self::factory()->user->create_and_get();
+		update_user_meta( $user->ID, Two_Factor_Core::PROVIDER_USER_META_KEY, 'Two_Factor_Third_Party' );
+
+		$response = Two_Factor_Core::personal_data_exporter( $user->user_email );
+		$items    = wp_list_pluck( $response['data'][0]['data'], 'value', 'name' );
+
+		$this->assertSame( 'Dummy Method', $items['Primary Two Factor method'] );
+		$this->assertArrayNotHasKey( 'Two_Factor_Third_Party', Two_Factor_Core::get_providers() );
+
+		remove_filter( 'two_factor_providers', $add_provider, 5 );
+		remove_filter( 'two_factor_provider_classname_Two_Factor_Third_Party', $map_class );
+	}
+
+	/**
 	 * Verify format_privacy_timestamp() handles empty and set timestamps.
 	 *
 	 * @covers Two_Factor_Core::format_privacy_timestamp

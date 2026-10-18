@@ -588,11 +588,12 @@ class Two_Factor_Backup_Codes extends Two_Factor_Provider {
 	 * @return array
 	 */
 	public function privacy_export_data( $user ) {
-		$remaining = self::codes_remaining_for_user( $user );
-
-		if ( ! $remaining ) {
+		// The meta stays after the last code is used, so 0 remaining is still reported.
+		if ( ! metadata_exists( 'user', $user->ID, self::BACKUP_CODES_META_KEY ) ) {
 			return array();
 		}
+
+		$remaining = self::codes_remaining_for_user( $user );
 
 		return array(
 			array(

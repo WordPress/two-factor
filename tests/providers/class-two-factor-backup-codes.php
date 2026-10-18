@@ -411,4 +411,22 @@ class Tests_Two_Factor_Backup_Codes extends WP_UnitTestCase {
 			$this->assertStringNotContainsString( $hashed_code, $payload );
 		}
 	}
+
+	/**
+	 * Verify privacy_export_data still reports a user who used all codes.
+	 *
+	 * @covers Two_Factor_Backup_Codes::privacy_export_data
+	 */
+	public function test_privacy_export_data_with_all_codes_used() {
+		$user  = self::factory()->user->create_and_get();
+		$codes = $this->provider->generate_codes( $user, array( 'number' => 1 ) );
+
+		$this->assertTrue( $this->provider->validate_code( $user, $codes[0] ) );
+
+		$data = $this->provider->privacy_export_data( $user );
+
+		$this->assertCount( 1, $data );
+		$this->assertSame( 'Recovery codes', $data[0]['name'] );
+		$this->assertStringContainsString( '0 unused codes', $data[0]['value'] );
+	}
 }
