@@ -177,15 +177,6 @@ class Tests_Two_Factor_Provider extends WP_UnitTestCase {
 	}
 
 	/**
-	 * Verify the base privacy_eraser_user_meta_keys() returns an empty array.
-	 *
-	 * @covers Two_Factor_Provider::privacy_eraser_user_meta_keys
-	 */
-	public function test_privacy_eraser_user_meta_keys_base_returns_empty() {
-		$this->assertSame( array(), Two_Factor_Dummy::privacy_eraser_user_meta_keys() );
-	}
-
-	/**
 	 * Verify the base privacy_export_data() returns an empty array.
 	 *
 	 * @covers Two_Factor_Provider::privacy_export_data

@@ -904,23 +904,6 @@ class Two_Factor_Totp extends Two_Factor_Provider {
 	}
 
 	/**
-	 * Return the user meta keys that the personal data eraser should delete.
-	 *
-	 * Nothing is erased. The secret key is kept because erasing it would
-	 * disable the provider on an account that still exists. The last
-	 * successful login timestamp is kept with it because it still blocks
-	 * reuse of the most recent code, so erasing it would briefly weaken
-	 * replay protection. Both are reported as retained by the eraser.
-	 *
-	 * @since 0.18.0
-	 *
-	 * @return array
-	 */
-	public static function privacy_eraser_user_meta_keys() {
-		return array();
-	}
-
-	/**
 	 * Return the personal data stored for a user for the exporter.
 	 *
 	 * The secret key is never included, the credential is only described.

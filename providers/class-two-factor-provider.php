@@ -213,23 +213,6 @@ abstract class Two_Factor_Provider {
 	}
 
 	/**
-	 * Return the user meta keys that the personal data eraser should delete.
-	 *
-	 * Only keys holding short-lived data belong here. Keys holding credentials
-	 * are kept, because the erasure tool does not delete the user account and
-	 * removing them would leave the account protected by a password only.
-	 *
-	 * @since 0.18.0
-	 *
-	 * Note: this method doesn't have access to the instantiated provider object.
-	 *
-	 * @return array
-	 */
-	public static function privacy_eraser_user_meta_keys() {
-		return array();
-	}
-
-	/**
 	 * Return the personal data that the provider stores for a user.
 	 *
 	 * Returns name-value pairs for the personal data exporter. Secrets and

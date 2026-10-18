@@ -158,9 +158,8 @@ class Two_Factor_Core {
 		add_action( 'admin_init', array( __CLASS__, 'trigger_user_settings_action' ) );
 		add_action( 'admin_init', array( __CLASS__, 'add_privacy_policy_content' ) );
 
-		// Personal data export and erasure tools.
+		// Personal data export tool.
 		add_filter( 'wp_privacy_personal_data_exporters', array( __CLASS__, 'register_personal_data_exporter' ) );
-		add_filter( 'wp_privacy_personal_data_erasers', array( __CLASS__, 'register_personal_data_eraser' ) );
 
 		add_filter( 'two_factor_providers', array( __CLASS__, 'enable_dummy_method_for_debug' ) );
 
@@ -2987,23 +2986,6 @@ class Two_Factor_Core {
 	}
 
 	/**
-	 * Registers the personal data eraser.
-	 *
-	 * @since 0.18.0
-	 *
-	 * @param array $erasers List of personal data erasers.
-	 * @return array
-	 */
-	public static function register_personal_data_eraser( $erasers ) {
-		$erasers['two-factor'] = array(
-			'eraser_friendly_name' => __( 'Two Factor Authentication Data', 'two-factor' ),
-			'callback'             => array( __CLASS__, 'personal_data_eraser' ),
-		);
-
-		return $erasers;
-	}
-
-	/**
 	 * Exports the Two Factor data stored for a user.
 	 *
 	 * Credentials are described, never included. The TOTP secret, the backup
@@ -3026,13 +3008,19 @@ class Two_Factor_Core {
 			);
 		}
 
-		$data = array();
+		$providers = self::get_privacy_providers();
+		$data      = array();
 
 		$enabled_providers = get_user_meta( $user->ID, self::ENABLED_PROVIDERS_USER_META_KEY, true );
 		if ( $enabled_providers ) {
+			$enabled_labels = array();
+			foreach ( (array) $enabled_providers as $provider_key ) {
+				$enabled_labels[] = self::get_privacy_provider_label( $provider_key, $providers );
+			}
+
 			$data[] = array(
 				'name'  => __( 'Enabled Two Factor methods', 'two-factor' ),
-				'value' => implode( ', ', (array) $enabled_providers ),
+				'value' => implode( ', ', $enabled_labels ),
 			);
 		}
 
@@ -3040,7 +3028,7 @@ class Two_Factor_Core {
 		if ( $primary_provider ) {
 			$data[] = array(
 				'name'  => __( 'Primary Two Factor method', 'two-factor' ),
-				'value' => $primary_provider,
+				'value' => self::get_privacy_provider_label( $primary_provider, $providers ),
 			);
 		}
 
@@ -3060,7 +3048,14 @@ class Two_Factor_Core {
 			);
 		}
 
-		foreach ( self::get_privacy_providers() as $provider ) {
+		if ( get_user_meta( $user->ID, self::USER_PASSWORD_WAS_RESET_KEY, true ) ) {
+			$data[] = array(
+				'name'  => __( 'Password reset by Two Factor', 'two-factor' ),
+				'value' => __( 'The password was reset after too many failed Two Factor attempts. A new password must be created to log in.', 'two-factor' ),
+			);
+		}
+
+		foreach ( $providers as $provider ) {
 			$provider_data = $provider->privacy_export_data( $user );
 
 			if ( ! empty( $provider_data ) ) {
@@ -3068,110 +3063,84 @@ class Two_Factor_Core {
 			}
 		}
 
-		if ( empty( $data ) ) {
-			return array(
-				'data' => array(),
-				'done' => true,
+		$export_items = array();
+
+		if ( ! empty( $data ) ) {
+			$export_items[] = array(
+				'group_id'          => 'two-factor',
+				'group_label'       => __( 'Two Factor Authentication', 'two-factor' ),
+				'group_description' => __( 'Two Factor authentication data for the user.', 'two-factor' ),
+				'item_id'           => 'two-factor',
+				'data'              => $data,
+			);
+		}
+
+		// The core exporter skips the Two Factor session details. Using its
+		// group and item IDs merges them into the matching session.
+		$sessions = get_user_meta( $user->ID, 'session_tokens', true );
+		if ( ! is_array( $sessions ) ) {
+			$sessions = array();
+		}
+
+		foreach ( $sessions as $token_key => $session ) {
+			if ( empty( $session['two-factor-login'] ) ) {
+				continue;
+			}
+
+			$session_data = array(
+				array(
+					'name'  => __( 'Two Factor verified', 'two-factor' ),
+					'value' => self::format_privacy_timestamp( $session['two-factor-login'] ),
+				),
+			);
+
+			// Without a provider, Two Factor was enabled in this session and no code was entered.
+			$session_data[] = array(
+				'name'  => __( 'Two Factor method', 'two-factor' ),
+				'value' => empty( $session['two-factor-provider'] )
+					? __( 'None, Two Factor was enabled during this session', 'two-factor' )
+					: self::get_privacy_provider_label( $session['two-factor-provider'], $providers ),
+			);
+
+			$export_items[] = array(
+				'group_id'    => 'session-tokens',
+				'group_label' => __( 'Session Tokens', 'two-factor' ),
+				'item_id'     => "session-tokens-{$user->ID}-{$token_key}",
+				'data'        => $session_data,
 			);
 		}
 
 		return array(
-			'data' => array(
-				array(
-					'group_id'          => 'two-factor',
-					'group_label'       => __( 'Two Factor Authentication', 'two-factor' ),
-					'group_description' => __( 'Two Factor authentication data for the user.', 'two-factor' ),
-					'item_id'           => 'two-factor',
-					'data'              => $data,
-				),
-			),
+			'data' => $export_items,
 			'done' => true,
 		);
 	}
 
 	/**
-	 * Erases the Two Factor data stored for a user.
+	 * Get the label of a provider for the personal data export.
 	 *
-	 * Only the short-lived records are removed. The authentication credentials
-	 * are kept, because the erasure tool does not delete the user account and
-	 * removing the credentials would leave it protected by a password only.
+	 * Falls back to the provider key for providers that no longer exist.
 	 *
 	 * @since 0.18.0
 	 *
-	 * @param string $email_address The email address of the user.
-	 * @param int    $page          The page of data being processed.
-	 * @return array
+	 * @param string                $provider_key Provider key.
+	 * @param Two_Factor_Provider[] $providers    Provider instances indexed by provider key.
+	 * @return string
 	 */
-	public static function personal_data_eraser( $email_address, $page = 1 ) { // phpcs:ignore Generic.CodeAnalysis.UnusedFunctionParameter.FoundAfterLastUsed -- Pagination is not needed, all data fits on one page.
-		$user = get_user_by( 'email', $email_address );
-
-		if ( ! $user ) {
-			return array(
-				'items_removed'  => false,
-				'items_retained' => false,
-				'messages'       => array(),
-				'done'           => true,
-			);
+	private static function get_privacy_provider_label( $provider_key, $providers ) {
+		if ( isset( $providers[ $provider_key ] ) ) {
+			return $providers[ $provider_key ]->get_label();
 		}
 
-		$meta_keys = array(
-			self::USER_META_NONCE_KEY,
-			self::USER_RATE_LIMIT_KEY,
-			self::USER_FAILED_LOGIN_ATTEMPTS_KEY,
-			self::USER_PASSWORD_WAS_RESET_KEY,
-		);
-
-		$retained_keys = array(
-			self::PROVIDER_USER_META_KEY,
-			self::ENABLED_PROVIDERS_USER_META_KEY,
-		);
-
-		foreach ( self::get_privacy_providers() as $provider ) {
-			$eraser_keys = $provider::privacy_eraser_user_meta_keys();
-
-			$meta_keys = array_merge( $meta_keys, $eraser_keys );
-
-			// Credentials the provider keeps are disclosed as retained.
-			$retained_keys = array_merge(
-				$retained_keys,
-				array_diff( $provider::uninstall_user_meta_keys(), $eraser_keys )
-			);
-		}
-
-		$items_removed = false;
-		foreach ( array_unique( $meta_keys ) as $meta_key ) {
-			if ( delete_user_meta( $user->ID, $meta_key ) ) {
-				$items_removed = true;
-			}
-		}
-
-		$items_retained = false;
-		foreach ( array_unique( $retained_keys ) as $meta_key ) {
-			if ( get_user_meta( $user->ID, $meta_key, true ) ) {
-				$items_retained = true;
-				break;
-			}
-		}
-
-		$messages = array();
-		if ( $items_retained ) {
-			$messages[] = __( 'Two Factor authentication credentials were retained because erasing them would remove the second factor from an account that still exists. They are removed when the user account is deleted.', 'two-factor' );
-		}
-
-		return array(
-			'items_removed'  => $items_removed,
-			'items_retained' => $items_retained,
-			'messages'       => $messages,
-			'done'           => true,
-		);
+		return $provider_key;
 	}
 
 	/**
-	 * Get all registered providers for the personal data exporter and eraser.
+	 * Get all registered providers for the personal data exporter.
 	 *
 	 * Same as get_providers(), but providers that are disabled in the
 	 * site-wide settings are not removed from the list. Data stored for a
-	 * user must be exported and erased even while its provider is disabled.
+	 * user must be exported even while its provider is disabled.
 	 *
 	 * @since 0.18.0
 	 *
@@ -3204,7 +3173,7 @@ class Two_Factor_Core {
 	}
 
 	/**
-	 * Formats a timestamp for the export and erasure reports.
+	 * Formats a timestamp for the export report.
 	 *
 	 * @since 0.18.0
 	 *

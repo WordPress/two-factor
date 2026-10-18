@@ -474,22 +474,6 @@ class Two_Factor_Email extends Two_Factor_Provider {
 	}
 
 	/**
-	 * Return the user meta keys that the personal data eraser should delete.
-	 *
-	 * Both keys hold short-lived data about a pending code.
-	 *
-	 * @since 0.18.0
-	 *
-	 * @return array
-	 */
-	public static function privacy_eraser_user_meta_keys() {
-		return array(
-			self::TOKEN_META_KEY,
-			self::TOKEN_META_KEY_TIMESTAMP,
-		);
-	}
-
-	/**
 	 * Return the personal data stored for a user for the exporter.
 	 *
 	 * The hashed token is never included, only when the code was sent.
