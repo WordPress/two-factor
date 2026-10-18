@@ -3983,6 +3983,12 @@ class Test_ClassTwoFactorCore extends WP_UnitTestCase {
 	public function test_add_settings_action_link() {
 		$old_user_id = get_current_user_id();
 		$admin       = self::factory()->user->create_and_get( array( 'role' => 'administrator' ) );
+
+		// On multisite the plugin settings are network-wide and reserved for network super admins.
+		if ( is_multisite() ) {
+			grant_super_admin( $admin->ID );
+		}
+
 		wp_set_current_user( $admin->ID );
 
 		$links  = array( 'deactivate' => '<a href="#">Deactivate</a>' );
@@ -3995,6 +4001,6 @@ class Test_ClassTwoFactorCore extends WP_UnitTestCase {
 		$first = reset( $result );
 		$this->assertStringContainsString( '<a', $first );
 		$this->assertStringContainsString( 'Settings', $first );
-		$this->assertStringContainsString( 'options-general.php', $first );
+		$this->assertStringContainsString( is_multisite() ? 'network/settings.php' : 'options-general.php', $first );
 	}
 }
