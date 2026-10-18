@@ -1,22 +1,22 @@
 /* global twoFactorBackupCodes, jQuery */
 ( function( $ ) {
 	$( '.button-two-factor-backup-codes-copy' ).click( function() {
-		var csvCodes = $( '.two-factor-backup-codes-wrapper' ).data(
-				'codesCsv'
+		var codesText = $( '.two-factor-backup-codes-wrapper' ).data(
+				'codesText'
 			),
 			$temp;
 
-		if ( ! csvCodes ) {
+		if ( ! codesText ) {
 			return;
 		}
 
 		if ( navigator.clipboard && navigator.clipboard.writeText ) {
-			navigator.clipboard.writeText( csvCodes );
+			navigator.clipboard.writeText( codesText );
 			return;
 		}
 
 		$temp = $( '<textarea>' )
-			.val( csvCodes )
+			.val( codesText )
 			.css( { position: 'absolute', left: '-9999px' } );
 		$( 'body' ).append( $temp );
 		$temp[ 0 ].select();
@@ -43,8 +43,8 @@
 				'max-width': '420px'
 			} );
 			$( '.two-factor-backup-codes-wrapper' ).data(
-				'codesCsv',
-				response.codes.join( ',' )
+				'codesText',
+				response.codes_text
 			);
 
 			// Append the codes.

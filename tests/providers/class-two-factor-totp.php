@@ -119,6 +119,22 @@ class Tests_Two_Factor_Totp extends WP_UnitTestCase {
 	}
 
 	/**
+	 * Verify QR code URL generation uses the site title as text, not as escaped HTML.
+	 *
+	 * @covers Two_Factor_Totp::generate_qr_code_url
+	 */
+	public function test_generate_qr_code_url_decodes_site_title() {
+		update_option( 'blogname', 'Tom & Jerry\'s "Blog"' );
+
+		$user     = new WP_User( self::factory()->user->create() );
+		$issuer   = rawurlencode( 'Tom & Jerry\'s "Blog"' );
+		$expected = 'otpauth://totp/' . $issuer . '%3A' . rawurlencode( $user->user_login ) . '?secret=my%20secret%20key&issuer=' . $issuer;
+		$actual   = $this->provider->generate_qr_code_url( $user, 'my secret key' );
+
+		$this->assertSame( $expected, $actual );
+	}
+
+	/**
 	 * Verify base32 encoding.
 	 *
 	 * @covers Two_Factor_Totp::base32_encode

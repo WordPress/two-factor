@@ -116,8 +116,14 @@ jobs:
         wp:
           - latest
           - wordpress/wordpress
+          - wordpress/wordpress#6.8-branch
+          - wordpress/wordpress#6.9-branch
           - wordpress/wordpress#7.0-branch
           - wordpress/wordpress#7.1-branch
+        exclude:
+          # WordPress 6.8 is not compatible with PHP 8.5
+          - php: "8.5"
+            wp: wordpress/wordpress#6.8-branch
     env:
       WP_ENV_PHP_VERSION: ${{ matrix.php }}
       WP_ENV_CORE: ${{ matrix.wp == 'latest' && 'https://wordpress.org/wordpress-latest.zip' || matrix.wp }}
@@ -190,7 +196,7 @@ jobs:
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: coverage-report
-          path: tests/logs/clover.xml
+          path: tests/logs/*.xml
           if-no-files-found: error # Coverage silently going missing is the bug this is meant to fix.
 
   # Uploading to Codecov without a CODECOV_TOKEN requires OIDC (`id-token: write`).
@@ -221,7 +227,7 @@ jobs:
         uses: codecov/codecov-action@303a32d7a59b442fa8d48b6a1cc6825c09c847a5 # v7.1.1
         with:
           use_oidc: true
-          files: tests/logs/clover.xml
+          files: tests/logs/clover.xml,tests/logs/clover-multisite.xml
           flags: phpunit
           fail_ci_if_error: false
 
