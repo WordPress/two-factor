@@ -487,15 +487,29 @@ class Two_Factor_Core {
 	 */
 	protected static function get_user_settings_page_url( $user_id ) {
 		if ( defined( 'IS_PROFILE_PAGE' ) && IS_PROFILE_PAGE ) {
-			return self_admin_url( 'profile.php' );
+			$url = self_admin_url( 'profile.php' );
+		} else {
+			$url = add_query_arg(
+				array(
+					'user_id' => intval( $user_id ),
+				),
+				self_admin_url( 'user-edit.php' )
+			);
 		}
 
-		return add_query_arg(
-			array(
-				'user_id' => intval( $user_id ),
-			),
-			self_admin_url( 'user-edit.php' )
-		);
+		/**
+		 * Filter the URL of the page where a user's two-factor settings are managed.
+		 *
+		 * Integrations that render the two-factor settings outside of wp-admin,
+		 * for example on a front-end account page, can use this to point the
+		 * settings and action links at their own screen.
+		 *
+		 * @since 0.18.0
+		 *
+		 * @param string $url     The user settings page URL.
+		 * @param int    $user_id User ID.
+		 */
+		return apply_filters( 'two_factor_user_settings_page_url', $url, $user_id );
 	}
 
 	/**
@@ -2825,89 +2839,119 @@ class Two_Factor_Core {
 		if ( isset( $_POST['_nonce_user_two_factor_options'] ) ) {
 			check_admin_referer( 'user_two_factor_options', '_nonce_user_two_factor_options' );
 
-			if ( ! isset( $_POST[ self::ENABLED_PROVIDERS_USER_META_KEY ] ) ||
-					! is_array( $_POST[ self::ENABLED_PROVIDERS_USER_META_KEY ] ) ) {
-				return;
-			}
+			self::save_user_two_factor_options( $user_id );
+		}
+	}
 
-			if ( ! self::current_user_can_update_two_factor_options( 'save' ) ) {
-				return;
-			}
+	/**
+	 * Save the enabled two-factor providers for a user from the current request.
+	 *
+	 * Reads the list of enabled providers and the primary provider from the
+	 * `$_POST` data, filters them against the providers supported for the user,
+	 * and updates the user meta. Sessions are updated or destroyed when the
+	 * change requires it, for example when two-factor is turned on or off.
+	 *
+	 * The caller is responsible for verifying the request nonce and checking
+	 * that the current user has permission to edit the given user, for example
+	 * by using current_user_can( 'edit_user', $user_id ). Use
+	 * check_admin_referer() in wp-admin or wp_verify_nonce() elsewhere, since
+	 * check_admin_referer() aborts the request on failure.
+	 *
+	 * @since 0.18.0
+	 *
+	 * @param int $user_id User ID.
+	 *
+	 * @return bool True if the options were saved, false if the request had no provider data, the user could not be found, or the current user session cannot update the options.
+	 */
+	public static function save_user_two_factor_options( $user_id ) {
+		$enabled_providers_input = isset( $_POST[ self::ENABLED_PROVIDERS_USER_META_KEY ] ) ? wp_unslash( $_POST[ self::ENABLED_PROVIDERS_USER_META_KEY ] ) : null; // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized, WordPress.Security.NonceVerification.Missing -- Nonce verification is the responsibility of the caller, values are sanitized below.
 
-			$user                    = self::fetch_user( $user_id );
-			$providers               = self::get_supported_providers_for_user( $user_id );
-			$enabled_providers_input = wp_unslash( $_POST[ self::ENABLED_PROVIDERS_USER_META_KEY ] ); // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- Array values are sanitized below.
-			$enabled_providers       = array_map( 'sanitize_text_field', $enabled_providers_input );
-			$existing_providers      = self::get_enabled_providers_for_user( $user_id );
+		if ( ! is_array( $enabled_providers_input ) ) {
+			return false;
+		}
 
-			// Enable only the available providers.
-			$enabled_providers = array_intersect_key( $providers, array_flip( $enabled_providers ) );
+		if ( ! self::current_user_can_update_two_factor_options( 'save' ) ) {
+			return false;
+		}
 
-			// Ensure the enabled providers are configured and can be enabled.
-			foreach ( $enabled_providers as $provider_key => $provider ) {
-				if ( ! $provider->is_available_for_user( $user ) ) {
-					unset( $enabled_providers[ $provider_key ] );
+		$user = self::fetch_user( $user_id );
+		if ( ! $user ) {
+			return false;
+		}
 
-					self::add_error(
-						new WP_Error(
-							'two_factor_provider_not_configured_' . $provider_key,
-							sprintf(
-								/* translators: %s: provider label. */
-								__( 'The %s method must be configured before it can be enabled.', 'two-factor' ),
-								esc_html( $provider->get_label() )
-							),
-							array(
-								'provider' => $provider_key,
-							)
-						)
-					);
-				}
-			}
+		$providers          = self::get_supported_providers_for_user( $user_id );
+		$enabled_providers  = array_map( 'sanitize_text_field', $enabled_providers_input );
+		$existing_providers = self::get_enabled_providers_for_user( $user_id );
 
-			update_user_meta( $user_id, self::ENABLED_PROVIDERS_USER_META_KEY, array_keys( $enabled_providers ) );
+		// Enable only the available providers.
+		$enabled_providers = array_intersect_key( $providers, array_flip( $enabled_providers ) );
 
-			// Primary provider must be enabled.
-			$new_provider = isset( $_POST[ self::PROVIDER_USER_META_KEY ] ) ? sanitize_text_field( wp_unslash( $_POST[ self::PROVIDER_USER_META_KEY ] ) ) : ''; // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- Value sanitized inline.
-			if ( ! empty( $new_provider ) && isset( $enabled_providers[ $new_provider ] ) ) {
-				update_user_meta( $user_id, self::PROVIDER_USER_META_KEY, $new_provider );
-			} else {
-				delete_user_meta( $user_id, self::PROVIDER_USER_META_KEY );
-			}
+		// Ensure the enabled providers are configured and can be enabled.
+		foreach ( $enabled_providers as $provider_key => $provider ) {
+			if ( ! $provider->is_available_for_user( $user ) ) {
+				unset( $enabled_providers[ $provider_key ] );
 
-			// Have we changed the two-factor settings for the current user? Alter their session metadata.
-			if ( get_current_user_id() === $user_id ) {
-
-				if ( $enabled_providers && ! $existing_providers ) {
-					// We've enabled two-factor from a non-two-factor session. No provider key is passed,
-					// since saving this form doesn't validate a factor for any particular provider.
-					self::maybe_mark_current_session_two_factor( $user_id );
-				} elseif ( $existing_providers && ! $enabled_providers ) {
-					// We've disabled two-factor, remove session metadata.
-					self::update_current_user_session(
+				self::add_error(
+					new WP_Error(
+						'two_factor_provider_not_configured_' . $provider_key,
+						sprintf(
+							/* translators: %s: provider label. */
+							__( 'The %s method must be configured before it can be enabled.', 'two-factor' ),
+							esc_html( $provider->get_label() )
+						),
 						array(
-							'two-factor-provider' => null,
-							'two-factor-login'    => null,
+							'provider' => $provider_key,
 						)
-					);
-				}
-			}
-
-			// Destroy other sessions if setup 2FA for the first time, or deactivated a provider.
-			if (
-				// No providers, enabling one (or more).
-				( ! $existing_providers && $enabled_providers ) ||
-				// Has providers, and is disabling one (or more), but remaining with 2FA.
-				( $existing_providers && $enabled_providers && array_diff( $existing_providers, array_keys( $enabled_providers ) ) )
-			) {
-				if ( get_current_user_id() === $user_id ) {
-					// Keep the current session, destroy others sessions for this user.
-					wp_destroy_other_sessions();
-				} else {
-					// Destroy all sessions for the user.
-					WP_Session_Tokens::get_instance( $user_id )->destroy_all();
-				}
+					)
+				);
 			}
 		}
+
+		update_user_meta( $user_id, self::ENABLED_PROVIDERS_USER_META_KEY, array_keys( $enabled_providers ) );
+
+		// Primary provider must be enabled.
+		$new_provider = isset( $_POST[ self::PROVIDER_USER_META_KEY ] ) ? sanitize_text_field( wp_unslash( $_POST[ self::PROVIDER_USER_META_KEY ] ) ) : ''; // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized, WordPress.Security.NonceVerification.Missing -- Nonce verification is the responsibility of the caller, value is sanitized inline.
+		if ( ! empty( $new_provider ) && isset( $enabled_providers[ $new_provider ] ) ) {
+			update_user_meta( $user_id, self::PROVIDER_USER_META_KEY, $new_provider );
+		} else {
+			delete_user_meta( $user_id, self::PROVIDER_USER_META_KEY );
+		}
+
+		// Have we changed the two-factor settings for the current user? Alter their session metadata.
+		if ( get_current_user_id() === $user_id ) {
+
+			if ( $enabled_providers && ! $existing_providers ) {
+				// We've enabled two-factor from a non-two-factor session. No provider key is passed,
+				// since saving this form doesn't validate a factor for any particular provider.
+				self::maybe_mark_current_session_two_factor( $user_id );
+			} elseif ( $existing_providers && ! $enabled_providers ) {
+				// We've disabled two-factor, remove session metadata.
+				self::update_current_user_session(
+					array(
+						'two-factor-provider' => null,
+						'two-factor-login'    => null,
+					)
+				);
+			}
+		}
+
+		// Destroy other sessions if setup 2FA for the first time, or deactivated a provider.
+		if (
+			// No providers, enabling one (or more).
+			( ! $existing_providers && $enabled_providers ) ||
+			// Has providers, and is disabling one (or more), but remaining with 2FA.
+			( $existing_providers && $enabled_providers && array_diff( $existing_providers, array_keys( $enabled_providers ) ) )
+		) {
+			if ( get_current_user_id() === $user_id ) {
+				// Keep the current session, destroy others sessions for this user.
+				wp_destroy_other_sessions();
+			} else {
+				// Destroy all sessions for the user.
+				WP_Session_Tokens::get_instance( $user_id )->destroy_all();
+			}
+		}
+
+		return true;
 	}
 
 	/**
