@@ -799,6 +799,35 @@ class Test_ClassTwoFactorCore extends WP_UnitTestCase {
 	}
 
 	/**
+	 * Verify that revalidation URLs stay on the current site when the login URL is filtered.
+	 *
+	 * @covers Two_Factor_Core::login_url
+	 */
+	public function test_login_url_keeps_revalidation_on_current_site() {
+		$filter_login_url = static function () {
+			return 'https://login.example.org/';
+		};
+		add_filter( 'login_url', $filter_login_url );
+
+		$validate_url   = Two_Factor_Core::login_url( array( 'action' => 'validate_2fa' ) );
+		$revalidate_url = Two_Factor_Core::login_url(
+			array(
+				'action'        => 'revalidate_2fa',
+				'interim-login' => 1,
+				'provider'      => 'Two_Factor_Totp',
+			)
+		);
+
+		remove_filter( 'login_url', $filter_login_url );
+
+		$this->assertSame( set_url_scheme( 'https://login.example.org/?action=validate_2fa', 'login' ), $validate_url );
+		$this->assertSame(
+			site_url( 'wp-login.php?action=revalidate_2fa&interim-login=1&provider=Two_Factor_Totp', 'login' ),
+			$revalidate_url
+		);
+	}
+
+	/**
 	 * Call the private get_login_redirect_fallback() via reflection.
 	 *
 	 * @param string  $redirect_to The requested redirect destination.

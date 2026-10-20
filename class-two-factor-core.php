@@ -1376,8 +1376,12 @@ class Two_Factor_Core {
 			$params = array();
 		}
 
-		$url = wp_login_url( '', false );
-		$url = set_url_scheme( $url, $scheme );
+		// Revalidation is for the user already logged in here, so it must not follow `login_url` to another host.
+		if ( isset( $params['action'] ) && 'revalidate_2fa' === $params['action'] ) {
+			$url = site_url( 'wp-login.php?action=revalidate_2fa', $scheme );
+		} else {
+			$url = set_url_scheme( wp_login_url( '', false ), $scheme );
+		}
 
 		$params = urlencode_deep( $params );
 		if ( $params ) {
