@@ -1376,8 +1376,17 @@ class Two_Factor_Core {
 			$params = array();
 		}
 
-		$url = wp_login_url( '', false );
-		$url = set_url_scheme( $url, $scheme );
+		/*
+		 * Revalidation confirms the user who is already logged in to this site, often from
+		 * an iframe, so it stays on the current site instead of following the `login_url`
+		 * filter to another host. The action is part of the path, as with core's own
+		 * `site_url( 'wp-login.php?action=...' )` calls.
+		 */
+		if ( isset( $params['action'] ) && 'revalidate_2fa' === $params['action'] ) {
+			$url = site_url( 'wp-login.php?action=revalidate_2fa', $scheme );
+		} else {
+			$url = set_url_scheme( wp_login_url( '', false ), $scheme );
+		}
 
 		$params = urlencode_deep( $params );
 		if ( $params ) {
