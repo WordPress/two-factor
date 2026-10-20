@@ -115,6 +115,11 @@ class Two_Factor_Settings {
 		$saved_enforced_roles = (array) get_option( 'two_factor_enforced_roles', array() );
 		$all_roles            = wp_roles()->get_names();
 
+		if ( is_multisite() ) {
+			// Pseudo-role: network super admins often have no role on the site.
+			$all_roles['super_admin'] = __( 'Super Admin (network)', 'two-factor' );
+		}
+
 		echo '<h2>' . esc_html__( 'Two-Factor Enforcement', 'two-factor' ) . '</h2>';
 		echo '<p class="description">' . esc_html__( 'Require Two-Factor authentication for specific user roles. Users in enforced roles who have not yet set up 2FA will be challenged via the Email provider on login. This requires the Email provider to be enabled above. New users in enforced roles will also have the Email provider enabled on registration.', 'two-factor' ) . '</p>';
 
@@ -129,7 +134,7 @@ class Two_Factor_Settings {
 				$role_slug = sanitize_key( $role_slug );
 				echo '<p class="provider-item"><label for="role_' . esc_attr( $role_slug ) . '">';
 				echo '<input type="checkbox" name="two_factor_enforced_roles[]" id="role_' . esc_attr( $role_slug ) . '" value="' . esc_attr( $role_slug ) . '" ' . checked( in_array( $role_slug, $saved_enforced_roles, true ), true, false ) . ' /> ';
-				echo esc_html( translate_user_role( $role_name ) );
+				echo esc_html( 'super_admin' === $role_slug ? $role_name : translate_user_role( $role_name ) );
 				echo '</label></p>';
 			}
 			echo '</td></tr>';

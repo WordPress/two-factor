@@ -159,4 +159,39 @@ class Tests_Two_Factor_Enforcement extends WP_UnitTestCase {
 		$this->assertFalse( get_option( 'two_factor_enforced_roles' ) );
 		$this->assertFalse( get_option( 'two_factor_enabled_providers' ) );
 	}
+
+	/**
+	 * On multisite, enforcing the super_admin pseudo-role covers super admins without a site role.
+	 *
+	 * @covers ::two_factor_user_has_enforced_role
+	 */
+	public function test_super_admin_pseudo_role_enforced_on_multisite() {
+		if ( ! is_multisite() ) {
+			$this->markTestSkipped( 'Multisite only.' );
+		}
+
+		update_option( 'two_factor_enforced_roles', array( 'super_admin' ) );
+		$user_id = self::factory()->user->create( array( 'role' => '' ) );
+		$other   = self::factory()->user->create( array( 'role' => 'subscriber' ) );
+		grant_super_admin( $user_id );
+
+		$this->assertSame( array( 'Two_Factor_Email' ), Two_Factor_Core::get_enabled_providers_for_user( $user_id ) );
+		$this->assertSame( array(), Two_Factor_Core::get_enabled_providers_for_user( $other ) );
+	}
+
+	/**
+	 * On single site, the super_admin pseudo-role has no effect.
+	 *
+	 * @covers ::two_factor_user_has_enforced_role
+	 */
+	public function test_super_admin_pseudo_role_ignored_on_single_site() {
+		if ( is_multisite() ) {
+			$this->markTestSkipped( 'Single site only.' );
+		}
+
+		update_option( 'two_factor_enforced_roles', array( 'super_admin' ) );
+		$user_id = self::factory()->user->create( array( 'role' => 'administrator' ) );
+
+		$this->assertSame( array(), Two_Factor_Core::get_enabled_providers_for_user( $user_id ) );
+	}
 }

@@ -2666,18 +2666,31 @@ class Two_Factor_Core {
 		<table class="form-table two-factor-methods-table" role="presentation">
 			<tbody>
 			<?php foreach ( $providers as $provider_key => $object ) : ?>
+				<?php
+				$is_enforced = 'Two_Factor_Email' === $provider_key
+					&& function_exists( 'two_factor_is_user_enforced' )
+					&& two_factor_is_user_enforced( $user->ID )
+					&& array( 'Two_Factor_Email' ) === array_keys( $available_providers );
+				?>
 				<tr>
 					<th><?php echo esc_html( $object->get_label() ); ?></th>
 					<td>
 						<?php self::render_errors( self::get_provider_errors( $provider_key ) ); ?>
 						<label class="two-factor-method-label">
-							<input id="enabled-<?php echo esc_attr( $provider_key ); ?>" type="checkbox" name="<?php echo esc_attr( self::ENABLED_PROVIDERS_USER_META_KEY ); ?>[]" value="<?php echo esc_attr( $provider_key ); ?>" <?php checked( isset( $available_providers[ $provider_key ] ) ); ?>>
+							<input id="enabled-<?php echo esc_attr( $provider_key ); ?>" type="checkbox" name="<?php echo esc_attr( self::ENABLED_PROVIDERS_USER_META_KEY ); ?>[]" value="<?php echo esc_attr( $provider_key ); ?>" <?php checked( isset( $available_providers[ $provider_key ] ) ); ?> <?php disabled( $is_enforced ); ?>>
+							<?php if ( $is_enforced ) : ?>
+								<?php // Disabled checkboxes are not submitted, so keep the value in the request. ?>
+								<input type="hidden" name="<?php echo esc_attr( self::ENABLED_PROVIDERS_USER_META_KEY ); ?>[]" value="<?php echo esc_attr( $provider_key ); ?>">
+							<?php endif; ?>
 							<?php /* translators: %s: authentication method name. */ ?>
 							<strong><?php echo esc_html( sprintf( __( 'Enable %s', 'two-factor' ), $object->get_label() ) ); ?></strong>
 							<?php if ( in_array( $provider_key, $recommended_provider_keys, true ) ) : ?>
 								<abbr title="<?php esc_attr_e( 'This method is more secure and easy to use', 'two-factor' ); ?>" class="two-factor-method-recommended"><?php esc_html_e( 'Recommended', 'two-factor' ); ?></abbr>
 							<?php endif; ?>
 						</label>
+						<?php if ( $is_enforced ) : ?>
+							<p class="description"><?php esc_html_e( 'Required by your site administrator. Enable another method to be able to turn this one off.', 'two-factor' ); ?></p>
+						<?php endif; ?>
 						<?php
 						/**
 						 * Fires after user options are shown.

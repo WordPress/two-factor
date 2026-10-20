@@ -194,6 +194,52 @@ function two_factor_filter_enabled_providers_for_user( $enabled, $user_id ) { //
 }
 
 /**
+ * Whether a user belongs to a role for which Two-Factor is enforced.
+ *
+ * On multisite, the `super_admin` pseudo-role matches network super admins,
+ * who may have no role on the current site.
+ *
+ * @since 0.18.0
+ *
+ * @param int $user_id The user ID.
+ * @return bool
+ */
+function two_factor_user_has_enforced_role( $user_id ) {
+	$enforced_roles = (array) get_option( 'two_factor_enforced_roles', array() );
+	if ( empty( $enforced_roles ) ) {
+		return false;
+	}
+
+	$user = get_userdata( $user_id );
+	if ( ! $user ) {
+		return false;
+	}
+
+	if ( is_multisite() && in_array( 'super_admin', $enforced_roles, true ) && is_super_admin( $user_id ) ) {
+		return true;
+	}
+
+	return ! empty( array_intersect( (array) $user->roles, $enforced_roles ) );
+}
+
+/**
+ * Whether Two-Factor is enforced for a user via their role.
+ *
+ * @since 0.18.0
+ *
+ * @param int $user_id The user ID.
+ * @return bool
+ */
+function two_factor_is_user_enforced( $user_id ) {
+	if ( ! two_factor_user_has_enforced_role( $user_id ) ) {
+		return false;
+	}
+
+	$site_enabled = two_factor_get_enabled_providers_option();
+	return null === $site_enabled || in_array( 'Two_Factor_Email', $site_enabled, true );
+}
+
+/**
  * Enforce Two-Factor for users in roles that require it.
  *
  * Runs after the site-enabled filter (priority 20). If a user belongs to an
@@ -204,7 +250,7 @@ function two_factor_filter_enabled_providers_for_user( $enabled, $user_id ) { //
  * providers (e.g. TOTP) require per-user setup before they can authenticate,
  * so injecting them without prior configuration would silently fail open.
  *
- * @since 0.16
+ * @since 0.18.0
  *
  * @param array $enabled  Currently enabled provider classnames for the user.
  * @param int   $user_id  The user ID.
@@ -216,18 +262,7 @@ function two_factor_enforce_for_user( $enabled, $user_id ) {
 		return $enabled;
 	}
 
-	$enforced_roles = (array) get_option( 'two_factor_enforced_roles', array() );
-	if ( empty( $enforced_roles ) ) {
-		return $enabled;
-	}
-
-	$user = get_userdata( $user_id );
-	if ( ! $user ) {
-		return $enabled;
-	}
-
-	// Check whether the user has at least one enforced role.
-	if ( empty( array_intersect( (array) $user->roles, $enforced_roles ) ) ) {
+	if ( ! two_factor_user_has_enforced_role( $user_id ) ) {
 		return $enabled;
 	}
 
@@ -250,25 +285,17 @@ add_filter( 'two_factor_enabled_providers_for_user', 'two_factor_enforce_for_use
  * Fires immediately after a new user account is created so that enforced
  * users are required to verify via email on their very first login.
  *
- * @since 0.16
+ * @since 0.18.0
  *
  * @param int $user_id The newly registered user ID.
  * @return void
  */
 function two_factor_force_on_user_register( $user_id ) {
-	$enforced_roles = (array) get_option( 'two_factor_enforced_roles', array() );
-	if ( empty( $enforced_roles ) ) {
+	if ( ! two_factor_user_has_enforced_role( $user_id ) ) {
 		return;
 	}
 
 	$user = get_userdata( $user_id );
-	if ( ! $user ) {
-		return;
-	}
-
-	if ( empty( array_intersect( (array) $user->roles, $enforced_roles ) ) ) {
-		return;
-	}
 
 	// Do not overwrite a configuration that already exists.
 	$existing = get_user_meta( $user_id, Two_Factor_Core::ENABLED_PROVIDERS_USER_META_KEY, true );
