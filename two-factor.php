@@ -191,7 +191,7 @@ function two_factor_filter_enabled_providers_for_user( $enabled, $user_id ) { //
 /**
  * Check if a user action is valid.
  *
- * @since 0.5.2
+ * @since 0.18.0
  *
  * @param integer $user_id User ID.
  * @param string  $action User action ID.

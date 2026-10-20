@@ -533,7 +533,7 @@ class Two_Factor_Core {
 	 * Check if a user action is valid.
 	 *
 	 * @since 0.5.2
-	 * @deprecated x.x.x Use two_factor_is_valid_user_action() instead.
+	 * @deprecated 0.18.0 Use two_factor_is_valid_user_action() instead.
 	 *
 	 * @param integer $user_id User ID.
 	 * @param string  $action User action ID.
@@ -541,7 +541,7 @@ class Two_Factor_Core {
 	 * @return boolean
 	 */
 	public static function is_valid_user_action( $user_id, $action ) {
-		_deprecated_function( __FUNCTION__, 'x.x.x', 'two_factor_is_valid_user_action' );
+		_deprecated_function( __FUNCTION__, '0.18.0', 'two_factor_is_valid_user_action' );
 		return two_factor_is_valid_user_action( $user_id, $action );
 	}
 
