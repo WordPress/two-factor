@@ -21,6 +21,13 @@ class Tests_Two_Factor_CLI_Command extends WP_UnitTestCase {
 	protected $command;
 
 	/**
+	 * The in-memory store the plugin writes secrets to during a test.
+	 *
+	 * @var Two_Factor_Secrets_Memory_Store
+	 */
+	protected $secrets_store;
+
+	/**
 	 * Load the WP-CLI test doubles and the command under test.
 	 *
 	 * The WP-CLI runtime is absent during PHPUnit runs, so the stub classes and
@@ -53,6 +60,11 @@ class Tests_Two_Factor_CLI_Command extends WP_UnitTestCase {
 		parent::set_up();
 
 		WP_CLI::reset();
+
+		// Store secrets in memory. Storage is opt-in; the secrets tests below start opted in.
+		$this->secrets_store = new Two_Factor_Secrets_Memory_Store();
+		Two_Factor_Secrets::set_instance( new Two_Factor_Secrets_Manager( $this->secrets_store ) );
+		Two_Factor_Secrets::set_opted_in( true );
 
 		$this->command = new Two_Factor_CLI_Command();
 		$this->user    = self::factory()->user->create_and_get(
@@ -267,6 +279,419 @@ class Tests_Two_Factor_CLI_Command extends WP_UnitTestCase {
 		$this->command->status( array( 'cli_test_user' ), array() );
 
 		$this->assertSame( 4, $this->last_format()['items'][0]['backup_codes_remaining'] );
+	}
+
+	/**
+	 * A user without a TOTP key reports storage none.
+	 *
+	 * @covers Two_Factor_CLI_Command::status
+	 */
+	public function test_status_reports_totp_storage_none() {
+		$this->command->status( array( 'cli_test_user' ), array() );
+
+		$this->assertSame( 'none', $this->last_format()['items'][0]['totp_storage'] );
+		$this->assertContains( 'totp_storage', $this->last_format()['fields'] );
+	}
+
+	/**
+	 * A plaintext TOTP key reports storage plaintext.
+	 *
+	 * @covers Two_Factor_CLI_Command::status
+	 */
+	public function test_status_reports_totp_storage_plaintext() {
+		add_filter( 'two_factor_use_secrets_api', '__return_false' );
+		Two_Factor_Totp::get_instance()->set_user_totp_key( $this->user->ID, 'ABCDEFGH' );
+
+		$this->command->status( array( 'cli_test_user' ), array() );
+
+		$this->assertSame( 'plaintext', $this->last_format()['items'][0]['totp_storage'] );
+	}
+
+	/**
+	 * A Secrets API TOTP key reports storage secrets-api.
+	 *
+	 * @covers Two_Factor_CLI_Command::status
+	 */
+	public function test_status_reports_totp_storage_secrets_api() {
+		Two_Factor_Totp::get_instance()->set_user_totp_key( $this->user->ID, 'ABCDEFGH' );
+
+		$this->command->status( array( 'cli_test_user' ), array() );
+
+		$this->assertSame( 'secrets-api', $this->last_format()['items'][0]['totp_storage'] );
+	}
+
+	/**
+	 * An unreachable key reports storage unavailable.
+	 *
+	 * @covers Two_Factor_CLI_Command::status
+	 */
+	public function test_status_reports_totp_storage_unavailable() {
+		update_user_meta( $this->user->ID, Two_Factor_Totp::SECRET_NETWORK_META_KEY, (string) get_current_network_id() );
+		$this->secrets_store->available = false;
+
+		$this->command->status( array( 'cli_test_user' ), array() );
+
+		$this->assertSame( 'unavailable', $this->last_format()['items'][0]['totp_storage'] );
+	}
+
+	/**
+	 * Secrets status reports a present API and user counts.
+	 *
+	 * @covers Two_Factor_CLI_Command::secrets
+	 */
+	public function test_secrets_status_reports_present_api_and_counts() {
+		$plaintext_user = self::factory()->user->create();
+		$migrated_user  = self::factory()->user->create();
+		$totp           = Two_Factor_Totp::get_instance();
+
+		add_filter( 'two_factor_use_secrets_api', '__return_false' );
+		$totp->set_user_totp_key( $plaintext_user, 'ABCDEFGH' );
+		remove_filter( 'two_factor_use_secrets_api', '__return_false' );
+		$totp->set_user_totp_key( $migrated_user, 'ABCDEFGH' );
+
+		$this->command->secrets( array( 'status' ), array() );
+
+		$item = $this->last_format()['items'][0];
+		$this->assertSame( 'true', $item['api_present'] );
+		$this->assertSame( 1, $item['plaintext_users'] );
+		$this->assertSame( 1, $item['migrated_users'] );
+		$this->assertSame( 0, $item['affected_users'] );
+		$this->assertSame( array( 'secret', 'api_present', 'provider', 'writable', 'opted_in', 'enabled', 'plaintext_users', 'migrated_users', 'affected_users' ), $this->last_format()['fields'] );
+		$this->assertSame( 'totp', $item['secret'] );
+		$this->assertSame( 'true', $item['opted_in'] );
+		$this->assertSame( 'true', $item['enabled'] );
+	}
+
+	/**
+	 * Secrets status works when TOTP is disabled site-wide.
+	 */
+	public function test_secrets_status_works_when_totp_disabled_site_wide() {
+		update_option( Two_Factor_Core::ENABLED_PROVIDERS_OPTION_KEY, array( 'Two_Factor_Email' ) );
+
+		try {
+			$this->command->secrets( array( 'status' ), array() );
+		} finally {
+			delete_option( Two_Factor_Core::ENABLED_PROVIDERS_OPTION_KEY );
+		}
+
+		$this->assertArrayHasKey( 'plaintext_users', $this->last_format()['items'][0] );
+	}
+
+	/**
+	 * Secrets status reports an absent API.
+	 *
+	 * @covers Two_Factor_CLI_Command::secrets
+	 */
+	public function test_secrets_status_reports_absent_api() {
+		$this->secrets_store->available = false;
+		update_user_meta( $this->user->ID, Two_Factor_Totp::SECRET_NETWORK_META_KEY, (string) get_current_network_id() );
+
+		$this->command->secrets( array( 'status' ), array() );
+
+		$item = $this->last_format()['items'][0];
+		$this->assertSame( 'false', $item['api_present'] );
+		$this->assertSame( '', $item['provider'] );
+		$this->assertSame( 1, $item['affected_users'] );
+	}
+
+	/**
+	 * The --format flag is passed through for secrets status.
+	 *
+	 * @covers Two_Factor_CLI_Command::secrets
+	 */
+	public function test_secrets_status_format_passthrough() {
+		$this->command->secrets( array( 'status' ), array( 'format' => 'json' ) );
+
+		$this->assertSame( 'json', $this->last_format()['format'] );
+	}
+
+	/**
+	 * An unknown secrets action errors.
+	 *
+	 * @covers Two_Factor_CLI_Command::secrets
+	 */
+	public function test_secrets_unknown_action_errors() {
+		$message = $this->assert_command_aborts(
+			function () {
+				$this->command->secrets( array( 'bogus' ), array() );
+			}
+		);
+
+		$this->assertStringContainsString( 'Unknown action "bogus"', $message );
+	}
+
+	/**
+	 * A missing secrets action errors.
+	 *
+	 * @covers Two_Factor_CLI_Command::secrets
+	 */
+	public function test_secrets_missing_action_errors() {
+		$message = $this->assert_command_aborts(
+			function () {
+				$this->command->secrets( array(), array() );
+			}
+		);
+
+		$this->assertStringContainsString( 'Unknown action', $message );
+	}
+
+	/**
+	 * Seed a plaintext TOTP key directly in user meta.
+	 *
+	 * @param int $user_id User ID.
+	 */
+	protected function seed_plaintext_key( $user_id ) {
+		update_user_meta( $user_id, Two_Factor_Totp::SECRET_META_KEY, 'ABCDEFGH' );
+	}
+
+	/**
+	 * Go back to storing secrets with the Secrets API.
+	 */
+	public function tear_down() {
+		Two_Factor_Secrets::reset();
+		parent::tear_down();
+	}
+
+	/**
+	 * Migrating a single user moves the secret.
+	 *
+	 * @covers Two_Factor_CLI_Command::secrets
+	 */
+	public function test_secrets_migrate_single_user() {
+		$this->seed_plaintext_key( $this->user->ID );
+
+		$this->command->secrets( array( 'migrate', 'cli_test_user' ), array() );
+
+		$this->assertSame( '', (string) get_user_meta( $this->user->ID, Two_Factor_Totp::SECRET_META_KEY, true ) );
+		$this->assertSame( (string) get_current_network_id(), get_user_meta( $this->user->ID, Two_Factor_Totp::SECRET_NETWORK_META_KEY, true ) );
+		$this->assertSame( 'Migrated 1, failed 0, skipped 0.', $this->last_message( 'success' ) );
+	}
+
+	/**
+	 * A dry run changes nothing.
+	 *
+	 * @covers Two_Factor_CLI_Command::secrets
+	 */
+	public function test_secrets_migrate_dry_run_changes_nothing() {
+		$this->seed_plaintext_key( $this->user->ID );
+
+		$this->command->secrets( array( 'migrate' ), array( 'dry-run' => true ) );
+
+		$this->assertSame( 'ABCDEFGH', get_user_meta( $this->user->ID, Two_Factor_Totp::SECRET_META_KEY, true ) );
+		$this->assertSame( '', (string) get_user_meta( $this->user->ID, Two_Factor_Totp::SECRET_NETWORK_META_KEY, true ) );
+		$this->assertSame( 'Dry run: would migrate 1, skipped 0. Nothing was changed.', $this->last_message( 'success' ) );
+	}
+
+	/**
+	 * A dry run for a user without a plaintext secret reports a skip, not a migration.
+	 *
+	 * @covers Two_Factor_CLI_Command::secrets
+	 */
+	public function test_secrets_migrate_dry_run_skips_user_without_plaintext() {
+
+		$this->command->secrets( array( 'migrate', 'cli_test_user' ), array( 'dry-run' => true ) );
+
+		$this->assertSame( 'Dry run: would migrate 0, skipped 1. Nothing was changed.', $this->last_message( 'success' ) );
+	}
+
+	/**
+	 * Migration pages through users in batches.
+	 *
+	 * @covers Two_Factor_CLI_Command::secrets
+	 */
+	public function test_secrets_migrate_pages_through_users_in_batches() {
+		$ids = array( $this->user->ID, self::factory()->user->create(), self::factory()->user->create() );
+		foreach ( $ids as $id ) {
+			$this->seed_plaintext_key( $id );
+		}
+
+		$this->command->secrets( array( 'migrate' ), array( 'batch-size' => '2' ) );
+
+		foreach ( $ids as $id ) {
+			$this->assertSame( '', (string) get_user_meta( $id, Two_Factor_Totp::SECRET_META_KEY, true ) );
+		}
+		$this->assertSame( 'Migrated 3, failed 0, skipped 0.', $this->last_message( 'success' ) );
+	}
+
+	/**
+	 * A failure for one user does not stop the run.
+	 *
+	 * @covers Two_Factor_CLI_Command::secrets
+	 */
+	public function test_secrets_migrate_reports_failed_users_and_continues() {
+		$bad = self::factory()->user->create();
+		$ids = array( $this->user->ID, $bad, self::factory()->user->create() );
+		foreach ( $ids as $id ) {
+			$this->seed_plaintext_key( $id );
+		}
+		$this->secrets_store->on_set = function ( $name, $value ) use ( $bad ) {
+			if ( "two-factor/totp-{$bad}" === $name ) {
+				return new WP_Error( 'write_failed', 'write failed' );
+			}
+			$this->secrets_store->values[ $name ] = $value;
+			return true;
+		};
+
+		$this->command->secrets( array( 'migrate' ), array( 'batch-size' => '2' ) );
+
+		$this->assertSame( 'Migrated 2, failed 1, skipped 0.', $this->last_message( 'success' ) );
+		$this->assertStringContainsString( "User {$bad} (totp):", $this->last_message( 'warning' ) );
+		$this->assertSame( 'ABCDEFGH', get_user_meta( $bad, Two_Factor_Totp::SECRET_META_KEY, true ) );
+	}
+
+	/**
+	 * Migrating without the API errors.
+	 *
+	 * @covers Two_Factor_CLI_Command::secrets
+	 */
+	public function test_secrets_migrate_errors_when_api_absent() {
+		$this->secrets_store->available = false;
+
+		$message = $this->assert_command_aborts(
+			function () {
+				$this->command->secrets( array( 'migrate' ), array() );
+			}
+		);
+
+		$this->assertStringContainsString( 'Nothing was migrated', $message );
+	}
+
+	/**
+	 * Migrating with the filter opted out errors.
+	 *
+	 * @covers Two_Factor_CLI_Command::secrets
+	 */
+	public function test_secrets_migrate_errors_when_filter_opts_out() {
+		add_filter( 'two_factor_use_secrets_api', '__return_false' );
+
+		$message = $this->assert_command_aborts(
+			function () {
+				$this->command->secrets( array( 'migrate' ), array() );
+			}
+		);
+
+		$this->assertStringContainsString( 'Nothing was migrated', $message );
+	}
+
+	/**
+	 * Migrating before an administrator has opted in errors and says where to turn it on.
+	 *
+	 * @covers Two_Factor_CLI_Command::secrets
+	 */
+	public function test_secrets_migrate_errors_when_not_opted_in() {
+		Two_Factor_Secrets::set_opted_in( false );
+		update_user_meta( $this->user->ID, Two_Factor_Totp::SECRET_META_KEY, 'ABCDEFGH' );
+
+		$message = $this->assert_command_aborts(
+			function () {
+				$this->command->secrets( array( 'migrate' ), array() );
+			}
+		);
+
+		$this->assertStringContainsString( 'has not been turned on', $message );
+		$this->assertStringContainsString( 'Nothing was migrated', $message );
+		$this->assertSame( 'ABCDEFGH', get_user_meta( $this->user->ID, Two_Factor_Totp::SECRET_META_KEY, true ) );
+	}
+
+	/**
+	 * Secrets status reports that nobody has opted in.
+	 *
+	 * @covers Two_Factor_CLI_Command::secrets
+	 */
+	public function test_secrets_status_reports_not_opted_in() {
+		Two_Factor_Secrets::set_opted_in( false );
+
+		$this->command->secrets( array( 'status' ), array() );
+
+		$item = $this->last_format()['items'][0];
+		$this->assertSame( 'false', $item['opted_in'] );
+		$this->assertSame( 'false', $item['enabled'] );
+	}
+
+	/**
+	 * Migration and status cover a secret declared by a provider other than TOTP.
+	 *
+	 * @covers Two_Factor_CLI_Command::secrets
+	 */
+	public function test_secrets_commands_cover_other_providers_secrets() {
+		require_once dirname( __DIR__ ) . '/class-two-factor-dummy-secret.php';
+		$register = function ( $providers ) {
+			$providers['Two_Factor_Dummy_Secret'] = dirname( __DIR__ ) . '/class-two-factor-dummy-secret.php';
+			return $providers;
+		};
+		add_filter( 'two_factor_providers', $register );
+
+		$this->seed_plaintext_key( $this->user->ID );
+		update_user_meta( $this->user->ID, Two_Factor_Dummy_Secret::SECRET_META_KEY, 'DUMMYSECRET' );
+
+		$this->command->secrets( array( 'status' ), array() );
+		$rows = wp_list_pluck( $this->last_format()['items'], 'plaintext_users', 'secret' );
+		$this->assertSame(
+			array(
+				'totp'  => 1,
+				'dummy' => 1,
+			),
+			$rows
+		);
+
+		$this->command->secrets( array( 'migrate' ), array() );
+
+		$this->assertSame( 'DUMMYSECRET', $this->secrets_store->get( "two-factor/dummy-{$this->user->ID}" ) );
+		$this->assertSame( '', (string) get_user_meta( $this->user->ID, Two_Factor_Dummy_Secret::SECRET_META_KEY, true ) );
+		$this->assertSame( '', (string) get_user_meta( $this->user->ID, Two_Factor_Totp::SECRET_META_KEY, true ) );
+		$this->assertStringContainsString( 'Migrated 2, failed 0', $this->last_message( 'success' ) );
+
+		remove_filter( 'two_factor_providers', $register );
+	}
+
+	/**
+	 * An invalid batch size errors.
+	 *
+	 * @covers Two_Factor_CLI_Command::secrets
+	 */
+	public function test_secrets_migrate_invalid_batch_size_errors() {
+		$message = $this->assert_command_aborts(
+			function () {
+				$this->command->secrets( array( 'migrate' ), array( 'batch-size' => '0' ) );
+			}
+		);
+
+		$this->assertStringContainsString( 'Invalid value for --batch-size', $message );
+	}
+
+	/**
+	 * An unknown user errors.
+	 *
+	 * @covers Two_Factor_CLI_Command::secrets
+	 */
+	public function test_secrets_migrate_user_not_found() {
+
+		$message = $this->assert_command_aborts(
+			function () {
+				$this->command->secrets( array( 'migrate', 'nobody-here' ), array() );
+			}
+		);
+
+		$this->assertStringContainsString( 'User not found: nobody-here', $message );
+	}
+
+	/**
+	 * There is no export action: secrets never leave the Secrets API.
+	 *
+	 * @covers Two_Factor_CLI_Command::secrets
+	 */
+	public function test_secrets_export_is_not_an_action() {
+		Two_Factor_Totp::get_instance()->set_user_totp_key( $this->user->ID, 'ABCDEFGH' );
+
+		$message = $this->assert_command_aborts(
+			function () {
+				$this->command->secrets( array( 'export' ), array( 'yes' => true ) );
+			}
+		);
+
+		$this->assertStringContainsString( 'Unknown action "export"', $message );
+		$this->assertSame( '', (string) get_user_meta( $this->user->ID, Two_Factor_Totp::SECRET_META_KEY, true ) );
+		$this->assertSame( (string) get_current_network_id(), get_user_meta( $this->user->ID, Two_Factor_Totp::SECRET_NETWORK_META_KEY, true ) );
 	}
 
 	/*

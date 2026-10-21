@@ -176,6 +176,36 @@ Extends `WP_Test_REST_TestCase`. Tests the backup codes REST endpoints:
 - User cannot generate codes for a different user
 - Admin can generate codes for other users
 
+### Secrets Storage — `tests/class-two-factor-secrets-tests.php`
+
+**Class:** `Two_Factor_Secrets_Tests` · **Group:** `secrets`
+
+Tests `Two_Factor_Secrets` and the `Two_Factor_Secrets_Manager` behind it, against the in-memory store: secret names, marker meta, store availability, the administrator opt-in, `can_write()` and its filter, the read/write/delete round trip, and the error codes for a missing API, another network's marker, a vanished secret and store errors. The file is named after the class, and sorts after `class-two-factor-core.php` on purpose: the core tests register hooks in `set_up_before_class()`, which an earlier test class would wipe.
+
+### Secrets API Store — `tests/secrets/class-two-factor-secrets-api-store-tests.php`
+
+**Class:** `Two_Factor_Secrets_Api_Store_Tests` · **Group:** `secrets`
+
+The only tests that need the real Secrets API. They check that `Two_Factor_Secrets_Api_Store` behaves the way the in-memory store assumes: availability, a writable labelled provider, a network-scope round trip, a missing secret reading as null, and the manager working end to end over the real store. They skip when the feature plugin is not loaded.
+
+### Declared Secrets — `tests/secrets/class-two-factor-secrets-lifecycle-tests.php`
+
+**Class:** `Two_Factor_Secrets_Lifecycle_Tests` · **Group:** `secrets`
+
+Tests what core does for any secret a provider declares, using the `Two_Factor_Dummy_Secret` fixture so nothing depends on TOTP: the registry (`Two_Factor_Core::get_provider_secrets()`), providers turned off site-wide, invalid and duplicate declarations, storage and lazy migration, the base provider's `is_enrolled_but_unavailable_for_user()`, deletion with the user and on uninstall, and the affected-users, plaintext-users and per-secret counts behind the admin notice, Site Health and WP-CLI.
+
+### TOTP Secrets Storage — `tests/providers/class-two-factor-totp-secrets-tests.php`
+
+**Class:** `Two_Factor_Totp_Secrets_Tests` · **Groups:** `providers`, `totp`, `secrets`
+
+Tests how `Two_Factor_Totp` stores its key through `Two_Factor_Secrets`: plaintext storage until an administrator opts in, storage precedence, verified writes, lazy one-directional migration, fail-closed validation, the login prompt and profile UI when a secret is unreadable, setup and reset when the Secrets API key is unusable (no plaintext fallback, a clear 503, no reset), the affected-user login regression, user deletion, uninstall, the administrator notice, the Site Health test and multisite cross-site reads.
+
+### Settings Screen — `tests/settings/class-tests-two-factor-settings.php`
+
+**Class:** `Tests_Two_Factor_Settings` · **Groups:** `settings`, `secrets`
+
+Tests the Secrets API storage section of `Two_Factor_Settings`: the absent-API explanation, the opt-in checkbox and its acknowledgement, refusing to turn storage on without the acknowledgement, turning it off, leaving the opt-in alone when the section was not submitted, and the network-administrator requirement on multisite.
+
 ### Dummy Provider — `tests/providers/class-two-factor-dummy.php`
 
 **Class:** `Tests_Two_Factor_Dummy` · **Groups:** `providers`, `dummy`
@@ -209,8 +239,24 @@ Tests the `Two_Factor_CLI_Command` WP-CLI command class. The WP-CLI runtime is n
 - `disable` (all) — full reset clears providers/throttle/nonce state and destroys sessions, preserves the compromised-password-reset flag, idempotent no-op, stale-meta cleanup guarding the fail-closed email fallback, confirmation required without `--yes`
 - `backup-codes generate` — default and `--count` code counts, regeneration replaces the set, enables the provider so codes are usable at login, session destruction when first enabled, unknown-action and missing-argument errors
 - `unlock` — clears the login throttle for a rate-limited user; no-op message otherwise
+- `status` `totp_storage` field for each storage state
+- `secrets status` — one row per declared secret, with API availability, provider label, the `opted_in` and `enabled` fields and per-state user counts, `--format` passthrough, unknown/missing action errors
+- `secrets migrate` — every declared secret, including one from a provider other than TOTP; single user, `--dry-run`, `--batch-size` paging, per-user failures, error when the API is absent, not yet turned on by an administrator, or opted out
+- `secrets export` — not an action; the secret stays in the Secrets API
 
 ## Test Helpers
+
+- **`tests/class-two-factor-secrets-test-case.php`** — `Two_Factor_Secrets_UnitTestCase`, the base class for secrets tests. `set_up()` installs a `Two_Factor_Secrets_Memory_Store` (available as `$this->secrets_store`) and opts in to Secrets API storage, since it is off by default; `opt_out()` returns to that default. `simulate_api_absent()` makes the store report itself unavailable. `require_secrets_api()` skips the test when the feature plugin is not loaded and is only needed by tests of the real store. `tear_down()` calls `Two_Factor_Secrets::reset()` and clears the affected-users transient. `tests/bootstrap.php` loads it after the WordPress test library.
+- **`tests/class-two-factor-secrets-memory-store.php`** — `Two_Factor_Secrets_Memory_Store`, a `Two_Factor_Secrets_Store` that keeps secrets in a public `$values` array. Set `$available` or `$writable` to false, or `$on_get` / `$on_set` to a callable, to simulate a missing, read-only or failing store.
+- **`tests/class-two-factor-dummy-secret.php`** — `Two_Factor_Dummy_Secret`, a provider that declares a `dummy` secret through `user_secret_meta_keys()`. Its static `$secrets` can be replaced to try invalid and clashing declarations.
+- **`tests/class-two-factor-dummy-unavailable.php`** — `Two_Factor_Dummy_Unavailable`, a provider that is enrolled but never available, and counts `uninstall_user_data()` calls.
+- **`tests/phpstan/`** — Stubs for the Secrets API functions and classes so PHPStan can analyse the Secrets API store (`scanFiles` in `phpstan.dist.neon`). PHPUnit excludes the directory in both configs because the stubs would redeclare the real functions once the feature plugin is loaded.
+
+### Secrets API feature plugin
+
+Most tests store secrets in memory and do not need the Secrets API. The tests of the real store, and a few integration tests, need the feature plugin, which is a Composer dev dependency: `wordpress/secrets-api`, pinned to `0.2.1`. It is not on Packagist, so `composer.json` declares it as a `package` repository that downloads the tagged zip from `github.com/ericmann/secrets-api`. A `vcs` repository would not work here: the wp-env container has no `git`, and the GitHub API it would use instead is rate limited for unauthenticated CI runs. To move to a new release, change the version and the zip URL together and run `npm run composer -- update wordpress/secrets-api`.
+
+`npm run composer install` puts it in `vendor/wordpress/secrets-api/`, and `tests/bootstrap.php` loads `secrets-api.php` from there, or the file named by the `TWO_FACTOR_SECRETS_API_FILE` environment variable. `.wp-env.json` sets a deterministic `WP_SECRETS_KEY` for the tests environment. When the file is absent the suite still runs and tests that need the API are skipped; tests that simulate an absent API run either way.
 
 - **`tests/bootstrap.php`** — Locates the WordPress test library (via `WP_TESTS_DIR` env var, relative path, or `/tmp/wordpress-tests-lib`), loads the plugin via `muplugins_loaded`, then boots the WP test environment.
 - **`tests/class-two-factor-dummy-secure.php`** — Defines `Two_Factor_Dummy_Secure`, a test-only provider class that spoofs the key of `Two_Factor_Dummy` but always fails `validate_authentication`. Used by `Tests_Two_Factor_Dummy_Secure` and some core tests.
