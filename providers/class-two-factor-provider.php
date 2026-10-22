@@ -211,4 +211,20 @@ abstract class Two_Factor_Provider {
 	public static function uninstall_options() {
 		return array();
 	}
+
+	/**
+	 * Return the personal data that the provider stores for a user.
+	 *
+	 * Returns name-value pairs for the personal data exporter. Secrets and
+	 * hashes must not be included, describe the credential instead so that
+	 * the export file stays safe to share.
+	 *
+	 * @since 0.18.0
+	 *
+	 * @param WP_User $user WP_User object of the user.
+	 * @return array
+	 */
+	public function privacy_export_data( $user ) { // phpcs:ignore Generic.CodeAnalysis.UnusedFunctionParameter.Found -- Base implementation keeps the provider interface signature but does not use the user.
+		return array();
+	}
 }

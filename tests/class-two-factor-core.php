@@ -4026,4 +4026,337 @@ class Test_ClassTwoFactorCore extends WP_UnitTestCase {
 		$this->assertStringContainsString( 'Settings', $first );
 		$this->assertStringContainsString( 'options-general.php', $first );
 	}
+
+	/**
+	 * Create a user with every Two Factor record in place.
+	 *
+	 * Returns the user along with the sensitive strings that must never
+	 * show up in an export.
+	 *
+	 * @return array
+	 */
+	private function get_fully_configured_user() {
+		$user = self::factory()->user->create_and_get();
+
+		update_user_meta( $user->ID, Two_Factor_Core::ENABLED_PROVIDERS_USER_META_KEY, array( 'Two_Factor_Totp', 'Two_Factor_Email', 'Two_Factor_Backup_Codes' ) );
+		update_user_meta( $user->ID, Two_Factor_Core::PROVIDER_USER_META_KEY, 'Two_Factor_Totp' );
+		update_user_meta( $user->ID, Two_Factor_Core::USER_FAILED_LOGIN_ATTEMPTS_KEY, 3 );
+		update_user_meta( $user->ID, Two_Factor_Core::USER_RATE_LIMIT_KEY, time() - 100 );
+		update_user_meta( $user->ID, Two_Factor_Core::USER_META_NONCE_KEY, 'login-nonce' );
+		update_user_meta( $user->ID, Two_Factor_Core::USER_PASSWORD_WAS_RESET_KEY, true );
+
+		$totp = Two_Factor_Totp::get_instance();
+		$totp->set_user_totp_key( $user->ID, Two_Factor_Totp::generate_key() );
+		update_user_meta( $user->ID, Two_Factor_Totp::LAST_SUCCESSFUL_LOGIN_META_KEY, time() - 50 );
+
+		$email        = Two_Factor_Email::get_instance();
+		$token        = $email->generate_token( $user->ID );
+		$token_hashed = get_user_meta( $user->ID, Two_Factor_Email::TOKEN_META_KEY, true );
+
+		$codes        = Two_Factor_Backup_Codes::get_instance()->generate_codes( $user );
+		$codes_hashed = (array) get_user_meta( $user->ID, Two_Factor_Backup_Codes::BACKUP_CODES_META_KEY, true );
+
+		$sensitive = array_merge(
+			array( $totp->get_user_totp_key( $user->ID ), $token, $token_hashed ),
+			$codes,
+			$codes_hashed
+		);
+
+		return array(
+			'user'      => $user,
+			'sensitive' => array_filter( $sensitive ),
+		);
+	}
+
+	/**
+	 * Verify the personal data exporter is registered.
+	 *
+	 * @covers Two_Factor_Core::add_hooks
+	 */
+	public function test_add_hooks_privacy_filters() {
+		Two_Factor_Core::add_hooks( new Two_Factor_Compat() );
+
+		$this->assertGreaterThan(
+			0,
+			has_filter(
+				'wp_privacy_personal_data_exporters',
+				array( 'Two_Factor_Core', 'register_personal_data_exporter' )
+			)
+		);
+	}
+
+	/**
+	 * Verify the exporter registration adds the plugin entry.
+	 *
+	 * @covers Two_Factor_Core::register_personal_data_exporter
+	 */
+	public function test_register_personal_data_exporter() {
+		$exporters = Two_Factor_Core::register_personal_data_exporter( array() );
+
+		$this->assertArrayHasKey( 'two-factor', $exporters );
+		$this->assertSame( array( 'Two_Factor_Core', 'personal_data_exporter' ), $exporters['two-factor']['callback'] );
+		$this->assertNotEmpty( $exporters['two-factor']['exporter_friendly_name'] );
+	}
+
+	/**
+	 * Verify the exporter returns nothing for an unknown email address.
+	 *
+	 * @covers Two_Factor_Core::personal_data_exporter
+	 */
+	public function test_personal_data_exporter_unknown_email() {
+		$response = Two_Factor_Core::personal_data_exporter( 'nobody@example.com' );
+
+		$this->assertSame( array(), $response['data'] );
+		$this->assertTrue( $response['done'] );
+	}
+
+	/**
+	 * Verify the exporter returns nothing for a user without Two Factor data.
+	 *
+	 * @covers Two_Factor_Core::personal_data_exporter
+	 */
+	public function test_personal_data_exporter_user_without_two_factor() {
+		$user     = self::factory()->user->create_and_get();
+		$response = Two_Factor_Core::personal_data_exporter( $user->user_email );
+
+		$this->assertSame( array(), $response['data'] );
+		$this->assertTrue( $response['done'] );
+	}
+
+	/**
+	 * Verify the exporter includes the records kept by the core.
+	 *
+	 * @covers Two_Factor_Core::personal_data_exporter
+	 */
+	public function test_personal_data_exporter_includes_core_records() {
+		$setup    = $this->get_fully_configured_user();
+		$user     = $setup['user'];
+		$response = Two_Factor_Core::personal_data_exporter( $user->user_email );
+
+		$this->assertTrue( $response['done'] );
+		$this->assertSame( 'two-factor', $response['data'][0]['group_id'] );
+
+		$items = $response['data'][0]['data'];
+		$names = wp_list_pluck( $items, 'name' );
+
+		$this->assertContains( 'Enabled Two Factor methods', $names );
+		$this->assertContains( 'Primary Two Factor method', $names );
+		$this->assertContains( 'Failed Two Factor login attempts', $names );
+		$this->assertContains( 'Last failed Two Factor login', $names );
+		$this->assertContains( 'Password reset by Two Factor', $names );
+
+		$values = array_combine( $names, wp_list_pluck( $items, 'value' ) );
+		$this->assertSame( 'Authenticator App, Email, Recovery Codes', $values['Enabled Two Factor methods'] );
+		$this->assertSame( 'Authenticator App', $values['Primary Two Factor method'] );
+		$this->assertEquals( 3, $values['Failed Two Factor login attempts'] );
+		$this->assertNotEmpty( $values['Last failed Two Factor login'] );
+		$this->assertNotEmpty( $values['Password reset by Two Factor'] );
+	}
+
+	/**
+	 * Verify the exporter shows the provider key for providers that no
+	 * longer exist.
+	 *
+	 * @covers Two_Factor_Core::personal_data_exporter
+	 */
+	public function test_personal_data_exporter_falls_back_to_provider_key() {
+		$user = self::factory()->user->create_and_get();
+		update_user_meta( $user->ID, Two_Factor_Core::ENABLED_PROVIDERS_USER_META_KEY, array( 'Two_Factor_Email', 'Removed_Provider' ) );
+		update_user_meta( $user->ID, Two_Factor_Core::PROVIDER_USER_META_KEY, 'Removed_Provider' );
+
+		$response = Two_Factor_Core::personal_data_exporter( $user->user_email );
+
+		$items  = $response['data'][0]['data'];
+		$values = array_combine( wp_list_pluck( $items, 'name' ), wp_list_pluck( $items, 'value' ) );
+
+		$this->assertSame( 'Email, Removed_Provider', $values['Enabled Two Factor methods'] );
+		$this->assertSame( 'Removed_Provider', $values['Primary Two Factor method'] );
+	}
+
+	/**
+	 * Verify malformed provider meta does not stop the export.
+	 *
+	 * @covers Two_Factor_Core::personal_data_exporter
+	 */
+	public function test_personal_data_exporter_handles_malformed_provider_meta() {
+		$user = self::factory()->user->create_and_get();
+		update_user_meta( $user->ID, Two_Factor_Core::ENABLED_PROVIDERS_USER_META_KEY, array( 'Two_Factor_Email', array( 'Two_Factor_Totp' ) ) );
+		update_user_meta( $user->ID, Two_Factor_Core::PROVIDER_USER_META_KEY, array( 'Two_Factor_Totp' ) );
+
+		$response = Two_Factor_Core::personal_data_exporter( $user->user_email );
+
+		$items  = $response['data'][0]['data'];
+		$values = array_combine( wp_list_pluck( $items, 'name' ), wp_list_pluck( $items, 'value' ) );
+
+		$this->assertSame( 'Email, Unknown', $values['Enabled Two Factor methods'] );
+		$this->assertSame( 'Unknown', $values['Primary Two Factor method'] );
+	}
+
+	/**
+	 * Verify the exporter adds the Two Factor details to the sessions
+	 * exported by core.
+	 *
+	 * @covers Two_Factor_Core::personal_data_exporter
+	 */
+	public function test_personal_data_exporter_includes_session_data() {
+		$user = self::factory()->user->create_and_get();
+		update_user_meta(
+			$user->ID,
+			'session_tokens',
+			array(
+				'two-factor-session' => array(
+					'expiration'          => time() + HOUR_IN_SECONDS,
+					'login'               => time() - 100,
+					'two-factor-login'    => time() - 90,
+					'two-factor-provider' => 'Two_Factor_Totp',
+				),
+				'enabled-session'    => array(
+					'expiration'          => time() + HOUR_IN_SECONDS,
+					'login'               => time() - 80,
+					'two-factor-login'    => time() - 70,
+					'two-factor-provider' => '',
+				),
+				'password-session'   => array(
+					'expiration' => time() + HOUR_IN_SECONDS,
+					'login'      => time() - 50,
+				),
+			)
+		);
+
+		$response = Two_Factor_Core::personal_data_exporter( $user->user_email );
+
+		$this->assertCount( 2, $response['data'] );
+
+		$item = $response['data'][0];
+		$this->assertSame( 'session-tokens', $item['group_id'] );
+		$this->assertSame( "session-tokens-{$user->ID}-two-factor-session", $item['item_id'] );
+
+		$values = array_combine( wp_list_pluck( $item['data'], 'name' ), wp_list_pluck( $item['data'], 'value' ) );
+		$this->assertNotEmpty( $values['Two Factor verified'] );
+		$this->assertSame( 'Authenticator App', $values['Two Factor method'] );
+
+		// The item ID must match core so both are merged into one session.
+		$core_export = wp_user_personal_data_exporter( $user->user_email );
+		$this->assertContains( $item['item_id'], wp_list_pluck( $core_export['data'], 'item_id' ) );
+
+		// A session where Two Factor was enabled has no method to show.
+		$enabled_item = $response['data'][1];
+		$this->assertSame( "session-tokens-{$user->ID}-enabled-session", $enabled_item['item_id'] );
+
+		$values = array_combine( wp_list_pluck( $enabled_item['data'], 'name' ), wp_list_pluck( $enabled_item['data'], 'value' ) );
+		$this->assertArrayNotHasKey( 'Two Factor verified', $values );
+		$this->assertNotEmpty( $values['Two Factor enabled'] );
+		$this->assertStringContainsString( 'enabled during this session', $values['Two Factor method'] );
+	}
+
+	/**
+	 * Verify the exporter includes the records kept by the providers.
+	 *
+	 * @covers Two_Factor_Core::personal_data_exporter
+	 */
+	public function test_personal_data_exporter_includes_provider_records() {
+		$setup    = $this->get_fully_configured_user();
+		$user     = $setup['user'];
+		$response = Two_Factor_Core::personal_data_exporter( $user->user_email );
+
+		$items = $response['data'][0]['data'];
+		$names = wp_list_pluck( $items, 'name' );
+
+		$this->assertContains( 'Authenticator app (TOTP)', $names );
+		$this->assertContains( 'Last successful TOTP verification', $names );
+		$this->assertContains( 'Email login code', $names );
+		$this->assertContains( 'Recovery codes', $names );
+
+		$values = array_combine( $names, wp_list_pluck( $items, 'value' ) );
+		$this->assertSame( 'Configured', $values['Authenticator app (TOTP)'] );
+		$this->assertNotEmpty( $values['Last successful TOTP verification'] );
+		$this->assertStringContainsString( 'was sent on', $values['Email login code'] );
+		$this->assertStringContainsString( '10 unused codes', $values['Recovery codes'] );
+	}
+
+	/**
+	 * Verify the export contains no secret, code or hash.
+	 *
+	 * @covers Two_Factor_Core::personal_data_exporter
+	 */
+	public function test_personal_data_exporter_does_not_leak_secrets() {
+		$setup    = $this->get_fully_configured_user();
+		$user     = $setup['user'];
+		$response = Two_Factor_Core::personal_data_exporter( $user->user_email );
+
+		$payload = wp_json_encode( $response );
+
+		foreach ( $setup['sensitive'] as $secret ) {
+			$this->assertStringNotContainsString( $secret, $payload );
+		}
+	}
+
+	/**
+	 * Verify the exporter includes providers that are disabled in the
+	 * site-wide settings.
+	 *
+	 * @covers Two_Factor_Core::personal_data_exporter
+	 */
+	public function test_personal_data_exporter_includes_site_disabled_providers() {
+		update_option( Two_Factor_Core::ENABLED_PROVIDERS_OPTION_KEY, array( 'Two_Factor_Email' ) );
+
+		$setup    = $this->get_fully_configured_user();
+		$user     = $setup['user'];
+		$response = Two_Factor_Core::personal_data_exporter( $user->user_email );
+
+		$items = $response['data'][0]['data'];
+		$names = wp_list_pluck( $items, 'name' );
+
+		$this->assertContains( 'Authenticator app (TOTP)', $names );
+		$this->assertContains( 'Recovery codes', $names );
+	}
+
+	/**
+	 * Verify the exporter includes third-party providers that are disabled
+	 * in the site-wide settings, and keeps the site-wide filter in place.
+	 *
+	 * @covers Two_Factor_Core::personal_data_exporter
+	 */
+	public function test_personal_data_exporter_includes_site_disabled_third_party_providers() {
+		update_option( Two_Factor_Core::ENABLED_PROVIDERS_OPTION_KEY, array( 'Two_Factor_Email' ) );
+
+		// Register a third-party provider before the site-wide filter runs.
+		$add_provider = static function ( $providers ) {
+			$providers['Two_Factor_Third_Party'] = '';
+			return $providers;
+		};
+		$map_class    = static function () {
+			return 'Two_Factor_Dummy';
+		};
+		add_filter( 'two_factor_providers', $add_provider, 5 );
+		add_filter( 'two_factor_provider_classname_Two_Factor_Third_Party', $map_class );
+
+		$user = self::factory()->user->create_and_get();
+		update_user_meta( $user->ID, Two_Factor_Core::PROVIDER_USER_META_KEY, 'Two_Factor_Third_Party' );
+
+		$response = Two_Factor_Core::personal_data_exporter( $user->user_email );
+		$items    = wp_list_pluck( $response['data'][0]['data'], 'value', 'name' );
+
+		$this->assertSame( 'Dummy Method', $items['Primary Two Factor method'] );
+		$this->assertArrayNotHasKey( 'Two_Factor_Third_Party', Two_Factor_Core::get_providers() );
+
+		remove_filter( 'two_factor_providers', $add_provider, 5 );
+		remove_filter( 'two_factor_provider_classname_Two_Factor_Third_Party', $map_class );
+	}
+
+	/**
+	 * Verify format_privacy_timestamp() handles empty and set timestamps.
+	 *
+	 * @covers Two_Factor_Core::format_privacy_timestamp
+	 */
+	public function test_format_privacy_timestamp() {
+		$this->assertSame( '', Two_Factor_Core::format_privacy_timestamp( '' ) );
+		$this->assertSame( '', Two_Factor_Core::format_privacy_timestamp( 0 ) );
+
+		$timestamp = time() - 100;
+		$formatted = Two_Factor_Core::format_privacy_timestamp( $timestamp );
+
+		$this->assertNotEmpty( $formatted );
+		$this->assertStringContainsString( gmdate( 'Y', $timestamp ), $formatted );
+	}
 }

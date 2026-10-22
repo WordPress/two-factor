@@ -157,6 +157,10 @@ class Two_Factor_Core {
 		add_action( 'login_enqueue_scripts', array( __CLASS__, 'login_enqueue_scripts' ), 5 );
 		add_action( 'admin_init', array( __CLASS__, 'trigger_user_settings_action' ) );
 		add_action( 'admin_init', array( __CLASS__, 'add_privacy_policy_content' ) );
+
+		// Personal data export tool.
+		add_filter( 'wp_privacy_personal_data_exporters', array( __CLASS__, 'register_personal_data_exporter' ) );
+
 		add_filter( 'two_factor_providers', array( __CLASS__, 'enable_dummy_method_for_debug' ) );
 
 		// Add Settings link to plugin action links.
@@ -3054,6 +3058,243 @@ class Two_Factor_Core {
 		wp_add_privacy_policy_content(
 			'Two Factor',
 			wp_kses_post( wpautop( $content, false ) )
+		);
+	}
+
+	/**
+	 * Registers the personal data exporter.
+	 *
+	 * @since 0.18.0
+	 *
+	 * @param array $exporters List of personal data exporters.
+	 * @return array
+	 */
+	public static function register_personal_data_exporter( $exporters ) {
+		$exporters['two-factor'] = array(
+			'exporter_friendly_name' => __( 'Two Factor Authentication Data', 'two-factor' ),
+			'callback'               => array( __CLASS__, 'personal_data_exporter' ),
+		);
+
+		return $exporters;
+	}
+
+	/**
+	 * Exports the Two Factor data stored for a user.
+	 *
+	 * Credentials are described, never included. The TOTP secret, the backup
+	 * codes and the email token hash stay out of the export file so that it
+	 * remains safe to share.
+	 *
+	 * @since 0.18.0
+	 *
+	 * @param string $email_address The email address of the user.
+	 * @param int    $page          The page of data being requested.
+	 * @return array
+	 */
+	public static function personal_data_exporter( $email_address, $page = 1 ) { // phpcs:ignore Generic.CodeAnalysis.UnusedFunctionParameter.FoundAfterLastUsed -- Pagination is not needed, all data fits on one page.
+		$user = get_user_by( 'email', $email_address );
+
+		if ( ! $user ) {
+			return array(
+				'data' => array(),
+				'done' => true,
+			);
+		}
+
+		$providers = self::get_privacy_providers();
+		$data      = array();
+
+		$enabled_providers = get_user_meta( $user->ID, self::ENABLED_PROVIDERS_USER_META_KEY, true );
+		if ( $enabled_providers ) {
+			$enabled_labels = array();
+			foreach ( (array) $enabled_providers as $provider_key ) {
+				$enabled_labels[] = self::get_privacy_provider_label( $provider_key, $providers );
+			}
+
+			$data[] = array(
+				'name'  => __( 'Enabled Two Factor methods', 'two-factor' ),
+				'value' => implode( ', ', $enabled_labels ),
+			);
+		}
+
+		$primary_provider = get_user_meta( $user->ID, self::PROVIDER_USER_META_KEY, true );
+		if ( $primary_provider ) {
+			$data[] = array(
+				'name'  => __( 'Primary Two Factor method', 'two-factor' ),
+				'value' => self::get_privacy_provider_label( $primary_provider, $providers ),
+			);
+		}
+
+		$failed_attempts = (int) get_user_meta( $user->ID, self::USER_FAILED_LOGIN_ATTEMPTS_KEY, true );
+		if ( $failed_attempts ) {
+			$data[] = array(
+				'name'  => __( 'Failed Two Factor login attempts', 'two-factor' ),
+				'value' => $failed_attempts,
+			);
+		}
+
+		$last_failure = get_user_meta( $user->ID, self::USER_RATE_LIMIT_KEY, true );
+		if ( $last_failure ) {
+			$data[] = array(
+				'name'  => __( 'Last failed Two Factor login', 'two-factor' ),
+				'value' => self::format_privacy_timestamp( $last_failure ),
+			);
+		}
+
+		if ( get_user_meta( $user->ID, self::USER_PASSWORD_WAS_RESET_KEY, true ) ) {
+			$data[] = array(
+				'name'  => __( 'Password reset by Two Factor', 'two-factor' ),
+				'value' => __( 'The password was reset after too many failed Two Factor attempts. A new password must be created to log in.', 'two-factor' ),
+			);
+		}
+
+		foreach ( $providers as $provider ) {
+			$provider_data = $provider->privacy_export_data( $user );
+
+			// A third-party override can return a non-array, which array_merge() rejects.
+			if ( ! empty( $provider_data ) && is_array( $provider_data ) ) {
+				$data = array_merge( $data, $provider_data );
+			}
+		}
+
+		$export_items = array();
+
+		if ( ! empty( $data ) ) {
+			$export_items[] = array(
+				'group_id'          => 'two-factor',
+				'group_label'       => __( 'Two Factor Authentication', 'two-factor' ),
+				'group_description' => __( 'Two Factor authentication data for the user.', 'two-factor' ),
+				'item_id'           => 'two-factor',
+				'data'              => $data,
+			);
+		}
+
+		// The core exporter skips the Two Factor session details. Using its
+		// group and item IDs merges them into the matching session.
+		$sessions = get_user_meta( $user->ID, 'session_tokens', true );
+		if ( ! is_array( $sessions ) ) {
+			$sessions = array();
+		}
+
+		foreach ( $sessions as $token_key => $session ) {
+			if ( empty( $session['two-factor-login'] ) ) {
+				continue;
+			}
+
+			// Without a provider, Two Factor was enabled in this session and no code was entered.
+			$verified = ! empty( $session['two-factor-provider'] );
+
+			$session_data = array(
+				array(
+					'name'  => $verified ? __( 'Two Factor verified', 'two-factor' ) : __( 'Two Factor enabled', 'two-factor' ),
+					'value' => self::format_privacy_timestamp( $session['two-factor-login'] ),
+				),
+				array(
+					'name'  => __( 'Two Factor method', 'two-factor' ),
+					'value' => $verified
+						? self::get_privacy_provider_label( $session['two-factor-provider'], $providers )
+						: __( 'None, Two Factor was enabled during this session', 'two-factor' ),
+				),
+			);
+
+			$export_items[] = array(
+				'group_id'    => 'session-tokens',
+				'group_label' => __( 'Session Tokens', 'two-factor' ),
+				'item_id'     => "session-tokens-{$user->ID}-{$token_key}",
+				'data'        => $session_data,
+			);
+		}
+
+		return array(
+			'data' => $export_items,
+			'done' => true,
+		);
+	}
+
+	/**
+	 * Get the label of a provider for the personal data export.
+	 *
+	 * Falls back to the provider key for providers that no longer exist.
+	 *
+	 * @since 0.18.0
+	 *
+	 * @param mixed                 $provider_key Provider key, as read from user or session meta.
+	 * @param Two_Factor_Provider[] $providers    Provider instances indexed by provider key.
+	 * @return string
+	 */
+	private static function get_privacy_provider_label( $provider_key, $providers ) {
+		// Malformed meta can hold an array, which isset() rejects with a TypeError.
+		if ( ! is_string( $provider_key ) ) {
+			return __( 'Unknown', 'two-factor' );
+		}
+
+		if ( isset( $providers[ $provider_key ] ) ) {
+			return $providers[ $provider_key ]->get_label();
+		}
+
+		return $provider_key;
+	}
+
+	/**
+	 * Get all registered providers for the personal data exporter.
+	 *
+	 * Same as get_providers(), but providers that are disabled in the
+	 * site-wide settings, including third-party ones, are not removed from
+	 * the list. Data stored for a user must be exported even while its
+	 * provider is disabled.
+	 *
+	 * @since 0.18.0
+	 *
+	 * @return Two_Factor_Provider[] List of provider instances indexed by provider key.
+	 */
+	private static function get_privacy_providers() {
+		$providers = self::get_default_providers();
+
+		// Read the site-wide setting as never saved, so that its filter keeps
+		// disabled providers, including third-party ones, in the list.
+		add_filter( 'pre_option_' . self::ENABLED_PROVIDERS_OPTION_KEY, '__return_null' );
+
+		/** This filter is documented in the get_providers() method */
+		$additional_providers = apply_filters( 'two_factor_providers', $providers );
+
+		remove_filter( 'pre_option_' . self::ENABLED_PROVIDERS_OPTION_KEY, '__return_null' );
+
+		// Merge them with the default providers so that default providers
+		// removed by other filters are still included.
+		if ( ! empty( $additional_providers ) ) {
+			$providers = array_merge( $providers, $additional_providers );
+		}
+
+		// Map provider keys to classes so that we can instantiate them.
+		$providers = self::get_providers_classes( $providers );
+
+		foreach ( $providers as $provider_key => $provider_class ) {
+			try {
+				$providers[ $provider_key ] = call_user_func( array( $provider_class, 'get_instance' ) );
+			} catch ( Exception $e ) {
+				unset( $providers[ $provider_key ] );
+			}
+		}
+
+		return $providers;
+	}
+
+	/**
+	 * Formats a timestamp for the export report.
+	 *
+	 * @since 0.18.0
+	 *
+	 * @param int|string $timestamp Unix timestamp to format.
+	 * @return string Formatted date and time, or an empty string when no timestamp is set.
+	 */
+	public static function format_privacy_timestamp( $timestamp ) {
+		if ( empty( $timestamp ) ) {
+			return '';
+		}
+
+		return wp_date(
+			get_option( 'date_format' ) . ' ' . get_option( 'time_format' ),
+			(int) $timestamp
 		);
 	}
 }
