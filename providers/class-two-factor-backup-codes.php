@@ -285,33 +285,36 @@ class Two_Factor_Backup_Codes extends Two_Factor_Provider {
 
 		$site_name = wp_specialchars_decode( get_bloginfo( 'name' ), ENT_QUOTES );
 
-		$message = sprintf(
-			/* translators: 1: username, 2: site URL, 3: sentence stating how many recovery codes are left, 4: URL to regenerate recovery codes, 5: site name. */
-			__(
-				'Hello %1$s,
-
-A recovery code was just used on your account at %2$s. %3$s
-
-Generate new recovery codes now to avoid being locked out of your account: %4$s
-
-If you did NOT use a recovery code, someone else may have access to your account. Please change your password immediately and generate new recovery codes.
-
-This is an automated notification. If you would like to speak to a site administrator, please contact them directly.
-
-Regards,
-All at %5$s
-%2$s',
-				'two-factor'
+		$message_parts = array(
+			sprintf(
+				/* translators: %s: username. */
+				__( 'Hello %s,', 'two-factor' ),
+				$user->user_login
 			),
-			esc_html( $user->user_login ),
+			sprintf(
+				/* translators: 1: site URL, 2: sentence stating how many recovery codes are left. */
+				__( 'A recovery code was just used on your account at %1$s. %2$s', 'two-factor' ),
+				home_url(),
+				$status
+			),
+			sprintf(
+				/* translators: %s: URL to regenerate recovery codes. */
+				__( 'Generate new recovery codes now to avoid being locked out of your account: %s', 'two-factor' ),
+				self::get_regenerate_codes_url( $user )
+			),
+			__( 'If you did NOT use a recovery code, someone else may have access to your account. Please change your password immediately and generate new recovery codes.', 'two-factor' ),
+			__( 'This is an automated notification. If you would like to speak to a site administrator, please contact them directly.', 'two-factor' ),
+			__( 'Regards,', 'two-factor' ),
+			sprintf(
+				/* translators: %s: site name. */
+				__( 'All at %s', 'two-factor' ),
+				$site_name
+			),
 			home_url(),
-			$status,
-			self::get_regenerate_codes_url( $user ),
-			$site_name
 		);
-		$message = str_replace( "\t", '', $message );
+		$message       = wp_strip_all_tags( implode( "\n\n", $message_parts ) );
 
-		$email = array(
+		$default_email = array(
 			'to'      => $user->user_email,
 			'subject' => sprintf( $subject, $site_name ),
 			'message' => $message,
@@ -330,7 +333,11 @@ All at %5$s
 		 * @param WP_User $user  The user who used a recovery code.
 		 * @param int     $count Number of recovery codes the user has left.
 		 */
-		$email = apply_filters( 'two_factor_backup_codes_low_email', $email, $user, $count );
+		$email = apply_filters( 'two_factor_backup_codes_low_email', $default_email, $user, $count );
+		if ( ! is_array( $email ) ) {
+			$email = $default_email;
+		}
+		$email = wp_parse_args( $email, $default_email );
 
 		return wp_mail( $email['to'], $email['subject'], $email['message'], $email['headers'] ); // phpcs:ignore WordPressVIPMinimum.Functions.RestrictedFunctions.wp_mail_wp_mail -- Plugin sends a single transactional security email to the affected user.
 	}

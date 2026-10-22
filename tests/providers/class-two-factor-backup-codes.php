@@ -510,6 +510,36 @@ class Tests_Two_Factor_Backup_Codes extends WP_UnitTestCase {
 	}
 
 	/**
+	 * Validate that a non-array value from the low-codes email filter falls back to the default email.
+	 *
+	 * @covers Two_Factor_Backup_Codes::notify_user_codes_running_low
+	 */
+	public function test_low_codes_email_filter_non_array_uses_default_email() {
+		list( $user, $codes ) = $this->get_user_with_codes( 1 );
+
+		add_filter(
+			'two_factor_backup_codes_low_email',
+			function () {
+				return 'invalid';
+			}
+		);
+
+		reset_phpmailer_instance();
+		$mailer = tests_retrieve_phpmailer_instance();
+
+		$this->assertTrue( $this->provider->validate_code( $user, $codes[0] ) );
+
+		remove_all_filters( 'two_factor_backup_codes_low_email' );
+
+		$this->assertCount( 1, $mailer->mock_sent );
+		$this->assertContains( $user->user_email, $mailer->mock_sent[0]['to'][0] );
+		$this->assertSame( sprintf( '[%s] You are out of recovery codes', get_bloginfo( 'name' ) ), $mailer->mock_sent[0]['subject'] );
+		$this->assertStringContainsString( 'You have no recovery codes left.', $mailer->mock_sent[0]['body'] );
+
+		reset_phpmailer_instance();
+	}
+
+	/**
 	 * Validate that the provider hooks into both the login and the revalidation flow.
 	 *
 	 * @covers Two_Factor_Backup_Codes::__construct
