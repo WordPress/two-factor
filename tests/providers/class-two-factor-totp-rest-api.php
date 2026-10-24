@@ -288,7 +288,7 @@ class Tests_Two_Factor_Totp_REST_API extends WP_Test_REST_TestCase {
 	 * @covers Two_Factor_Totp::rest_delete_totp
 	 */
 	public function test_user_can_delete_secret() {
-		wp_set_current_user( self::$admin_id );
+		$this->set_up_session_for_user( self::$admin_id );
 
 		$user = wp_get_current_user();
 		$key  = self::$provider->generate_key();
