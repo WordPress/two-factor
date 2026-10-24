@@ -2448,33 +2448,40 @@ class Two_Factor_Core {
 
 		$site_name = wp_specialchars_decode( get_bloginfo( 'name' ), ENT_QUOTES );
 
-		$message = sprintf(
-			/* translators: 1: username, 2: site URL, 3: list of changes, 4: URL to the account's security settings, 5: site name. */
-			__(
-				'Hello %1$s,
-
-This notice confirms that the two-factor authentication methods on your account at %2$s were just changed.
-
-%3$s
-
-If you made this change yourself, no further action is needed.
-
-If you did NOT make this change, someone else may have access to your account. Please review your security settings at %4$s and change your password immediately.
-
-This is an automated notification. If you would like to speak to a site administrator, please contact them directly.
-
-Regards,
-All at %5$s
-%2$s',
-				'two-factor'
+		$message_parts = array(
+			sprintf(
+				/* translators: %s: username. */
+				__( 'Hello %s,', 'two-factor' ),
+				esc_html( $user->user_login )
 			),
-			esc_html( $user->user_login ),
-			home_url(),
-			implode( "\n", $changes ),
-			admin_url( 'profile.php' ),
-			$site_name
+			sprintf(
+				/* translators: %s: site URL. */
+				__( 'This notice confirms that the two-factor authentication methods on your account at %s were just changed.', 'two-factor' ),
+				home_url()
+			),
 		);
-		$message = str_replace( "\t", '', $message );
+
+		$message_parts = array_merge(
+			$message_parts,
+			$changes,
+			array(
+				__( 'If you made this change yourself, no further action is needed.', 'two-factor' ),
+				sprintf(
+					/* translators: %s: URL to the account's security settings. */
+					__( 'If you did NOT make this change, someone else may have access to your account. Please review your security settings at %s and change your password immediately.', 'two-factor' ),
+					admin_url( 'profile.php' )
+				),
+				__( 'This is an automated notification. If you would like to speak to a site administrator, please contact them directly.', 'two-factor' ),
+				__( 'Regards,', 'two-factor' ),
+				sprintf(
+					/* translators: %s: site name. */
+					__( 'All at %s', 'two-factor' ),
+					$site_name
+				),
+				home_url(),
+			)
+		);
+		$message       = wp_strip_all_tags( implode( "\n\n", $message_parts ) );
 
 		$email = array(
 			'to'      => $user->user_email,
