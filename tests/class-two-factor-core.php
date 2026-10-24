@@ -3082,6 +3082,37 @@ class Test_ClassTwoFactorCore extends WP_UnitTestCase {
 	}
 
 	/**
+	 * Send settings-change notifications using the recipient's locale and restore the caller's locale.
+	 *
+	 * @covers Two_Factor_Core::notify_user_two_factor_settings_changed
+	 */
+	public function test_settings_changed_notification_uses_recipient_locale() {
+		$available_locales = array_diff( get_available_languages(), array( get_locale() ) );
+		if ( ! $available_locales ) {
+			$this->markTestSkipped( 'An alternate installed locale is required.' );
+		}
+
+		$user             = self::factory()->user->create_and_get();
+		$recipient_locale = reset( $available_locales );
+		update_user_meta( $user->ID, 'locale', $recipient_locale );
+
+		$caller_locale       = get_locale();
+		$notification_locale = null;
+		$filter              = function ( $email ) use ( &$notification_locale ) {
+			$notification_locale = get_locale();
+			return $email;
+		};
+		add_filter( 'two_factor_settings_changed_email', $filter );
+
+		Two_Factor_Core::notify_user_two_factor_settings_changed( $user, array( 'Two_Factor_Dummy' ), array() );
+
+		remove_filter( 'two_factor_settings_changed_email', $filter );
+
+		$this->assertSame( $recipient_locale, $notification_locale );
+		$this->assertSame( $caller_locale, get_locale() );
+	}
+
+	/**
 	 * Validate that the `two_factor_settings_changed_email` filter can customize the email
 	 * content (recipient, subject, message, headers) without being able to suppress it.
 	 *

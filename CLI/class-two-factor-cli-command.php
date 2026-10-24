@@ -355,6 +355,11 @@ class Two_Factor_CLI_Command extends WP_CLI_Command {
 		// The 2FA configuration changed, so drop every existing session and force
 		// re-authentication, matching the profile-page behaviour.
 		WP_Session_Tokens::get_instance( $user->ID )->destroy_all();
+		Two_Factor_Core::notify_user_two_factor_settings_changed(
+			$user,
+			Two_Factor_Core::get_enabled_providers_for_user( $user ),
+			$enabled
+		);
 
 		WP_CLI::success(
 			sprintf(

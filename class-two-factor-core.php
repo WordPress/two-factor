@@ -2415,6 +2415,7 @@ class Two_Factor_Core {
 			return false;
 		}
 
+		$switched_locale     = switch_to_user_locale( $user->ID );
 		$supported_providers = self::get_supported_providers_for_user( $user->ID );
 
 		$label_for_key = static function ( $provider_key ) use ( $supported_providers ) {
@@ -2501,7 +2502,13 @@ All at %5$s
 		 */
 		$email = apply_filters( 'two_factor_settings_changed_email', $email, $user, $added_keys, $removed_keys );
 
-		return wp_mail( $email['to'], $email['subject'], $email['message'], $email['headers'] ); // phpcs:ignore WordPressVIPMinimum.Functions.RestrictedFunctions.wp_mail_wp_mail -- Plugin sends a single transactional security email to the affected user.
+		$sent = wp_mail( $email['to'], $email['subject'], $email['message'], $email['headers'] ); // phpcs:ignore WordPressVIPMinimum.Functions.RestrictedFunctions.wp_mail_wp_mail -- Plugin sends a single transactional security email to the affected user.
+
+		if ( $switched_locale ) {
+			restore_previous_locale();
+		}
+
+		return $sent;
 	}
 
 	/**

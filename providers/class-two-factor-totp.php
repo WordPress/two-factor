@@ -204,12 +204,19 @@ class Two_Factor_Totp extends Two_Factor_Provider {
 	 * @return WP_Error|array Array of data on success, WP_Error on error.
 	 */
 	public function rest_delete_totp( $request ) {
-		$user_id = $request['user_id'];
-		$user    = get_user_by( 'id', $user_id );
+		$user_id                  = $request['user_id'];
+		$user                     = get_user_by( 'id', $user_id );
+		$enabled_providers_before = Two_Factor_Core::get_enabled_providers_for_user( $user_id );
 
 		if ( ! Two_Factor_Core::disable_provider_for_user( $user_id, 'Two_Factor_Totp' ) ) {
 			return new WP_Error( 'db_error', __( 'Unable to disable TOTP provider for this user.', 'two-factor' ), array( 'status' => 500 ) );
 		}
+
+		Two_Factor_Core::notify_user_two_factor_settings_changed(
+			$user,
+			Two_Factor_Core::get_enabled_providers_for_user( $user_id ),
+			$enabled_providers_before
+		);
 
 		$this->delete_user_totp_key( $user_id );
 
@@ -250,8 +257,18 @@ class Two_Factor_Totp extends Two_Factor_Provider {
 			return new WP_Error( 'db_error', __( 'Unable to save Two Factor Authentication code. Please re-scan the QR code and enter the code provided by your application.', 'two-factor' ), array( 'status' => 500 ) );
 		}
 
-		if ( $request->get_param( 'enable_provider' ) && ! Two_Factor_Core::enable_provider_for_user( $user_id, 'Two_Factor_Totp' ) ) {
-			return new WP_Error( 'db_error', __( 'Unable to enable TOTP provider for this user.', 'two-factor' ), array( 'status' => 500 ) );
+		if ( $request->get_param( 'enable_provider' ) ) {
+			$enabled_providers_before = Two_Factor_Core::get_enabled_providers_for_user( $user_id );
+
+			if ( ! Two_Factor_Core::enable_provider_for_user( $user_id, 'Two_Factor_Totp' ) ) {
+				return new WP_Error( 'db_error', __( 'Unable to enable TOTP provider for this user.', 'two-factor' ), array( 'status' => 500 ) );
+			}
+
+			Two_Factor_Core::notify_user_two_factor_settings_changed(
+				$user,
+				Two_Factor_Core::get_enabled_providers_for_user( $user_id ),
+				$enabled_providers_before
+			);
 		}
 
 		ob_start();
