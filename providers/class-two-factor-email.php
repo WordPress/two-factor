@@ -286,9 +286,10 @@ class Two_Factor_Email extends Two_Factor_Provider {
 
 		$subject = wp_strip_all_tags(
 			sprintf(
-				/* translators: %s: site name */
-				__( '[%s] Login confirmation code', 'two-factor' ),
-				wp_specialchars_decode( get_option( 'blogname' ), ENT_QUOTES )
+				/* translators: 1: site name, 2: login verification code */
+				__( '[%1$s] Login confirmation code: %2$s', 'two-factor' ),
+				wp_specialchars_decode( get_option( 'blogname' ), ENT_QUOTES ),
+				$token
 			)
 		);
 

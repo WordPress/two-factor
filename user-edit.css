@@ -35,9 +35,15 @@
 	list-style-position: inside;
 }
 
-/* Prevent Jetpack from hiding our controls, see https://github.com/Automattic/jetpack/issues/3747 */
-.jetpack-sso-form-display #loginform > p,
-.jetpack-sso-form-display #loginform > div {
+/*
+ * Prevent Jetpack from hiding our controls, see https://github.com/Automattic/jetpack/issues/3747
+ *
+ * Jetpack's own rule uses the exact same selector, so the `body` prefix is
+ * required to win the cascade on specificity instead of source order, which
+ * depends on stylesheet enqueue order. See https://github.com/WordPress/two-factor/issues/1008
+ */
+body.jetpack-sso-form-display #loginform > p,
+body.jetpack-sso-form-display #loginform > div {
 	display: block;
 }
 
