@@ -799,6 +799,35 @@ class Test_ClassTwoFactorCore extends WP_UnitTestCase {
 	}
 
 	/**
+	 * Verify that revalidation URLs stay on the current site when the login URL is filtered.
+	 *
+	 * @covers Two_Factor_Core::login_url
+	 */
+	public function test_login_url_keeps_revalidation_on_current_site() {
+		$filter_login_url = static function () {
+			return 'https://login.example.org/';
+		};
+		add_filter( 'login_url', $filter_login_url );
+
+		$validate_url   = Two_Factor_Core::login_url( array( 'action' => 'validate_2fa' ) );
+		$revalidate_url = Two_Factor_Core::login_url(
+			array(
+				'action'        => 'revalidate_2fa',
+				'interim-login' => 1,
+				'provider'      => 'Two_Factor_Totp',
+			)
+		);
+
+		remove_filter( 'login_url', $filter_login_url );
+
+		$this->assertSame( set_url_scheme( 'https://login.example.org/?action=validate_2fa', 'login' ), $validate_url );
+		$this->assertSame(
+			site_url( 'wp-login.php?action=revalidate_2fa&interim-login=1&provider=Two_Factor_Totp', 'login' ),
+			$revalidate_url
+		);
+	}
+
+	/**
 	 * Call the private get_login_redirect_fallback() via reflection.
 	 *
 	 * @param string  $redirect_to The requested redirect destination.
@@ -2508,6 +2537,41 @@ class Test_ClassTwoFactorCore extends WP_UnitTestCase {
 	}
 
 	/**
+	 * Validate that logging in with the last recovery code redirects to the recovery codes
+	 * section of the profile instead of the requested redirect.
+	 *
+	 * @covers Two_Factor_Core::validate_login_form_2fa()
+	 * @covers Two_Factor_Backup_Codes::maybe_redirect_to_regenerate_codes
+	 */
+	public function test_validate_login_form_2fa_redirects_to_regenerate_codes_after_last_code() {
+		$user     = self::factory()->user->create_and_get();
+		$provider = Two_Factor_Backup_Codes::get_instance();
+		$codes    = $provider->generate_codes( $user, array( 'number' => 2 ) );
+		Two_Factor_Core::enable_provider_for_user( $user->ID, 'Two_Factor_Backup_Codes' );
+
+		$log_in_with_code = function ( $code ) use ( $user ) {
+			$login_nonce                        = Two_Factor_Core::create_login_nonce( $user->ID );
+			$_REQUEST['two-factor-backup-code'] = $code;
+
+			return $this->do_redirect_callable(
+				function () use ( $user, $login_nonce ) {
+					Two_Factor_Core::validate_login_form_2fa( $user, $login_nonce['key'], 'Two_Factor_Backup_Codes', admin_url( 'edit.php' ), true );
+				}
+			);
+		};
+
+		// One code left, keep the requested redirect.
+		$this->assertSame( admin_url( 'edit.php' ), $log_in_with_code( $codes[0] ) );
+
+		// Last code used, send them to regenerate.
+		$this->assertSame( get_edit_profile_url( $user->ID ) . '#two-factor-backup-codes', $log_in_with_code( $codes[1] ) );
+
+		unset( $_REQUEST['two-factor-backup-code'] );
+		remove_all_filters( 'login_redirect' );
+		reset_phpmailer_instance();
+	}
+
+	/**
 	 * Test current user can update two factor options functionality.
 	 *
 	 * @covers Two_Factor_Core::current_user_can_update_two_factor_options()
@@ -3153,29 +3217,29 @@ class Test_ClassTwoFactorCore extends WP_UnitTestCase {
 	/**
 	 * Test is_valid_user_action validates actions correctly.
 	 *
-	 * @covers Two_Factor_Core::is_valid_user_action
+	 * @covers two_factor_is_valid_user_action
 	 */
 	public function test_is_valid_user_action() {
 		$user_id = self::factory()->user->create();
 		$action  = 'test_action';
 
 		// Test without nonce.
-		$this->assertFalse( Two_Factor_Core::is_valid_user_action( $user_id, $action ), 'Action is invalid without nonce' );
+		$this->assertFalse( two_factor_is_valid_user_action( $user_id, $action ), 'Action is invalid without nonce' );
 
 		// Test with invalid nonce.
 		$_REQUEST[ Two_Factor_Core::USER_SETTINGS_ACTION_NONCE_QUERY_ARG ] = 'invalid_nonce';
-		$this->assertFalse( Two_Factor_Core::is_valid_user_action( $user_id, $action ), 'Action is invalid with wrong nonce' );
+		$this->assertFalse( two_factor_is_valid_user_action( $user_id, $action ), 'Action is invalid with wrong nonce' );
 
 		// Test with valid nonce.
 		$nonce = wp_create_nonce( sprintf( '%d-%s', $user_id, $action ) );
 		$_REQUEST[ Two_Factor_Core::USER_SETTINGS_ACTION_NONCE_QUERY_ARG ] = $nonce;
-		$this->assertNotFalse( Two_Factor_Core::is_valid_user_action( $user_id, $action ), 'Action is valid with correct nonce' );
+		$this->assertNotFalse( two_factor_is_valid_user_action( $user_id, $action ), 'Action is valid with correct nonce' );
 
 		// Test with missing user_id.
-		$this->assertFalse( Two_Factor_Core::is_valid_user_action( 0, $action ), 'Action is invalid without user ID' );
+		$this->assertFalse( two_factor_is_valid_user_action( 0, $action ), 'Action is invalid without user ID' );
 
 		// Test with missing action.
-		$this->assertFalse( Two_Factor_Core::is_valid_user_action( $user_id, '' ), 'Action is invalid without action name' );
+		$this->assertFalse( two_factor_is_valid_user_action( $user_id, '' ), 'Action is invalid without action name' );
 
 		// Cleanup.
 		unset( $_REQUEST[ Two_Factor_Core::USER_SETTINGS_ACTION_NONCE_QUERY_ARG ] );
