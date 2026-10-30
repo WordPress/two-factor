@@ -130,7 +130,7 @@ class Two_Factor_CLI_Command extends WP_CLI_Command {
 				'user_id'                => $user->ID,
 				'user_login'             => $user->user_login,
 				'using_2fa'              => $using_2fa ? 'true' : 'false',
-				'primary_provider'       => $primary ? $primary->get_key() : '',
+				'primary_provider'       => $primary && ! is_wp_error( $primary ) ? $primary->get_key() : '',
 				'enabled_providers'      => implode( ', ', $enabled_providers ),
 				'backup_codes_remaining' => $backup_codes_remaining,
 			),

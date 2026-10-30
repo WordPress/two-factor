@@ -269,6 +269,31 @@ class Tests_Two_Factor_CLI_Command extends WP_UnitTestCase {
 		$this->assertSame( 4, $this->last_format()['items'][0]['backup_codes_remaining'] );
 	}
 
+	/**
+	 * A user locked out because none of their methods can be used is reported without a fatal error.
+	 *
+	 * @covers Two_Factor_CLI_Command::status
+	 */
+	public function test_status_for_locked_out_user() {
+		update_user_meta( $this->user->ID, Two_Factor_Core::ENABLED_PROVIDERS_USER_META_KEY, array( 'Two_Factor_Totp' ) );
+
+		$filter = function () {
+			return 'Two_Factor_Nonexistent';
+		};
+
+		add_filter( 'two_factor_fallback_provider_for_user', $filter );
+
+		try {
+			$this->command->status( array( 'cli_test_user' ), array() );
+		} finally {
+			remove_filter( 'two_factor_fallback_provider_for_user', $filter );
+		}
+
+		$item = $this->last_format()['items'][0];
+		$this->assertSame( 'true', $item['using_2fa'] );
+		$this->assertSame( '', $item['primary_provider'] );
+	}
+
 	/*
 	 * ---------------------------------------------------------------------
 	 * list-providers
