@@ -216,6 +216,8 @@ class Tests_Two_Factor_Totp_REST_API extends WP_Test_REST_TestCase {
 		$this->set_up_session_for_user( self::$admin_id );
 
 		$this->assertFalse( Two_Factor_Core::is_current_user_session_two_factor() );
+		$mailer        = tests_retrieve_phpmailer_instance();
+		$emails_before = count( $mailer->mock_sent );
 
 		$key  = self::$provider->generate_key();
 		$code = self::$provider->calc_totp( $key );
@@ -236,6 +238,8 @@ class Tests_Two_Factor_Totp_REST_API extends WP_Test_REST_TestCase {
 
 		// The session is flagged, so the user is not asked to revalidate right after setup.
 		$this->assertNotFalse( Two_Factor_Core::is_current_user_session_two_factor() );
+		$this->assertCount( $emails_before + 1, $mailer->mock_sent );
+		$this->assertContains( get_userdata( self::$admin_id )->user_email, $mailer->mock_sent[ $emails_before ]['to'][0] );
 
 		$session = Two_Factor_Core::get_current_user_session();
 		$this->assertEquals( '', $session['two-factor-provider'] );
@@ -251,6 +255,8 @@ class Tests_Two_Factor_Totp_REST_API extends WP_Test_REST_TestCase {
 	 */
 	public function test_user_two_factor_rest_setup_for_other_user_does_not_mark_session() {
 		$this->set_up_session_for_user( self::$admin_id );
+		$mailer        = tests_retrieve_phpmailer_instance();
+		$emails_before = count( $mailer->mock_sent );
 
 		$key  = self::$provider->generate_key();
 		$code = self::$provider->calc_totp( $key );
@@ -272,6 +278,8 @@ class Tests_Two_Factor_Totp_REST_API extends WP_Test_REST_TestCase {
 		// The editor now uses two-factor, but that says nothing about the admin's session.
 		$this->assertTrue( Two_Factor_Core::is_user_using_two_factor( self::$editor_id ) );
 		$this->assertFalse( Two_Factor_Core::is_current_user_session_two_factor() );
+		$this->assertCount( $emails_before + 1, $mailer->mock_sent );
+		$this->assertContains( get_userdata( self::$editor_id )->user_email, $mailer->mock_sent[ $emails_before ]['to'][0] );
 	}
 
 	/**
@@ -280,19 +288,22 @@ class Tests_Two_Factor_Totp_REST_API extends WP_Test_REST_TestCase {
 	 * @covers Two_Factor_Totp::rest_delete_totp
 	 */
 	public function test_user_can_delete_secret() {
-		wp_set_current_user( self::$admin_id );
+		$this->set_up_session_for_user( self::$admin_id );
 
 		$user = wp_get_current_user();
 		$key  = self::$provider->generate_key();
 
 		// Configure secret for the user.
 		self::$provider->set_user_totp_key( $user->ID, $key );
+		Two_Factor_Core::enable_provider_for_user( $user->ID, 'Two_Factor_Totp' );
 
 		$this->assertEquals(
 			$key,
 			self::$provider->get_user_totp_key( $user->ID ),
 			'Secret was stored and can be fetched'
 		);
+		$mailer        = tests_retrieve_phpmailer_instance();
+		$emails_before = count( $mailer->mock_sent );
 
 		$request = new WP_REST_Request( 'DELETE', '/' . Two_Factor_Core::REST_NAMESPACE . '/totp' );
 		$request->set_body_params(
@@ -303,6 +314,8 @@ class Tests_Two_Factor_Totp_REST_API extends WP_Test_REST_TestCase {
 		$response = rest_do_request( $request );
 
 		$this->assertEquals( 200, $response->get_status() );
+		$this->assertCount( $emails_before + 1, $mailer->mock_sent );
+		$this->assertContains( $user->user_email, $mailer->mock_sent[ $emails_before ]['to'][0] );
 
 		$this->assertEquals(
 			'',
