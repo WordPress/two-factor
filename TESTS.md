@@ -122,6 +122,7 @@ Tests `Two_Factor_Totp`:
 - `validate_code_for_user` replay protection
 - Algorithm variants: SHA1, SHA256, SHA512 (code generation and authentication)
 - Secret padding (`pad_secret`)
+- Profile options markup: no secret or QR code before setup starts, reset button once configured
 
 ### TOTP REST API — `tests/providers/class-two-factor-totp-rest-api.php`
 
@@ -134,6 +135,8 @@ Extends `WP_Test_REST_TestCase`. Tests the TOTP REST endpoints:
 - Deleting own secret
 - Admin deleting another user's secret
 - Non-admin cannot delete another user's secret
+- Starting setup (`/totp/begin`): returns the steps with a valid secret, stores nothing, new secret each call, can be verified afterwards, denied for other users and when logged out
+- Reset response renders the setup button, without a secret or QR code
 
 ### Email Provider — `tests/providers/class-two-factor-email.php`
 
