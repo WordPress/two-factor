@@ -16,6 +16,13 @@
 class Tests_Two_Factor_Settings extends WP_UnitTestCase {
 
 	/**
+	 * Original $pagenow global value.
+	 *
+	 * @var string|null
+	 */
+	private $old_pagenow;
+
+	/**
 	 * Set up a test case.
 	 *
 	 * @see WP_UnitTestCase_Base::set_up()
@@ -23,6 +30,7 @@ class Tests_Two_Factor_Settings extends WP_UnitTestCase {
 	public function set_up() {
 		parent::set_up();
 
+		$this->old_pagenow = isset( $GLOBALS['pagenow'] ) ? $GLOBALS['pagenow'] : null;
 		delete_option( Two_Factor_Core::ENABLED_PROVIDERS_OPTION_KEY );
 		$this->clear_settings_request();
 	}
@@ -35,6 +43,12 @@ class Tests_Two_Factor_Settings extends WP_UnitTestCase {
 	public function tear_down() {
 		delete_option( Two_Factor_Core::ENABLED_PROVIDERS_OPTION_KEY );
 		$this->clear_settings_request();
+
+		if ( null !== $this->old_pagenow ) {
+			$GLOBALS['pagenow'] = $this->old_pagenow;
+		} else {
+			unset( $GLOBALS['pagenow'] );
+		}
 
 		parent::tear_down();
 	}
@@ -49,7 +63,6 @@ class Tests_Two_Factor_Settings extends WP_UnitTestCase {
 		unset( $_POST['two_factor_enabled_providers'] );
 		unset( $_REQUEST['two_factor_settings_nonce'] );
 		unset( $_REQUEST['_wp_http_referer'] );
-		unset( $GLOBALS['pagenow'] );
 		set_current_screen( 'front' );
 	}
 
@@ -62,8 +75,6 @@ class Tests_Two_Factor_Settings extends WP_UnitTestCase {
 		$admin = self::factory()->user->create_and_get( array( 'role' => 'administrator' ) );
 		wp_set_current_user( $admin->ID );
 		set_current_screen( 'settings_page_two-factor-settings' );
-		$_GET['page']       = 'two-factor-settings';
-		$GLOBALS['pagenow'] = 'options-general.php';
 
 		return $admin;
 	}
@@ -114,7 +125,7 @@ class Tests_Two_Factor_Settings extends WP_UnitTestCase {
 	/**
 	 * Site-wide enforcement filters are registered on init.
 	 */
-	public function test_admin_hooks_register_enforcement_filters() {
+	public function test_init_registers_enforcement_filters() {
 		$this->assertSame( 10, has_filter( 'two_factor_providers', 'two_factor_filter_enabled_providers' ) );
 		$this->assertSame( 10, has_filter( 'two_factor_enabled_providers_for_user', 'two_factor_filter_enabled_providers_for_user' ) );
 	}
@@ -230,6 +241,27 @@ class Tests_Two_Factor_Settings extends WP_UnitTestCase {
 		$this->assertStringContainsString( 'Settings saved.', $output );
 		$this->assertSame(
 			array( 'Two_Factor_Email', 'Two_Factor_Totp' ),
+			get_option( Two_Factor_Core::ENABLED_PROVIDERS_OPTION_KEY )
+		);
+	}
+
+	/**
+	 * Any non-empty sanitized string is stored; the save path does not validate keys against registered providers.
+	 *
+	 * @covers Two_Factor_Settings::render_settings_page
+	 */
+	public function test_render_settings_page_saves_unknown_provider_keys() {
+		$this->become_settings_admin();
+
+		$_POST['two_factor_settings_submit'] = '1';
+		$this->set_valid_settings_nonce();
+		$_POST['two_factor_enabled_providers'] = array( 'Unknown_Custom_Provider' );
+
+		$output = $this->render_settings_page();
+
+		$this->assertStringContainsString( 'Settings saved.', $output );
+		$this->assertSame(
+			array( 'Unknown_Custom_Provider' ),
 			get_option( Two_Factor_Core::ENABLED_PROVIDERS_OPTION_KEY )
 		);
 	}
@@ -401,13 +433,16 @@ class Tests_Two_Factor_Settings extends WP_UnitTestCase {
 	/**
 	 * Bypass is restricted to the settings screen: spoofing the page query arg on profile screens still filters.
 	 *
+	 * Spoofed page query arg and $pagenow are passed as a regression guard against earlier implementations
+	 * that checked $_GET['page'] rather than the screen object.
+	 *
 	 * @covers ::two_factor_filter_enabled_providers
 	 */
 	public function test_filter_enabled_providers_not_bypassed_on_profile_screen() {
 		$admin = self::factory()->user->create_and_get( array( 'role' => 'administrator' ) );
 		wp_set_current_user( $admin->ID );
 		set_current_screen( 'profile' );
-		$_GET['page']       = 'two-factor-settings';
+		$_GET['page']       = 'two-factor-settings'; // Spoofed arg as regression guard.
 		$GLOBALS['pagenow'] = 'profile.php';
 		update_option( Two_Factor_Core::ENABLED_PROVIDERS_OPTION_KEY, array( 'Two_Factor_Email' ) );
 
@@ -485,9 +520,11 @@ class Tests_Two_Factor_Settings extends WP_UnitTestCase {
 	}
 
 	/**
-	 * User-enabled providers are reduced to the site-wide allow-list.
+	 * Integration test: user-enabled providers are reduced to the site-wide allow-list.
 	 *
-	 * @covers ::two_factor_filter_enabled_providers_for_user
+	 * Tests Two_Factor_Core::get_enabled_providers_for_user() end-to-end with the site-wide allow-list.
+	 *
+	 * @covers Two_Factor_Core::get_enabled_providers_for_user
 	 */
 	public function test_get_enabled_providers_for_user_honors_site_allow_list() {
 		$user = self::factory()->user->create_and_get();
