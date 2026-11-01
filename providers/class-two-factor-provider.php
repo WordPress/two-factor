@@ -104,7 +104,7 @@ abstract class Two_Factor_Provider {
 	 * @param  WP_User $user WP_User object of the logged-in user.
 	 * @return boolean
 	 */
-	public function pre_process_authentication( $user ) {
+	public function pre_process_authentication( $user ) { // phpcs:ignore Generic.CodeAnalysis.UnusedFunctionParameter.Found -- Base implementation keeps the provider interface signature but does not use the user.
 		return false;
 	}
 

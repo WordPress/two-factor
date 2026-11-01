@@ -11,9 +11,9 @@
  * Plugin Name:       Two Factor
  * Plugin URI:        https://wordpress.org/plugins/two-factor/
  * Description:       Enable Two-Factor Authentication using time-based one-time passwords, email, and backup verification codes.
- * Requires at least: 6.9
- * Version:           0.16.0
- * Requires PHP:      7.2
+ * Requires at least: 6.8
+ * Version:           0.17.0
+ * Requires PHP:      7.4
  * Author:            WordPress.org Contributors
  * Author URI:        https://github.com/wordpress/two-factor/graphs/contributors
  * License:           GPL-2.0-or-later
@@ -22,19 +22,17 @@
  * Network:           True
  */
 
+if ( ! defined( 'TWO_FACTOR_DIR' ) ) {
+	define( 'TWO_FACTOR_DIR', __DIR__ . '/' );
+}
+
+if ( ! defined( 'TWO_FACTOR_VERSION' ) ) {
+	define( 'TWO_FACTOR_VERSION', '0.17.0' );
+}
+
 if ( ! defined( 'ABSPATH' ) ) {
 	exit; // Exit if accessed directly.
 }
-
-/**
- * Shortcut constant to the path of this file.
- */
-define( 'TWO_FACTOR_DIR', plugin_dir_path( __FILE__ ) );
-
-/**
- * Version of the plugin.
- */
-define( 'TWO_FACTOR_VERSION', '0.16.0' );
 
 /**
  * Include the base class here, so that other plugins can also extend it.
@@ -57,6 +55,11 @@ require_once TWO_FACTOR_DIR . 'settings/class-two-factor-settings.php';
 $two_factor_compat = new Two_Factor_Compat();
 
 Two_Factor_Core::add_hooks( $two_factor_compat );
+
+if ( defined( 'WP_CLI' ) && WP_CLI ) {
+	require_once TWO_FACTOR_DIR . 'CLI/class-two-factor-cli-command.php';
+	WP_CLI::add_command( 'two-factor', 'Two_Factor_CLI_Command' );
+}
 
 // Delete our options and user meta during uninstall.
 register_uninstall_hook( __FILE__, array( Two_Factor_Core::class, 'uninstall' ) );
@@ -108,7 +111,7 @@ function two_factor_render_settings_page() {
 	}
 
 	// Prefer new settings class (keeps main file small).
-	if ( class_exists( 'Two_Factor_Settings' ) && is_callable( array( 'Two_Factor_Settings', 'render_settings_page' ) ) ) {
+	if ( class_exists( 'Two_Factor_Settings' ) ) {
 		Two_Factor_Settings::render_settings_page();
 		return;
 	}
@@ -142,7 +145,7 @@ function two_factor_get_enabled_providers_option() {
  * This filter receives providers in core format: classname => path.
  *
  * @since 0.16
- * 
+ *
  * @param array $providers Registered providers in classname => path format.
  * @return array Filtered list of enabled providers.
  */
@@ -155,7 +158,8 @@ function two_factor_filter_enabled_providers( $providers ) {
 	}
 
 	// On the settings page itself, show all providers so admins can change the selection.
-	if ( is_admin() && isset( $_GET['page'] ) && 'two-factor-settings' === $_GET['page'] ) {
+	$current_screen = is_admin() ? get_current_screen() : false;
+	if ( $current_screen && 'settings_page_two-factor-settings' === $current_screen->base ) {
 		return $providers;
 	}
 
@@ -178,7 +182,7 @@ function two_factor_filter_enabled_providers( $providers ) {
  * @param int   $user_id  ID of the user being filtered.
  * @return array Filtered list of provider classnames allowed by the site.
  */
-function two_factor_filter_enabled_providers_for_user( $enabled, $user_id ) {
+function two_factor_filter_enabled_providers_for_user( $enabled, $user_id ) { // phpcs:ignore Generic.CodeAnalysis.UnusedFunctionParameter.FoundAfterLastUsed -- Filter signature includes user_id, but this site-wide restriction only needs the enabled providers list.
 	$site_enabled = two_factor_get_enabled_providers_option();
 
 	// null means the option was never saved — allow all.
@@ -187,4 +191,29 @@ function two_factor_filter_enabled_providers_for_user( $enabled, $user_id ) {
 	}
 
 	return array_values( array_intersect( (array) $enabled, $site_enabled ) );
+}
+
+/**
+ * Check if a user action is valid.
+ *
+ * @since 0.18.0
+ *
+ * @param integer $user_id User ID.
+ * @param string  $action User action ID.
+ *
+ * @return boolean
+ */
+function two_factor_is_valid_user_action( $user_id, $action ) {
+	$request_nonce = isset( $_REQUEST[ Two_Factor_Core::USER_SETTINGS_ACTION_NONCE_QUERY_ARG ] ) && is_scalar( $_REQUEST[ Two_Factor_Core::USER_SETTINGS_ACTION_NONCE_QUERY_ARG ] )
+		? sanitize_text_field( wp_unslash( $_REQUEST[ Two_Factor_Core::USER_SETTINGS_ACTION_NONCE_QUERY_ARG ] ) )
+		: '';
+
+	if ( ! $user_id || ! $action || ! $request_nonce ) {
+		return false;
+	}
+
+	return wp_verify_nonce(
+		$request_nonce,
+		sprintf( '%d-%s', $user_id, $action )
+	);
 }

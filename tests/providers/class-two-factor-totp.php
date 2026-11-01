@@ -14,9 +14,25 @@
  */
 class Tests_Two_Factor_Totp extends WP_UnitTestCase {
 
+	/**
+	 * Shared token test vector seed.
+	 *
+	 * @var string
+	 */
 	private static $token = '12345678901234567890';
-	private static $step  = 30;
 
+	/**
+	 * TOTP step size used for RFC vectors.
+	 *
+	 * @var int
+	 */
+	private static $step = 30;
+
+	/**
+	 * RFC test vectors keyed by timestamp.
+	 *
+	 * @var array<int, array<int, string>>
+	 */
 	private static $vectors = array(
 		59          => array( '94287082', '46119246', '90693936' ),
 		1111111109  => array( '07081804', '68084774', '25091201' ),
@@ -97,6 +113,22 @@ class Tests_Two_Factor_Totp extends WP_UnitTestCase {
 	public function test_generate_qr_code_url() {
 		$user     = new WP_User( self::factory()->user->create() );
 		$expected = 'otpauth://totp/Test%20Blog%3A' . rawurlencode( $user->user_login ) . '?secret=my%20secret%20key&issuer=Test%20Blog';
+		$actual   = $this->provider->generate_qr_code_url( $user, 'my secret key' );
+
+		$this->assertSame( $expected, $actual );
+	}
+
+	/**
+	 * Verify QR code URL generation uses the site title as text, not as escaped HTML.
+	 *
+	 * @covers Two_Factor_Totp::generate_qr_code_url
+	 */
+	public function test_generate_qr_code_url_decodes_site_title() {
+		update_option( 'blogname', 'Tom & Jerry\'s "Blog"' );
+
+		$user     = new WP_User( self::factory()->user->create() );
+		$issuer   = rawurlencode( 'Tom & Jerry\'s "Blog"' );
+		$expected = 'otpauth://totp/' . $issuer . '%3A' . rawurlencode( $user->user_login ) . '?secret=my%20secret%20key&issuer=' . $issuer;
 		$actual   = $this->provider->generate_qr_code_url( $user, 'my secret key' );
 
 		$this->assertSame( $expected, $actual );
@@ -329,6 +361,8 @@ class Tests_Two_Factor_Totp extends WP_UnitTestCase {
 	}
 
 	/**
+	 * Verify SHA-1 test vectors generate the expected TOTP values.
+	 *
 	 * @covers Two_Factor_Totp::calc_totp
 	 */
 	public function test_sha1_generate() {
@@ -348,6 +382,8 @@ class Tests_Two_Factor_Totp extends WP_UnitTestCase {
 	}
 
 	/**
+	 * Verify SHA-1 generated codes authenticate successfully.
+	 *
 	 * @covers Two_Factor_Totp::is_valid_authcode
 	 * @covers Two_Factor_Totp::calc_totp
 	 */
@@ -368,6 +404,8 @@ class Tests_Two_Factor_Totp extends WP_UnitTestCase {
 	}
 
 	/**
+	 * Verify SHA-256 test vectors generate the expected TOTP values.
+	 *
 	 * @covers Two_Factor_Totp::calc_totp
 	 */
 	public function test_sha256_generate() {
@@ -387,6 +425,8 @@ class Tests_Two_Factor_Totp extends WP_UnitTestCase {
 	}
 
 	/**
+	 * Verify SHA-256 generated codes authenticate successfully.
+	 *
 	 * @covers Two_Factor_Totp::is_valid_authcode
 	 * @covers Two_Factor_Totp::calc_totp
 	 */
@@ -407,6 +447,8 @@ class Tests_Two_Factor_Totp extends WP_UnitTestCase {
 	}
 
 	/**
+	 * Verify SHA-512 test vectors generate the expected TOTP values.
+	 *
 	 * @covers Two_Factor_Totp::calc_totp
 	 */
 	public function test_sha512_generate() {
@@ -426,6 +468,8 @@ class Tests_Two_Factor_Totp extends WP_UnitTestCase {
 	}
 
 	/**
+	 * Verify SHA-512 generated codes authenticate successfully.
+	 *
 	 * @covers Two_Factor_Totp::is_valid_authcode
 	 * @covers Two_Factor_Totp::calc_totp
 	 */
@@ -454,7 +498,9 @@ class Tests_Two_Factor_Totp extends WP_UnitTestCase {
 	 */
 	private function call_pad_secret( $secret, $length ) {
 		$method = new ReflectionMethod( 'Two_Factor_Totp', 'pad_secret' );
-		$method->setAccessible( true );
+		if ( PHP_VERSION_ID < 80100 ) {
+			$method->setAccessible( true );
+		}
 		return $method->invoke( null, $secret, $length );
 	}
 
