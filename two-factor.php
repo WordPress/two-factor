@@ -49,6 +49,15 @@ require_once TWO_FACTOR_DIR . 'class-two-factor-core.php';
  */
 require_once TWO_FACTOR_DIR . 'class-two-factor-compat.php';
 
+/**
+ * Storage of secrets with the WordPress Secrets API.
+ */
+require_once TWO_FACTOR_DIR . 'secrets/interface-two-factor-secrets-store.php';
+require_once TWO_FACTOR_DIR . 'secrets/class-two-factor-secrets-api-store.php';
+require_once TWO_FACTOR_DIR . 'secrets/class-two-factor-secrets-manager.php';
+require_once TWO_FACTOR_DIR . 'class-two-factor-secrets.php';
+require_once TWO_FACTOR_DIR . 'secrets/class-two-factor-secrets-lifecycle.php';
+
 // Load settings UI class so the settings page can be rendered.
 require_once TWO_FACTOR_DIR . 'settings/class-two-factor-settings.php';
 
@@ -154,6 +163,11 @@ function two_factor_filter_enabled_providers( $providers ) {
 
 	// null means the option was never saved — allow all providers.
 	if ( null === $site_enabled ) {
+		return $providers;
+	}
+
+	// Core is looking up every provider's stored secrets, which outlive a provider being turned off.
+	if ( Two_Factor_Core::is_listing_all_providers() ) {
 		return $providers;
 	}
 

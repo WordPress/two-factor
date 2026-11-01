@@ -18,6 +18,23 @@
       "dealerdirect/phpcodesniffer-composer-installer": true
     }
   },
+  "repositories": [
+    {
+      "type": "package",
+      "package": {
+        "name": "wordpress/secrets-api",
+        "version": "0.2.1",
+        "type": "wordpress-plugin",
+        "dist": {
+          "type": "zip",
+          "url": "https://github.com/ericmann/secrets-api/archive/refs/tags/v0.2.1.zip"
+        },
+        "require": {
+          "php": ">=7.4"
+        }
+      }
+    }
+  ],
   "minimum-stability": "dev",
   "prefer-stable" : true,
   "require": {
@@ -32,6 +49,7 @@
     "phpunit/phpunit": "^8.5|^9.6",
     "spatie/phpunit-watcher": "^1.23",
     "szepeviktor/phpstan-wordpress": "^2.0",
+    "wordpress/secrets-api": "0.2.1",
     "wp-coding-standards/wpcs": "^3.3",
     "yoast/phpunit-polyfills": "^4.0"
   },
