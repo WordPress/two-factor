@@ -61,7 +61,7 @@ class Tests_Two_Factor_Settings extends WP_UnitTestCase {
 	private function become_settings_admin() {
 		$admin = self::factory()->user->create_and_get( array( 'role' => 'administrator' ) );
 		wp_set_current_user( $admin->ID );
-		set_current_screen( 'options-general' );
+		set_current_screen( 'settings_page_two-factor-settings' );
 		$_GET['page']       = 'two-factor-settings';
 		$GLOBALS['pagenow'] = 'options-general.php';
 

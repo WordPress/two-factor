@@ -1,4 +1,4 @@
-/* global twoFactorTotpQrcode, qrcode, document, window */
+/* global twoFactorTotpQrcode, qrcode */
 ( function() {
 	var qrGenerator = function() {
 		/*
@@ -14,7 +14,8 @@
 		qr.addData( twoFactorTotpQrcode.totpUrl );
 		qr.make();
 
-		document.querySelector( '#two-factor-qr-code a' ).innerHTML = qr.createSvgTag( 5 );
+		document.querySelector( '#two-factor-qr-code a' ).innerHTML =
+			qr.createSvgTag( 5 );
 
 		// For accessibility, markup the SVG with a title and role.
 		svg = document.querySelector( '#two-factor-qr-code a svg' );
