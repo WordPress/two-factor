@@ -541,4 +541,44 @@ class Tests_Two_Factor_Totp extends WP_UnitTestCase {
 		$this->expectException( InvalidArgumentException::class );
 		$this->call_pad_secret( 'ABC', 0 );
 	}
+
+	/**
+	 * Verify the TOTP code input enables auto-submit by default.
+	 *
+	 * @covers Two_Factor_Totp::authentication_page
+	 * @covers Two_Factor_Provider::is_authcode_auto_submit_enabled
+	 */
+	public function test_authentication_page_auto_submit_enabled_by_default() {
+		$user = self::factory()->user->create_and_get();
+
+		ob_start();
+		$this->provider->authentication_page( $user );
+		$output = ob_get_clean();
+
+		$this->assertStringNotContainsString( ' data-no-auto-submit', $output );
+	}
+
+	/**
+	 * Verify the two_factor_auto_submit_authcode filter adds the data-no-auto-submit attribute.
+	 *
+	 * @covers Two_Factor_Totp::authentication_page
+	 * @covers Two_Factor_Provider::is_authcode_auto_submit_enabled
+	 */
+	public function test_authentication_page_auto_submit_disabled_via_filter() {
+		$user = self::factory()->user->create_and_get();
+
+		$filter = function () {
+			return false;
+		};
+		add_filter( 'two_factor_auto_submit_authcode', $filter );
+		try {
+			ob_start();
+			$this->provider->authentication_page( $user );
+			$output = ob_get_clean();
+		} finally {
+			remove_filter( 'two_factor_auto_submit_authcode', $filter );
+		}
+
+		$this->assertStringContainsString( ' data-no-auto-submit', $output );
+	}
 }
