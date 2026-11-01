@@ -32,6 +32,11 @@ class Two_Factor_Totp extends Two_Factor_Provider {
 	const DEFAULT_TIME_STEP_SEC       = 30;
 	const DEFAULT_TIME_STEP_ALLOWANCE = 4;
 
+	// Decoded secret length accepted at setup. Shorter secrets are padded by calc_totp(),
+	// so their codes would not match a standard authenticator app.
+	const MIN_KEY_BYTES = 20;  // 160 bits: what generate_key() produces (RFC 4226 section 4).
+	const MAX_KEY_BYTES = 128; // Sanity cap; real secrets are 20 to 64 bytes.
+
 	/**
 	 * Characters used in base32 encoding.
 	 *
@@ -490,7 +495,9 @@ class Two_Factor_Totp extends Two_Factor_Provider {
 	}
 
 	/**
-	 * Check if the TOTP secret key has a proper format.
+	 * Check if the TOTP secret key has a proper format and length.
+	 *
+	 * The key must be base32 and decode to between MIN_KEY_BYTES and MAX_KEY_BYTES.
 	 *
 	 * @since 0.2.0
 	 *
@@ -499,13 +506,17 @@ class Two_Factor_Totp extends Two_Factor_Provider {
 	 * @return boolean
 	 */
 	public function is_valid_key( $key ) {
-		$check = sprintf( '/^[%s]+$/', self::$base_32_chars );
+		// The D modifier stops `$` from also matching before a trailing newline.
+		$check = sprintf( '/^[%s]+$/D', self::$base_32_chars );
 
-		if ( 1 === preg_match( $check, $key ) ) {
-			return true;
+		if ( ! is_string( $key ) || 1 !== preg_match( $check, $key ) ) {
+			return false;
 		}
 
-		return false;
+		// Each base32 character holds 5 bits, and base32_decode() drops a partial trailing byte.
+		$bytes = intdiv( strlen( $key ) * 5, 8 );
+
+		return $bytes >= self::MIN_KEY_BYTES && $bytes <= self::MAX_KEY_BYTES;
 	}
 
 	/**
