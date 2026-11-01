@@ -86,6 +86,29 @@ abstract class Two_Factor_Provider {
 	}
 
 	/**
+	 * Returns whether the authentication code field should auto-submit when the full code has been entered.
+	 *
+	 * @since 0.18.0
+	 *
+	 * @return bool
+	 */
+	protected function is_authcode_auto_submit_enabled(): bool {
+		/**
+		 * Filters whether the authentication code field should auto-submit when the full code has been entered.
+		 *
+		 * Providers surface the filtered value via a boolean `data-auto-submit` attribute
+		 * on the code input (present only when auto-submit is enabled), which the login
+		 * script reads to decide whether to submit the form automatically.
+		 *
+		 * @since 0.18.0
+		 *
+		 * @param bool   $auto_submit  Whether to auto-submit the form when the full code has been entered. Default true.
+		 * @param string $provider_key The current two-factor provider key.
+		 */
+		return (bool) apply_filters( 'two_factor_auto_submit_authcode', true, $this->get_key() );
+	}
+
+	/**
 	 * Prints the form that prompts the user to authenticate.
 	 *
 	 * @since 0.1-dev
