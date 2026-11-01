@@ -96,8 +96,8 @@ abstract class Two_Factor_Provider {
 		/**
 		 * Filters whether the authentication code field should auto-submit when the full code has been entered.
 		 *
-		 * Providers surface the filtered value via a boolean `data-auto-submit` attribute
-		 * on the code input (present only when auto-submit is enabled), which the login
+		 * Providers can surface the filtered value via a `data-no-auto-submit` attribute
+		 * on the code input (present only when auto-submit is disabled), which the login
 		 * script reads to decide whether to submit the form automatically.
 		 *
 		 * @since 0.18.0

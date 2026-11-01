@@ -603,11 +603,11 @@ class Tests_Two_Factor_Email extends WP_UnitTestCase {
 		$this->provider->authentication_page( $user );
 		$output = ob_get_clean();
 
-		$this->assertStringContainsString( ' data-auto-submit', $output );
+		$this->assertStringNotContainsString( ' data-no-auto-submit', $output );
 	}
 
 	/**
-	 * Verify the two_factor_auto_submit_authcode filter removes the data-auto-submit attribute.
+	 * Verify the two_factor_auto_submit_authcode filter adds the data-no-auto-submit attribute.
 	 *
 	 * @covers Two_Factor_Email::authentication_page
 	 * @covers Two_Factor_Provider::is_authcode_auto_submit_enabled
@@ -627,7 +627,7 @@ class Tests_Two_Factor_Email extends WP_UnitTestCase {
 			remove_filter( 'two_factor_auto_submit_authcode', $filter );
 		}
 
-		$this->assertStringNotContainsString( ' data-auto-submit', $output );
+		$this->assertStringContainsString( ' data-no-auto-submit', $output );
 	}
 
 	/**

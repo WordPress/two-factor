@@ -11,12 +11,12 @@
 			inputEl && inputEl.dataset
 				? parseInt( inputEl.dataset.digits, 10 )
 				: 0,
-		// Auto-submit is only enabled when the input opted in via the
-		// boolean `data-auto-submit` attribute (populated from the
+		// Auto-submit is enabled unless the input opts out via the
+		// `data-no-auto-submit` attribute (populated from the
 		// `two_factor_auto_submit_authcode` filter).
 		autoSubmitEnabled =
 			inputEl && inputEl.dataset
-				? 'autoSubmit' in inputEl.dataset
+				? ! ( 'noAutoSubmit' in inputEl.dataset )
 				: false,
 		halfLength = Math.floor( expectedLength / 2 );
 
