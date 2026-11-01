@@ -11,7 +11,7 @@
  * Plugin Name:       Two Factor
  * Plugin URI:        https://wordpress.org/plugins/two-factor/
  * Description:       Enable Two-Factor Authentication using time-based one-time passwords, email, and backup verification codes.
- * Requires at least: 7.0
+ * Requires at least: 6.8
  * Version:           0.17.0
  * Requires PHP:      7.4
  * Author:            WordPress.org Contributors
@@ -158,8 +158,8 @@ function two_factor_filter_enabled_providers( $providers ) {
 	}
 
 	// On the settings page itself, show all providers so admins can change the selection.
-	$page = isset( $_GET['page'] ) ? sanitize_key( wp_unslash( $_GET['page'] ) ) : ''; // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Reading the current admin page slug only; no state change occurs here.
-	if ( is_admin() && 'two-factor-settings' === $page ) {
+	$current_screen = is_admin() ? get_current_screen() : false;
+	if ( $current_screen && 'settings_page_two-factor-settings' === $current_screen->base ) {
 		return $providers;
 	}
 
@@ -191,4 +191,29 @@ function two_factor_filter_enabled_providers_for_user( $enabled, $user_id ) { //
 	}
 
 	return array_values( array_intersect( (array) $enabled, $site_enabled ) );
+}
+
+/**
+ * Check if a user action is valid.
+ *
+ * @since 0.18.0
+ *
+ * @param integer $user_id User ID.
+ * @param string  $action User action ID.
+ *
+ * @return boolean
+ */
+function two_factor_is_valid_user_action( $user_id, $action ) {
+	$request_nonce = isset( $_REQUEST[ Two_Factor_Core::USER_SETTINGS_ACTION_NONCE_QUERY_ARG ] ) && is_scalar( $_REQUEST[ Two_Factor_Core::USER_SETTINGS_ACTION_NONCE_QUERY_ARG ] )
+		? sanitize_text_field( wp_unslash( $_REQUEST[ Two_Factor_Core::USER_SETTINGS_ACTION_NONCE_QUERY_ARG ] ) )
+		: '';
+
+	if ( ! $user_id || ! $action || ! $request_nonce ) {
+		return false;
+	}
+
+	return wp_verify_nonce(
+		$request_nonce,
+		sprintf( '%d-%s', $user_id, $action )
+	);
 }

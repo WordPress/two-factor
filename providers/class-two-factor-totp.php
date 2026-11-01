@@ -275,7 +275,7 @@ class Two_Factor_Totp extends Two_Factor_Provider {
 	 * @return string
 	 */
 	public static function generate_qr_code_url( $user, $secret_key ) {
-		$issuer = get_bloginfo( 'name', 'display' );
+		$issuer = wp_specialchars_decode( get_option( 'blogname' ), ENT_QUOTES );
 
 		/**
 		 * Filters the Issuer for the TOTP.

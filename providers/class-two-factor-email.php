@@ -286,9 +286,10 @@ class Two_Factor_Email extends Two_Factor_Provider {
 
 		$subject = wp_strip_all_tags(
 			sprintf(
-				/* translators: %s: site name */
-				__( '[%s] Login confirmation code', 'two-factor' ),
-				wp_specialchars_decode( get_option( 'blogname' ), ENT_QUOTES )
+				/* translators: 1: site name, 2: login verification code */
+				__( '[%1$s] Login confirmation code: %2$s', 'two-factor' ),
+				wp_specialchars_decode( get_option( 'blogname' ), ENT_QUOTES ),
+				$token
 			)
 		);
 
@@ -314,22 +315,46 @@ class Two_Factor_Email extends Two_Factor_Provider {
 		 * Filters the token email subject.
 		 *
 		 * @since 0.5.2
+		 * @deprecated 0.18.0 Use {@see 'two_factor_email_token_subject'} instead.
 		 *
 		 * @param string $subject The email subject line.
 		 * @param int    $user_id The ID of the user.
 		 */
-		$subject = apply_filters( 'two_factor_token_email_subject', $subject, $user->ID );
+		$subject = apply_filters_deprecated( 'two_factor_token_email_subject', array( $subject, $user->ID ), '0.18.0', 'two_factor_email_token_subject' );
+
+		/**
+		 * Filters the token email subject.
+		 *
+		 * @since 0.18.0
+		 *
+		 * @param string $subject The email subject line.
+		 * @param string $token   The token.
+		 * @param int    $user_id The ID of the user.
+		 */
+		$subject = apply_filters( 'two_factor_email_token_subject', $subject, $token, $user->ID );
 
 		/**
 		 * Filters the token email message.
 		 *
 		 * @since 0.5.2
+		 * @deprecated 0.18.0 Use {@see 'two_factor_email_token_message'} instead.
 		 *
 		 * @param string $message The email message.
 		 * @param string $token   The token.
 		 * @param int    $user_id The ID of the user.
 		 */
-		$message = apply_filters( 'two_factor_token_email_message', $message, $token, $user->ID );
+		$message = apply_filters_deprecated( 'two_factor_token_email_message', array( $message, $token, $user->ID ), '0.18.0', 'two_factor_email_token_message' );
+
+		/**
+		 * Filters the token email message.
+		 *
+		 * @since 0.18.0
+		 *
+		 * @param string $message The email message.
+		 * @param string $token   The token.
+		 * @param int    $user_id The ID of the user.
+		 */
+		$message = apply_filters( 'two_factor_email_token_message', $message, $token, $user->ID );
 
 		return wp_mail( $user->user_email, $subject, $message ); // phpcs:ignore WordPressVIPMinimum.Functions.RestrictedFunctions.wp_mail_wp_mail
 	}
