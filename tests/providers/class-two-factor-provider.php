@@ -184,7 +184,9 @@ class Tests_Two_Factor_Provider extends WP_UnitTestCase {
 	public function test_is_authcode_auto_submit_enabled_default() {
 		$provider = Two_Factor_Dummy::get_instance();
 		$method   = new ReflectionMethod( $provider, 'is_authcode_auto_submit_enabled' );
-		$method->setAccessible( true );
+		if ( PHP_VERSION_ID < 80100 ) {
+			$method->setAccessible( true );
+		}
 
 		$this->assertTrue( $method->invoke( $provider ) );
 	}
@@ -197,7 +199,9 @@ class Tests_Two_Factor_Provider extends WP_UnitTestCase {
 	public function test_is_authcode_auto_submit_enabled_filter() {
 		$provider = Two_Factor_Dummy::get_instance();
 		$method   = new ReflectionMethod( $provider, 'is_authcode_auto_submit_enabled' );
-		$method->setAccessible( true );
+		if ( PHP_VERSION_ID < 80100 ) {
+			$method->setAccessible( true );
+		}
 
 		$filter = function ( $auto_submit, $provider_key ) {
 			$this->assertTrue( $auto_submit );
