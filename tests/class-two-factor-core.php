@@ -3787,12 +3787,16 @@ class Test_ClassTwoFactorCore extends WP_UnitTestCase {
 
 		add_filter( 'two_factor_providers', $filter );
 
+		// enable_provider_for_user() already resolved providers for this user; start a fresh resolution so the filter runs.
+		Two_Factor_Core::reset_providers_cache();
+
 		try {
 			$available = Two_Factor_Core::get_available_providers_for_user( $user->ID );
 
 			$this->assertArrayHasKey( 'Two_Factor_Dummy', $available, 'The snapshot keeps the available set stable across lookups' );
 			$this->assertInstanceOf( Two_Factor_Dummy::class, Two_Factor_Core::get_primary_provider_for_user( $user->ID ), 'Primary provider resolves from the same snapshot' );
 			$this->assertTrue( Two_Factor_Core::is_user_using_two_factor( $user->ID ), 'A mid-request provider flap cannot downgrade the login to password-only' );
+			$this->assertSame( 1, $calls, 'The provider filter runs once for all lookups in the request' );
 		} finally {
 			remove_filter( 'two_factor_providers', $filter );
 		}
@@ -3886,6 +3890,33 @@ class Test_ClassTwoFactorCore extends WP_UnitTestCase {
 			$this->assertArrayNotHasKey( 'Two_Factor_Dummy', Two_Factor_Core::get_supported_providers_for_user( $user_b ), 'User B resolves against its own snapshot' );
 		} finally {
 			remove_filter( 'two_factor_providers_for_user', $filter, 10 );
+		}
+	}
+
+	/**
+	 * Ensure the provider snapshot is kept per site, so switching to another
+	 * site does not reuse the providers allowed on the previous site.
+	 *
+	 * @covers Two_Factor_Core::get_supported_providers_for_user
+	 */
+	public function test_provider_snapshot_is_per_site() {
+		if ( ! is_multisite() ) {
+			$this->markTestSkipped( 'Per-site provider settings require multisite.' );
+		}
+
+		$user    = self::factory()->user->create_and_get();
+		$blog_id = self::factory()->blog->create();
+
+		$this->assertArrayHasKey( 'Two_Factor_Totp', Two_Factor_Core::get_supported_providers_for_user( $user ), 'TOTP is allowed on the main site' );
+
+		switch_to_blog( $blog_id );
+
+		try {
+			update_option( Two_Factor_Core::ENABLED_PROVIDERS_OPTION_KEY, array( 'Two_Factor_Email' ) );
+
+			$this->assertArrayNotHasKey( 'Two_Factor_Totp', Two_Factor_Core::get_supported_providers_for_user( $user ), 'The other site resolves against its own snapshot' );
+		} finally {
+			restore_current_blog();
 		}
 	}
 

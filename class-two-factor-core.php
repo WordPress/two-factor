@@ -111,7 +111,7 @@ class Two_Factor_Core {
 
 	/**
 	 * Keep track of the supported providers resolved for each user during the
-	 * current request, keyed by user ID (0 for no user).
+	 * current request, keyed by site ID and user ID (0 for no user).
 	 *
 	 * Provider filters must not be re-evaluated between the lookups that make
 	 * up one authentication decision, or a filter that flips mid-request can
@@ -391,7 +391,8 @@ class Two_Factor_Core {
 	public static function get_supported_providers_for_user( $user = null ) {
 		$user = self::fetch_user( $user );
 
-		$cache_key = $user ? $user->ID : 0;
+		// Key by site too, since site-wide provider settings differ per site on multisite.
+		$cache_key = get_current_blog_id() . ':' . ( $user ? $user->ID : 0 );
 
 		if ( ! array_key_exists( $cache_key, self::$supported_providers_cache ) ) {
 			$providers = self::get_providers();
