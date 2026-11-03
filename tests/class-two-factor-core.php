@@ -3167,7 +3167,9 @@ class Test_ClassTwoFactorCore extends WP_UnitTestCase {
 	 * @covers Two_Factor_Core::notify_user_two_factor_settings_changed
 	 */
 	public function test_settings_changed_notification_sessions_line_and_plain_username() {
-		$user = self::factory()->user->create_and_get( array( 'user_login' => "O'Brien & Co" ) );
+		$user = self::factory()->user->create_and_get();
+		// WordPress sanitizes logins on insert, so set the characters on the in-memory object instead.
+		$user->user_login = "O'Brien & Co";
 
 		$mailer = tests_retrieve_phpmailer_instance();
 		Two_Factor_Core::notify_user_two_factor_settings_changed( $user, array( 'Two_Factor_Dummy' ), array(), false );
