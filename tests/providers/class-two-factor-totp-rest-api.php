@@ -176,6 +176,72 @@ class Tests_Two_Factor_Totp_REST_API extends WP_Test_REST_TestCase {
 	}
 
 	/**
+	 * Verify a short key is rejected even when the code matches it.
+	 *
+	 * @covers Two_Factor_Totp::rest_setup_totp
+	 * @covers Two_Factor_Totp::is_valid_key
+	 */
+	public function test_user_two_factor_rest_set_short_key_with_matching_code() {
+		wp_set_current_user( self::$admin_id );
+
+		$key = 'JBSWY3DPEHPK3PXP'; // 10 bytes.
+
+		$request = new WP_REST_Request( 'POST', '/' . Two_Factor_Core::REST_NAMESPACE . '/totp' );
+		$request->set_body_params(
+			array(
+				'user_id'         => self::$admin_id,
+				'key'             => $key,
+				'code'            => self::$provider->calc_totp( $key ),
+				'enable_provider' => true,
+			)
+		);
+
+		$response = rest_do_request( $request );
+
+		$this->assertErrorResponse( 'invalid_key_length', $response, 400 );
+		$this->assertSame(
+			sprintf(
+				/* translators: 1: minimum secret key length in bytes, 2: maximum secret key length in bytes. */
+				__( 'The secret key must decode to between %1$d and %2$d bytes.', 'two-factor' ),
+				Two_Factor_Totp::MIN_KEY_BYTES,
+				Two_Factor_Totp::MAX_KEY_BYTES
+			),
+			$response->get_data()['message']
+		);
+
+		$this->assertSame( '', self::$provider->get_user_totp_key( self::$admin_id ) );
+		$this->assertFalse( Two_Factor_Core::is_user_using_two_factor( self::$admin_id ) );
+	}
+
+	/**
+	 * Verify keys that decode to an empty or falsy secret return an error instead of throwing.
+	 *
+	 * @covers Two_Factor_Totp::rest_setup_totp
+	 * @covers Two_Factor_Totp::is_valid_key
+	 */
+	public function test_user_two_factor_rest_set_tiny_key() {
+		wp_set_current_user( self::$admin_id );
+
+		// 'A' decodes to an empty string and 'GA' to "0", both of which pad_secret() rejects.
+		foreach ( array( 'A', 'GA' ) as $key ) {
+			$request = new WP_REST_Request( 'POST', '/' . Two_Factor_Core::REST_NAMESPACE . '/totp' );
+			$request->set_body_params(
+				array(
+					'user_id' => self::$admin_id,
+					'key'     => $key,
+					'code'    => '000000',
+				)
+			);
+
+			$response = rest_do_request( $request );
+
+			$this->assertErrorResponse( 'invalid_key_length', $response, 400 );
+		}
+
+		$this->assertFalse( self::$provider->is_available_for_user( wp_get_current_user() ) );
+	}
+
+	/**
 	 * Verify setting up TOTP with an authcode.
 	 *
 	 * @covers Two_Factor_Totp::rest_setup_totp
