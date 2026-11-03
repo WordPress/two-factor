@@ -215,7 +215,8 @@ class Two_Factor_Totp extends Two_Factor_Provider {
 		Two_Factor_Core::notify_user_two_factor_settings_changed(
 			$user,
 			Two_Factor_Core::get_enabled_providers_for_user( $user_id ),
-			$enabled_providers_before
+			$enabled_providers_before,
+			false
 		);
 
 		$this->delete_user_totp_key( $user_id );
@@ -267,7 +268,8 @@ class Two_Factor_Totp extends Two_Factor_Provider {
 			Two_Factor_Core::notify_user_two_factor_settings_changed(
 				$user,
 				Two_Factor_Core::get_enabled_providers_for_user( $user_id ),
-				$enabled_providers_before
+				$enabled_providers_before,
+				false
 			);
 		}
 

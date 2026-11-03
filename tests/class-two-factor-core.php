@@ -3059,11 +3059,12 @@ class Test_ClassTwoFactorCore extends WP_UnitTestCase {
 		$this->assertContains( $user->user_email, $mailer->mock_sent[0]['to'][0] );
 		$this->assertSame( $expected_subject, $mailer->mock_sent[0]['subject'] );
 		$this->assertStringContainsString( 'Activated: Dummy Method', $mailer->mock_sent[0]['body'] );
-		$this->assertStringContainsString( 'All open sessions have been logged out.', $mailer->mock_sent[0]['body'] );
+		$this->assertStringContainsString( 'All other open sessions have been logged out.', $mailer->mock_sent[0]['body'] );
+		$this->assertStringContainsString( 'did NOT make this change', $mailer->mock_sent[0]['body'] );
 		reset_phpmailer_instance();
 
-		// Adding a second provider while already enabled does NOT destroy other sessions, but the
-		// account owner is told the same thing either way -- the email doesn't track that detail.
+		// Adding a second provider while already enabled does NOT destroy other sessions, so the
+		// email must not claim that it did.
 		$mailer = tests_retrieve_phpmailer_instance();
 		$_POST[ Two_Factor_Core::ENABLED_PROVIDERS_USER_META_KEY ] = array(
 			'Two_Factor_Dummy' => 'Two_Factor_Dummy',
@@ -3073,17 +3074,17 @@ class Test_ClassTwoFactorCore extends WP_UnitTestCase {
 
 		$this->assertCount( 1, $mailer->mock_sent );
 		$this->assertStringContainsString( 'Activated: Email', $mailer->mock_sent[0]['body'] );
-		$this->assertStringContainsString( 'All open sessions have been logged out.', $mailer->mock_sent[0]['body'] );
+		$this->assertStringNotContainsString( 'logged out', $mailer->mock_sent[0]['body'] );
 		reset_phpmailer_instance();
 
-		// Disabling every provider doesn't destroy other sessions either, same story.
+		// Disabling every provider doesn't destroy other sessions either.
 		$mailer = tests_retrieve_phpmailer_instance();
 		$_POST[ Two_Factor_Core::ENABLED_PROVIDERS_USER_META_KEY ] = array();
 		Two_Factor_Core::user_two_factor_options_update( $user->ID );
 
 		$this->assertCount( 1, $mailer->mock_sent );
 		$this->assertStringContainsString( 'Deactivated: Email, Dummy Method', $mailer->mock_sent[0]['body'] );
-		$this->assertStringContainsString( 'All open sessions have been logged out.', $mailer->mock_sent[0]['body'] );
+		$this->assertStringNotContainsString( 'logged out', $mailer->mock_sent[0]['body'] );
 		reset_phpmailer_instance();
 	}
 
@@ -3120,12 +3121,13 @@ class Test_ClassTwoFactorCore extends WP_UnitTestCase {
 	}
 
 	/**
-	 * Validate that the settings-changed notification always goes out -- it has no send/skip
-	 * gate -- and that nothing is sent when the enabled providers didn't actually change.
+	 * Validate that the settings-changed notification is sent when the enabled providers change,
+	 * that nothing is sent when they did not, and that the
+	 * `two_factor_notify_user_settings_changed` filter can suppress it.
 	 *
 	 * @covers Two_Factor_Core::notify_user_two_factor_settings_changed
 	 */
-	public function test_settings_changed_notification_always_sent() {
+	public function test_settings_changed_notification_sent_and_suppressible() {
 		$user = self::factory()->user->create_and_get();
 
 		$mailer = tests_retrieve_phpmailer_instance();
@@ -3141,7 +3143,69 @@ class Test_ClassTwoFactorCore extends WP_UnitTestCase {
 		$sent   = Two_Factor_Core::notify_user_two_factor_settings_changed( $user, array( 'Two_Factor_Dummy' ), array( 'Two_Factor_Dummy' ) );
 		$this->assertFalse( $sent );
 		$this->assertCount( 0, $mailer->mock_sent );
+		reset_phpmailer_instance();
 
+		// A site can opt out of the email via the filter.
+		$suppress = static function () {
+			return false;
+		};
+		add_filter( 'two_factor_notify_user_settings_changed', $suppress );
+
+		$mailer = tests_retrieve_phpmailer_instance();
+		$sent   = Two_Factor_Core::notify_user_two_factor_settings_changed( $user, array( 'Two_Factor_Dummy' ), array() );
+		$this->assertFalse( $sent );
+		$this->assertCount( 0, $mailer->mock_sent );
+		reset_phpmailer_instance();
+
+		remove_filter( 'two_factor_notify_user_settings_changed', $suppress );
+	}
+
+	/**
+	 * Validate that the "sessions logged out" statement is only included when sessions were
+	 * actually destroyed, and that the email does not HTML-escape the username (plain-text email).
+	 *
+	 * @covers Two_Factor_Core::notify_user_two_factor_settings_changed
+	 */
+	public function test_settings_changed_notification_sessions_line_and_plain_username() {
+		$user = self::factory()->user->create_and_get( array( 'user_login' => "O'Brien & Co" ) );
+
+		$mailer = tests_retrieve_phpmailer_instance();
+		Two_Factor_Core::notify_user_two_factor_settings_changed( $user, array( 'Two_Factor_Dummy' ), array(), false );
+
+		$this->assertCount( 1, $mailer->mock_sent );
+		$this->assertStringNotContainsString( 'logged out', $mailer->mock_sent[0]['body'] );
+		$this->assertStringContainsString( "O'Brien & Co", $mailer->mock_sent[0]['body'] );
+		$this->assertStringNotContainsString( '&#039;', $mailer->mock_sent[0]['body'] );
+		$this->assertStringNotContainsString( '&amp;', $mailer->mock_sent[0]['body'] );
+		reset_phpmailer_instance();
+
+		$mailer = tests_retrieve_phpmailer_instance();
+		Two_Factor_Core::notify_user_two_factor_settings_changed( $user, array( 'Two_Factor_Dummy' ), array(), true );
+
+		$this->assertCount( 1, $mailer->mock_sent );
+		$this->assertStringContainsString( 'logged out', $mailer->mock_sent[0]['body'] );
+		reset_phpmailer_instance();
+	}
+
+	/**
+	 * Validate that when an administrator (not the account owner) makes the change, the email
+	 * uses the administrator wording rather than the self-change "did NOT make this change" text.
+	 *
+	 * @covers Two_Factor_Core::notify_user_two_factor_settings_changed
+	 */
+	public function test_settings_changed_notification_admin_change_wording() {
+		$admin = self::factory()->user->create_and_get( array( 'role' => 'administrator' ) );
+		wp_set_current_user( $admin->ID );
+
+		$user   = self::factory()->user->create_and_get();
+		$mailer = tests_retrieve_phpmailer_instance();
+
+		Two_Factor_Core::notify_user_two_factor_settings_changed( $user, array( 'Two_Factor_Dummy' ), array(), true );
+
+		$this->assertCount( 1, $mailer->mock_sent );
+		$this->assertStringContainsString( 'made by a site administrator', $mailer->mock_sent[0]['body'] );
+		$this->assertStringNotContainsString( 'did NOT make this change', $mailer->mock_sent[0]['body'] );
+		$this->assertStringContainsString( 'All open sessions have been logged out.', $mailer->mock_sent[0]['body'] );
 		reset_phpmailer_instance();
 	}
 

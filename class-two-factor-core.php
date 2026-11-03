@@ -2398,26 +2398,41 @@ class Two_Factor_Core {
 	/**
 	 * Notify a user by email that their two-factor authentication settings have changed.
 	 *
-	 * Enrolling (or un-enrolling) a factor destroys the account's other active sessions
-	 * (see the "Destroy other sessions" block in `user_two_factor_options_update()`), which
-	 * is indistinguishable from an unauthorized logout unless the account owner is told why
-	 * it happened -- especially when an administrator made the change on their behalf. Unlike
-	 * the password-reset notifications above, this email is always sent; only its content can
-	 * be filtered, not whether it goes out.
+	 * Changing a factor can destroy the account's other active sessions, which is
+	 * indistinguishable from an unauthorized logout unless the account owner is told why it
+	 * happened -- especially when an administrator made the change on their behalf. The
+	 * "sessions logged out" statement is only included when `$sessions_destroyed` is true.
+	 *
+	 * Sites can suppress this email with the `two_factor_notify_user_settings_changed` filter.
 	 *
 	 * @since 0.18.0
 	 *
 	 * @param WP_User $user               The user whose two-factor settings changed.
 	 * @param array   $enabled_providers  Provider keys enabled after the change.
 	 * @param array   $existing_providers Provider keys that were enabled before the change.
+	 * @param bool    $sessions_destroyed Whether the change destroyed other sessions for the user.
 	 *
-	 * @return bool `true` if the email was sent, `false` if there was nothing to report or it failed.
+	 * @return bool `true` if the email was sent, `false` if there was nothing to report, it was filtered out, or it failed.
 	 */
-	public static function notify_user_two_factor_settings_changed( $user, $enabled_providers, $existing_providers ) {
+	public static function notify_user_two_factor_settings_changed( $user, $enabled_providers, $existing_providers, $sessions_destroyed = false ) {
 		$added_keys   = array_values( array_diff( $enabled_providers, $existing_providers ) );
 		$removed_keys = array_values( array_diff( $existing_providers, $enabled_providers ) );
 
 		if ( ! $added_keys && ! $removed_keys ) {
+			return false;
+		}
+
+		/**
+		 * Filters whether to notify a user when their two-factor settings change.
+		 *
+		 * @since 0.18.0
+		 *
+		 * @param bool    $notify  Whether to send the notification. Default true.
+		 * @param WP_User $user    The user whose two-factor settings changed.
+		 * @param array   $added   Provider keys that were newly enabled.
+		 * @param array   $removed Provider keys that were disabled.
+		 */
+		if ( ! apply_filters( 'two_factor_notify_user_settings_changed', true, $user, $added_keys, $removed_keys ) ) {
 			return false;
 		}
 
@@ -2446,11 +2461,16 @@ class Two_Factor_Core {
 			);
 		}
 
-		// Regardless of whether this particular change actually triggered a session destroy
-		// (see the conditions in user_two_factor_options_update()), the account owner is told
-		// their sessions were logged out: it's true often enough, and simpler than trying to
-		// explain the exact conditions under which the plugin invalidates other sessions.
-		$changes[] = __( 'All open sessions have been logged out.', 'two-factor' );
+		$self_change = get_current_user_id() === $user->ID;
+
+		if ( $sessions_destroyed ) {
+			if ( $self_change ) {
+				// The current session is kept; only the other sessions are destroyed.
+				$changes[] = __( 'All other open sessions have been logged out.', 'two-factor' );
+			} else {
+				$changes[] = __( 'All open sessions have been logged out.', 'two-factor' );
+			}
+		}
 
 		$site_name = wp_specialchars_decode( get_bloginfo( 'name' ), ENT_QUOTES );
 
@@ -2458,7 +2478,7 @@ class Two_Factor_Core {
 			sprintf(
 				/* translators: %s: username. */
 				__( 'Hello %s,', 'two-factor' ),
-				esc_html( $user->user_login )
+				$user->user_login
 			),
 			sprintf(
 				/* translators: %s: site URL. */
@@ -2467,16 +2487,27 @@ class Two_Factor_Core {
 			),
 		);
 
-		$message_parts = array_merge(
-			$message_parts,
-			$changes,
-			array(
+		if ( $self_change ) {
+			$closing_parts = array(
 				__( 'If you made this change yourself, no further action is needed.', 'two-factor' ),
 				sprintf(
 					/* translators: %s: URL to the account's security settings. */
 					__( 'If you did NOT make this change, someone else may have access to your account. Please review your security settings at %s and change your password immediately.', 'two-factor' ),
 					admin_url( 'profile.php' )
 				),
+			);
+		} else {
+			$closing_parts = array(
+				__( 'This change was made by a site administrator.', 'two-factor' ),
+				__( 'If you have questions about this change, please contact a site administrator.', 'two-factor' ),
+			);
+		}
+
+		$message_parts = array_merge(
+			$message_parts,
+			$changes,
+			$closing_parts,
+			array(
 				__( 'This is an automated notification. If you would like to speak to a site administrator, please contact them directly.', 'two-factor' ),
 				__( 'Regards,', 'two-factor' ),
 				sprintf(
@@ -2502,9 +2533,6 @@ class Two_Factor_Core {
 
 		/**
 		 * Filters the email sent to a user when their two-factor authentication settings change.
-		 *
-		 * This cannot be used to suppress the email -- only to change its content -- since the
-		 * account owner must always be told about a change to their own authentication methods.
 		 *
 		 * @since 0.18.0
 		 *
@@ -3045,7 +3073,7 @@ class Two_Factor_Core {
 				}
 			}
 
-			self::notify_user_two_factor_settings_changed( $user, array_keys( $enabled_providers ), $existing_providers );
+			self::notify_user_two_factor_settings_changed( $user, array_keys( $enabled_providers ), $existing_providers, $sessions_destroyed );
 		}
 	}
 

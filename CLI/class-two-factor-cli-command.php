@@ -63,7 +63,7 @@ class Two_Factor_CLI_Command extends WP_CLI_Command {
 	 * @param WP_User $user             Target user.
 	 * @param array   $providers_before Enabled provider keys captured before the change.
 	 */
-	private function destroy_sessions_if_providers_changed( $user, $providers_before ) {
+	private function handle_providers_changed( $user, $providers_before ) {
 		$providers_after = Two_Factor_Core::get_enabled_providers_for_user( $user );
 
 		$before_sorted = $providers_before;
@@ -71,11 +71,12 @@ class Two_Factor_CLI_Command extends WP_CLI_Command {
 		sort( $before_sorted );
 		sort( $after_sorted );
 
-		if ( $before_sorted !== $after_sorted ) {
+		$sessions_destroyed = $before_sorted !== $after_sorted;
+		if ( $sessions_destroyed ) {
 			WP_Session_Tokens::get_instance( $user->ID )->destroy_all();
 		}
 
-		Two_Factor_Core::notify_user_two_factor_settings_changed( $user, $providers_after, $providers_before );
+		Two_Factor_Core::notify_user_two_factor_settings_changed( $user, $providers_after, $providers_before, $sessions_destroyed );
 	}
 
 	/**
@@ -252,7 +253,7 @@ class Two_Factor_CLI_Command extends WP_CLI_Command {
 				}
 			}
 
-			$this->destroy_sessions_if_providers_changed( $user, $enabled );
+			$this->handle_providers_changed( $user, $enabled );
 
 			WP_CLI::success(
 				sprintf(
@@ -358,7 +359,8 @@ class Two_Factor_CLI_Command extends WP_CLI_Command {
 		Two_Factor_Core::notify_user_two_factor_settings_changed(
 			$user,
 			Two_Factor_Core::get_enabled_providers_for_user( $user ),
-			$enabled
+			$enabled,
+			true
 		);
 
 		WP_CLI::success(
@@ -484,7 +486,7 @@ class Two_Factor_CLI_Command extends WP_CLI_Command {
 		$providers_before = Two_Factor_Core::get_enabled_providers_for_user( $user );
 
 		if ( Two_Factor_Core::enable_provider_for_user( $user->ID, $provider ) ) {
-			$this->destroy_sessions_if_providers_changed( $user, $providers_before );
+			$this->handle_providers_changed( $user, $providers_before );
 
 			WP_CLI::success(
 				sprintf(
@@ -646,7 +648,7 @@ class Two_Factor_CLI_Command extends WP_CLI_Command {
 				)
 			);
 		}
-		$this->destroy_sessions_if_providers_changed( $user, $providers_before );
+		$this->handle_providers_changed( $user, $providers_before );
 
 		WP_CLI::log(
 			sprintf(
