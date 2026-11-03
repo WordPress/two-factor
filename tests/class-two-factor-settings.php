@@ -44,6 +44,10 @@ class Tests_Two_Factor_Settings extends WP_UnitTestCase {
 		delete_option( Two_Factor_Core::ENABLED_PROVIDERS_OPTION_KEY );
 		$this->clear_settings_request();
 
+		// Provider resolution is snapshotted per user for the request; drop the
+		// snapshots so tests that change the site-wide providers start fresh.
+		Two_Factor_Core::reset_providers_cache();
+
 		if ( null !== $this->old_pagenow ) {
 			$GLOBALS['pagenow'] = $this->old_pagenow;
 		} else {

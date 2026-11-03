@@ -13,6 +13,19 @@
  */
 class Tests_Two_Factor_Provider extends WP_UnitTestCase {
 	/**
+	 * Clean up after tests.
+	 *
+	 * @see WP_UnitTestCase::tear_down()
+	 */
+	public function tear_down() {
+		// Provider resolution is snapshotted per user for the request; drop the
+		// snapshots so tests that change provider filters start fresh.
+		Two_Factor_Core::reset_providers_cache();
+
+		parent::tear_down();
+	}
+
+	/**
 	 * Test get_code method.
 	 *
 	 * @covers Two_Factor_Provider::get_code
