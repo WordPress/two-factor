@@ -198,7 +198,16 @@ class Tests_Two_Factor_Totp_REST_API extends WP_Test_REST_TestCase {
 
 		$response = rest_do_request( $request );
 
-		$this->assertErrorResponse( 'invalid_key', $response, 400 );
+		$this->assertErrorResponse( 'invalid_key_length', $response, 400 );
+		$this->assertSame(
+			sprintf(
+				/* translators: 1: minimum secret key length in bytes, 2: maximum secret key length in bytes. */
+				__( 'The secret key must decode to between %1$d and %2$d bytes.', 'two-factor' ),
+				Two_Factor_Totp::MIN_KEY_BYTES,
+				Two_Factor_Totp::MAX_KEY_BYTES
+			),
+			$response->get_data()['message']
+		);
 
 		$this->assertSame( '', self::$provider->get_user_totp_key( self::$admin_id ) );
 		$this->assertFalse( Two_Factor_Core::is_user_using_two_factor( self::$admin_id ) );
@@ -226,7 +235,7 @@ class Tests_Two_Factor_Totp_REST_API extends WP_Test_REST_TestCase {
 
 			$response = rest_do_request( $request );
 
-			$this->assertErrorResponse( 'invalid_key', $response, 400 );
+			$this->assertErrorResponse( 'invalid_key_length', $response, 400 );
 		}
 
 		$this->assertFalse( self::$provider->is_available_for_user( wp_get_current_user() ) );

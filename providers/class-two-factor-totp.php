@@ -34,7 +34,7 @@ class Two_Factor_Totp extends Two_Factor_Provider {
 
 	// Decoded secret length accepted at setup. Shorter secrets are padded by calc_totp(),
 	// so their codes would not match a standard authenticator app.
-	const MIN_KEY_BYTES = 20;  // 160 bits: what generate_key() produces (RFC 4226 section 4).
+	const MIN_KEY_BYTES = 20;  // DEFAULT_KEY_BIT_SIZE / 8: what generate_key() produces (RFC 4226 section 4).
 	const MAX_KEY_BYTES = 128; // Sanity cap; real secrets are 20 to 64 bytes.
 
 	/**
@@ -243,8 +243,21 @@ class Two_Factor_Totp extends Two_Factor_Provider {
 		$key  = $request['key'];
 		$code = preg_replace( '/\s+/', '', $request['code'] );
 
-		if ( ! $this->is_valid_key( $key ) ) {
+		if ( ! $this->is_valid_key_format( $key ) ) {
 			return new WP_Error( 'invalid_key', __( 'Invalid Two Factor Authentication secret key.', 'two-factor' ), array( 'status' => 400 ) );
+		}
+
+		if ( ! $this->is_valid_key_length( $key ) ) {
+			return new WP_Error(
+				'invalid_key_length',
+				sprintf(
+					/* translators: 1: minimum secret key length in bytes, 2: maximum secret key length in bytes. */
+					__( 'The secret key must decode to between %1$d and %2$d bytes.', 'two-factor' ),
+					self::MIN_KEY_BYTES,
+					self::MAX_KEY_BYTES
+				),
+				array( 'status' => 400 )
+			);
 		}
 
 		if ( ! $this->is_valid_authcode( $key, $code ) ) {
@@ -500,16 +513,37 @@ class Two_Factor_Totp extends Two_Factor_Provider {
 	 * The key must be base32 and decode to between MIN_KEY_BYTES and MAX_KEY_BYTES.
 	 *
 	 * @since 0.2.0
+	 * @since 0.18.0 Key length must decode to between MIN_KEY_BYTES and MAX_KEY_BYTES bytes.
 	 *
 	 * @param  string $key TOTP secret key.
 	 *
 	 * @return boolean
 	 */
 	public function is_valid_key( $key ) {
+		return $this->is_valid_key_format( $key ) && $this->is_valid_key_length( $key );
+	}
+
+	/**
+	 * Check if the TOTP secret key contains only base32 characters.
+	 *
+	 * @param string $key TOTP secret key.
+	 * @return boolean
+	 */
+	private function is_valid_key_format( $key ) {
 		// The D modifier stops `$` from also matching before a trailing newline.
 		$check = sprintf( '/^[%s]+$/D', self::$base_32_chars );
 
-		if ( ! is_string( $key ) || 1 !== preg_match( $check, $key ) ) {
+		return is_string( $key ) && 1 === preg_match( $check, $key );
+	}
+
+	/**
+	 * Check if the TOTP secret key decodes to an allowed length.
+	 *
+	 * @param string $key TOTP secret key.
+	 * @return boolean
+	 */
+	private function is_valid_key_length( $key ) {
+		if ( ! is_string( $key ) ) {
 			return false;
 		}
 
