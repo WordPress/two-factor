@@ -175,4 +175,25 @@ class Tests_Two_Factor_Provider extends WP_UnitTestCase {
 	public function test_uninstall_options_base_returns_empty() {
 		$this->assertSame( array(), Two_Factor_Dummy::uninstall_options() );
 	}
+
+	/**
+	 * The base class does not report enrolled-but-unavailable.
+	 *
+	 * @covers Two_Factor_Provider::is_enrolled_but_unavailable_for_user
+	 */
+	public function test_is_enrolled_but_unavailable_for_user_base_returns_false() {
+		$user     = self::factory()->user->create_and_get();
+		$provider = Two_Factor_Dummy::get_instance();
+
+		$this->assertFalse( $provider->is_enrolled_but_unavailable_for_user( $user ) );
+	}
+
+	/**
+	 * The base uninstall_user_data hook is a no-op.
+	 *
+	 * @covers Two_Factor_Provider::uninstall_user_data
+	 */
+	public function test_uninstall_user_data_base_is_noop() {
+		$this->assertNull( Two_Factor_Dummy::uninstall_user_data() );
+	}
 }

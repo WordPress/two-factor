@@ -1,7 +1,8 @@
 <?php
 /**
  * Admin settings UI for the Two-Factor plugin.
- * Provides a site-wide settings screen for disabling individual Two-Factor providers.
+ * Provides a site-wide settings screen for disabling individual Two-Factor providers
+ * and for turning on encrypted storage of authenticator app secrets.
  *
  * @since 0.16
  *
@@ -48,7 +49,13 @@ class Two_Factor_Settings {
 
 			update_option( Two_Factor_Core::ENABLED_PROVIDERS_OPTION_KEY, array_values( array_unique( $enabled ) ) );
 
+			$secrets_saved = self::save_secrets_storage_setting();
+
 			echo '<div class="updated"><p>' . esc_html__( 'Settings saved.', 'two-factor' ) . '</p></div>';
+
+			if ( ! $secrets_saved ) {
+				echo '<div class="error"><p>' . esc_html__( 'Encrypted storage was not turned on. Confirm that you understand how it depends on this site\'s secrets key, then save again.', 'two-factor' ) . '</p></div>';
+			}
 		}
 
 		// Build provider list for display using public core API.
@@ -93,9 +100,116 @@ class Two_Factor_Settings {
 		echo '</tbody></table>';
 		echo '</fieldset>';
 
+		self::render_secrets_storage_section();
+
 		submit_button( __( 'Save Settings', 'two-factor' ), 'primary', 'two_factor_settings_submit' );
 		echo '</form>';
 
 		echo '</div>';
+	}
+
+	/**
+	 * Whether the current user may change the Secrets API storage setting.
+	 *
+	 * Secrets are network scoped, so on multisite the choice belongs to the network.
+	 *
+	 * @since 0.18.0
+	 *
+	 * @return bool
+	 */
+	private static function current_user_can_manage_secrets_storage() {
+		return current_user_can( is_multisite() ? 'manage_network_options' : 'manage_options' );
+	}
+
+	/**
+	 * Save the Secrets API storage setting from the submitted settings form.
+	 *
+	 * Turning storage on requires the acknowledgement checkbox. The caller has
+	 * already verified the nonce.
+	 *
+	 * @since 0.18.0
+	 *
+	 * @return bool False when turning storage on was refused for want of the acknowledgement.
+	 */
+	private static function save_secrets_storage_setting() {
+		// phpcs:disable WordPress.Security.NonceVerification.Missing -- Nonce verified by render_settings_page() before this is called.
+		// The marker field is only rendered with an editable checkbox, so an absent checkbox means "off" only when it is present.
+		if ( ! isset( $_POST['two_factor_secrets_api_setting'] ) || ! self::current_user_can_manage_secrets_storage() ) {
+			return true;
+		}
+
+		$wanted       = ! empty( $_POST['two_factor_secrets_api_enabled'] );
+		$acknowledged = ! empty( $_POST['two_factor_secrets_api_acknowledged'] );
+		// phpcs:enable WordPress.Security.NonceVerification.Missing
+
+		if ( Two_Factor_Secrets::is_opted_in() === $wanted ) {
+			return true;
+		}
+
+		if ( $wanted && ! $acknowledged ) {
+			return false;
+		}
+
+		Two_Factor_Secrets::set_opted_in( $wanted );
+
+		return true;
+	}
+
+	/**
+	 * Render the section where an administrator turns Secrets API storage on.
+	 *
+	 * @since 0.18.0
+	 *
+	 * @return void
+	 */
+	private static function render_secrets_storage_section() {
+		$opted_in = Two_Factor_Secrets::is_opted_in();
+
+		echo '<h2>' . esc_html__( 'Authenticator App Secret Storage', 'two-factor' ) . '</h2>';
+
+		if ( ! Two_Factor_Secrets::is_api_present() ) {
+			echo '<p class="description">' . esc_html__( 'Authenticator app secrets are stored in user meta. When the WordPress Secrets API is available on this site, you can choose to store them encrypted instead.', 'two-factor' ) . '</p>';
+			return;
+		}
+
+		echo '<p class="description">' . esc_html__( 'By default, authenticator app secrets are stored in user meta, where anyone with a copy of the database can read them. The WordPress Secrets API can store them encrypted instead.', 'two-factor' ) . '</p>';
+
+		$can_manage = self::current_user_can_manage_secrets_storage();
+
+		echo '<fieldset class="two-factor-secrets-storage"><legend class="screen-reader-text">' . esc_html__( 'Authenticator app secret storage', 'two-factor' ) . '</legend>';
+
+		if ( $can_manage ) {
+			echo '<input type="hidden" name="two_factor_secrets_api_setting" value="1">';
+		}
+
+		echo '<p><label for="two_factor_secrets_api_enabled">';
+		echo '<input type="checkbox" name="two_factor_secrets_api_enabled" id="two_factor_secrets_api_enabled" value="1" ' . checked( $opted_in, true, false ) . ' ' . disabled( $can_manage, false, false ) . '> ';
+		echo esc_html__( 'Store authenticator app secrets encrypted with the WordPress Secrets API', 'two-factor' );
+		echo '</label></p>';
+
+		if ( ! $can_manage ) {
+			echo '<p class="description">' . esc_html__( 'Secrets are stored for the whole network, so only a network administrator can change this setting.', 'two-factor' ) . '</p>';
+		} elseif ( ! $opted_in ) {
+			echo '<ul class="ul-disc">';
+			echo '<li>' . esc_html__( 'This is a one-way change. Existing secrets move to the Secrets API as users log in, and are never moved back into user meta.', 'two-factor' ) . '</li>';
+			echo '<li>' . esc_html__( 'Stored secrets can only be read with this site\'s secrets key: the WP_SECRETS_KEY constant, or a key derived from your salts when it is not defined. If that key changes outside the Secrets API\'s own rotation, for example when a plugin regenerates your salts, nobody can use or set up an authenticator app until the original key is restored.', 'two-factor' ) . '</li>';
+			echo '<li>' . esc_html__( 'If the Secrets API is later removed, affected users cannot use their authenticator app until it is restored or an administrator resets their authenticator app.', 'two-factor' ) . '</li>';
+			echo '</ul>';
+
+			echo '<p><label for="two_factor_secrets_api_acknowledged">';
+			echo '<input type="checkbox" name="two_factor_secrets_api_acknowledged" id="two_factor_secrets_api_acknowledged" value="1"> ';
+			echo esc_html__( 'I understand that changing or losing this site\'s secrets key makes stored authenticator app secrets unreadable.', 'two-factor' );
+			echo '</label></p>';
+		} else {
+			echo '<p class="description">' . esc_html__( 'Turning this off stops new secrets from being stored with the Secrets API. Secrets that are already stored there stay there and are still used.', 'two-factor' ) . '</p>';
+		}
+
+		if ( $opted_in && ! Two_Factor_Secrets::is_enabled() ) {
+			echo '<p class="description">' . esc_html__( 'The two_factor_use_secrets_api filter is currently turning this off.', 'two-factor' ) . '</p>';
+		} elseif ( ! $opted_in && Two_Factor_Secrets::is_enabled() ) {
+			echo '<p class="description">' . esc_html__( 'The two_factor_use_secrets_api filter is currently turning this on, whatever is selected here.', 'two-factor' ) . '</p>';
+		}
+
+		echo '</fieldset>';
 	}
 }
