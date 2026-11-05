@@ -171,8 +171,10 @@ class Tests_Two_Factor_Email extends WP_UnitTestCase {
 
 		$pattern = '/verification code below:\R\R(\d+)/';
 		$content = $GLOBALS['phpmailer']->Body;
+		$subject = $GLOBALS['phpmailer']->Subject;
 
 		$this->assertGreaterThan( 0, preg_match( $pattern, $content, $match ) );
+		$this->assertStringContainsString( $match[1], $subject );
 		$this->assertTrue( $this->provider->validate_token( $user->ID, $match[1] ) );
 	}
 
@@ -433,6 +435,97 @@ class Tests_Two_Factor_Email extends WP_UnitTestCase {
 		);
 
 		remove_all_filters( 'two_factor_token_ttl' );
+	}
+
+	/**
+	 * Test that the token email subject can be filtered.
+	 * Tests cover current and deprecated filters.
+	 *
+	 * @expectedDeprecated two_factor_token_email_subject
+	 */
+	public function test_email_token_subject_filter() {
+		$user = self::factory()->user->create_and_get();
+		$this->provider->generate_and_email_token( $user );
+		$default_email = end( self::$mockmailer->mock_sent );
+
+		add_filter(
+			'two_factor_token_email_subject',
+			function ( $subject ) { // phpcs:ignore Generic.CodeAnalysis.UnusedFunctionParameter.Found -- Required to match filter signature.
+				return 'New Subject';
+			}
+		);
+
+		$this->provider->generate_and_email_token( $user );
+		$custom_email_deprecated = end( self::$mockmailer->mock_sent );
+
+		$this->assertNotEquals( $default_email['subject'], $custom_email_deprecated['subject'], 'Email subject modified by filter' );
+		$this->assertEquals( 'New Subject', $custom_email_deprecated['subject'], 'Email subject matches the filter value' );
+
+		remove_all_filters( 'two_factor_token_email_subject' );
+
+		add_filter(
+			'two_factor_email_token_subject',
+			function ( $subject, $token ) {
+				return "Your token is: {$token}!";
+			},
+			10,
+			2
+		);
+
+		$this->provider->generate_and_email_token( $user );
+		$custom_email = end( self::$mockmailer->mock_sent );
+
+		$this->assertNotEquals( $default_email['subject'], $custom_email['subject'], 'Email subject modified by filter' );
+		$this->assertMatchesRegularExpression( '/Your token is: [0-9]+!/', $custom_email['subject'], 'Email subject matches the filter value' );
+
+		remove_all_filters( 'two_factor_email_token_subject' );
+	}
+
+	/**
+	 * Test that the token email message can be filtered.
+	 * Tests cover current and deprecated filters.
+	 *
+	 * @expectedDeprecated two_factor_token_email_message
+	 */
+	public function test_email_token_message_filter() {
+		$user = self::factory()->user->create_and_get();
+		$this->provider->generate_and_email_token( $user );
+		$default_email = end( self::$mockmailer->mock_sent );
+
+		// Deprecated filter was renamed, use the same callback to test both filters.
+		$callback = function ( $message, $token ) {
+			return "<span>$token</span>";
+		};
+
+		add_filter(
+			'two_factor_token_email_message',
+			$callback,
+			10,
+			2
+		);
+
+		$this->provider->generate_and_email_token( $user );
+		$custom_email_deprecated = end( self::$mockmailer->mock_sent );
+
+		$this->assertNotEquals( $default_email['body'], $custom_email_deprecated['body'], 'Email message modified by filter' );
+		$this->assertMatchesRegularExpression( '/<span>[0-9]+<\/span>/', $custom_email_deprecated['body'], 'Email messages contains the wrapped token' );
+
+		remove_all_filters( 'two_factor_token_email_message' );
+
+		add_filter(
+			'two_factor_email_token_message',
+			$callback,
+			10,
+			2
+		);
+
+		$this->provider->generate_and_email_token( $user );
+		$custom_email = end( self::$mockmailer->mock_sent );
+
+		$this->assertNotEquals( $default_email['body'], $custom_email['body'], 'Email message modified by filter' );
+		$this->assertMatchesRegularExpression( '/<span>[0-9]+<\/span>/', $custom_email['body'], 'Email messages contains the wrapped token' );
+
+		remove_all_filters( 'two_factor_email_token_message' );
 	}
 
 	/**

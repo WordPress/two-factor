@@ -57,6 +57,13 @@ class Test_ClassTwoFactorCore extends WP_UnitTestCase {
 		// Remove the plugin's send_auth_cookies block that filter_authenticate installs,
 		// so it does not leak into subsequent tests that expect cookies to be settable.
 		remove_filter( 'send_auth_cookies', '__return_false', PHP_INT_MAX );
+
+		// get_dummy_user() -- used throughout this file purely as a fixture helper --
+		// goes through user_two_factor_options_update(), which now always emails the
+		// account owner. Without this, mail sent as a side effect of unrelated fixture
+		// setup piles up in the shared mock_sent log and inflates the count for whichever
+		// later test happens to assert on it.
+		reset_phpmailer_instance();
 	}
 
 	/**
@@ -796,6 +803,35 @@ class Test_ClassTwoFactorCore extends WP_UnitTestCase {
 
 		// Without params, no redirect_to should be present.
 		$this->assertStringNotContainsString( 'redirect_to', Two_Factor_Core::login_url() );
+	}
+
+	/**
+	 * Verify that revalidation URLs stay on the current site when the login URL is filtered.
+	 *
+	 * @covers Two_Factor_Core::login_url
+	 */
+	public function test_login_url_keeps_revalidation_on_current_site() {
+		$filter_login_url = static function () {
+			return 'https://login.example.org/';
+		};
+		add_filter( 'login_url', $filter_login_url );
+
+		$validate_url   = Two_Factor_Core::login_url( array( 'action' => 'validate_2fa' ) );
+		$revalidate_url = Two_Factor_Core::login_url(
+			array(
+				'action'        => 'revalidate_2fa',
+				'interim-login' => 1,
+				'provider'      => 'Two_Factor_Totp',
+			)
+		);
+
+		remove_filter( 'login_url', $filter_login_url );
+
+		$this->assertSame( set_url_scheme( 'https://login.example.org/?action=validate_2fa', 'login' ), $validate_url );
+		$this->assertSame(
+			site_url( 'wp-login.php?action=revalidate_2fa&interim-login=1&provider=Two_Factor_Totp', 'login' ),
+			$revalidate_url
+		);
 	}
 
 	/**
@@ -2508,6 +2544,41 @@ class Test_ClassTwoFactorCore extends WP_UnitTestCase {
 	}
 
 	/**
+	 * Validate that logging in with the last recovery code redirects to the recovery codes
+	 * section of the profile instead of the requested redirect.
+	 *
+	 * @covers Two_Factor_Core::validate_login_form_2fa()
+	 * @covers Two_Factor_Backup_Codes::maybe_redirect_to_regenerate_codes
+	 */
+	public function test_validate_login_form_2fa_redirects_to_regenerate_codes_after_last_code() {
+		$user     = self::factory()->user->create_and_get();
+		$provider = Two_Factor_Backup_Codes::get_instance();
+		$codes    = $provider->generate_codes( $user, array( 'number' => 2 ) );
+		Two_Factor_Core::enable_provider_for_user( $user->ID, 'Two_Factor_Backup_Codes' );
+
+		$log_in_with_code = function ( $code ) use ( $user ) {
+			$login_nonce                        = Two_Factor_Core::create_login_nonce( $user->ID );
+			$_REQUEST['two-factor-backup-code'] = $code;
+
+			return $this->do_redirect_callable(
+				function () use ( $user, $login_nonce ) {
+					Two_Factor_Core::validate_login_form_2fa( $user, $login_nonce['key'], 'Two_Factor_Backup_Codes', admin_url( 'edit.php' ), true );
+				}
+			);
+		};
+
+		// One code left, keep the requested redirect.
+		$this->assertSame( admin_url( 'edit.php' ), $log_in_with_code( $codes[0] ) );
+
+		// Last code used, send them to regenerate.
+		$this->assertSame( get_edit_profile_url( $user->ID ) . '#two-factor-backup-codes', $log_in_with_code( $codes[1] ) );
+
+		unset( $_REQUEST['two-factor-backup-code'] );
+		remove_all_filters( 'login_redirect' );
+		reset_phpmailer_instance();
+	}
+
+	/**
 	 * Test current user can update two factor options functionality.
 	 *
 	 * @covers Two_Factor_Core::current_user_can_update_two_factor_options()
@@ -2954,6 +3025,260 @@ class Test_ClassTwoFactorCore extends WP_UnitTestCase {
 	}
 
 	/**
+	 * Validate that the account owner is emailed when their own two-factor settings change,
+	 * regardless of whether that particular change happened to destroy other sessions.
+	 *
+	 * @covers Two_Factor_Core::user_two_factor_options_update
+	 * @covers Two_Factor_Core::notify_user_two_factor_settings_changed
+	 */
+	public function test_user_notified_when_own_two_factor_settings_change() {
+		$user = self::factory()->user->create_and_get();
+		wp_set_current_user( $user->ID );
+		// A real session token is required: once the first call below enables the user's first
+		// provider, current_user_can_update_two_factor_options( 'save' ) requires a two-factor-
+		// validated session for every call after that, or user_two_factor_options_update() bails
+		// out before doing anything -- including sending mail.
+		wp_set_auth_cookie( $user->ID );
+
+		$mailer = tests_retrieve_phpmailer_instance();
+
+		$key              = '_nonce_user_two_factor_options';
+		$nonce            = wp_create_nonce( 'user_two_factor_options' );
+		$_POST[ $key ]    = $nonce;
+		$_REQUEST[ $key ] = $nonce;
+
+		$expected_subject = sprintf( '[%s] Your two-factor authentication settings have changed', get_bloginfo( 'name' ) );
+
+		// Enabling the first provider destroys other sessions.
+		$_POST[ Two_Factor_Core::ENABLED_PROVIDERS_USER_META_KEY ] = array(
+			'Two_Factor_Dummy' => 'Two_Factor_Dummy',
+		);
+		Two_Factor_Core::user_two_factor_options_update( $user->ID );
+
+		$this->assertCount( 1, $mailer->mock_sent );
+		$this->assertContains( $user->user_email, $mailer->mock_sent[0]['to'][0] );
+		$this->assertSame( $expected_subject, $mailer->mock_sent[0]['subject'] );
+		$this->assertStringContainsString( 'Activated: Dummy Method', $mailer->mock_sent[0]['body'] );
+		$this->assertStringContainsString( 'All other open sessions have been logged out.', $mailer->mock_sent[0]['body'] );
+		$this->assertStringContainsString( 'did NOT make this change', $mailer->mock_sent[0]['body'] );
+		reset_phpmailer_instance();
+
+		// Adding a second provider while already enabled does NOT destroy other sessions, so the
+		// email must not claim that it did.
+		$mailer = tests_retrieve_phpmailer_instance();
+		$_POST[ Two_Factor_Core::ENABLED_PROVIDERS_USER_META_KEY ] = array(
+			'Two_Factor_Dummy' => 'Two_Factor_Dummy',
+			'Two_Factor_Email' => 'Two_Factor_Email',
+		);
+		Two_Factor_Core::user_two_factor_options_update( $user->ID );
+
+		$this->assertCount( 1, $mailer->mock_sent );
+		$this->assertStringContainsString( 'Activated: Email', $mailer->mock_sent[0]['body'] );
+		$this->assertStringNotContainsString( 'logged out', $mailer->mock_sent[0]['body'] );
+		reset_phpmailer_instance();
+
+		// Disabling every provider doesn't destroy other sessions either.
+		$mailer = tests_retrieve_phpmailer_instance();
+		$_POST[ Two_Factor_Core::ENABLED_PROVIDERS_USER_META_KEY ] = array();
+		Two_Factor_Core::user_two_factor_options_update( $user->ID );
+
+		$this->assertCount( 1, $mailer->mock_sent );
+		$this->assertStringContainsString( 'Deactivated: Email, Dummy Method', $mailer->mock_sent[0]['body'] );
+		$this->assertStringNotContainsString( 'logged out', $mailer->mock_sent[0]['body'] );
+		reset_phpmailer_instance();
+	}
+
+	/**
+	 * Validate that when an administrator changes another user's two-factor settings, the
+	 * notification email goes to the account owner, not the administrator making the change.
+	 *
+	 * @covers Two_Factor_Core::user_two_factor_options_update
+	 * @covers Two_Factor_Core::notify_user_two_factor_settings_changed
+	 */
+	public function test_target_user_notified_when_admin_changes_their_two_factor_settings() {
+		$admin = self::factory()->user->create_and_get( array( 'role' => 'administrator' ) );
+		wp_set_current_user( $admin->ID );
+
+		$user = self::factory()->user->create_and_get();
+
+		$mailer = tests_retrieve_phpmailer_instance();
+
+		$key              = '_nonce_user_two_factor_options';
+		$nonce            = wp_create_nonce( 'user_two_factor_options' );
+		$_POST[ $key ]    = $nonce;
+		$_REQUEST[ $key ] = $nonce;
+
+		$_POST[ Two_Factor_Core::ENABLED_PROVIDERS_USER_META_KEY ] = array(
+			'Two_Factor_Dummy' => 'Two_Factor_Dummy',
+		);
+		Two_Factor_Core::user_two_factor_options_update( $user->ID );
+
+		$this->assertCount( 1, $mailer->mock_sent );
+		$this->assertContains( $user->user_email, $mailer->mock_sent[0]['to'][0] );
+		$this->assertNotContains( $admin->user_email, $mailer->mock_sent[0]['to'][0] );
+
+		reset_phpmailer_instance();
+	}
+
+	/**
+	 * Validate that the settings-changed notification is sent when the enabled providers change,
+	 * that nothing is sent when they did not, and that the
+	 * `two_factor_notify_user_settings_changed` filter can suppress it.
+	 *
+	 * @covers Two_Factor_Core::notify_user_two_factor_settings_changed
+	 */
+	public function test_settings_changed_notification_sent_and_suppressible() {
+		$user = self::factory()->user->create_and_get();
+
+		$mailer = tests_retrieve_phpmailer_instance();
+
+		$sent = Two_Factor_Core::notify_user_two_factor_settings_changed( $user, array( 'Two_Factor_Dummy' ), array() );
+
+		$this->assertTrue( $sent );
+		$this->assertCount( 1, $mailer->mock_sent );
+		reset_phpmailer_instance();
+
+		// No change in enabled providers -- nothing to notify about.
+		$mailer = tests_retrieve_phpmailer_instance();
+		$sent   = Two_Factor_Core::notify_user_two_factor_settings_changed( $user, array( 'Two_Factor_Dummy' ), array( 'Two_Factor_Dummy' ) );
+		$this->assertFalse( $sent );
+		$this->assertCount( 0, $mailer->mock_sent );
+		reset_phpmailer_instance();
+
+		// A site can opt out of the email via the filter.
+		$suppress = static function () {
+			return false;
+		};
+		add_filter( 'two_factor_notify_user_settings_changed', $suppress );
+
+		$mailer = tests_retrieve_phpmailer_instance();
+		$sent   = Two_Factor_Core::notify_user_two_factor_settings_changed( $user, array( 'Two_Factor_Dummy' ), array() );
+		$this->assertFalse( $sent );
+		$this->assertCount( 0, $mailer->mock_sent );
+		reset_phpmailer_instance();
+
+		remove_filter( 'two_factor_notify_user_settings_changed', $suppress );
+	}
+
+	/**
+	 * Validate that the "sessions logged out" statement is only included when sessions were
+	 * actually destroyed, and that the email does not HTML-escape the username (plain-text email).
+	 *
+	 * @covers Two_Factor_Core::notify_user_two_factor_settings_changed
+	 */
+	public function test_settings_changed_notification_sessions_line_and_plain_username() {
+		$user = self::factory()->user->create_and_get();
+		// WordPress sanitizes logins on insert, so set the characters on the in-memory object instead.
+		$user->user_login = "O'Brien & Co";
+
+		$mailer = tests_retrieve_phpmailer_instance();
+		Two_Factor_Core::notify_user_two_factor_settings_changed( $user, array( 'Two_Factor_Dummy' ), array(), false );
+
+		$this->assertCount( 1, $mailer->mock_sent );
+		$this->assertStringNotContainsString( 'logged out', $mailer->mock_sent[0]['body'] );
+		$this->assertStringContainsString( "O'Brien & Co", $mailer->mock_sent[0]['body'] );
+		$this->assertStringNotContainsString( '&#039;', $mailer->mock_sent[0]['body'] );
+		$this->assertStringNotContainsString( '&amp;', $mailer->mock_sent[0]['body'] );
+		reset_phpmailer_instance();
+
+		$mailer = tests_retrieve_phpmailer_instance();
+		Two_Factor_Core::notify_user_two_factor_settings_changed( $user, array( 'Two_Factor_Dummy' ), array(), true );
+
+		$this->assertCount( 1, $mailer->mock_sent );
+		$this->assertStringContainsString( 'logged out', $mailer->mock_sent[0]['body'] );
+		reset_phpmailer_instance();
+	}
+
+	/**
+	 * Validate that when an administrator (not the account owner) makes the change, the email
+	 * uses the administrator wording rather than the self-change "did NOT make this change" text.
+	 *
+	 * @covers Two_Factor_Core::notify_user_two_factor_settings_changed
+	 */
+	public function test_settings_changed_notification_admin_change_wording() {
+		$admin = self::factory()->user->create_and_get( array( 'role' => 'administrator' ) );
+		wp_set_current_user( $admin->ID );
+
+		$user   = self::factory()->user->create_and_get();
+		$mailer = tests_retrieve_phpmailer_instance();
+
+		Two_Factor_Core::notify_user_two_factor_settings_changed( $user, array( 'Two_Factor_Dummy' ), array(), true );
+
+		$this->assertCount( 1, $mailer->mock_sent );
+		$this->assertStringContainsString( 'made by a site administrator', $mailer->mock_sent[0]['body'] );
+		$this->assertStringNotContainsString( 'did NOT make this change', $mailer->mock_sent[0]['body'] );
+		$this->assertStringContainsString( 'All open sessions have been logged out.', $mailer->mock_sent[0]['body'] );
+		reset_phpmailer_instance();
+	}
+
+	/**
+	 * Send settings-change notifications using the recipient's locale and restore the caller's locale.
+	 *
+	 * @covers Two_Factor_Core::notify_user_two_factor_settings_changed
+	 */
+	public function test_settings_changed_notification_uses_recipient_locale() {
+		$available_locales = array_diff( get_available_languages(), array( get_locale() ) );
+		if ( ! $available_locales ) {
+			$this->markTestSkipped( 'An alternate installed locale is required.' );
+		}
+
+		$user             = self::factory()->user->create_and_get();
+		$recipient_locale = reset( $available_locales );
+		update_user_meta( $user->ID, 'locale', $recipient_locale );
+
+		$caller_locale       = get_locale();
+		$notification_locale = null;
+		$filter              = function ( $email ) use ( &$notification_locale ) {
+			$notification_locale = get_locale();
+			return $email;
+		};
+		add_filter( 'two_factor_settings_changed_email', $filter );
+
+		Two_Factor_Core::notify_user_two_factor_settings_changed( $user, array( 'Two_Factor_Dummy' ), array() );
+
+		remove_filter( 'two_factor_settings_changed_email', $filter );
+
+		$this->assertSame( $recipient_locale, $notification_locale );
+		$this->assertSame( $caller_locale, get_locale() );
+	}
+
+	/**
+	 * Validate that the `two_factor_settings_changed_email` filter can customize the email
+	 * content (recipient, subject, message, headers) without being able to suppress it.
+	 *
+	 * @covers Two_Factor_Core::notify_user_two_factor_settings_changed
+	 */
+	public function test_settings_changed_notification_content_is_filterable() {
+		$user = self::factory()->user->create_and_get();
+
+		$mailer = tests_retrieve_phpmailer_instance();
+
+		add_filter(
+			'two_factor_settings_changed_email',
+			function ( $email, $filtered_user, $added, $removed ) use ( $user ) {
+				$this->assertSame( $user->ID, $filtered_user->ID );
+				$this->assertSame( array( 'Two_Factor_Dummy' ), $added );
+				$this->assertSame( array(), $removed );
+
+				$email['subject'] = 'Custom subject';
+
+				return $email;
+			},
+			10,
+			4
+		);
+
+		Two_Factor_Core::notify_user_two_factor_settings_changed( $user, array( 'Two_Factor_Dummy' ), array() );
+
+		remove_all_filters( 'two_factor_settings_changed_email' );
+
+		$this->assertCount( 1, $mailer->mock_sent );
+		$this->assertSame( 'Custom subject', $mailer->mock_sent[0]['subject'] );
+
+		reset_phpmailer_instance();
+	}
+
+	/**
 	 * Test filtering registered providers for user.
 	 */
 	public function test_can_filter_registered_providers_for_user() {
@@ -3153,29 +3478,29 @@ class Test_ClassTwoFactorCore extends WP_UnitTestCase {
 	/**
 	 * Test is_valid_user_action validates actions correctly.
 	 *
-	 * @covers Two_Factor_Core::is_valid_user_action
+	 * @covers two_factor_is_valid_user_action
 	 */
 	public function test_is_valid_user_action() {
 		$user_id = self::factory()->user->create();
 		$action  = 'test_action';
 
 		// Test without nonce.
-		$this->assertFalse( Two_Factor_Core::is_valid_user_action( $user_id, $action ), 'Action is invalid without nonce' );
+		$this->assertFalse( two_factor_is_valid_user_action( $user_id, $action ), 'Action is invalid without nonce' );
 
 		// Test with invalid nonce.
 		$_REQUEST[ Two_Factor_Core::USER_SETTINGS_ACTION_NONCE_QUERY_ARG ] = 'invalid_nonce';
-		$this->assertFalse( Two_Factor_Core::is_valid_user_action( $user_id, $action ), 'Action is invalid with wrong nonce' );
+		$this->assertFalse( two_factor_is_valid_user_action( $user_id, $action ), 'Action is invalid with wrong nonce' );
 
 		// Test with valid nonce.
 		$nonce = wp_create_nonce( sprintf( '%d-%s', $user_id, $action ) );
 		$_REQUEST[ Two_Factor_Core::USER_SETTINGS_ACTION_NONCE_QUERY_ARG ] = $nonce;
-		$this->assertNotFalse( Two_Factor_Core::is_valid_user_action( $user_id, $action ), 'Action is valid with correct nonce' );
+		$this->assertNotFalse( two_factor_is_valid_user_action( $user_id, $action ), 'Action is valid with correct nonce' );
 
 		// Test with missing user_id.
-		$this->assertFalse( Two_Factor_Core::is_valid_user_action( 0, $action ), 'Action is invalid without user ID' );
+		$this->assertFalse( two_factor_is_valid_user_action( 0, $action ), 'Action is invalid without user ID' );
 
 		// Test with missing action.
-		$this->assertFalse( Two_Factor_Core::is_valid_user_action( $user_id, '' ), 'Action is invalid without action name' );
+		$this->assertFalse( two_factor_is_valid_user_action( $user_id, '' ), 'Action is invalid without action name' );
 
 		// Cleanup.
 		unset( $_REQUEST[ Two_Factor_Core::USER_SETTINGS_ACTION_NONCE_QUERY_ARG ] );
