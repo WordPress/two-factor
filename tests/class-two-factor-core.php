@@ -4444,7 +4444,7 @@ class Test_ClassTwoFactorCore extends WP_UnitTestCase {
 		$values = array_combine( $names, wp_list_pluck( $items, 'value' ) );
 		$this->assertSame( 'Authenticator App, Email, Recovery Codes', $values['Enabled Two Factor methods'] );
 		$this->assertSame( 'Authenticator App', $values['Primary Two Factor method'] );
-		$this->assertEquals( 3, $values['Failed Two Factor login attempts'] );
+		$this->assertSame( '3', $values['Failed Two Factor login attempts'] );
 		$this->assertNotEmpty( $values['Last failed Two Factor login'] );
 		$this->assertNotEmpty( $values['Password reset by Two Factor'] );
 	}

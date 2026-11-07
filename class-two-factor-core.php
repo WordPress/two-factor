@@ -3291,7 +3291,7 @@ class Two_Factor_Core {
 		if ( $failed_attempts ) {
 			$data[] = array(
 				'name'  => __( 'Failed Two Factor login attempts', 'two-factor' ),
-				'value' => $failed_attempts,
+				'value' => (string) $failed_attempts,
 			);
 		}
 
