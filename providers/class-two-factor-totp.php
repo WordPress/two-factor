@@ -32,6 +32,11 @@ class Two_Factor_Totp extends Two_Factor_Provider {
 	const DEFAULT_TIME_STEP_SEC       = 30;
 	const DEFAULT_TIME_STEP_ALLOWANCE = 4;
 
+	// Decoded secret length accepted at setup. Shorter secrets are padded by calc_totp(),
+	// so their codes would not match a standard authenticator app.
+	const MIN_KEY_BYTES = 20;  // DEFAULT_KEY_BIT_SIZE / 8: what generate_key() produces (RFC 4226 section 4).
+	const MAX_KEY_BYTES = 128; // Sanity cap; real secrets are 20 to 64 bytes.
+
 	/**
 	 * Characters used in base32 encoding.
 	 *
@@ -204,12 +209,20 @@ class Two_Factor_Totp extends Two_Factor_Provider {
 	 * @return WP_Error|array Array of data on success, WP_Error on error.
 	 */
 	public function rest_delete_totp( $request ) {
-		$user_id = $request['user_id'];
-		$user    = get_user_by( 'id', $user_id );
+		$user_id                  = $request['user_id'];
+		$user                     = get_user_by( 'id', $user_id );
+		$enabled_providers_before = Two_Factor_Core::get_enabled_providers_for_user( $user_id );
 
 		if ( ! Two_Factor_Core::disable_provider_for_user( $user_id, 'Two_Factor_Totp' ) ) {
 			return new WP_Error( 'db_error', __( 'Unable to disable TOTP provider for this user.', 'two-factor' ), array( 'status' => 500 ) );
 		}
+
+		Two_Factor_Core::notify_user_two_factor_settings_changed(
+			$user,
+			Two_Factor_Core::get_enabled_providers_for_user( $user_id ),
+			$enabled_providers_before,
+			false
+		);
 
 		$this->delete_user_totp_key( $user_id );
 
@@ -238,8 +251,21 @@ class Two_Factor_Totp extends Two_Factor_Provider {
 		$key  = $request['key'];
 		$code = preg_replace( '/\s+/', '', $request['code'] );
 
-		if ( ! $this->is_valid_key( $key ) ) {
+		if ( ! $this->is_valid_key_format( $key ) ) {
 			return new WP_Error( 'invalid_key', __( 'Invalid Two Factor Authentication secret key.', 'two-factor' ), array( 'status' => 400 ) );
+		}
+
+		if ( ! $this->is_valid_key_length( $key ) ) {
+			return new WP_Error(
+				'invalid_key_length',
+				sprintf(
+					/* translators: 1: minimum secret key length in bytes, 2: maximum secret key length in bytes. */
+					__( 'The secret key must decode to between %1$d and %2$d bytes.', 'two-factor' ),
+					self::MIN_KEY_BYTES,
+					self::MAX_KEY_BYTES
+				),
+				array( 'status' => 400 )
+			);
 		}
 
 		if ( ! $this->is_valid_authcode( $key, $code ) ) {
@@ -250,8 +276,19 @@ class Two_Factor_Totp extends Two_Factor_Provider {
 			return new WP_Error( 'db_error', __( 'Unable to save Two Factor Authentication code. Please re-scan the QR code and enter the code provided by your application.', 'two-factor' ), array( 'status' => 500 ) );
 		}
 
-		if ( $request->get_param( 'enable_provider' ) && ! Two_Factor_Core::enable_provider_for_user( $user_id, 'Two_Factor_Totp' ) ) {
-			return new WP_Error( 'db_error', __( 'Unable to enable TOTP provider for this user.', 'two-factor' ), array( 'status' => 500 ) );
+		if ( $request->get_param( 'enable_provider' ) ) {
+			$enabled_providers_before = Two_Factor_Core::get_enabled_providers_for_user( $user_id );
+
+			if ( ! Two_Factor_Core::enable_provider_for_user( $user_id, 'Two_Factor_Totp' ) ) {
+				return new WP_Error( 'db_error', __( 'Unable to enable TOTP provider for this user.', 'two-factor' ), array( 'status' => 500 ) );
+			}
+
+			Two_Factor_Core::notify_user_two_factor_settings_changed(
+				$user,
+				Two_Factor_Core::get_enabled_providers_for_user( $user_id ),
+				$enabled_providers_before,
+				false
+			);
 		}
 
 		ob_start();
@@ -490,22 +527,49 @@ class Two_Factor_Totp extends Two_Factor_Provider {
 	}
 
 	/**
-	 * Check if the TOTP secret key has a proper format.
+	 * Check if the TOTP secret key has a proper format and length.
+	 *
+	 * The key must be base32 and decode to between MIN_KEY_BYTES and MAX_KEY_BYTES.
 	 *
 	 * @since 0.2.0
+	 * @since 0.18.0 Key length must decode to between MIN_KEY_BYTES and MAX_KEY_BYTES bytes.
 	 *
 	 * @param  string $key TOTP secret key.
 	 *
 	 * @return boolean
 	 */
 	public function is_valid_key( $key ) {
-		$check = sprintf( '/^[%s]+$/', self::$base_32_chars );
+		return $this->is_valid_key_format( $key ) && $this->is_valid_key_length( $key );
+	}
 
-		if ( 1 === preg_match( $check, $key ) ) {
-			return true;
+	/**
+	 * Check if the TOTP secret key contains only base32 characters.
+	 *
+	 * @param string $key TOTP secret key.
+	 * @return boolean
+	 */
+	private function is_valid_key_format( $key ) {
+		// The D modifier stops `$` from also matching before a trailing newline.
+		$check = sprintf( '/^[%s]+$/D', self::$base_32_chars );
+
+		return is_string( $key ) && 1 === preg_match( $check, $key );
+	}
+
+	/**
+	 * Check if the TOTP secret key decodes to an allowed length.
+	 *
+	 * @param string $key TOTP secret key.
+	 * @return boolean
+	 */
+	private function is_valid_key_length( $key ) {
+		if ( ! is_string( $key ) ) {
+			return false;
 		}
 
-		return false;
+		// Each base32 character holds 5 bits, and base32_decode() drops a partial trailing byte.
+		$bytes = intdiv( strlen( $key ) * 5, 8 );
+
+		return $bytes >= self::MIN_KEY_BYTES && $bytes <= self::MAX_KEY_BYTES;
 	}
 
 	/**

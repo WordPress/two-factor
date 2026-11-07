@@ -240,10 +240,55 @@ class Tests_Two_Factor_Totp extends WP_UnitTestCase {
 	 * @covers Two_Factor_Totp::is_valid_key
 	 */
 	public function test_is_valid_key() {
-		$this->assertTrue( $this->provider->is_valid_key( 'ABC234' ), 'Base32 chars are valid' );
+		$this->assertTrue( $this->provider->is_valid_key( $this->provider->generate_key() ), 'Generated keys are valid' );
+		$this->assertTrue( $this->provider->is_valid_key( str_repeat( 'ABC234', 6 ) ), 'Base32 chars are valid' );
 		$this->assertFalse( $this->provider->is_valid_key( '' ), 'Empty string is invalid' );
-		$this->assertFalse( $this->provider->is_valid_key( 'abc233' ), 'Lowercase chars are invalid' );
-		$this->assertFalse( $this->provider->is_valid_key( 'has a space' ), 'Spaces not allowed' );
+		$this->assertFalse( $this->provider->is_valid_key( str_repeat( 'abc234', 6 ) ), 'Lowercase chars are invalid' );
+		$this->assertFalse( $this->provider->is_valid_key( str_repeat( 'ABC 234', 6 ) ), 'Spaces not allowed' );
+		$this->assertFalse( $this->provider->is_valid_key( str_repeat( 'A', 32 ) . "\n" ), 'Trailing newline not allowed' );
+		$this->assertFalse( $this->provider->is_valid_key( null ), 'Non-strings are invalid' );
+	}
+
+	/**
+	 * Verify key validation enforces the decoded secret length.
+	 *
+	 * @covers Two_Factor_Totp::is_valid_key
+	 */
+	public function test_is_valid_key_length() {
+		$this->assertFalse( $this->provider->is_valid_key( 'A' ), 'A single character decodes to nothing' );
+		$this->assertFalse( $this->provider->is_valid_key( 'ABC234' ), 'Short keys are invalid' );
+		$this->assertFalse( $this->provider->is_valid_key( str_repeat( 'A', 31 ) ), '31 characters is only 19 bytes' );
+		$this->assertTrue( $this->provider->is_valid_key( str_repeat( 'A', 32 ) ), '32 characters is exactly 20 bytes' );
+		$this->assertTrue( $this->provider->is_valid_key( str_repeat( 'A', 206 ) ), '206 characters is exactly 128 bytes' );
+		$this->assertFalse( $this->provider->is_valid_key( str_repeat( 'A', 207 ) ), '207 characters is over the 128-byte cap' );
+
+		// The length check must agree with what base32_decode() actually produces.
+		for ( $length = 1; $length <= 210; $length++ ) {
+			$key   = str_repeat( 'A', $length );
+			$bytes = strlen( $this->provider->base32_decode( $key ) );
+
+			$this->assertSame(
+				$bytes >= Two_Factor_Totp::MIN_KEY_BYTES && $bytes <= Two_Factor_Totp::MAX_KEY_BYTES,
+				$this->provider->is_valid_key( $key ),
+				"Key of {$length} characters"
+			);
+		}
+	}
+
+	/**
+	 * Verify a short key stored before the length check was added still works at login.
+	 *
+	 * @covers Two_Factor_Totp::validate_code_for_user
+	 */
+	public function test_short_stored_key_still_validates() {
+		$user = new WP_User( self::factory()->user->create() );
+		$key  = 'JBSWY3DPEHPK3PXP'; // 10 bytes.
+
+		$this->assertFalse( $this->provider->is_valid_key( $key ), 'Key is too short to set up today' );
+
+		$this->provider->set_user_totp_key( $user->ID, $key );
+
+		$this->assertTrue( $this->provider->validate_code_for_user( $user, $this->provider->calc_totp( $key ) ) );
 	}
 
 	/**
