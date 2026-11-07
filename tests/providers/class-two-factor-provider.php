@@ -175,4 +175,16 @@ class Tests_Two_Factor_Provider extends WP_UnitTestCase {
 	public function test_uninstall_options_base_returns_empty() {
 		$this->assertSame( array(), Two_Factor_Dummy::uninstall_options() );
 	}
+
+	/**
+	 * Verify the base privacy_export_data() returns an empty array.
+	 *
+	 * @covers Two_Factor_Provider::privacy_export_data
+	 */
+	public function test_privacy_export_data_base_returns_empty() {
+		$provider = Two_Factor_Dummy::get_instance();
+		$user     = self::factory()->user->create_and_get();
+
+		$this->assertSame( array(), $provider->privacy_export_data( $user ) );
+	}
 }
