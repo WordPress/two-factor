@@ -601,10 +601,18 @@ class Two_Factor_Totp extends Two_Factor_Provider {
 	 * @return bool Whether the code is valid for the user and a newer code has not been used.
 	 */
 	public function validate_code_for_user( $user, $code ) {
-		$valid_timestamp = $this->get_authcode_valid_ticktime(
-			$this->get_user_totp_key( $user->ID ),
-			$code
-		);
+		$key = $this->get_user_totp_key( $user->ID );
+
+		/*
+		 * A secret that isn't base32 can't produce codes, and base32_decode() would throw.
+		 * Other plugins sharing this meta key (e.g. Solid / Kadence Security) may store encrypted secrets.
+		 * base32_decode() uppercases its input, so lowercase secrets are still valid.
+		 */
+		if ( ! $this->is_valid_key_format( strtoupper( $key ) ) ) {
+			return false;
+		}
+
+		$valid_timestamp = $this->get_authcode_valid_ticktime( $key, $code );
 
 		if ( ! $valid_timestamp ) {
 			return false;
