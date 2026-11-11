@@ -438,6 +438,97 @@ class Tests_Two_Factor_Email extends WP_UnitTestCase {
 	}
 
 	/**
+	 * Test that the token email subject can be filtered.
+	 * Tests cover current and deprecated filters.
+	 *
+	 * @expectedDeprecated two_factor_token_email_subject
+	 */
+	public function test_email_token_subject_filter() {
+		$user = self::factory()->user->create_and_get();
+		$this->provider->generate_and_email_token( $user );
+		$default_email = end( self::$mockmailer->mock_sent );
+
+		add_filter(
+			'two_factor_token_email_subject',
+			function ( $subject ) { // phpcs:ignore Generic.CodeAnalysis.UnusedFunctionParameter.Found -- Required to match filter signature.
+				return 'New Subject';
+			}
+		);
+
+		$this->provider->generate_and_email_token( $user );
+		$custom_email_deprecated = end( self::$mockmailer->mock_sent );
+
+		$this->assertNotEquals( $default_email['subject'], $custom_email_deprecated['subject'], 'Email subject modified by filter' );
+		$this->assertEquals( 'New Subject', $custom_email_deprecated['subject'], 'Email subject matches the filter value' );
+
+		remove_all_filters( 'two_factor_token_email_subject' );
+
+		add_filter(
+			'two_factor_email_token_subject',
+			function ( $subject, $token ) {
+				return "Your token is: {$token}!";
+			},
+			10,
+			2
+		);
+
+		$this->provider->generate_and_email_token( $user );
+		$custom_email = end( self::$mockmailer->mock_sent );
+
+		$this->assertNotEquals( $default_email['subject'], $custom_email['subject'], 'Email subject modified by filter' );
+		$this->assertMatchesRegularExpression( '/Your token is: [0-9]+!/', $custom_email['subject'], 'Email subject matches the filter value' );
+
+		remove_all_filters( 'two_factor_email_token_subject' );
+	}
+
+	/**
+	 * Test that the token email message can be filtered.
+	 * Tests cover current and deprecated filters.
+	 *
+	 * @expectedDeprecated two_factor_token_email_message
+	 */
+	public function test_email_token_message_filter() {
+		$user = self::factory()->user->create_and_get();
+		$this->provider->generate_and_email_token( $user );
+		$default_email = end( self::$mockmailer->mock_sent );
+
+		// Deprecated filter was renamed, use the same callback to test both filters.
+		$callback = function ( $message, $token ) {
+			return "<span>$token</span>";
+		};
+
+		add_filter(
+			'two_factor_token_email_message',
+			$callback,
+			10,
+			2
+		);
+
+		$this->provider->generate_and_email_token( $user );
+		$custom_email_deprecated = end( self::$mockmailer->mock_sent );
+
+		$this->assertNotEquals( $default_email['body'], $custom_email_deprecated['body'], 'Email message modified by filter' );
+		$this->assertMatchesRegularExpression( '/<span>[0-9]+<\/span>/', $custom_email_deprecated['body'], 'Email messages contains the wrapped token' );
+
+		remove_all_filters( 'two_factor_token_email_message' );
+
+		add_filter(
+			'two_factor_email_token_message',
+			$callback,
+			10,
+			2
+		);
+
+		$this->provider->generate_and_email_token( $user );
+		$custom_email = end( self::$mockmailer->mock_sent );
+
+		$this->assertNotEquals( $default_email['body'], $custom_email['body'], 'Email message modified by filter' );
+		$this->assertMatchesRegularExpression( '/<span>[0-9]+<\/span>/', $custom_email['body'], 'Email messages contains the wrapped token' );
+
+		remove_all_filters( 'two_factor_email_token_message' );
+	}
+
+	/**
 	 * Verify the alternative provider label contains expected text.
 	 *
 	 * @covers Two_Factor_Email::get_alternative_provider_label
@@ -497,6 +588,46 @@ class Tests_Two_Factor_Email extends WP_UnitTestCase {
 
 		$this->assertCount( $emails_before, self::$mockmailer->mock_sent, 'No new email sent when token already exists' );
 		$this->assertStringContainsString( 'two-factor-email-code', $output );
+	}
+
+	/**
+	 * Verify the email code input enables auto-submit by default.
+	 *
+	 * @covers Two_Factor_Email::authentication_page
+	 * @covers Two_Factor_Provider::is_authcode_auto_submit_enabled
+	 */
+	public function test_authentication_page_auto_submit_enabled_by_default() {
+		$user = self::factory()->user->create_and_get();
+
+		ob_start();
+		$this->provider->authentication_page( $user );
+		$output = ob_get_clean();
+
+		$this->assertStringNotContainsString( ' data-no-auto-submit', $output );
+	}
+
+	/**
+	 * Verify the two_factor_auto_submit_authcode filter adds the data-no-auto-submit attribute.
+	 *
+	 * @covers Two_Factor_Email::authentication_page
+	 * @covers Two_Factor_Provider::is_authcode_auto_submit_enabled
+	 */
+	public function test_authentication_page_auto_submit_disabled_via_filter() {
+		$user = self::factory()->user->create_and_get();
+
+		$filter = function () {
+			return false;
+		};
+		add_filter( 'two_factor_auto_submit_authcode', $filter );
+		try {
+			ob_start();
+			$this->provider->authentication_page( $user );
+			$output = ob_get_clean();
+		} finally {
+			remove_filter( 'two_factor_auto_submit_authcode', $filter );
+		}
+
+		$this->assertStringContainsString( ' data-no-auto-submit', $output );
 	}
 
 	/**

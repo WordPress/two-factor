@@ -505,12 +505,17 @@ class Tests_Two_Factor_CLI_Command extends WP_UnitTestCase {
 		update_user_meta( $this->user->ID, Two_Factor_Core::USER_RATE_LIMIT_KEY, time() );
 		update_user_meta( $this->user->ID, Two_Factor_Core::USER_FAILED_LOGIN_ATTEMPTS_KEY, 3 );
 
+		$mailer        = tests_retrieve_phpmailer_instance();
+		$emails_before = count( $mailer->mock_sent );
+
 		$this->command->disable( array( 'cli_test_user' ), array( 'yes' => true ) );
 
 		$this->assertFalse( Two_Factor_Core::is_user_using_two_factor( $this->user->ID ) );
 		$this->assertEmpty( Two_Factor_Core::get_enabled_providers_for_user( $this->user ) );
 		$this->assertEmpty( get_user_meta( $this->user->ID, Two_Factor_Core::USER_RATE_LIMIT_KEY, true ) );
 		$this->assertEmpty( get_user_meta( $this->user->ID, Two_Factor_Core::USER_FAILED_LOGIN_ATTEMPTS_KEY, true ) );
+		$this->assertCount( $emails_before + 1, $mailer->mock_sent );
+		$this->assertContains( $this->user->user_email, $mailer->mock_sent[ $emails_before ]['to'][0] );
 		$this->assertStringContainsString( 'All 2FA disabled', $this->last_message( 'success' ) );
 	}
 
