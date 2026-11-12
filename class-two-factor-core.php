@@ -655,6 +655,7 @@ class Two_Factor_Core {
 	 * Check if a user action is valid.
 	 *
 	 * @since 0.5.2
+	 * @deprecated 0.18.0 Use two_factor_is_valid_user_action() instead.
 	 *
 	 * @param integer $user_id User ID.
 	 * @param string  $action User action ID.
@@ -662,21 +663,8 @@ class Two_Factor_Core {
 	 * @return boolean
 	 */
 	public static function is_valid_user_action( $user_id, $action ) {
-		$request_nonce_raw = isset( $_REQUEST[ self::USER_SETTINGS_ACTION_NONCE_QUERY_ARG ] ) ? wp_unslash( $_REQUEST[ self::USER_SETTINGS_ACTION_NONCE_QUERY_ARG ] ) : ''; // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- Value sanitized and then only passed to wp_verify_nonce().
-		if ( ! is_scalar( $request_nonce_raw ) ) {
-			$request_nonce = '';
-		} else {
-			$request_nonce = sanitize_text_field( (string) $request_nonce_raw );
-		}
-
-		if ( ! $user_id || ! $action || ! $request_nonce ) {
-			return false;
-		}
-
-		return wp_verify_nonce(
-			$request_nonce,
-			sprintf( '%d-%s', $user_id, $action )
-		);
+		_deprecated_function( __FUNCTION__, '0.18.0', 'two_factor_is_valid_user_action' );
+		return two_factor_is_valid_user_action( $user_id, $action );
 	}
 
 	/**
@@ -708,11 +696,12 @@ class Two_Factor_Core {
 	 * @return void
 	 */
 	public static function trigger_user_settings_action() {
-		$action_raw = isset( $_REQUEST[ self::USER_SETTINGS_ACTION_QUERY_VAR ] ) ? wp_unslash( $_REQUEST[ self::USER_SETTINGS_ACTION_QUERY_VAR ] ) : ''; // phpcs:ignore WordPress.Security.NonceVerification.Recommended, WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- Value sanitized below; nonce verified in is_valid_user_action() before do_action.
-		$action     = ( is_scalar( $action_raw ) && '' !== (string) $action_raw ) ? sanitize_key( (string) $action_raw ) : '';
-		$user_id    = self::current_user_being_edited();
+		$action  = isset( $_REQUEST[ self::USER_SETTINGS_ACTION_QUERY_VAR ] ) && is_scalar( $_REQUEST[ self::USER_SETTINGS_ACTION_QUERY_VAR ] )
+			? sanitize_key( wp_unslash( $_REQUEST[ self::USER_SETTINGS_ACTION_QUERY_VAR ] ) )
+			: '';
+		$user_id = self::current_user_being_edited();
 
-		if ( self::is_valid_user_action( $user_id, $action ) ) {
+		if ( two_factor_is_valid_user_action( $user_id, $action ) ) {
 			/**
 			 * This action is triggered when a valid Two Factor settings
 			 * action is detected and it passes the nonce validation.
@@ -1498,8 +1487,12 @@ class Two_Factor_Core {
 			$params = array();
 		}
 
-		$url = wp_login_url( '', false );
-		$url = set_url_scheme( $url, $scheme );
+		// Revalidation is for the user already logged in here, so it must not follow `login_url` to another host.
+		if ( isset( $params['action'] ) && 'revalidate_2fa' === $params['action'] ) {
+			$url = site_url( 'wp-login.php?action=revalidate_2fa', $scheme );
+		} else {
+			$url = set_url_scheme( wp_login_url( '', false ), $scheme );
+		}
 
 		$params = urlencode_deep( $params );
 		if ( $params ) {
@@ -2161,10 +2154,23 @@ class Two_Factor_Core {
 	 * @since 0.9.0
 	 */
 	public static function login_form_revalidate_2fa() {
-		$nonce           = ( isset( $_REQUEST['wp-auth-nonce'] ) && is_scalar( $_REQUEST['wp-auth-nonce'] ) ) ? sanitize_text_field( wp_unslash( (string) $_REQUEST['wp-auth-nonce'] ) ) : ''; // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Nonce verified in revalidate_login_form_2fa() for POST before processing.
-		$provider        = ! empty( $_REQUEST['provider'] ) ? sanitize_text_field( wp_unslash( $_REQUEST['provider'] ) ) : false; // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Nonce verified in revalidate_login_form_2fa() for POST before processing.
-		$redirect_to     = ! empty( $_REQUEST['redirect_to'] ) ? esc_url_raw( wp_unslash( $_REQUEST['redirect_to'] ) ) : ''; // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Nonce verified in revalidate_login_form_2fa() for POST before processing.
-		$is_post_request = isset( $_SERVER['REQUEST_METHOD'] ) && 'POST' === strtoupper( $_SERVER['REQUEST_METHOD'] ); // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.MissingUnslash, WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- REQUEST_METHOD is not user input.
+		$nonce           = ( isset( $_REQUEST['wp-auth-nonce'] ) && is_scalar( $_REQUEST['wp-auth-nonce'] ) ) ? sanitize_text_field( wp_unslash( (string) $_REQUEST['wp-auth-nonce'] ) ) : '';
+		$provider        = ! empty( $_REQUEST['provider'] ) ? sanitize_text_field( wp_unslash( $_REQUEST['provider'] ) ) : false;
+		$redirect_to     = ! empty( $_REQUEST['redirect_to'] ) ? esc_url_raw( wp_unslash( $_REQUEST['redirect_to'] ) ) : '';
+		$is_post_request = isset( $_SERVER['REQUEST_METHOD'] ) && 'POST' === $_SERVER['REQUEST_METHOD'];
+
+		if ( ! is_user_logged_in() ) {
+			wp_safe_redirect( home_url() );
+			exit;
+		}
+
+		$user = wp_get_current_user();
+
+		// Validate the nonce for POST requests. GET requests do not perform actions, and such do not require the nonce (such as the initial request).
+		if ( $is_post_request && ! wp_verify_nonce( $nonce, 'two_factor_revalidate_' . $user->ID ) ) {
+			wp_safe_redirect( home_url() );
+			exit;
+		}
 
 		self::revalidate_login_form_2fa( $nonce, $provider, $redirect_to, $is_post_request );
 		exit;
@@ -2498,6 +2504,163 @@ class Two_Factor_Core {
 		$message = str_replace( "\t", '', $message );
 
 		return wp_mail( $admin_email, $subject, $message ); // phpcs:ignore WordPressVIPMinimum.Functions.RestrictedFunctions.wp_mail_wp_mail -- Plugin sends a single transactional security email to the site admin.
+	}
+
+	/**
+	 * Notify a user by email that their two-factor authentication settings have changed.
+	 *
+	 * Changing a factor can destroy the account's other active sessions, which is
+	 * indistinguishable from an unauthorized logout unless the account owner is told why it
+	 * happened -- especially when an administrator made the change on their behalf. The
+	 * "sessions logged out" statement is only included when `$sessions_destroyed` is true.
+	 *
+	 * Sites can suppress this email with the `two_factor_notify_user_settings_changed` filter.
+	 *
+	 * @since 0.18.0
+	 *
+	 * @param WP_User $user               The user whose two-factor settings changed.
+	 * @param array   $enabled_providers  Provider keys enabled after the change.
+	 * @param array   $existing_providers Provider keys that were enabled before the change.
+	 * @param bool    $sessions_destroyed Whether the change destroyed other sessions for the user.
+	 *
+	 * @return bool `true` if the email was sent, `false` if there was nothing to report, it was filtered out, or it failed.
+	 */
+	public static function notify_user_two_factor_settings_changed( $user, $enabled_providers, $existing_providers, $sessions_destroyed = false ) {
+		$added_keys   = array_values( array_diff( $enabled_providers, $existing_providers ) );
+		$removed_keys = array_values( array_diff( $existing_providers, $enabled_providers ) );
+
+		if ( ! $added_keys && ! $removed_keys ) {
+			return false;
+		}
+
+		/**
+		 * Filters whether to notify a user when their two-factor settings change.
+		 *
+		 * @since 0.18.0
+		 *
+		 * @param bool    $notify  Whether to send the notification. Default true.
+		 * @param WP_User $user    The user whose two-factor settings changed.
+		 * @param array   $added   Provider keys that were newly enabled.
+		 * @param array   $removed Provider keys that were disabled.
+		 */
+		if ( ! apply_filters( 'two_factor_notify_user_settings_changed', true, $user, $added_keys, $removed_keys ) ) {
+			return false;
+		}
+
+		$switched_locale     = switch_to_user_locale( $user->ID );
+		$supported_providers = self::get_supported_providers_for_user( $user->ID );
+
+		$label_for_key = static function ( $provider_key ) use ( $supported_providers ) {
+			return isset( $supported_providers[ $provider_key ] ) ? $supported_providers[ $provider_key ]->get_label() : $provider_key;
+		};
+
+		$changes = array();
+
+		if ( $added_keys ) {
+			$changes[] = sprintf(
+				/* translators: %s: comma-separated list of two-factor method names that were activated. */
+				__( 'Activated: %s', 'two-factor' ),
+				implode( ', ', array_map( $label_for_key, $added_keys ) )
+			);
+		}
+
+		if ( $removed_keys ) {
+			$changes[] = sprintf(
+				/* translators: %s: comma-separated list of two-factor method names that were deactivated. */
+				__( 'Deactivated: %s', 'two-factor' ),
+				implode( ', ', array_map( $label_for_key, $removed_keys ) )
+			);
+		}
+
+		$self_change = get_current_user_id() === $user->ID;
+
+		if ( $sessions_destroyed ) {
+			if ( $self_change ) {
+				// The current session is kept; only the other sessions are destroyed.
+				$changes[] = __( 'All other open sessions have been logged out.', 'two-factor' );
+			} else {
+				$changes[] = __( 'All open sessions have been logged out.', 'two-factor' );
+			}
+		}
+
+		$site_name = wp_specialchars_decode( get_bloginfo( 'name' ), ENT_QUOTES );
+
+		$message_parts = array(
+			sprintf(
+				/* translators: %s: username. */
+				__( 'Hello %s,', 'two-factor' ),
+				$user->user_login
+			),
+			sprintf(
+				/* translators: %s: site URL. */
+				__( 'This notice confirms that the two-factor authentication methods on your account at %s were just changed.', 'two-factor' ),
+				home_url()
+			),
+		);
+
+		if ( $self_change ) {
+			$closing_parts = array(
+				__( 'If you made this change yourself, no further action is needed.', 'two-factor' ),
+				sprintf(
+					/* translators: %s: URL to the account's security settings. */
+					__( 'If you did NOT make this change, someone else may have access to your account. Please review your security settings at %s and change your password immediately.', 'two-factor' ),
+					admin_url( 'profile.php' )
+				),
+			);
+		} else {
+			$closing_parts = array(
+				__( 'This change was made by a site administrator.', 'two-factor' ),
+				__( 'If you have questions about this change, please contact a site administrator.', 'two-factor' ),
+			);
+		}
+
+		$message_parts = array_merge(
+			$message_parts,
+			$changes,
+			$closing_parts,
+			array(
+				__( 'This is an automated notification. If you would like to speak to a site administrator, please contact them directly.', 'two-factor' ),
+				__( 'Regards,', 'two-factor' ),
+				sprintf(
+					/* translators: %s: site name. */
+					__( 'All at %s', 'two-factor' ),
+					$site_name
+				),
+				home_url(),
+			)
+		);
+		$message       = wp_strip_all_tags( implode( "\n\n", $message_parts ) );
+
+		$email = array(
+			'to'      => $user->user_email,
+			'subject' => sprintf(
+				/* translators: %s: site name. */
+				__( '[%s] Your two-factor authentication settings have changed', 'two-factor' ),
+				$site_name
+			),
+			'message' => $message,
+			'headers' => '',
+		);
+
+		/**
+		 * Filters the email sent to a user when their two-factor authentication settings change.
+		 *
+		 * @since 0.18.0
+		 *
+		 * @param array   $email   Used to build wp_mail(). Contains 'to', 'subject', 'message', and 'headers'.
+		 * @param WP_User $user    The user whose two-factor settings changed.
+		 * @param array   $added   Provider keys that were newly enabled.
+		 * @param array   $removed Provider keys that were disabled.
+		 */
+		$email = apply_filters( 'two_factor_settings_changed_email', $email, $user, $added_keys, $removed_keys );
+
+		$sent = wp_mail( $email['to'], $email['subject'], $email['message'], $email['headers'] ); // phpcs:ignore WordPressVIPMinimum.Functions.RestrictedFunctions.wp_mail_wp_mail -- Plugin sends a single transactional security email to the affected user.
+
+		if ( $switched_locale ) {
+			restore_previous_locale();
+		}
+
+		return $sent;
 	}
 
 	/**
@@ -2929,6 +3092,7 @@ class Two_Factor_Core {
 	 * This executes during the `personal_options_update` & `edit_user_profile_update` actions.
 	 *
 	 * @since 0.2.0
+	 * @since 0.18.0 Also emails the account owner via Two_Factor_Core::notify_user_two_factor_settings_changed().
 	 *
 	 * @param int $user_id User ID.
 	 */
@@ -2945,11 +3109,10 @@ class Two_Factor_Core {
 				return;
 			}
 
-			$user                    = self::fetch_user( $user_id );
-			$providers               = self::get_supported_providers_for_user( $user_id );
-			$enabled_providers_input = wp_unslash( $_POST[ self::ENABLED_PROVIDERS_USER_META_KEY ] ); // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- Array values are sanitized below.
-			$enabled_providers       = array_map( 'sanitize_text_field', $enabled_providers_input );
-			$existing_providers      = self::get_enabled_providers_for_user( $user_id );
+			$user               = self::fetch_user( $user_id );
+			$providers          = self::get_supported_providers_for_user( $user_id );
+			$enabled_providers  = array_map( 'sanitize_text_field', wp_unslash( $_POST[ self::ENABLED_PROVIDERS_USER_META_KEY ] ) );
+			$existing_providers = self::get_enabled_providers_for_user( $user_id );
 
 			// Enable only the available providers.
 			$enabled_providers = array_intersect_key( $providers, array_flip( $enabled_providers ) );
@@ -2978,7 +3141,7 @@ class Two_Factor_Core {
 			update_user_meta( $user_id, self::ENABLED_PROVIDERS_USER_META_KEY, array_keys( $enabled_providers ) );
 
 			// Primary provider must be enabled.
-			$new_provider = isset( $_POST[ self::PROVIDER_USER_META_KEY ] ) ? sanitize_text_field( wp_unslash( $_POST[ self::PROVIDER_USER_META_KEY ] ) ) : ''; // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- Value sanitized inline.
+			$new_provider = isset( $_POST[ self::PROVIDER_USER_META_KEY ] ) ? sanitize_text_field( wp_unslash( $_POST[ self::PROVIDER_USER_META_KEY ] ) ) : '';
 			if ( ! empty( $new_provider ) && isset( $enabled_providers[ $new_provider ] ) ) {
 				update_user_meta( $user_id, self::PROVIDER_USER_META_KEY, $new_provider );
 			} else {
@@ -3004,12 +3167,14 @@ class Two_Factor_Core {
 			}
 
 			// Destroy other sessions if setup 2FA for the first time, or deactivated a provider.
-			if (
+			$sessions_destroyed = (
 				// No providers, enabling one (or more).
 				( ! $existing_providers && $enabled_providers ) ||
 				// Has providers, and is disabling one (or more), but remaining with 2FA.
 				( $existing_providers && $enabled_providers && array_diff( $existing_providers, array_keys( $enabled_providers ) ) )
-			) {
+			);
+
+			if ( $sessions_destroyed ) {
 				if ( get_current_user_id() === $user_id ) {
 					// Keep the current session, destroy others sessions for this user.
 					wp_destroy_other_sessions();
@@ -3018,6 +3183,8 @@ class Two_Factor_Core {
 					WP_Session_Tokens::get_instance( $user_id )->destroy_all();
 				}
 			}
+
+			self::notify_user_two_factor_settings_changed( $user, array_keys( $enabled_providers ), $existing_providers, $sessions_destroyed );
 		}
 	}
 
