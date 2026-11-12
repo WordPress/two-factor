@@ -177,6 +177,18 @@ class Tests_Two_Factor_Provider extends WP_UnitTestCase {
 	}
 
 	/**
+	 * Verify the base privacy_export_data() returns an empty array.
+	 *
+	 * @covers Two_Factor_Provider::privacy_export_data
+	 */
+	public function test_privacy_export_data_base_returns_empty() {
+		$provider = Two_Factor_Dummy::get_instance();
+		$user     = self::factory()->user->create_and_get();
+
+		$this->assertSame( array(), $provider->privacy_export_data( $user ) );
+	}
+
+	/**
 	 * Verify is_authcode_auto_submit_enabled() defaults to true.
 	 *
 	 * @covers Two_Factor_Provider::is_authcode_auto_submit_enabled
