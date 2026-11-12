@@ -32,18 +32,103 @@
 		}
 	};
 
-	var checkbox = document.getElementById( 'enabled-Two_Factor_Totp' );
+	var $options = $( '#two-factor-totp-options' ),
+		checkbox = document.getElementById( 'enabled-Two_Factor_Totp' ),
+		// Markup shown before setup started, restored when the user cancels.
+		idleHtml = '';
 
-	// Focus the auth code input when the checkbox is clicked.
+	var showError = function( response, status, $after ) {
+		var errorMessage =
+				( response &&
+					response.responseJSON &&
+					response.responseJSON.message ) ||
+				( response && response.statusText ) ||
+				status ||
+				'',
+			$error = $( '#totp-setup-error' );
+
+		if ( ! $error.length ) {
+			$error = $(
+				'<div class="error" id="totp-setup-error"><p></p></div>'
+			).insertAfter( $after );
+		}
+
+		$error.find( 'p' ).text( errorMessage );
+
+		$( '#enabled-Two_Factor_Totp' )
+			.prop( 'checked', false )
+			.trigger( 'change' );
+	};
+
+	// Focus the auth code input when the checkbox is clicked, or start setup if it is not open yet.
 	if ( checkbox ) {
 		checkbox.addEventListener( 'click', function( e ) {
-			if ( e.target.checked ) {
-				document.getElementById( 'two-factor-totp-authcode' ).focus();
+			var authcode;
+
+			if ( ! e.target.checked ) {
+				return;
+			}
+
+			authcode = document.getElementById( 'two-factor-totp-authcode' );
+
+			if ( authcode ) {
+				authcode.focus();
+			} else {
+				$options.find( '.setup-totp' ).trigger( 'click' );
 			}
 		} );
 	}
 
-	$( '#two-factor-totp-options' ).on(
+	// The secret and QR code are only requested once the user starts setup.
+	$options.on(
+		'click',
+		'.setup-totp',
+		function( e ) {
+			var $button = $( this );
+
+			e.preventDefault();
+
+			// Drop an error from an earlier attempt so Cancel does not bring it back,
+			// and take the snapshot before the button is disabled.
+			$( '#totp-setup-error' ).remove();
+			idleHtml = $options.html();
+			$button.prop( 'disabled', true );
+
+			wp.apiRequest( {
+				method: 'POST',
+				path: twoFactorTotpAdmin.restPath + '/begin',
+				data: {
+					user_id: parseInt( twoFactorTotpAdmin.userId, 10 )
+				}
+			} )
+				.fail( function( response, status ) {
+					$button.prop( 'disabled', false );
+					showError( response, status, $button );
+				} )
+				.then( function( response ) {
+					$options.html( response.html );
+					generateQrCode( $( '#two-factor-qr-code a' ).attr( 'href' ) );
+					$( '#two-factor-totp-setup-intro' ).trigger( 'focus' );
+				} );
+		}
+	);
+
+	$options.on(
+		'click',
+		'.cancel-totp-setup',
+		function( e ) {
+			e.preventDefault();
+
+			$options.html( idleHtml );
+
+			$( '#enabled-Two_Factor_Totp' )
+				.prop( 'checked', false )
+				.trigger( 'change' );
+			$options.find( '.setup-totp' ).trigger( 'focus' );
+		}
+	);
+
+	$options.on(
 		'click',
 		'.totp-submit',
 		function( e ) {
@@ -63,38 +148,19 @@
 				}
 			} )
 				.fail( function( response, status ) {
-					var errorMessage =
-							( response &&
-								response.responseJSON &&
-								response.responseJSON.message ) ||
-							( response && response.statusText ) ||
-							status ||
-							'',
-						$error = $( '#totp-setup-error' );
-
-					if ( ! $error.length ) {
-						$error = $(
-							'<div class="error" id="totp-setup-error"><p></p></div>'
-						).insertAfter( $( '.totp-submit' ) );
-					}
-
-					$error.find( 'p' ).text( errorMessage );
-
-					$( '#enabled-Two_Factor_Totp' )
-						.prop( 'checked', false )
-						.trigger( 'change' );
+					showError( response, status, $( '.totp-submit' ) );
 					$( '#two-factor-totp-authcode' ).val( '' );
 				} )
 				.then( function( response ) {
 					$( '#enabled-Two_Factor_Totp' )
 						.prop( 'checked', true )
 						.trigger( 'change' );
-					$( '#two-factor-totp-options' ).html( response.html );
+					$options.html( response.html );
 				} );
 		}
 	);
 
-	$( '#two-factor-totp-options' ).on(
+	$options.on(
 		'click',
 		'.button.reset-totp-key',
 		function( e ) {
@@ -107,15 +173,8 @@
 					user_id: parseInt( twoFactorTotpAdmin.userId, 10 )
 				}
 			} ).then( function( response ) {
-				var totpUrl;
-
 				$( '#enabled-Two_Factor_Totp' ).prop( 'checked', false );
-				$( '#two-factor-totp-options' ).html( response.html );
-
-				totpUrl = $( '#two-factor-qr-code a' ).attr( 'href' );
-				if ( totpUrl ) {
-					generateQrCode( totpUrl );
-				}
+				$options.html( response.html );
 			} );
 		}
 	);
