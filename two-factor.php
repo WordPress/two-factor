@@ -184,7 +184,7 @@ function two_factor_filter_enabled_providers( $providers ) {
 	}
 
 	// On the settings page itself, show all providers so admins can change the selection.
-	$current_screen = is_admin() ? get_current_screen() : false;
+	$current_screen  = is_admin() ? get_current_screen() : false;
 	$settings_screen = is_multisite() ? 'settings_page_two-factor-settings-network' : 'settings_page_two-factor-settings';
 	if ( $current_screen && $settings_screen === $current_screen->base ) {
 		return $providers;
