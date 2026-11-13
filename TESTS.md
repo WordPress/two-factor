@@ -213,9 +213,9 @@ Tests the `Two_Factor_CLI_Command` WP-CLI command class. The WP-CLI runtime is n
 - `backup-codes generate` — default and `--count` code counts, regeneration replaces the set, enables the provider so codes are usable at login, session destruction when first enabled, unknown-action and missing-argument errors
 - `unlock` — clears the login throttle for a rate-limited user; no-op message otherwise
 
-### Settings — `tests/settings/class-two-factor-settings.php`
+### Settings Policy — `tests/settings/class-two-factor-settings-policy.php`
 
-**Class:** `Tests_Two_Factor_Settings` · **Group:** `settings`
+**Class:** `Tests_Two_Factor_Settings_Policy` · **Group:** `settings`
 
 Tests the enabled-providers setting in both suites:
 

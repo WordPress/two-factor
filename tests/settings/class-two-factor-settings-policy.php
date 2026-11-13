@@ -6,12 +6,12 @@
  */
 
 /**
- * Class Tests_Two_Factor_Settings
+ * Class Tests_Two_Factor_Settings_Policy
  *
  * @package Two_Factor
  * @group settings
  */
-class Tests_Two_Factor_Settings extends WP_UnitTestCase {
+class Tests_Two_Factor_Settings_Policy extends WP_UnitTestCase {
 
 	/**
 	 * Administrator user ID.
