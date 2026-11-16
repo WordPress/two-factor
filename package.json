@@ -38,7 +38,7 @@
     "qrcode-generator": "^2.0.4"
   },
   "devDependencies": {
-    "@wordpress/env": "^11.16.0",
+    "@wordpress/env": "^12.1.0",
     "@wordpress/eslint-plugin": "^27.0.0",
     "@wordpress/scripts": "^36.0.0",
     "grunt": "^1.6.3",
