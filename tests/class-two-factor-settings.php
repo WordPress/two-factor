@@ -31,6 +31,10 @@ class Tests_Two_Factor_Settings extends WP_UnitTestCase {
 		parent::set_up();
 
 		$this->old_pagenow = isset( $GLOBALS['pagenow'] ) ? $GLOBALS['pagenow'] : null;
+
+		// On multisite the setting is network-wide; see Tests_Two_Factor_Settings_Multisite.
+		$this->skipWithMultisite();
+
 		delete_option( Two_Factor_Core::ENABLED_PROVIDERS_OPTION_KEY );
 		$this->clear_settings_request();
 	}
