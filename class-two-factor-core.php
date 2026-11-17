@@ -124,6 +124,7 @@ class Two_Factor_Core {
 		add_action( 'after_password_reset', array( __CLASS__, 'clear_password_reset_notice' ) );
 		add_action( 'login_form_validate_2fa', array( __CLASS__, 'login_form_validate_2fa' ) );
 		add_action( 'login_form_revalidate_2fa', array( __CLASS__, 'login_form_revalidate_2fa' ) );
+		add_action( 'rest_api_init', array( __CLASS__, 'register_login_rest_routes' ) );
 
 		add_action( 'show_user_profile', array( __CLASS__, 'user_two_factor_options' ) );
 		add_action( 'edit_user_profile', array( __CLASS__, 'user_two_factor_options' ) );
@@ -1838,6 +1839,404 @@ class Two_Factor_Core {
 	}
 
 	/**
+	 * Register the REST routes that complete the second factor without the login screens.
+	 *
+	 * The password step stays with the integrator (for example a custom login
+	 * form that verifies the password and calls create_login_nonce()). These
+	 * routes only accept a login nonce issued by that step, or a logged-in session.
+	 *
+	 * @since NEXT
+	 *
+	 * @return void
+	 */
+	public static function register_login_rest_routes() {
+		$attempt_args = array(
+			'provider' => array(
+				'description'       => __( 'The provider key to authenticate with. Defaults to the primary provider.', 'two-factor' ),
+				'type'              => 'string',
+				'sanitize_callback' => 'sanitize_text_field',
+			),
+			'code'     => array(
+				'description' => __( 'The authentication code. Omit it, and resend, to receive the challenge.', 'two-factor' ),
+				'type'        => 'string',
+			),
+			'resend'   => array(
+				'description' => __( 'Ask the provider to send a new code, for providers that send codes.', 'two-factor' ),
+				'type'        => 'boolean',
+				'default'     => false,
+			),
+		);
+
+		register_rest_route(
+			self::REST_NAMESPACE,
+			'/login',
+			array(
+				'methods'             => WP_REST_Server::CREATABLE,
+				'callback'            => array( __CLASS__, 'rest_login' ),
+				// Public by design: the login nonce issued after the password step is the credential.
+				'permission_callback' => '__return_true',
+				'args'                => array_merge(
+					array(
+						'user_id'     => array(
+							'description' => __( 'The ID of the user completing the login.', 'two-factor' ),
+							'type'        => 'integer',
+							'required'    => true,
+						),
+						'login_nonce' => array(
+							'description' => __( 'The login nonce issued after the password was verified.', 'two-factor' ),
+							'type'        => 'string',
+							'required'    => true,
+						),
+						'remember'    => array(
+							'description' => __( 'Whether the session should persist between browser sessions.', 'two-factor' ),
+							'type'        => 'boolean',
+							'default'     => false,
+						),
+						'redirect_to' => array(
+							'description'       => __( 'The requested destination after logging in.', 'two-factor' ),
+							'type'              => 'string',
+							'sanitize_callback' => static function ( $value ) {
+								return esc_url_raw( (string) $value );
+							},
+						),
+					),
+					$attempt_args
+				),
+			)
+		);
+
+		register_rest_route(
+			self::REST_NAMESPACE,
+			'/revalidate',
+			array(
+				'methods'             => WP_REST_Server::CREATABLE,
+				'callback'            => array( __CLASS__, 'rest_revalidate' ),
+				'permission_callback' => array( __CLASS__, 'rest_revalidate_permissions_check' ),
+				'args'                => $attempt_args,
+			)
+		);
+	}
+
+	/**
+	 * Complete the second factor of a login via the REST API.
+	 *
+	 * Mirrors validate_login_form_2fa(): the login nonce is verified first, the
+	 * attempt goes through the same provider processing, and on success the
+	 * same login completion runs. Instead of rendering a page, every outcome is
+	 * returned as data, and a new login nonce is returned whenever the form
+	 * would have rendered a new one.
+	 *
+	 * @since NEXT
+	 *
+	 * @param WP_REST_Request $request The request.
+	 * @return WP_REST_Response|WP_Error
+	 */
+	public static function rest_login( $request ) {
+		$user  = get_user_by( 'id', (int) $request['user_id'] );
+		$nonce = (string) $request['login_nonce'];
+
+		// The same error for unknown users, missing, expired and mismatched nonces, so nothing is enumerable.
+		if ( ! $user || '' === $nonce || true !== self::verify_login_nonce( $user->ID, $nonce ) ) {
+			return new WP_Error(
+				'two_factor_invalid_login_nonce',
+				__( 'The login session is invalid or has expired. Please log in again.', 'two-factor' ),
+				array( 'status' => 401 )
+			);
+		}
+
+		$provider = self::get_rest_attempt_provider( $user, $request );
+		if ( is_wp_error( $provider ) ) {
+			return self::rest_login_error( $user, $provider );
+		}
+
+		if ( ! self::is_rest_attempt( $request ) ) {
+			return self::rest_login_challenge( $user, $provider, 'challenge' );
+		}
+
+		$result = self::process_provider_attempt( $provider, $user, self::get_rest_attempt_input( $request ) );
+
+		if ( false === $result ) {
+			return self::rest_login_challenge( $user, $provider, 'code_sent' );
+		}
+
+		if ( is_wp_error( $result ) ) {
+			if ( 'two_factor_password_reset_required' === $result->get_error_code() ) {
+				// The password is gone, so this pending login can never be completed.
+				self::delete_login_nonce( $user->ID );
+
+				return $result;
+			}
+
+			do_action( 'wp_login_failed', $user->user_login, $result ); // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedHooknameFound -- Core WordPress action.
+
+			return self::rest_login_error( $user, $result );
+		}
+
+		self::complete_two_factor_login( $user, $provider, (bool) $request['remember'] );
+
+		$redirect_to = self::get_login_redirect_fallback( (string) $request['redirect_to'], $user );
+
+		return rest_ensure_response(
+			array(
+				'result'      => 'authenticated',
+				'user_id'     => $user->ID,
+				'provider'    => $provider->get_key(),
+				'redirect_to' => wp_validate_redirect( $redirect_to, admin_url() ),
+			)
+		);
+	}
+
+	/**
+	 * Check that a revalidation request comes from a logged-in user.
+	 *
+	 * @since NEXT
+	 *
+	 * @return true|WP_Error
+	 */
+	public static function rest_revalidate_permissions_check() {
+		if ( ! is_user_logged_in() ) {
+			return new WP_Error(
+				'rest_not_logged_in',
+				__( 'You are not currently logged in.', 'two-factor' ),
+				array( 'status' => rest_authorization_required_code() )
+			);
+		}
+
+		return true;
+	}
+
+	/**
+	 * Revalidate the second factor for the current session via the REST API.
+	 *
+	 * Mirrors revalidate_login_form_2fa(). Cookie-authenticated REST requests
+	 * already require the `wp_rest` nonce, which takes the place of the form's
+	 * revalidation nonce.
+	 *
+	 * @since NEXT
+	 *
+	 * @param WP_REST_Request $request The request.
+	 * @return WP_REST_Response|WP_Error
+	 */
+	public static function rest_revalidate( $request ) {
+		$user = wp_get_current_user();
+
+		// Revalidation is recorded on the session, so there has to be one (e.g. not an application password).
+		if ( ! self::get_current_user_session() ) {
+			return new WP_Error(
+				'two_factor_session_required',
+				__( 'Two-factor revalidation requires a logged-in browser session.', 'two-factor' ),
+				array( 'status' => 400 )
+			);
+		}
+
+		$provider = self::get_rest_attempt_provider( $user, $request );
+		if ( is_wp_error( $provider ) ) {
+			return $provider;
+		}
+
+		if ( ! self::is_rest_attempt( $request ) ) {
+			return rest_ensure_response( self::get_rest_challenge_data( $user, $provider, 'challenge' ) );
+		}
+
+		$result = self::process_provider_attempt( $provider, $user, self::get_rest_attempt_input( $request ) );
+
+		if ( false === $result ) {
+			return rest_ensure_response( self::get_rest_challenge_data( $user, $provider, 'code_sent' ) );
+		}
+
+		if ( is_wp_error( $result ) ) {
+			do_action( 'wp_login_failed', $user->user_login, $result ); // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedHooknameFound -- Core WordPress action.
+
+			return self::rest_error_response( $result );
+		}
+
+		self::complete_two_factor_revalidation( $user, $provider );
+
+		return rest_ensure_response(
+			array(
+				'result'           => 'revalidated',
+				'user_id'          => $user->ID,
+				'provider'         => $provider->get_key(),
+				'two_factor_login' => self::is_current_user_session_two_factor(),
+			)
+		);
+	}
+
+	/**
+	 * Resolve the provider for a REST authentication attempt.
+	 *
+	 * Unlike get_provider_for_user(), an explicitly requested provider that is
+	 * not available for the user is an error rather than a silent fallback, so
+	 * the client never validates a code against a different provider.
+	 *
+	 * @since NEXT
+	 *
+	 * @param WP_User         $user    The user being authenticated.
+	 * @param WP_REST_Request $request The request.
+	 * @return Two_Factor_Provider|WP_Error
+	 */
+	private static function get_rest_attempt_provider( $user, $request ) {
+		$available = self::get_available_providers_for_user( $user );
+
+		if ( is_wp_error( $available ) ) {
+			// Don't pass the original error data along: it lists the user's stored provider keys.
+			return new WP_Error( $available->get_error_code(), $available->get_error_message(), array( 'status' => 403 ) );
+		}
+
+		$requested = (string) $request['provider'];
+		if ( '' !== $requested && ! isset( $available[ $requested ] ) ) {
+			return new WP_Error(
+				'two_factor_provider_not_enabled',
+				__( 'The requested two-factor provider is not enabled for this user.', 'two-factor' ),
+				array( 'status' => 400 )
+			);
+		}
+
+		$provider = self::get_provider_for_user( $user, '' !== $requested ? $requested : null );
+
+		if ( ! $provider instanceof Two_Factor_Provider ) {
+			return new WP_Error(
+				'two_factor_provider_missing',
+				__( 'Two-factor provider not available for this user.', 'two-factor' ),
+				array( 'status' => 403 )
+			);
+		}
+
+		return $provider;
+	}
+
+	/**
+	 * Whether a REST request carries an authentication attempt, as opposed to asking for the challenge.
+	 *
+	 * @since NEXT
+	 *
+	 * @param WP_REST_Request $request The request.
+	 * @return bool
+	 */
+	private static function is_rest_attempt( $request ) {
+		return ! empty( $request['resend'] ) || '' !== (string) $request['code'];
+	}
+
+	/**
+	 * Build the provider input for a REST authentication attempt.
+	 *
+	 * @since NEXT
+	 *
+	 * @param WP_REST_Request $request The request.
+	 * @return array
+	 */
+	private static function get_rest_attempt_input( $request ) {
+		return array(
+			'code'   => (string) $request['code'],
+			'resend' => ! empty( $request['resend'] ),
+		);
+	}
+
+	/**
+	 * Describe the second factor challenge for a REST client.
+	 *
+	 * Only ever returned after the login nonce or the logged-in session has been
+	 * verified, so it never discloses anything about other users.
+	 *
+	 * @since NEXT
+	 *
+	 * @param WP_User             $user     The user being authenticated.
+	 * @param Two_Factor_Provider $provider The provider to prompt for.
+	 * @param string              $result   The result type, 'challenge' or 'code_sent'.
+	 * @return array
+	 */
+	private static function get_rest_challenge_data( $user, $provider, $result ) {
+		$providers = array();
+		$available = self::get_available_providers_for_user( $user );
+
+		if ( ! is_wp_error( $available ) ) {
+			foreach ( $available as $key => $available_provider ) {
+				$providers[] = array(
+					'key'   => $key,
+					'label' => $available_provider->get_label(),
+				);
+			}
+		}
+
+		return array(
+			'result'    => $result,
+			'user_id'   => $user->ID,
+			'provider'  => $provider->get_key(),
+			'providers' => $providers,
+		);
+	}
+
+	/**
+	 * Return the login challenge with a fresh login nonce.
+	 *
+	 * Like the login form, which renders a new nonce every time it shows the
+	 * prompt, the nonce that was just verified is replaced.
+	 *
+	 * @since NEXT
+	 *
+	 * @param WP_User             $user     The user being authenticated.
+	 * @param Two_Factor_Provider $provider The provider to prompt for.
+	 * @param string              $result   The result type, 'challenge' or 'code_sent'.
+	 * @return WP_REST_Response|WP_Error
+	 */
+	private static function rest_login_challenge( $user, $provider, $result ) {
+		$login_nonce = self::create_login_nonce( $user->ID );
+		if ( ! $login_nonce ) {
+			return new WP_Error( 'two_factor_login_nonce_failed', __( 'Failed to create a login nonce.', 'two-factor' ), array( 'status' => 500 ) );
+		}
+
+		$data                = self::get_rest_challenge_data( $user, $provider, $result );
+		$data['login_nonce'] = $login_nonce['key'];
+		$data['expires']     = $login_nonce['expiration'];
+
+		return rest_ensure_response( $data );
+	}
+
+	/**
+	 * Return a login error with a fresh login nonce, so the client can retry
+	 * just like the login form does after a failed attempt.
+	 *
+	 * @since NEXT
+	 *
+	 * @param WP_User  $user  The user being authenticated.
+	 * @param WP_Error $error The error.
+	 * @return WP_REST_Response|WP_Error
+	 */
+	private static function rest_login_error( $user, $error ) {
+		$login_nonce = self::create_login_nonce( $user->ID );
+		if ( ! $login_nonce ) {
+			return new WP_Error( 'two_factor_login_nonce_failed', __( 'Failed to create a login nonce.', 'two-factor' ), array( 'status' => 500 ) );
+		}
+
+		$data = $error->get_error_data();
+		$data = is_array( $data ) ? $data : array();
+
+		$data['login_nonce'] = $login_nonce['key'];
+		$data['expires']     = $login_nonce['expiration'];
+
+		return self::rest_error_response( new WP_Error( $error->get_error_code(), $error->get_error_message(), $data ) );
+	}
+
+	/**
+	 * Convert an error to a REST response, adding a Retry-After header when rate limited.
+	 *
+	 * @since NEXT
+	 *
+	 * @param WP_Error $error The error.
+	 * @return WP_REST_Response
+	 */
+	private static function rest_error_response( $error ) {
+		$response = rest_convert_error_to_response( $error );
+		$data     = $error->get_error_data();
+
+		if ( is_array( $data ) && ! empty( $data['retry_after'] ) ) {
+			$response->header( 'Retry-After', (string) (int) $data['retry_after'] );
+		}
+
+		return $response;
+	}
+
+	/**
 	 * Login form validation handler.
 	 *
 	 * @since 0.2.0
@@ -1910,14 +2309,63 @@ class Two_Factor_Core {
 			return;
 		}
 
-		self::delete_login_nonce( $user->ID );
-		delete_user_meta( $user->ID, self::USER_RATE_LIMIT_KEY );
-		delete_user_meta( $user->ID, self::USER_FAILED_LOGIN_ATTEMPTS_KEY );
-
 		$rememberme = false;
 		if ( ! empty( $_REQUEST['rememberme'] ) ) { // phpcs:ignore WordPress.Security.NonceVerification.Recommended, WordPress.Security.ValidatedSanitizedInput.MissingUnslash, WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- Request read only after successful verify_login_nonce() in this request.
 			$rememberme = true;
 		}
+
+		self::complete_two_factor_login( $user, $provider, $rememberme );
+
+		// Must be global because that's how login_header() uses it.
+		global $interim_login;
+		$interim_login = isset( $_REQUEST['interim-login'] ); // phpcs:ignore WordPress.WP.GlobalVariablesOverride.Prohibited,WordPress.Security.NonceVerification.Recommended
+
+		if ( $interim_login ) {
+			$customize_login = isset( $_REQUEST['customize-login'] ); // phpcs:ignore WordPress.Security.NonceVerification.Recommended, WordPress.Security.ValidatedSanitizedInput.MissingUnslash, WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- Request read only after successful verify_login_nonce() in this request.
+			if ( $customize_login ) {
+				wp_enqueue_script( 'customize-base' );
+				wp_add_inline_script(
+					'customize-base',
+					'setTimeout( function(){ new wp.customize.Messenger({ url: ' . wp_json_encode( esc_url( wp_customize_url() ) ) . ', channel: \'login\' }).send(\'login\') }, 1000 );'
+				);
+			}
+			$message       = '<p class="message">' . __( 'You have logged in successfully.', 'two-factor' ) . '</p>';
+			$interim_login = 'success'; // phpcs:ignore WordPress.WP.GlobalVariablesOverride.Prohibited
+			login_header( '', $message );
+			?>
+			</div>
+			<?php
+			/** This action is documented in wp-login.php */
+			do_action( 'login_footer' ); // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedHooknameFound -- Core WordPress action.
+			?>
+			</body></html>
+			<?php
+			return;
+		}
+
+		$redirect_to = self::get_login_redirect_fallback( $redirect_to, $user );
+		wp_safe_redirect( $redirect_to );
+		exit;
+	}
+
+	/**
+	 * Complete a login after the second factor has been verified.
+	 *
+	 * Shared by the login form and the REST API: deletes the login nonce, clears
+	 * the rate limit, issues the auth cookies for a session flagged as two-factor
+	 * authenticated, and fires `two_factor_user_authenticated`.
+	 *
+	 * @since NEXT
+	 *
+	 * @param WP_User             $user       The authenticated user.
+	 * @param Two_Factor_Provider $provider   The provider used for authentication.
+	 * @param bool                $rememberme Whether the session should persist between browser sessions.
+	 * @return void
+	 */
+	private static function complete_two_factor_login( $user, $provider, $rememberme ) {
+		self::delete_login_nonce( $user->ID );
+		delete_user_meta( $user->ID, self::USER_RATE_LIMIT_KEY );
+		delete_user_meta( $user->ID, self::USER_FAILED_LOGIN_ATTEMPTS_KEY );
 
 		$session_information_callback = static function ( $session, $user_id ) use ( $provider, $user ) {
 			if ( $user->ID === $user_id ) {
@@ -1950,37 +2398,6 @@ class Two_Factor_Core {
 		do_action( 'two_factor_user_authenticated', $user, $provider );
 
 		remove_filter( 'attach_session_information', $session_information_callback );
-
-		// Must be global because that's how login_header() uses it.
-		global $interim_login;
-		$interim_login = isset( $_REQUEST['interim-login'] ); // phpcs:ignore WordPress.WP.GlobalVariablesOverride.Prohibited,WordPress.Security.NonceVerification.Recommended
-
-		if ( $interim_login ) {
-			$customize_login = isset( $_REQUEST['customize-login'] ); // phpcs:ignore WordPress.Security.NonceVerification.Recommended, WordPress.Security.ValidatedSanitizedInput.MissingUnslash, WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- Request read only after successful verify_login_nonce() in this request.
-			if ( $customize_login ) {
-				wp_enqueue_script( 'customize-base' );
-				wp_add_inline_script(
-					'customize-base',
-					'setTimeout( function(){ new wp.customize.Messenger({ url: ' . wp_json_encode( esc_url( wp_customize_url() ) ) . ', channel: \'login\' }).send(\'login\') }, 1000 );'
-				);
-			}
-			$message       = '<p class="message">' . __( 'You have logged in successfully.', 'two-factor' ) . '</p>';
-			$interim_login = 'success'; // phpcs:ignore WordPress.WP.GlobalVariablesOverride.Prohibited
-			login_header( '', $message );
-			?>
-			</div>
-			<?php
-			/** This action is documented in wp-login.php */
-			do_action( 'login_footer' ); // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedHooknameFound -- Core WordPress action.
-			?>
-			</body></html>
-			<?php
-			return;
-		}
-
-		$redirect_to = self::get_login_redirect_fallback( $redirect_to, $user );
-		wp_safe_redirect( $redirect_to );
-		exit;
 	}
 
 	/**
@@ -2120,23 +2537,7 @@ class Two_Factor_Core {
 			return;
 		}
 
-		// Update the session metadata with the revalidation details.
-		self::update_current_user_session(
-			array(
-				'two-factor-provider' => $provider->get_key(),
-				'two-factor-login'    => time(),
-			)
-		);
-
-		/**
-		 * Fires after a user has been revalidated via two-factor.
-		 *
-		 * @since 0.8.0
-		 *
-		 * @param WP_User               $user     The revalidated user.
-		 * @param Two_Factor_Provider $provider The two-factor provider used for revalidation.
-		 */
-		do_action( 'two_factor_user_revalidated', $user, $provider );
+		self::complete_two_factor_revalidation( $user, $provider );
 
 		// Must be global because that's how login_header() uses it.
 		global $interim_login;
@@ -2160,6 +2561,37 @@ class Two_Factor_Core {
 		$redirect_to = self::get_login_redirect_fallback( $redirect_to, $user );
 		wp_safe_redirect( $redirect_to );
 		exit;
+	}
+
+	/**
+	 * Record a successful revalidation on the current session.
+	 *
+	 * Shared by the revalidation form and the REST API.
+	 *
+	 * @since NEXT
+	 *
+	 * @param WP_User             $user     The revalidated user.
+	 * @param Two_Factor_Provider $provider The provider used for revalidation.
+	 * @return void
+	 */
+	private static function complete_two_factor_revalidation( $user, $provider ) {
+		// Update the session metadata with the revalidation details.
+		self::update_current_user_session(
+			array(
+				'two-factor-provider' => $provider->get_key(),
+				'two-factor-login'    => time(),
+			)
+		);
+
+		/**
+		 * Fires after a user has been revalidated via two-factor.
+		 *
+		 * @since 0.8.0
+		 *
+		 * @param WP_User               $user     The revalidated user.
+		 * @param Two_Factor_Provider $provider The two-factor provider used for revalidation.
+		 */
+		do_action( 'two_factor_user_revalidated', $user, $provider );
 	}
 
 	/**
@@ -2204,10 +2636,42 @@ class Two_Factor_Core {
 			return false;
 		}
 
+		$result = self::process_provider_attempt( $provider, $user );
+
+		if ( is_wp_error( $result ) && 'two_factor_password_reset_required' === $result->get_error_code() ) {
+			self::show_password_reset_error();
+			exit;
+		}
+
+		return $result;
+	}
+
+	/**
+	 * Run a second factor authentication attempt through a provider.
+	 *
+	 * Shared by the login and revalidation forms and the REST API, so all of them
+	 * apply the same rate limiting, failed-attempt accounting, and compromised
+	 * password handling. Nothing is rendered here.
+	 *
+	 * @since NEXT
+	 *
+	 * @param Two_Factor_Provider $provider The Two Factor Provider.
+	 * @param WP_User             $user     The user being authenticated.
+	 * @param array|null          $input    {
+	 *     Optional. The attempt supplied directly, e.g. via the REST API. When null,
+	 *     the provider reads the attempt from the current form request.
+	 *
+	 *     @type string $code   The authentication code.
+	 *     @type bool   $resend Whether a new code was requested.
+	 * }
+	 * @return false|WP_Error|true WP_Error when an error occurs, true when the user is authenticated,
+	 *                             false if the provider handled the request without validating (e.g. resend).
+	 */
+	private static function process_provider_attempt( $provider, $user, $input = null ) {
 		// Rate limit two factor authentication attempts, including pre-processing (e.g. resend).
 		if ( true === self::is_user_rate_limited( $user ) ) {
 			$time_delay = self::get_user_time_delay( $user );
-			$last_login = get_user_meta( $user->ID, self::USER_RATE_LIMIT_KEY, true );
+			$last_login = (int) get_user_meta( $user->ID, self::USER_RATE_LIMIT_KEY, true );
 
 			return new WP_Error(
 				'two_factor_too_fast',
@@ -2215,17 +2679,33 @@ class Two_Factor_Core {
 					/* translators: %s: human-readable time until another attempt is allowed, e.g. "2 minutes". */
 					__( 'Too many incorrect verification codes. Please wait %s and reload this page to try again.', 'two-factor' ),
 					human_time_diff( $last_login + $time_delay )
+				),
+				array(
+					'status'      => 429,
+					'retry_after' => max( 1, $last_login + $time_delay - time() ),
 				)
 			);
 		}
 
 		// Allow the provider to re-send codes, etc.
-		if ( true === $provider->pre_process_authentication( $user ) ) {
+		if ( null === $input ) {
+			$pre_processed = $provider->pre_process_authentication( $user );
+		} else {
+			$pre_processed = $provider->pre_process_authentication_with_args( $user, $input );
+		}
+
+		if ( true === $pre_processed ) {
 			return false;
 		}
 
 		// Ask the provider to verify the second factor.
-		if ( true !== $provider->validate_authentication( $user ) ) {
+		if ( null === $input ) {
+			$is_valid = $provider->validate_authentication( $user );
+		} else {
+			$is_valid = $provider->validate_authentication_code( $user, isset( $input['code'] ) ? (string) $input['code'] : '' );
+		}
+
+		if ( true !== $is_valid ) {
 			// Store the last time a failed login occurred.
 			update_user_meta( $user->ID, self::USER_RATE_LIMIT_KEY, time() );
 
@@ -2235,13 +2715,18 @@ class Two_Factor_Core {
 			if ( ! is_user_logged_in() && self::should_reset_password( $user->ID ) ) {
 				self::reset_compromised_password( $user );
 				self::send_password_reset_emails( $user );
-				self::show_password_reset_error();
-				exit;
+
+				return new WP_Error(
+					'two_factor_password_reset_required',
+					__( 'There have been too many failed two-factor authentication attempts, which often indicates that the password has been compromised. The password has been reset in order to protect the account. If you are the owner of this account, please check your email for instructions on regaining access.', 'two-factor' ),
+					array( 'status' => 403 )
+				);
 			}
 
 			return new WP_Error(
 				'two_factor_invalid',
-				__( 'ERROR: Invalid verification code.', 'two-factor' )
+				__( 'ERROR: Invalid verification code.', 'two-factor' ),
+				array( 'status' => 401 )
 			);
 		}
 

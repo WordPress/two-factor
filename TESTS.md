@@ -97,6 +97,19 @@ The largest test file. Covers the full authentication lifecycle managed by `Two_
 - Uninstall cleanup (user meta and site-wide options)
 - Filter hooks (`two_factor_providers`, `two_factor_primary_provider_for_user`, `two_factor_user_api_login_enable`)
 
+### REST Login Challenge and Revalidation — `tests/class-two-factor-rest-login-api.php`
+
+**Class:** `Tests_Two_Factor_REST_Login_API` · **Groups:** `core`, `rest-login`
+
+Covers `POST /two-factor/1.0/login` and `POST /two-factor/1.0/revalidate`:
+
+- Login completion: auth cookie, two-factor session metadata, `two_factor_user_authenticated`, nonce consumption, `remember`, redirect validation
+- Non-enumerating invalid/expired nonce and unknown-user responses
+- Failed codes (failure accounting, `wp_login_failed`, nonce rotation), codes read only from the REST request, 429 rate limiting with `Retry-After`
+- Compromised-password reset returned as `two_factor_password_reset_required` instead of rendering a page
+- Challenge discovery, provider not enabled, email resend, TOTP, email and recovery-code validation, base provider fallback
+- Revalidation: login and session requirements, session timestamp update, failures, rate limiting
+
 ### Provider Base Class — `tests/providers/class-two-factor-provider.php`
 
 **Class:** `Tests_Two_Factor_Provider` · **Group:** `providers`

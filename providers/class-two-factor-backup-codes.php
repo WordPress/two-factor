@@ -677,6 +677,24 @@ class Two_Factor_Backup_Codes extends Two_Factor_Provider {
 	}
 
 	/**
+	 * Validates a recovery code supplied directly rather than via the login form.
+	 *
+	 * @since NEXT
+	 *
+	 * @param WP_User $user WP_User object of the user being authenticated.
+	 * @param string  $code The submitted recovery code.
+	 * @return bool Whether the code is valid. Valid codes are consumed.
+	 */
+	public function validate_authentication_code( $user, $code ) {
+		$code = $this->sanitize_code( $code );
+		if ( ! $code ) {
+			return false;
+		}
+
+		return $this->validate_code( $user, $code );
+	}
+
+	/**
 	 * Validates a backup code.
 	 *
 	 * Backup Codes are single use and are deleted upon a successful validation.

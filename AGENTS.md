@@ -108,6 +108,8 @@ New providers should follow this pattern rather than registering hooks from outs
 
 Namespace: `two-factor/1.0` (constant `Two_Factor_Core::REST_NAMESPACE`). Each provider that exposes REST endpoints registers its own routes in `register_rest_routes()` called from its constructor.
 
+`Two_Factor_Core::register_login_rest_routes()` registers `POST /login` (completes the second factor for a pending login using the login nonce, without `wp-login.php`) and `POST /revalidate` (revalidates the current session). Both run attempts through the same `process_provider_attempt()` used by the login forms; providers receive REST codes through `validate_authentication_code()` and options such as `resend` through `pre_process_authentication_with_args()`.
+
 ## Code Standards
 
 - PHP 7.4+ compatibility required; enforced by PHPCompatibilityWP.

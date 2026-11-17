@@ -132,6 +132,30 @@ abstract class Two_Factor_Provider {
 	}
 
 	/**
+	 * Allow providers to do extra processing before validating a code that was
+	 * supplied directly, for example through the REST API, rather than through
+	 * the login form request.
+	 *
+	 * Return `true` to stop the validation, for example after sending a new code.
+	 *
+	 * The default implementation falls back to pre_process_authentication(), so
+	 * providers that only read the current request keep their existing behavior.
+	 *
+	 * @since NEXT
+	 *
+	 * @param WP_User $user WP_User object of the user being authenticated.
+	 * @param array   $args {
+	 *     Arguments supplied with the authentication attempt.
+	 *
+	 *     @type bool $resend Whether the user asked for a new code to be sent.
+	 * }
+	 * @return bool
+	 */
+	public function pre_process_authentication_with_args( $user, array $args ) { // phpcs:ignore Generic.CodeAnalysis.UnusedFunctionParameter.FoundAfterLastUsed -- Base implementation keeps the provider interface signature but does not use the arguments.
+		return $this->pre_process_authentication( $user );
+	}
+
+	/**
 	 * Validates the users input token.
 	 *
 	 * @since 0.1-dev
@@ -140,6 +164,25 @@ abstract class Two_Factor_Provider {
 	 * @return boolean
 	 */
 	abstract public function validate_authentication( $user );
+
+	/**
+	 * Validates an authentication code supplied directly, for example through
+	 * the REST API, rather than read from the login form request.
+	 *
+	 * Providers should override this so the code is validated exactly like
+	 * validate_authentication() validates the submitted form field. The default
+	 * implementation falls back to validate_authentication(), so providers that
+	 * only read the current request keep working without changes.
+	 *
+	 * @since NEXT
+	 *
+	 * @param WP_User $user WP_User object of the user being authenticated.
+	 * @param string  $code The authentication code.
+	 * @return bool Whether the code is valid.
+	 */
+	public function validate_authentication_code( $user, $code ) { // phpcs:ignore Generic.CodeAnalysis.UnusedFunctionParameter.FoundAfterLastUsed -- The default implementation falls back to the request-based validation.
+		return (bool) $this->validate_authentication( $user );
+	}
 
 	/**
 	 * Whether this Two Factor provider is configured and available for the user specified.
@@ -202,6 +245,37 @@ abstract class Two_Factor_Provider {
 
 		$code = wp_unslash( $_REQUEST[ $field ] ); // phpcs:ignore WordPress.Security.NonceVerification.Recommended, WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- Caller (core) verifies nonce; value normalized below.
 		$code = preg_replace( '/\s+/', '', $code );
+
+		// Maybe validate the length.
+		if ( $length && strlen( $code ) !== $length ) {
+			return false;
+		}
+
+		return (string) $code;
+	}
+
+	/**
+	 * Sanitizes a code supplied directly to be used as an auth code.
+	 *
+	 * Applies the same whitespace and length normalization as
+	 * sanitize_code_from_request(), and rejects non-string input.
+	 *
+	 * @since NEXT
+	 *
+	 * @param mixed $code   The submitted code.
+	 * @param int   $length The valid expected length of the code.
+	 * @return false|string Auth code on success, false if empty, not a string, or not the expected length.
+	 */
+	public static function sanitize_code( $code, $length = 0 ) {
+		if ( ! is_scalar( $code ) || '' === (string) $code ) {
+			return false;
+		}
+
+		$code = preg_replace( '/\s+/', '', (string) $code );
+
+		if ( '' === $code ) {
+			return false;
+		}
 
 		// Maybe validate the length.
 		if ( $length && strlen( $code ) !== $length ) {
