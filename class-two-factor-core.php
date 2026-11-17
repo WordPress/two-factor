@@ -1810,6 +1810,29 @@ class Two_Factor_Core {
 	}
 
 	/**
+	 * Validate that the current user can edit an existing user.
+	 *
+	 * Capability is checked before existence to avoid exposing user IDs to
+	 * unauthorized callers.
+	 *
+	 * @since NEXT
+	 * @param int $user_id The user ID being accessed.
+	 *
+	 * @return bool|\WP_Error
+	 */
+	public static function rest_api_can_edit_user( $user_id ) {
+		if ( ! current_user_can( 'edit_user', $user_id ) ) {
+			return false;
+		}
+
+		if ( ! self::fetch_user( $user_id ) ) {
+			return new WP_Error( 'rest_user_invalid_id', __( 'Invalid user ID.', 'two-factor' ), array( 'status' => 404 ) );
+		}
+
+		return true;
+	}
+
+	/**
 	 * Validate that the current user can edit the specified user. If two-factor is required by the account, also verify that it's within the revalidation grace period.
 	 *
 	 * @since 0.9.0
@@ -1818,8 +1841,9 @@ class Two_Factor_Core {
 	 * @return bool|\WP_Error
 	 */
 	public static function rest_api_can_edit_user_and_update_two_factor_options( $user_id ) {
-		if ( ! current_user_can( 'edit_user', $user_id ) ) {
-			return false;
+		$can_edit = self::rest_api_can_edit_user( $user_id );
+		if ( true !== $can_edit ) {
+			return $can_edit;
 		}
 
 		if ( ! self::current_user_can_update_two_factor_options( 'save' ) ) {
