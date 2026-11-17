@@ -386,6 +386,36 @@ class Tests_Two_Factor_Totp extends WP_UnitTestCase {
 	}
 
 	/**
+	 * A stored secret that is not base32 (e.g. encrypted by another plugin sharing the
+	 * same meta key) must reject codes instead of throwing a fatal error.
+	 *
+	 * @covers Two_Factor_Totp::validate_code_for_user
+	 */
+	public function test_validate_code_for_user_rejects_non_base32_stored_secret() {
+		$user = new WP_User( self::factory()->user->create() );
+
+		// Mimics an encrypted secret written by Solid / Kadence Security.
+		update_user_meta( $user->ID, Two_Factor_Totp::SECRET_META_KEY, '$t1$c2VjcmV0K2NpcGhlcnRleHQ=' );
+
+		$this->assertTrue( $this->provider->is_available_for_user( $user ), 'TOTP must stay required so the user does not drop to one factor.' );
+		$this->assertFalse( $this->provider->validate_code_for_user( $user, '123456' ) );
+	}
+
+	/**
+	 * A lowercase base32 secret still decodes, so it must keep working.
+	 *
+	 * @covers Two_Factor_Totp::validate_code_for_user
+	 */
+	public function test_validate_code_for_user_accepts_lowercase_stored_secret() {
+		$user = new WP_User( self::factory()->user->create() );
+		$key  = $this->provider->generate_key();
+
+		update_user_meta( $user->ID, Two_Factor_Totp::SECRET_META_KEY, strtolower( $key ) );
+
+		$this->assertTrue( $this->provider->validate_code_for_user( $user, $this->provider->calc_totp( $key ) ) );
+	}
+
+	/**
 	 * Validate that the time returned for a tick is correct.
 	 *
 	 * @covers Two_Factor_Totp::get_authcode_valid_ticktime
