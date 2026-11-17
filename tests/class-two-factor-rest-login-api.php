@@ -461,7 +461,7 @@ class Tests_Two_Factor_REST_Login_API extends WP_Test_REST_TestCase {
 	 * A provider the user has not enabled is rejected instead of silently swapped.
 	 *
 	 * @covers Two_Factor_Core::rest_login
-	 * @covers Two_Factor_Core::get_rest_attempt_provider
+	 * @covers Two_Factor_Core::get_attempt_provider
 	 */
 	public function test_login_provider_not_enabled() {
 		list( $user ) = $this->create_totp_user();
@@ -580,7 +580,7 @@ class Tests_Two_Factor_REST_Login_API extends WP_Test_REST_TestCase {
 	}
 
 	/**
-	 * Revalidation is recorded on the session, so a session is required.
+	 * Without a cookie session, and without an integration reporting one, revalidation is refused.
 	 *
 	 * @covers Two_Factor_Core::rest_revalidate
 	 */
@@ -588,9 +588,105 @@ class Tests_Two_Factor_REST_Login_API extends WP_Test_REST_TestCase {
 		list( $user, $key ) = $this->create_totp_user();
 		wp_set_current_user( $user->ID );
 
+		$revalidated = did_action( 'two_factor_user_revalidated' );
+
 		$response = $this->dispatch( '/revalidate', array( 'code' => Two_Factor_Totp::calc_totp( $key ) ) );
 
 		$this->assertErrorResponse( 'two_factor_session_required', $response, 400 );
+		$this->assertSame( $revalidated, did_action( 'two_factor_user_revalidated' ) );
+	}
+
+	/**
+	 * A non-cookie session (e.g. a bearer token) reported through the filter can revalidate.
+	 *
+	 * @covers Two_Factor_Core::rest_revalidate
+	 * @covers Two_Factor_Core::get_current_session_two_factor_time
+	 * @covers Two_Factor_Core::complete_two_factor_revalidation
+	 */
+	public function test_revalidate_token_session_via_filter() {
+		list( $user, $key ) = $this->create_totp_user();
+		wp_set_current_user( $user->ID );
+
+		// A token integration storing its own "two-factor verified at" time.
+		$verified_at = time() - DAY_IN_SECONDS;
+		$filter      = static function ( $time, $filter_user ) use ( &$verified_at, $user ) {
+			return $filter_user->ID === $user->ID ? $verified_at : $time;
+		};
+		$recorded    = array();
+		$action      = static function ( $revalidated_user, $provider ) use ( &$verified_at, &$recorded ) {
+			$recorded[]  = array( $revalidated_user->ID, $provider->get_key() );
+			$verified_at = time();
+		};
+		add_filter( 'two_factor_current_session_two_factor_time', $filter, 10, 2 );
+		add_action( 'two_factor_user_revalidated', $action, 10, 2 );
+
+		$this->assertFalse( Two_Factor_Core::get_current_user_session(), 'There is no cookie session.' );
+		$this->assertFalse( Two_Factor_Core::current_user_can_update_two_factor_options( 'save' ), 'Revalidation is required before.' );
+
+		$denied = Two_Factor_Core::rest_api_can_edit_user_and_update_two_factor_options( $user->ID );
+		$this->assertWPError( $denied );
+		$this->assertSame( '/two-factor/1.0/revalidate', $denied->get_error_data()['revalidation']['rest_route'] );
+
+		$response = $this->dispatch( '/revalidate', array( 'code' => Two_Factor_Totp::calc_totp( $key ) ) );
+
+		remove_filter( 'two_factor_current_session_two_factor_time', $filter, 10 );
+		remove_action( 'two_factor_user_revalidated', $action, 10 );
+
+		$this->assertSame( 200, $response->get_status() );
+		$this->assertSame( 'revalidated', $response->get_data()['result'] );
+		$this->assertGreaterThanOrEqual( time() - 5, $response->get_data()['two_factor_login'] );
+		$this->assertSame( array( array( $user->ID, 'Two_Factor_Totp' ) ), $recorded );
+		$this->assertGreaterThanOrEqual( time() - 5, $verified_at );
+	}
+
+	/**
+	 * A filtered value of 0 marks a known session that has not passed two-factor yet: it may revalidate.
+	 *
+	 * @covers Two_Factor_Core::rest_revalidate
+	 * @covers Two_Factor_Core::is_current_user_session_two_factor
+	 */
+	public function test_revalidate_token_session_not_yet_two_factor() {
+		list( $user, $key ) = $this->create_totp_user();
+		wp_set_current_user( $user->ID );
+
+		add_filter( 'two_factor_current_session_two_factor_time', '__return_zero' );
+
+		$this->assertFalse( Two_Factor_Core::is_current_user_session_two_factor() );
+
+		$response = $this->dispatch( '/revalidate', array( 'code' => Two_Factor_Totp::calc_totp( $key ) ) );
+
+		remove_filter( 'two_factor_current_session_two_factor_time', '__return_zero' );
+
+		$this->assertSame( 200, $response->get_status() );
+	}
+
+	/**
+	 * A failed revalidation for a token session fires wp_login_failed and not the revalidated action.
+	 *
+	 * @covers Two_Factor_Core::rest_revalidate
+	 */
+	public function test_revalidate_token_session_invalid_code() {
+		list( $user, $key ) = $this->create_totp_user();
+		wp_set_current_user( $user->ID );
+
+		$filter = static function () {
+			return time() - DAY_IN_SECONDS;
+		};
+		add_filter( 'two_factor_current_session_two_factor_time', $filter );
+
+		$failed      = did_action( 'wp_login_failed' );
+		$revalidated = did_action( 'two_factor_user_revalidated' );
+
+		$response = $this->dispatch(
+			'/revalidate',
+			array( 'code' => '000000' === Two_Factor_Totp::calc_totp( $key ) ? '111111' : '000000' )
+		);
+
+		remove_filter( 'two_factor_current_session_two_factor_time', $filter );
+
+		$this->assertErrorResponse( 'two_factor_invalid', $response, 401 );
+		$this->assertSame( $failed + 1, did_action( 'wp_login_failed' ) );
+		$this->assertSame( $revalidated, did_action( 'two_factor_user_revalidated' ) );
 	}
 
 	/**

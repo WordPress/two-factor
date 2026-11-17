@@ -1696,13 +1696,65 @@ class Two_Factor_Core {
 	 * @return int|false The last time the two-factor was validated on success, false if not currently using a 2FA session.
 	 */
 	public static function is_current_user_session_two_factor() {
-		$session = self::get_current_user_session();
+		$time = self::get_current_session_two_factor_time();
 
-		if ( empty( $session['two-factor-login'] ) ) {
+		if ( ! $time ) {
 			return false;
 		}
 
-		return (int) $session['two-factor-login'];
+		return $time;
+	}
+
+	/**
+	 * Get the time the current session last passed two-factor authentication.
+	 *
+	 * Browser sessions record this in the session token metadata. Integrations
+	 * that authenticate requests without a WordPress session cookie (for example
+	 * bearer tokens used by native or headless apps) can supply the time through
+	 * the `two_factor_current_session_two_factor_time` filter, so their sessions
+	 * can revalidate and manage two-factor settings like a browser session.
+	 *
+	 * @since NEXT
+	 *
+	 * @return int|false The time the session last passed two-factor, 0 for a known session
+	 *                   that has not passed two-factor, false when there is no such session.
+	 */
+	public static function get_current_session_two_factor_time() {
+		$user = wp_get_current_user();
+		if ( ! $user->exists() ) {
+			return false;
+		}
+
+		$session = self::get_current_user_session();
+		$time    = ( $session && ! empty( $session['two-factor-login'] ) ) ? (int) $session['two-factor-login'] : false;
+
+		/**
+		 * Filters the time the current session last passed two-factor authentication.
+		 *
+		 * The default comes from the WordPress session cookie metadata. Authentication
+		 * integrations that don't use a session cookie, such as bearer token
+		 * plugins, should return the time their current session passed (or was last
+		 * revalidated with) two-factor. Return 0 for a session that has not passed
+		 * two-factor yet but may revalidate, and false when the request has no
+		 * session two-factor can apply to.
+		 *
+		 * The value is used for the revalidation grace period checks in
+		 * current_user_can_update_two_factor_options() and to authorize
+		 * `POST /two-factor/1.0/revalidate`. Pair it with the
+		 * `two_factor_user_revalidated` action to record revalidations.
+		 *
+		 * @since NEXT
+		 *
+		 * @param int|false $time The time the current session last passed two-factor, or false.
+		 * @param WP_User   $user The current user.
+		 */
+		$time = apply_filters( 'two_factor_current_session_two_factor_time', $time, $user );
+
+		if ( false === $time || null === $time ) {
+			return false;
+		}
+
+		return max( 0, (int) $time );
 	}
 
 	/**
@@ -1824,7 +1876,14 @@ class Two_Factor_Core {
 		}
 
 		if ( ! self::current_user_can_update_two_factor_options( 'save' ) ) {
-			return new WP_Error( 'revalidation_required', __( 'Two Factor Revalidation required.', 'two-factor' ) );
+			return new WP_Error(
+				'revalidation_required',
+				__( 'Two Factor Revalidation required.', 'two-factor' ),
+				array(
+					'status'       => 403,
+					'revalidation' => self::get_revalidation_error_data(),
+				)
+			);
 		}
 
 		/**
@@ -1836,6 +1895,28 @@ class Two_Factor_Core {
 		 * @param int  $user_id  The user ID being updated.
 		 */
 		return apply_filters( 'two_factor_rest_api_can_edit_user', true, $user_id );
+	}
+
+	/**
+	 * Describe how a REST client can revalidate the current session.
+	 *
+	 * Included as `data.revalidation` on revalidation-required REST errors, so
+	 * clients that can't show the revalidation screen know which route to call.
+	 *
+	 * @since NEXT
+	 *
+	 * @return array {
+	 *     @type bool   $required   Always true.
+	 *     @type string $rest_route The REST route that revalidates the current session.
+	 *     @type string $url        The revalidation screen URL, for browser clients.
+	 * }
+	 */
+	public static function get_revalidation_error_data() {
+		return array(
+			'required'   => true,
+			'rest_route' => '/' . self::REST_NAMESPACE . '/revalidate',
+			'url'        => self::get_user_two_factor_revalidate_url(),
+		);
 	}
 
 	/**
@@ -1944,7 +2025,7 @@ class Two_Factor_Core {
 			);
 		}
 
-		$provider = self::get_rest_attempt_provider( $user, $request );
+		$provider = self::get_attempt_provider( $user, (string) $request['provider'] );
 		if ( is_wp_error( $provider ) ) {
 			return self::rest_login_error( $user, $provider );
 		}
@@ -1953,9 +2034,9 @@ class Two_Factor_Core {
 			return self::rest_login_challenge( $user, $provider, 'challenge' );
 		}
 
-		$result = self::process_provider_attempt( $provider, $user, self::get_rest_attempt_input( $request ) );
+		$result = self::verify_authentication_code( $user, $provider->get_key(), self::get_rest_attempt_input( $request ) );
 
-		if ( false === $result ) {
+		if ( is_array( $result ) ) {
 			return self::rest_login_challenge( $user, $provider, 'code_sent' );
 		}
 
@@ -1966,8 +2047,6 @@ class Two_Factor_Core {
 
 				return $result;
 			}
-
-			do_action( 'wp_login_failed', $user->user_login, $result ); // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedHooknameFound -- Core WordPress action.
 
 			return self::rest_login_error( $user, $result );
 		}
@@ -2012,6 +2091,12 @@ class Two_Factor_Core {
 	 * already require the `wp_rest` nonce, which takes the place of the form's
 	 * revalidation nonce.
 	 *
+	 * Requests authenticated without a session cookie (for example bearer
+	 * tokens) are accepted when the `two_factor_current_session_two_factor_time`
+	 * filter reports a session for them. The integration records the
+	 * revalidation from the `two_factor_user_revalidated` action; the cookie
+	 * session metadata is only updated when a cookie session exists.
+	 *
 	 * @since NEXT
 	 *
 	 * @param WP_REST_Request $request The request.
@@ -2020,16 +2105,16 @@ class Two_Factor_Core {
 	public static function rest_revalidate( $request ) {
 		$user = wp_get_current_user();
 
-		// Revalidation is recorded on the session, so there has to be one (e.g. not an application password).
-		if ( ! self::get_current_user_session() ) {
+		// Revalidation is recorded on a session, so there has to be one (e.g. not an application password).
+		if ( ! self::get_current_user_session() && false === self::get_current_session_two_factor_time() ) {
 			return new WP_Error(
 				'two_factor_session_required',
-				__( 'Two-factor revalidation requires a logged-in browser session.', 'two-factor' ),
+				__( 'Two-factor revalidation requires a session that supports two-factor.', 'two-factor' ),
 				array( 'status' => 400 )
 			);
 		}
 
-		$provider = self::get_rest_attempt_provider( $user, $request );
+		$provider = self::get_attempt_provider( $user, (string) $request['provider'] );
 		if ( is_wp_error( $provider ) ) {
 			return $provider;
 		}
@@ -2038,15 +2123,13 @@ class Two_Factor_Core {
 			return rest_ensure_response( self::get_rest_challenge_data( $user, $provider, 'challenge' ) );
 		}
 
-		$result = self::process_provider_attempt( $provider, $user, self::get_rest_attempt_input( $request ) );
+		$result = self::verify_authentication_code( $user, $provider->get_key(), self::get_rest_attempt_input( $request ) );
 
-		if ( false === $result ) {
+		if ( is_array( $result ) ) {
 			return rest_ensure_response( self::get_rest_challenge_data( $user, $provider, 'code_sent' ) );
 		}
 
 		if ( is_wp_error( $result ) ) {
-			do_action( 'wp_login_failed', $user->user_login, $result ); // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedHooknameFound -- Core WordPress action.
-
 			return self::rest_error_response( $result );
 		}
 
@@ -2063,19 +2146,110 @@ class Two_Factor_Core {
 	}
 
 	/**
-	 * Resolve the provider for a REST authentication attempt.
+	 * Verify a second factor code for a user, without rendering anything.
 	 *
-	 * Unlike get_provider_for_user(), an explicitly requested provider that is
-	 * not available for the user is an error rather than a silent fallback, so
-	 * the client never validates a code against a different provider.
+	 * This is the integration API for authentication flows that don't use the
+	 * WordPress login screens or session cookies, such as bearer token or
+	 * headless logins: after the integration has verified the password, it
+	 * calls this with the code the user entered. It applies exactly the same
+	 * processing as the login and revalidation forms (rate limiting, failed
+	 * attempt accounting, `wp_login_failed`, and the compromised password
+	 * reset), but never reads the request, outputs, redirects, or exits.
+	 *
+	 * Completing the login (issuing a session or token) remains the caller's
+	 * job. Callers must only call this after the user's primary credentials
+	 * were verified, and should not reveal its result to anyone else.
 	 *
 	 * @since NEXT
 	 *
-	 * @param WP_User         $user    The user being authenticated.
-	 * @param WP_REST_Request $request The request.
+	 * @param WP_User $user         The user being authenticated.
+	 * @param string  $provider_key The provider key, e.g. `Two_Factor_Totp`. An empty string uses the user's primary provider.
+	 * @param array   $args         {
+	 *     Optional. The attempt.
+	 *
+	 *     @type string $code   The authentication code entered by the user.
+	 *     @type bool   $resend Ask the provider to send a new code instead of validating one (e.g. email).
+	 * }
+	 * @return true|array|WP_Error True when the code is valid. `array( 'status' => 'code_sent' )` when the
+	 *                             provider sent a new code instead. Otherwise a WP_Error with one of the codes:
+	 *                             `two_factor_invalid` (401), `two_factor_too_fast` (429, with `retry_after`
+	 *                             seconds), `two_factor_provider_not_enabled` (400),
+	 *                             `two_factor_password_reset_required` (403, the password was reset and the
+	 *                             login can't be completed), or `two_factor_provider_missing` (403).
+	 */
+	public static function verify_authentication_code( WP_User $user, string $provider_key, array $args = array() ) {
+		$provider = self::get_attempt_provider( $user, $provider_key );
+		if ( is_wp_error( $provider ) ) {
+			return $provider;
+		}
+
+		$code   = isset( $args['code'] ) && is_scalar( $args['code'] ) ? (string) $args['code'] : '';
+		$result = self::process_provider_attempt(
+			$provider,
+			$user,
+			array(
+				'code'   => $code,
+				'resend' => ! empty( $args['resend'] ),
+			)
+		);
+
+		if ( false === $result ) {
+			return array( 'status' => 'code_sent' );
+		}
+
+		return $result;
+	}
+
+	/**
+	 * Describe the second factor challenge for a user.
+	 *
+	 * Only call this after the user's primary credentials were verified: it
+	 * lists the methods the user has enabled. Use is_user_using_two_factor()
+	 * first; a user without two-factor gets an empty challenge.
+	 *
+	 * @since NEXT
+	 *
+	 * @param WP_User $user The user being authenticated.
+	 * @return array {
+	 *     @type string $provider  The key of the provider to prompt for (the primary provider), or an empty string.
+	 *     @type array  $providers List of the available providers, each an array with `key` and `label`.
+	 * }
+	 */
+	public static function get_login_challenge( WP_User $user ) {
+		$providers = array();
+		$available = self::get_available_providers_for_user( $user );
+
+		if ( ! is_wp_error( $available ) ) {
+			foreach ( $available as $key => $available_provider ) {
+				$providers[] = array(
+					'key'   => $key,
+					'label' => $available_provider->get_label(),
+				);
+			}
+		}
+
+		$primary = $providers ? self::get_primary_provider_for_user( $user ) : null;
+
+		return array(
+			'provider'  => $primary instanceof Two_Factor_Provider ? $primary->get_key() : '',
+			'providers' => $providers,
+		);
+	}
+
+	/**
+	 * Resolve the provider for an authentication attempt that names its provider directly.
+	 *
+	 * Unlike get_provider_for_user(), an explicitly requested provider that is
+	 * not available for the user is an error rather than a silent fallback, so
+	 * a code is never validated against a different provider.
+	 *
+	 * @since NEXT
+	 *
+	 * @param WP_User $user      The user being authenticated.
+	 * @param string  $requested The requested provider key, empty for the primary provider.
 	 * @return Two_Factor_Provider|WP_Error
 	 */
-	private static function get_rest_attempt_provider( $user, $request ) {
+	private static function get_attempt_provider( $user, $requested ) {
 		$available = self::get_available_providers_for_user( $user );
 
 		if ( is_wp_error( $available ) ) {
@@ -2083,7 +2257,6 @@ class Two_Factor_Core {
 			return new WP_Error( $available->get_error_code(), $available->get_error_message(), array( 'status' => 403 ) );
 		}
 
-		$requested = (string) $request['provider'];
 		if ( '' !== $requested && ! isset( $available[ $requested ] ) ) {
 			return new WP_Error(
 				'two_factor_provider_not_enabled',
@@ -2092,7 +2265,7 @@ class Two_Factor_Core {
 			);
 		}
 
-		$provider = self::get_provider_for_user( $user, '' !== $requested ? $requested : null );
+		$provider = '' !== $requested ? $available[ $requested ] : self::get_primary_provider_for_user( $user );
 
 		if ( ! $provider instanceof Two_Factor_Provider ) {
 			return new WP_Error(
@@ -2146,23 +2319,13 @@ class Two_Factor_Core {
 	 * @return array
 	 */
 	private static function get_rest_challenge_data( $user, $provider, $result ) {
-		$providers = array();
-		$available = self::get_available_providers_for_user( $user );
-
-		if ( ! is_wp_error( $available ) ) {
-			foreach ( $available as $key => $available_provider ) {
-				$providers[] = array(
-					'key'   => $key,
-					'label' => $available_provider->get_label(),
-				);
-			}
-		}
+		$challenge = self::get_login_challenge( $user );
 
 		return array(
 			'result'    => $result,
 			'user_id'   => $user->ID,
 			'provider'  => $provider->get_key(),
-			'providers' => $providers,
+			'providers' => $challenge['providers'],
 		);
 	}
 
@@ -2295,8 +2458,7 @@ class Two_Factor_Core {
 		if ( true !== $result ) {
 			$error = '';
 			if ( is_wp_error( $result ) ) {
-				do_action( 'wp_login_failed', $user->user_login, $result ); // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedHooknameFound -- Core WordPress action.
-
+				// process_provider_attempt() already fired `wp_login_failed`.
 				$error = $result->get_error_message();
 			}
 
@@ -2526,8 +2688,7 @@ class Two_Factor_Core {
 		if ( true !== $result ) {
 			$error = '';
 			if ( is_wp_error( $result ) ) {
-				do_action( 'wp_login_failed', $user->user_login, $result ); // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedHooknameFound -- Core WordPress action.
-
+				// process_provider_attempt() already fired `wp_login_failed`.
 				$error = $result->get_error_message();
 			}
 
@@ -2575,18 +2736,25 @@ class Two_Factor_Core {
 	 * @return void
 	 */
 	private static function complete_two_factor_revalidation( $user, $provider ) {
-		// Update the session metadata with the revalidation details.
-		self::update_current_user_session(
-			array(
-				'two-factor-provider' => $provider->get_key(),
-				'two-factor-login'    => time(),
-			)
-		);
+		// Update the session metadata with the revalidation details, when there is a cookie session.
+		if ( self::get_current_user_session() ) {
+			self::update_current_user_session(
+				array(
+					'two-factor-provider' => $provider->get_key(),
+					'two-factor-login'    => time(),
+				)
+			);
+		}
 
 		/**
 		 * Fires after a user has been revalidated via two-factor.
 		 *
+		 * Sessions that are not cookie sessions (see the
+		 * `two_factor_current_session_two_factor_time` filter) should record the
+		 * revalidation time from this action.
+		 *
 		 * @since 0.8.0
+		 * @since NEXT Also fires for revalidations through the REST API, including non-cookie sessions.
 		 *
 		 * @param WP_User               $user     The revalidated user.
 		 * @param Two_Factor_Provider $provider The two-factor provider used for revalidation.
@@ -2649,8 +2817,9 @@ class Two_Factor_Core {
 	/**
 	 * Run a second factor authentication attempt through a provider.
 	 *
-	 * Shared by the login and revalidation forms and the REST API, so all of them
-	 * apply the same rate limiting, failed-attempt accounting, and compromised
+	 * Shared by the login and revalidation forms and verify_authentication_code()
+	 * (used by the REST API and other integrations), so all of them apply the same
+	 * rate limiting, failed-attempt accounting, `wp_login_failed`, and compromised
 	 * password handling. Nothing is rendered here.
 	 *
 	 * @since NEXT
@@ -2673,7 +2842,7 @@ class Two_Factor_Core {
 			$time_delay = self::get_user_time_delay( $user );
 			$last_login = (int) get_user_meta( $user->ID, self::USER_RATE_LIMIT_KEY, true );
 
-			return new WP_Error(
+			$error = new WP_Error(
 				'two_factor_too_fast',
 				sprintf(
 					/* translators: %s: human-readable time until another attempt is allowed, e.g. "2 minutes". */
@@ -2685,6 +2854,10 @@ class Two_Factor_Core {
 					'retry_after' => max( 1, $last_login + $time_delay - time() ),
 				)
 			);
+
+			do_action( 'wp_login_failed', $user->user_login, $error ); // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedHooknameFound -- Core WordPress action.
+
+			return $error;
 		}
 
 		// Allow the provider to re-send codes, etc.
@@ -2723,11 +2896,15 @@ class Two_Factor_Core {
 				);
 			}
 
-			return new WP_Error(
+			$error = new WP_Error(
 				'two_factor_invalid',
 				__( 'ERROR: Invalid verification code.', 'two-factor' ),
 				array( 'status' => 401 )
 			);
+
+			do_action( 'wp_login_failed', $user->user_login, $error ); // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedHooknameFound -- Core WordPress action.
+
+			return $error;
 		}
 
 		return true;
@@ -3581,6 +3758,9 @@ class Two_Factor_Core {
 
 		$manager = WP_Session_Tokens::get_instance( $user_id );
 		$session = $manager->get( $token );
+		if ( ! is_array( $session ) ) {
+			return false;
+		}
 
 		// Add any session data.
 		$session = array_merge( $session, $data );
