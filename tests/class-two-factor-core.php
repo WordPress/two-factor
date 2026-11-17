@@ -2060,6 +2060,80 @@ class Test_ClassTwoFactorCore extends WP_UnitTestCase {
 	}
 
 	/**
+	 * Test password reset notification emails can be customized with the full email filters.
+	 *
+	 * @covers Two_Factor_Core::notify_user_password_reset()
+	 * @covers Two_Factor_Core::notify_admin_user_password_reset()
+	 */
+	public function test_password_reset_email_filters() {
+		$user        = self::factory()->user->create_and_get();
+		$mailer      = tests_retrieve_phpmailer_instance();
+		$admin_email = get_option( 'admin_email' );
+
+		add_filter(
+			'two_factor_password_reset_email',
+			function ( $email, $filtered_user ) {
+				return array(
+					'to'      => $filtered_user->user_email,
+					'subject' => 'Custom user subject',
+					'message' => '<p>Custom user body</p>',
+					'headers' => array( 'Content-Type: text/html; charset=UTF-8' ),
+				);
+			},
+			10,
+			2
+		);
+		add_filter(
+			'two_factor_admin_password_reset_email',
+			function ( $email ) {
+				return array( 'subject' => 'Custom admin subject' ) + $email;
+			}
+		);
+
+		Two_Factor_Core::send_password_reset_emails( $user );
+
+		remove_all_filters( 'two_factor_password_reset_email' );
+		remove_all_filters( 'two_factor_admin_password_reset_email' );
+
+		$this->assertCount( 2, $mailer->mock_sent );
+		$this->assertSame( 'Custom user subject', $mailer->mock_sent[0]['subject'] );
+		$this->assertStringContainsString( '<p>Custom user body</p>', $mailer->mock_sent[0]['body'] );
+		$this->assertStringContainsString( 'text/html', $mailer->mock_sent[0]['header'] );
+		$this->assertContains( $admin_email, $mailer->mock_sent[1]['to'][0], 'Partial admin array keeps the default recipient' );
+		$this->assertSame( 'Custom admin subject', $mailer->mock_sent[1]['subject'] );
+
+		reset_phpmailer_instance();
+	}
+
+	/**
+	 * Test an invalid value from the password reset email filters falls back to the default emails.
+	 *
+	 * @covers Two_Factor_Core::notify_user_password_reset()
+	 * @covers Two_Factor_Core::notify_admin_user_password_reset()
+	 */
+	public function test_password_reset_email_filters_invalid_value_uses_default_email() {
+		$user        = self::factory()->user->create_and_get();
+		$mailer      = tests_retrieve_phpmailer_instance();
+		$admin_email = get_option( 'admin_email' );
+
+		add_filter( 'two_factor_password_reset_email', '__return_empty_string' );
+		add_filter( 'two_factor_admin_password_reset_email', '__return_false' );
+
+		Two_Factor_Core::send_password_reset_emails( $user );
+
+		remove_all_filters( 'two_factor_password_reset_email' );
+		remove_all_filters( 'two_factor_admin_password_reset_email' );
+
+		$this->assertCount( 2, $mailer->mock_sent );
+		$this->assertContains( $user->user_email, $mailer->mock_sent[0]['to'][0] );
+		$this->assertStringStartsWith( 'Your password was compromised', $mailer->mock_sent[0]['subject'] );
+		$this->assertContains( $admin_email, $mailer->mock_sent[1]['to'][0] );
+		$this->assertStringStartsWith( 'Compromised password', $mailer->mock_sent[1]['subject'] );
+
+		reset_phpmailer_instance();
+	}
+
+	/**
 	 * Test dont notify admin when filter disabled.
 	 *
 	 * @covers Two_Factor_Core::send_password_reset_emails()
