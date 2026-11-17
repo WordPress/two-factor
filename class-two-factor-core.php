@@ -1207,7 +1207,7 @@ class Two_Factor_Core {
 			sprintf(
 				/* translators: %s: URL to create a new password. */
 				__( 'Your password was reset because of too many failed Two Factor attempts. You will need to <a href="%s">create a new password</a> to regain access. Please check your email for more information.', 'two-factor' ),
-				esc_url( add_query_arg( 'action', 'lostpassword', wp_login_url() ) )
+				esc_url( wp_lostpassword_url() )
 			)
 		);
 
@@ -2352,7 +2352,7 @@ class Two_Factor_Core {
 			esc_html( $user->user_login ),
 			home_url(),
 			'https://wordpress.org/documentation/article/password-best-practices/',
-			esc_url( add_query_arg( 'action', 'lostpassword', wp_login_url() ) )
+			esc_url( wp_lostpassword_url() )
 		);
 		$user_message = str_replace( "\t", '', $user_message );
 
