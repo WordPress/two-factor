@@ -456,6 +456,53 @@ class Two_Factor_Email extends Two_Factor_Provider {
 	}
 
 	/**
+	 * Send a new email code when one was requested with the authentication attempt.
+	 *
+	 * Mirrors pre_process_authentication() for attempts that are not submitted
+	 * through the login form, such as REST requests.
+	 *
+	 * @since NEXT
+	 *
+	 * @param WP_User|false $user WP_User object of the user being authenticated.
+	 * @param array         $args Arguments supplied with the authentication attempt.
+	 * @return bool True when a new code was sent.
+	 */
+	public function pre_process_authentication_with_args( $user, array $args ) {
+		if ( ! ( $user instanceof WP_User ) ) {
+			return false;
+		}
+
+		if ( ! empty( $args['resend'] ) ) {
+			$this->generate_and_email_token( $user );
+			return true;
+		}
+
+		return false;
+	}
+
+	/**
+	 * Validates an email code supplied directly rather than via the login form.
+	 *
+	 * @since NEXT
+	 *
+	 * @param WP_User|false $user WP_User object of the user being authenticated.
+	 * @param string        $code The submitted code.
+	 * @return bool Whether the code is valid.
+	 */
+	public function validate_authentication_code( $user, $code ) {
+		if ( ! ( $user instanceof WP_User ) ) {
+			return false;
+		}
+
+		$code = $this->sanitize_code( $code );
+		if ( ! $code ) {
+			return false;
+		}
+
+		return $this->validate_token( $user->ID, $code );
+	}
+
+	/**
 	 * Whether this Two Factor provider is configured and available for the user specified.
 	 *
 	 * @since 0.1-dev

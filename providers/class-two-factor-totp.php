@@ -591,6 +591,24 @@ class Two_Factor_Totp extends Two_Factor_Provider {
 	}
 
 	/**
+	 * Validates a TOTP code supplied directly rather than via the login form.
+	 *
+	 * @since NEXT
+	 *
+	 * @param WP_User $user WP_User object of the user being authenticated.
+	 * @param string  $code The submitted code.
+	 * @return bool Whether the code is valid for the user and a newer code has not been used.
+	 */
+	public function validate_authentication_code( $user, $code ) {
+		$code = $this->sanitize_code( $code, self::DEFAULT_DIGIT_COUNT );
+		if ( ! $code ) {
+			return false;
+		}
+
+		return $this->validate_code_for_user( $user, $code );
+	}
+
+	/**
 	 * Validates an authentication code for a given user, preventing re-use and older TOTP keys.
 	 *
 	 * @since 0.8.0

@@ -4185,6 +4185,11 @@ class Test_ClassTwoFactorCore extends WP_UnitTestCase {
 
 		$this->assertInstanceOf( WP_Error::class, $result );
 		$this->assertSame( 'revalidation_required', $result->get_error_code() );
+
+		$data = $result->get_error_data();
+		$this->assertSame( 403, $data['status'] );
+		$this->assertTrue( $data['revalidation']['required'] );
+		$this->assertSame( '/two-factor/1.0/revalidate', $data['revalidation']['rest_route'] );
 	}
 
 	/**
