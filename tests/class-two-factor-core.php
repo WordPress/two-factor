@@ -1915,6 +1915,28 @@ class Test_ClassTwoFactorCore extends WP_UnitTestCase {
 	}
 
 	/**
+	 * Test the reset notice links to the site's lost password page.
+	 *
+	 * @covers Two_Factor_Core::maybe_show_reset_password_notice()
+	 */
+	public function test_reset_notice_links_to_lost_password_url() {
+		$user         = self::factory()->user->create_and_get();
+		$errors       = new WP_Error( 'incorrect_password', 'Incorrect password' );
+		$_POST['log'] = $user->user_login;
+		$custom_url   = 'https://example.org/account/lost-password/';
+		$filter       = static function () use ( $custom_url ) {
+			return $custom_url;
+		};
+
+		update_user_meta( $user->ID, Two_Factor_Core::USER_PASSWORD_WAS_RESET_KEY, true );
+		add_filter( 'lostpassword_url', $filter );
+		Two_Factor_Core::maybe_show_reset_password_notice( $errors );
+		remove_filter( 'lostpassword_url', $filter );
+
+		$this->assertStringContainsString( 'href="' . esc_url( $custom_url ) . '"', $errors->get_error_message( 'two_factor_password_reset' ) );
+	}
+
+	/**
 	 * Test no reset notice when _wpnonce is present but invalid.
 	 *
 	 * @covers Two_Factor_Core::maybe_show_reset_password_notice()
@@ -2034,6 +2056,30 @@ class Test_ClassTwoFactorCore extends WP_UnitTestCase {
 		$this->assertCount( 2, $mailer->mock_sent );
 		$this->assertContains( $user->user_email, $mailer->mock_sent[0]['to'][0] );
 		$this->assertContains( $admin_email, $mailer->mock_sent[1]['to'][0] );
+
+		reset_phpmailer_instance();
+	}
+
+	/**
+	 * Test the password reset email links to the site's lost password page.
+	 *
+	 * @covers Two_Factor_Core::notify_user_password_reset()
+	 */
+	public function test_password_reset_email_links_to_lost_password_url() {
+		$user       = self::factory()->user->create_and_get();
+		$mailer     = tests_retrieve_phpmailer_instance();
+		$custom_url = 'https://example.org/account/lost-password/';
+		$filter     = static function () use ( $custom_url ) {
+			return $custom_url;
+		};
+
+		add_filter( 'lostpassword_url', $filter );
+		Two_Factor_Core::notify_user_password_reset( $user );
+		remove_filter( 'lostpassword_url', $filter );
+
+		$this->assertCount( 1, $mailer->mock_sent );
+		$this->assertStringContainsString( 'To pick a new password, please visit ' . $custom_url, $mailer->mock_sent[0]['body'] );
+		$this->assertStringNotContainsString( 'wp-login.php', $mailer->mock_sent[0]['body'] );
 
 		reset_phpmailer_instance();
 	}
