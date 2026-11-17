@@ -2356,7 +2356,30 @@ class Two_Factor_Core {
 		);
 		$user_message = str_replace( "\t", '', $user_message );
 
-		return wp_mail( $user->user_email, __( 'Your password was compromised and has been reset', 'two-factor' ), $user_message ); // phpcs:ignore WordPressVIPMinimum.Functions.RestrictedFunctions.wp_mail_wp_mail -- Plugin sends a single transactional security email to the affected user.
+		$default_email = array(
+			'to'      => $user->user_email,
+			'subject' => __( 'Your password was compromised and has been reset', 'two-factor' ),
+			'message' => $user_message,
+			'headers' => '',
+		);
+
+		/**
+		 * Filters the email sent to a user when their password has been compromised and reset.
+		 *
+		 * This can only change the email's content, not whether it is sent.
+		 *
+		 * @since 0.18.0
+		 *
+		 * @param array   $email Used to build wp_mail(). Contains 'to', 'subject', 'message', and 'headers'.
+		 * @param WP_User $user  The user whose password was reset.
+		 */
+		$email = apply_filters( 'two_factor_password_reset_email', $default_email, $user );
+		if ( ! is_array( $email ) ) {
+			$email = $default_email;
+		}
+		$email = wp_parse_args( $email, $default_email );
+
+		return wp_mail( $email['to'], $email['subject'], $email['message'], $email['headers'] ); // phpcs:ignore WordPressVIPMinimum.Functions.RestrictedFunctions.wp_mail_wp_mail -- Plugin sends a single transactional security email to the affected user.
 	}
 
 	/**
@@ -2392,7 +2415,31 @@ class Two_Factor_Core {
 		);
 		$message = str_replace( "\t", '', $message );
 
-		return wp_mail( $admin_email, $subject, $message ); // phpcs:ignore WordPressVIPMinimum.Functions.RestrictedFunctions.wp_mail_wp_mail -- Plugin sends a single transactional security email to the site admin.
+		$default_email = array(
+			'to'      => $admin_email,
+			'subject' => $subject,
+			'message' => $message,
+			'headers' => '',
+		);
+
+		/**
+		 * Filters the email sent to the site admin when a user's password has been compromised and reset.
+		 *
+		 * This can only change the email's content, not whether it is sent. Use the
+		 * `two_factor_notify_admin_user_password_reset` filter to disable it.
+		 *
+		 * @since 0.18.0
+		 *
+		 * @param array   $email Used to build wp_mail(). Contains 'to', 'subject', 'message', and 'headers'.
+		 * @param WP_User $user  The user whose password was reset.
+		 */
+		$email = apply_filters( 'two_factor_admin_password_reset_email', $default_email, $user );
+		if ( ! is_array( $email ) ) {
+			$email = $default_email;
+		}
+		$email = wp_parse_args( $email, $default_email );
+
+		return wp_mail( $email['to'], $email['subject'], $email['message'], $email['headers'] ); // phpcs:ignore WordPressVIPMinimum.Functions.RestrictedFunctions.wp_mail_wp_mail -- Plugin sends a single transactional security email to the site admin.
 	}
 
 	/**

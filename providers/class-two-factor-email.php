@@ -356,7 +356,32 @@ class Two_Factor_Email extends Two_Factor_Provider {
 		 */
 		$message = apply_filters( 'two_factor_email_token_message', $message, $token, $user->ID );
 
-		return wp_mail( $user->user_email, $subject, $message ); // phpcs:ignore WordPressVIPMinimum.Functions.RestrictedFunctions.wp_mail_wp_mail
+		$default_email = array(
+			'to'      => $user->user_email,
+			'subject' => $subject,
+			'message' => $message,
+			'headers' => '',
+		);
+
+		/**
+		 * Filters the full token email before it is sent.
+		 *
+		 * Runs after the subject and message filters. This can change the email's content,
+		 * including headers such as Content-Type, but cannot stop it from being sent.
+		 *
+		 * @since 0.18.0
+		 *
+		 * @param array   $email Used to build wp_mail(). Contains 'to', 'subject', 'message', and 'headers'.
+		 * @param WP_User $user  The user receiving the login code.
+		 * @param string  $token The token.
+		 */
+		$email = apply_filters( 'two_factor_email_token_email', $default_email, $user, $token );
+		if ( ! is_array( $email ) ) {
+			$email = $default_email;
+		}
+		$email = wp_parse_args( $email, $default_email );
+
+		return wp_mail( $email['to'], $email['subject'], $email['message'], $email['headers'] ); // phpcs:ignore WordPressVIPMinimum.Functions.RestrictedFunctions.wp_mail_wp_mail
 	}
 
 	/**

@@ -438,6 +438,77 @@ class Tests_Two_Factor_Email extends WP_UnitTestCase {
 	}
 
 	/**
+	 * Test that the full token email, including headers, can be filtered.
+	 *
+	 * @covers Two_Factor_Email::generate_and_email_token
+	 */
+	public function test_email_token_email_filter() {
+		$user = self::factory()->user->create_and_get();
+
+		add_filter(
+			'two_factor_email_token_email',
+			function ( $email, $filtered_user, $token ) {
+				return array(
+					'to'      => 'custom@example.org',
+					'subject' => "Code {$token}",
+					'message' => "<p>Hello {$filtered_user->user_login}</p>",
+					'headers' => array( 'Content-Type: text/html; charset=UTF-8' ),
+				);
+			},
+			10,
+			3
+		);
+
+		$this->provider->generate_and_email_token( $user );
+		$sent = end( self::$mockmailer->mock_sent );
+
+		remove_all_filters( 'two_factor_email_token_email' );
+
+		$this->assertContains( 'custom@example.org', $sent['to'][0], 'Recipient matches the filter value' );
+		$this->assertStringStartsWith( 'Code ', $sent['subject'], 'Subject matches the filter value' );
+		$this->assertStringContainsString( '<p>Hello ' . $user->user_login . '</p>', $sent['body'], 'Body matches the filter value' );
+		$this->assertStringContainsString( 'text/html', $sent['header'], 'Content-Type header is applied' );
+	}
+
+	/**
+	 * Test that an invalid or partial value from the full token email filter falls back to the defaults.
+	 *
+	 * @covers Two_Factor_Email::generate_and_email_token
+	 */
+	public function test_email_token_email_filter_invalid_value_uses_default_email() {
+		$user = self::factory()->user->create_and_get();
+
+		add_filter(
+			'two_factor_email_token_email',
+			function () {
+				return 'invalid';
+			}
+		);
+
+		$this->provider->generate_and_email_token( $user );
+		$invalid_sent = end( self::$mockmailer->mock_sent );
+
+		remove_all_filters( 'two_factor_email_token_email' );
+
+		add_filter(
+			'two_factor_email_token_email',
+			function ( $email ) {
+				return array( 'subject' => 'Partial subject' ) + $email;
+			}
+		);
+
+		$this->provider->generate_and_email_token( $user );
+		$partial_sent = end( self::$mockmailer->mock_sent );
+
+		remove_all_filters( 'two_factor_email_token_email' );
+
+		$this->assertContains( $user->user_email, $invalid_sent['to'][0], 'Invalid value keeps the default recipient' );
+		$this->assertStringContainsString( 'Login confirmation code', $invalid_sent['subject'], 'Invalid value keeps the default subject' );
+		$this->assertContains( $user->user_email, $partial_sent['to'][0], 'Partial array keeps the default recipient' );
+		$this->assertSame( 'Partial subject', $partial_sent['subject'], 'Partial array overrides the given key' );
+	}
+
+	/**
 	 * Test that the token email subject can be filtered.
 	 * Tests cover current and deprecated filters.
 	 *
