@@ -108,7 +108,9 @@ New providers should follow this pattern rather than registering hooks from outs
 
 Namespace: `two-factor/1.0` (constant `Two_Factor_Core::REST_NAMESPACE`). Each provider that exposes REST endpoints registers its own routes in `register_rest_routes()` called from its constructor.
 
-`Two_Factor_Core::register_login_rest_routes()` registers `POST /login` (completes the second factor for a pending login using the login nonce, without `wp-login.php`) and `POST /revalidate` (revalidates the current session). Both run attempts through the same `process_provider_attempt()` used by the login forms; providers receive REST codes through `validate_authentication_code()` and options such as `resend` through `pre_process_authentication_with_args()`.
+`Two_Factor_Core::register_login_rest_routes()` registers `POST /login` (completes the second factor for a pending login using the login nonce, without `wp-login.php`) and `POST /revalidate` (revalidates the current session). Both verify codes through `Two_Factor_Core::verify_authentication_code()`, the public non-rendering verification API for any authentication integration (bearer tokens, headless). It shares `process_provider_attempt()` with the login forms; providers receive codes through `validate_authentication_code()` and options such as `resend` through `pre_process_authentication_with_args()`. `get_login_challenge()` describes the challenge.
+
+Non-cookie sessions report when they passed two-factor through the `two_factor_current_session_two_factor_time` filter (read via `get_current_session_two_factor_time()`), which drives `is_current_user_session_two_factor()`, the revalidation grace checks and `/revalidate` access. Integrations record revalidations from `two_factor_user_revalidated`.
 
 ## Code Standards
 
